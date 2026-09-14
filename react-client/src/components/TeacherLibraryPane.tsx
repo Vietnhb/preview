@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import type { LibraryFolder, LibraryItem } from "../types/physlive";
 import Icon from "./LearningIcon";
+import LibraryItemActions from "./LibraryItemActions";
 
 type Props = {
   folders: LibraryFolder[];
@@ -20,6 +21,14 @@ export default function TeacherLibraryPane({ folders, items, currentSimulationId
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
+  const renderItem = (item: LibraryItem) => <div key={item.id} className="learn-library-item">
+    <button type="button" className={item.simulationId === currentSimulationId ? "active" : ""}
+      disabled={openingId === item.id} onClick={() => void onOpen(item)}>
+      <span>{openingId === item.id ? "Đang mở…" : item.title}</span>
+      <small>{item.topic ?? "Physics"} · {item.validationStatus}</small>
+    </button>
+    <LibraryItemActions item={item} folders={folders} />
+  </div>;
   const normalizedQuery = query.trim().toLocaleLowerCase("vi");
   const visibleItems = useMemo(() => normalizedQuery
     ? items.filter(item => `${item.title} ${item.topic ?? ""}`.toLocaleLowerCase("vi").includes(normalizedQuery))
@@ -64,18 +73,13 @@ export default function TeacherLibraryPane({ folders, items, currentSimulationId
       {visibleFolders.map(folder => <details className="learn-library-folder" key={folder.id} open>
         <summary className="learn-library-folder-name"><Icon name="folder" /><strong title={folder.name}>{folder.name}</strong><small>{grouped.get(folder.id)?.length ?? 0}</small></summary>
         <div className="learn-library-items">
-          {(grouped.get(folder.id) ?? []).map(item => <button type="button" key={item.id}
-            className={item.simulationId === currentSimulationId ? "active" : ""}
-            disabled={openingId === item.id} onClick={() => void onOpen(item)}>
-            <span>{openingId === item.id ? "Đang mở…" : item.title}</span>
-            <small>{item.topic ?? "Physics"} · {item.validationStatus}</small>
-          </button>)}
+          {(grouped.get(folder.id) ?? []).map(renderItem)}
           {(grouped.get(folder.id)?.length ?? 0) === 0 && <p>Chưa có mô phỏng</p>}
         </div>
       </details>)}
       {visibleItems.some(item => !item.folderId) && <details className="learn-library-folder legacy" open>
         <summary className="learn-library-folder-name"><Icon name="folder" /><strong>Chưa phân loại</strong><small>{visibleItems.filter(item => !item.folderId).length}</small></summary>
-        <div className="learn-library-items">{visibleItems.filter(item => !item.folderId).map(item => <button type="button" key={item.id} disabled={openingId === item.id} onClick={() => void onOpen(item)}><span>{item.title}</span><small>{item.topic ?? "Physics"} · bản lưu cũ</small></button>)}</div>
+        <div className="learn-library-items">{visibleItems.filter(item => !item.folderId).map(renderItem)}</div>
       </details>}
       {!loading && !error && normalizedQuery && visibleFolders.length === 0 && !visibleItems.some(item => !item.folderId) && <p className="learn-library-state">Không tìm thấy thư mục hoặc mô phỏng phù hợp.</p>}
     </div>

@@ -34,6 +34,7 @@ export default function CanvasPhysicsScene(props: CanvasPhysicsSceneProps) {
 
   useEffect(() => {
     const root = document.documentElement;
+    setDarkMode(root.dataset.themeEffective === "dark");
     const observer = new MutationObserver(() => setDarkMode(root.dataset.themeEffective === "dark"));
     observer.observe(root, { attributes: true, attributeFilter: ["data-theme-effective"] });
     return () => observer.disconnect();

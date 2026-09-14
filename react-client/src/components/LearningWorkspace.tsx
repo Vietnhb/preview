@@ -81,7 +81,7 @@ export function LearningHeader({ onNewSimulation, viewMode = "2d", threeDEnabled
       </div>
       {onToggleLibrary && <button type="button" className="learn-header-icon" aria-label={libraryCollapsed ? "Mở thư viện" : "Thu gọn thư viện"} title={libraryCollapsed ? "Mở thư viện" : "Thu gọn thư viện"} onClick={onToggleLibrary}><Icon name="panel" /></button>}
     </div>
-    <nav className="learn-journey" aria-label="Điều hướng workspace"><Link to="/workspace" aria-current={pathname === "/workspace" ? "page" : undefined} className={pathname === "/workspace" ? "active" : ""}>Workspace đề bài</Link><Link to="/models" aria-current={pathname === "/models" ? "page" : undefined} className={pathname === "/models" ? "active" : ""}>Không gian mô phỏng</Link><Link to="/lab" aria-current={pathname === "/lab" ? "page" : undefined} className={pathname === "/lab" ? "active" : ""}>Phòng thí nghiệm</Link></nav>
+    <nav className="learn-journey" aria-label="Điều hướng workspace"><Link to="/workspace" aria-current={pathname === "/workspace" ? "page" : undefined} className={pathname === "/workspace" ? "active" : ""}>Workspace đề bài</Link><Link to="/assignments/workspace" aria-current={pathname === "/assignments/workspace" ? "page" : undefined} className={pathname === "/assignments/workspace" ? "active" : ""}>Giao bài</Link><Link to="/lab" aria-current={pathname === "/lab" ? "page" : undefined} className={pathname === "/lab" ? "active" : ""}>Phòng thí nghiệm</Link></nav>
     <div className="learn-header-actions">
       {onNewSimulation && <button type="button" className="learn-header-action" onClick={onNewSimulation}>Nhập đề</button>}
       <div className="learn-view-switch" role="group" aria-label="Chế độ hiển thị">
@@ -89,7 +89,7 @@ export function LearningHeader({ onNewSimulation, viewMode = "2d", threeDEnabled
         <button type="button" className={viewMode === "3d" ? "active" : ""} aria-pressed={viewMode === "3d"} disabled={!threeDEnabled} onClick={() => onViewModeChange?.("3d")} title={threeDEnabled ? "Hiển thị không gian 3D" : "3D chưa được cung cấp cho schema này"}><Icon name="view3d" />3D</button>
       </div>
       <button type="button" className="learn-header-icon" aria-label="Toàn màn hình" title="Toàn màn hình" onClick={() => void toggleFullscreen()}><Icon name="fullscreen" /></button>
-      <Link className="learn-header-action" to="/models">Khám phá mô hình</Link>
+      <Link className="learn-header-action" to="/assignments/workspace">Giao bài</Link>
       <Link className="learn-back" to="/"><Icon name="back" />Về đề bài</Link>
     </div>
   </header>;
@@ -414,7 +414,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
               { value: "problem", label: "Xuất" }
             ]} value={inspector} onChange={setInspector} />
             {user?.role === "TEACHER" && simulation.valid && (savedItem
-              ? <Link className="learn-library-link" to={`/assignments?libraryItemId=${savedItem.id}`}>Giao bài</Link>
+              ? <Link className="learn-library-link" to={`/assignments/workspace?libraryItemId=${savedItem.id}`}>Giao bài</Link>
               : <button type="button" className="learn-save-button" onClick={() => setShowSave(value => !value)}>Lưu</button>)}
           </div>
           <div key={inspector} className="learn-inspector-body" id="inspector-panel" role="tabpanel" aria-labelledby={`inspector-${inspector}`} tabIndex={0}>

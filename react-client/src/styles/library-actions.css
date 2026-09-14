@@ -1,0 +1,27 @@
+.learning-app .learn-library-item { position: relative; min-width: 0; margin-bottom: 4px; }
+.learning-app .learn-library-item > button:first-child { padding-right: 42px; border-radius: 10px; }
+.learning-app .learn-library-items .learn-library-item > .library-more { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; min-height: 32px; padding: 4px; border: 0; border-radius: 8px; background: transparent; color: #64748b; }
+.learning-app .learn-library-items .learn-library-item > .library-more:hover,
+.learning-app .learn-library-items .learn-library-item > .library-more[aria-expanded="true"] { background: #dce5f3; color: #25364d; }
+.library-action-popover { position: fixed; z-index: 10000; width: 232px; max-width: calc(100vw - 16px); max-height: min(304px, calc(100dvh - 16px)); overflow: auto; padding: 6px; border: 1px solid #e2e4e9; border-radius: 16px; background: #fff; color: #292c32; box-shadow: 0 8px 28px #172b4d26; font: 14px/1.4 system-ui, sans-serif; box-sizing: border-box; }
+.library-action-popover button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.library-action-popover button:hover:not(:disabled) { background: #f1f4f8; }
+.library-action-popover button:focus-visible, .library-more:focus-visible { outline: 2px solid #5990dc; outline-offset: -2px; }
+.library-action-popover button:disabled { opacity: .5; cursor: wait; }
+.library-action-popover button svg { flex: 0 0 18px; width: 18px; height: 18px; }
+.library-action-popover button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.library-menu-divider { height: 1px; margin: 4px 2px; background: #e9eaed; }
+.library-menu-label { margin: 8px 10px 4px; color: #858990; font-size: 12px; }
+.library-menu-folders { max-height: 140px; overflow: auto; }
+.library-action-popover .library-menu-danger, .library-menu-error { color: #e13c3c; }
+.library-menu-error, .library-delete-copy { margin: 8px 10px; overflow-wrap: anywhere; }
+.library-action-popover label { display: block; margin: 8px 6px; font-weight: 600; }
+.library-action-popover input { box-sizing: border-box; width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 8px; background: transparent; color: inherit; font: inherit; }
+.library-menu-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
+.library-menu-footer button { width: auto; }
+:root[data-theme-effective="dark"] .library-action-popover { background: #202733; border-color: #465466; color: #e7edf5; }
+:root[data-theme-effective="dark"] .library-action-popover button:hover:not(:disabled) { background: #303c4d; }
+:root[data-theme-effective="dark"] .library-menu-divider { background: #394453; }
+:root[data-theme-effective="dark"] .learning-app .learn-library-items .learn-library-item > .library-more { background: transparent; color: #b8c5d7; }
+:root[data-theme-effective="dark"] .learning-app .learn-library-items .learn-library-item > .library-more:hover,
+:root[data-theme-effective="dark"] .learning-app .learn-library-items .learn-library-item > .library-more[aria-expanded="true"] { background: #38475c; }

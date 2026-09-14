@@ -24,6 +24,21 @@ import java.util.UUID;
 public class LibraryController {
     private final LibraryService libraryService;
 
+    public record MoveRequest(@jakarta.validation.constraints.NotNull UUID folderId) {}
+    public record RenameRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 255) String title) {}
+
+    @org.springframework.web.bind.annotation.PatchMapping("/{id}")
+    @PreAuthorize("hasRole('TEACHER')")
+    public LibraryItemResponse rename(@PathVariable UUID id, @Valid @RequestBody RenameRequest request) {
+        return libraryService.rename(id, request.title());
+    }
+
+    @org.springframework.web.bind.annotation.PatchMapping("/{id}/folder")
+    @PreAuthorize("hasRole('TEACHER')")
+    public LibraryItemResponse move(@PathVariable UUID id, @Valid @RequestBody MoveRequest request) {
+        return libraryService.move(id, request.folderId());
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('TEACHER')")
     public LibraryItemResponse save(@Valid @RequestBody LibrarySaveRequest request) {

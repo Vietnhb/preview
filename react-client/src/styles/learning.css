@@ -626,3 +626,7 @@
 :root[data-theme-effective="dark"] .workspace-start .workspace-examples button, :root[data-theme-effective="dark"] .workspace-start .workspace-card-footer button { color: #c9d7e6; background: #273444; }
 
 @media (max-width: 850px) { .learn-settings-popover { position: fixed; top: 60px; left: 8px; right: 8px; width: auto; } }
+.learn-library-item { min-width: 0; margin-bottom: 8px; }
+.learn-library-item > button { width: 100%; }
+.learn-library-item > select { width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid #dce3ec; border-radius: 8px; background: #fff; color: #52657e; font: inherit; font-size: 11px; }
+.learn-library-item > select:disabled { opacity: .6; }

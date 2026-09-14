@@ -12,7 +12,7 @@ import Reviewer from "./pages/ReviewerConsole";
 import Signup from "./pages/Signup";
 import Curriculum from "./pages/Curriculum";
 import Workspace from "./pages/Workspace";
-import Models from "./pages/Models";
+import AssignmentWorkspace from "./pages/AssignmentWorkspace";
 import Lab from "./pages/Lab";
 import { usePhysliveStore } from "./store/usePhysliveStore";
 import { clearToken, getToken } from "./utils/token";
@@ -21,7 +21,7 @@ import "./styles/app.css";
 
 function App() {
   const pathname = useLocation().pathname;
-  const isFullPage = pathname === "/" || pathname === "/player" || pathname === "/workspace" || pathname === "/models" || pathname === "/lab";
+  const isFullPage = pathname === "/" || pathname === "/player" || pathname === "/workspace" || pathname === "/assignments/workspace" || pathname === "/models" || pathname === "/lab";
   const setUser = usePhysliveStore((state) => state.setUser);
   const [authAttempt, setAuthAttempt] = useState(0);
   const [authError, setAuthError] = useState(false);
@@ -49,7 +49,8 @@ function App() {
     <Route path="/" element={<Home />} />
     <Route path="/player" element={<Navigate to="/workspace" replace />} />
     <Route path="/workspace" element={<Workspace />} />
-    <Route path="/models" element={<Models />} />
+    <Route path="/assignments/workspace" element={<AssignmentWorkspace />} />
+    <Route path="/models" element={<Navigate to={`/assignments/workspace${window.location.search}`} replace />} />
     <Route path="/lab" element={<Lab />} />
     <Route path="/library" element={<Library />} /><Route path="/assignments" element={<Assignments />} />
     <Route path="/admin" element={<Admin />} /><Route path="/reviewer" element={<Reviewer />} />

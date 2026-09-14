@@ -96,8 +96,8 @@ export function presentationFor(simulation: Simulation): VisualizationPresentati
   };
 }
 
-export function paletteFor(theme: string | undefined, darkMode: boolean): CanvasPalette {
-  if (theme === "paper" && !darkMode) {
+export function paletteFor(_theme: string | undefined, darkMode: boolean): CanvasPalette {
+  if (!darkMode) {
     return {
       backgroundTop: "#f8fbff", backgroundBottom: "#eaf0f7", panel: "#ffffff",
       grid: "rgba(148,163,184,.20)", gridStrong: "rgba(100,116,139,.32)",

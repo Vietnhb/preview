@@ -93,6 +93,28 @@ public class LibraryService {
         libraryRepository.save(item);
     }
 
+    @Transactional
+    public LibraryItemResponse rename(java.util.UUID id, String title) {
+        User user = currentUserService.requireCurrentUser();
+        LibraryItem item = libraryRepository.findById(id)
+                .filter(value -> value.isActive() && value.getOwner().getId().equals(user.getId()))
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Library item not found"));
+        item.setTitle(title.trim());
+        return toResponse(libraryRepository.save(item));
+    }
+
+    @Transactional
+    public LibraryItemResponse move(java.util.UUID id, java.util.UUID folderId) {
+        User user = currentUserService.requireCurrentUser();
+        LibraryItem item = libraryRepository.findById(id)
+                .filter(value -> value.isActive() && value.getOwner().getId().equals(user.getId()))
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Library item not found"));
+        LibraryFolder folder = folderRepository.findByIdAndOwnerIdAndActiveTrue(folderId, user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Library folder not found"));
+        item.setFolder(folder);
+        return toResponse(libraryRepository.save(item));
+    }
+
     private LibraryItemResponse toResponse(LibraryItem item) {
         return new LibraryItemResponse(item.getId(), item.getSimulation() == null ? null : item.getSimulation().getId(),
                 item.getFolder() == null ? null : item.getFolder().getId(),

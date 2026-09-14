@@ -31,6 +31,38 @@ import com.example.backend.repository.LessonRepository;
 
 class LibraryServiceTest {
     @Test
+    void movesLegacyItemAndRejectsForeignOrInactiveItemsAndForeignFolders() {
+        LibraryItemRepository library = mock(LibraryItemRepository.class);
+        LibraryFolderRepository folders = mock(LibraryFolderRepository.class);
+        CurrentUserService currentUsers = mock(CurrentUserService.class);
+        LibraryService service = new LibraryService(library, folders, mock(SimulationRepository.class), mock(LessonRepository.class), currentUsers);
+        User teacher = user(7);
+        LibraryFolder destination = folder(teacher);
+        LibraryItem item = new LibraryItem();
+        item.setId(UUID.randomUUID());
+        item.setOwner(teacher);
+        item.setActive(true);
+        item.setTitle("Legacy simulation");
+        item.setSpecification(simulation(SimulationStatus.READY, "PASSED").getSpecification());
+        when(currentUsers.requireCurrentUser()).thenReturn(teacher);
+        when(library.findById(item.getId())).thenReturn(Optional.of(item));
+        when(library.save(any(LibraryItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(folders.findByIdAndOwnerIdAndActiveTrue(destination.getId(), teacher.getId())).thenReturn(Optional.of(destination));
+
+        var response = service.move(item.getId(), destination.getId());
+        assertThat(response.folderId()).isEqualTo(destination.getId());
+        assertThat(response.id()).isEqualTo(item.getId());
+        assertThat(item.getTitle()).isEqualTo("Legacy simulation");
+        assertThat(item.getLesson()).isNull();
+        assertThatThrownBy(() -> service.move(item.getId(), UUID.randomUUID())).hasMessage("Library folder not found");
+        item.setOwner(user(8));
+        assertThatThrownBy(() -> service.move(item.getId(), destination.getId())).hasMessage("Library item not found");
+        item.setOwner(teacher);
+        item.setActive(false);
+        assertThatThrownBy(() -> service.move(item.getId(), destination.getId())).hasMessage("Library item not found");
+    }
+
+    @Test
     void savesOwnedReadySimulationAndReusesItsLibraryRecord() {
         LibraryItemRepository library = mock(LibraryItemRepository.class);
         LibraryFolderRepository folders = mock(LibraryFolderRepository.class);
