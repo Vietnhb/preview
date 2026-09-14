@@ -1,0 +1,27 @@
+spring.application.name=physlive-backend
+server.port=8080
+debug=false
+spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+# Loads backend/.env.local when running from the backend directory.
+spring.config.import=optional:file:.env.local[.properties]
+
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=${JPA_DDL_AUTO:update}
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.defer-datasource-initialization=true
+spring.jpa.open-in-view=false
+
+spring.sql.init.mode=always
+
+# Never enable request-body or SQL parameter logging in shared environments.
+logging.level.root=INFO
+logging.level.org.springframework.web=INFO
+logging.level.org.hibernate.SQL=INFO
+logging.level.org.springframework.core.env=INFO
+spring.mvc.log-request-details=false
+
+jwt.secret=${JWT_SECRET:}
+jwt.expiration=86400000

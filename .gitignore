@@ -1,0 +1,36 @@
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/target/
+**/dist/
+**/build/
+**/.vite/
+**/coverage/
+*.class
+
+# Local IDE files
+**/.idea/
+**/.vs/
+**/.vscode/*
+!**/.vscode/extensions.json
+*.iml
+*.suo
+*.user
+*.userosscache
+
+# Local secrets and config
+backend/src/main/resources/application.properties
+**/.env
+**/.env.*
+!**/.env.example
+*.local
+
+# Generated upgrade logs
+backend/.github/java-upgrade/
+
+# Temporary files
+**/*.log
+**/~$*
+.DS_Store
+Thumbs.db

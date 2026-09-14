@@ -1,0 +1,48 @@
+package com.example.backend.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+
+@Entity
+@Table(name = "library_items")
+@Getter
+@Setter
+public class LibraryItem extends AuditedEntity {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folder_id")
+    private LibraryFolder folder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "simulation_id")
+    private Simulation simulation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "specification_id", nullable = false)
+    private Specification specification;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
+    @Column(nullable = false, length = 160)
+    private String title;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private Visibility visibility = Visibility.PERSONAL;
+
+    @Column(nullable = false)
+    private boolean active = true;
+}

@@ -1,0 +1,11 @@
+package com.example.backend.dto.physics;
+
+public record ValidationCheckpointResponse(
+        double time,
+        String quantity,
+        double numerical,
+        double analytical,
+        double relativeError,
+        double tolerance,
+        boolean passed) {
+}

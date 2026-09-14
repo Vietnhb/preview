@@ -1,0 +1,32 @@
+{
+  "topics": [
+    {
+      "name": "KINEMATICS",
+      "slug": "kinematics",
+      "modules": [
+        {"name":"Linear Motion","slug":"linear-motion","levels":[{"name":"Grade 10","lessons":[{"name":"Distance and Displacement","slug":"distance-and-displacement"},{"name":"Speed and Velocity","slug":"speed-and-velocity"},{"name":"Uniform Linear Motion","slug":"uniform-linear-motion"},{"name":"Acceleration","slug":"acceleration"},{"name":"Uniformly Accelerated Motion","slug":"uniformly-accelerated-motion"}]}]},
+        {"name":"Free Fall","slug":"free-fall","levels":[{"name":"Grade 10","lessons":[{"name":"Free-Fall Motion","slug":"free-fall-motion"},{"name":"Free-Fall Equations","slug":"free-fall-equations"}]}]},
+        {"name":"Projectile Motion","slug":"projectile-motion","levels":[{"name":"Grade 10","lessons":[{"name":"Horizontal Projectile Motion","slug":"horizontal-projectile-motion"},{"name":"Oblique Projectile Motion","slug":"oblique-projectile-motion"}]}]},
+        {"name":"Motion Graphs","slug":"motion-graphs","levels":[{"name":"Grade 10","lessons":[{"name":"Position-Time Graph","slug":"position-time-graph"},{"name":"Velocity-Time Graph","slug":"velocity-time-graph"},{"name":"Acceleration-Time Graph","slug":"acceleration-time-graph"}]}]}
+      ]
+    },
+    {
+      "name": "DYNAMICS",
+      "slug": "dynamics",
+      "modules": [
+        {"name":"Forces and Newton's Laws","slug":"forces-newton-laws","levels":[{"name":"Grade 10","lessons":[{"name":"Force and Acceleration","slug":"force-and-acceleration"},{"name":"Newton's Laws","slug":"newton-laws"},{"name":"Friction","slug":"friction"}]}]},
+        {"name":"Oscillations","slug":"oscillations","levels":[{"name":"Grade 11","lessons":[{"name":"Harmonic Motion","slug":"harmonic-motion"},{"name":"Spring Oscillation","slug":"spring-oscillation"}]}]},
+        {"name":"Momentum and Collisions","slug":"momentum-collisions","levels":[{"name":"Grade 12","lessons":[{"name":"Conservation of Momentum","slug":"conservation-of-momentum"},{"name":"Elastic Collision","slug":"elastic-collision"}]}]}
+      ]
+    },
+    {
+      "name": "CIRCUITS",
+      "slug": "circuits",
+      "modules": [
+        {"name":"Direct Current Circuits","slug":"direct-current-circuits","levels":[{"name":"Grade 11","lessons":[{"name":"Current, Voltage and Resistance","slug":"current-voltage-resistance"},{"name":"Ohm's Law","slug":"ohms-law"},{"name":"Series and Parallel Circuits","slug":"series-parallel-circuits"}]}]},
+        {"name":"Capacitors and RC Circuits","slug":"capacitors-rc","levels":[{"name":"Grade 11","lessons":[{"name":"Capacitance","slug":"capacitance"},{"name":"RC Charging and Discharging","slug":"rc-charging-discharging"}]}]},
+        {"name":"Alternating Current","slug":"alternating-current","levels":[{"name":"Grade 12","lessons":[{"name":"AC Voltage and Current","slug":"ac-voltage-current"}]}]}
+      ]
+    }
+  ]
+}

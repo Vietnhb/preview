@@ -1,0 +1,384 @@
+/* ============================================
+   Workspace Modal - Create Simulation Dialog
+   ============================================ */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(9, 13, 22, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 680px;
+  max-height: 85vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.modal-container-compact {
+  max-width: 480px;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e1e5eb;
+  flex-shrink: 0;
+}
+
+.modal-title-group {
+  flex: 1;
+}
+
+.modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #202b3d;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #617084;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.modal-close-btn:hover {
+  background: #f0f3f7;
+  color: #202b3d;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Input Section */
+
+.modal-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-label {
+  font-size: 13px;
+  font-weight: 650;
+  color: #202b3d;
+  margin: 0;
+}
+
+.modal-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #e1e5eb;
+  border-radius: 10px;
+  background: #fafbfe;
+  color: #202b3d;
+  font-size: 14px;
+}
+
+.modal-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.modal-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e1e5eb;
+  border-radius: 10px;
+  background: #fafbfe;
+  color: #202b3d;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  line-height: 1.6;
+  resize: vertical;
+  transition: all 0.15s ease;
+}
+
+.modal-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.modal-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.modal-input-hint {
+  font-size: 12px;
+  color: #617084;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #fffbf0;
+  border-radius: 8px;
+  border: 1px solid #fde68a;
+}
+
+/* Examples Section */
+
+.modal-examples-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-examples-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #617084;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.modal-examples-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.modal-example-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #e1e5eb;
+  background: #ffffff;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-example-card:hover:not(:disabled) {
+  border-color: #2563eb;
+  background: #f0f6ff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+.modal-example-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-example-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.modal-example-text {
+  flex: 1;
+  font-size: 12px;
+  color: #40516a;
+  line-height: 1.5;
+}
+
+/* Footer */
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px 28px;
+  border-top: 1px solid #e1e5eb;
+  background: #fafbfc;
+  flex-shrink: 0;
+}
+
+.modal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.modal-btn-cancel {
+  background: #ffffff;
+  color: #617084;
+  border: 1px solid #e1e5eb;
+}
+
+.modal-btn-cancel:hover:not(:disabled) {
+  background: #f8f9fb;
+  border-color: #d1d5db;
+  color: #40516a;
+}
+
+.modal-btn-primary {
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.modal-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+  transform: translateY(-1px);
+}
+
+.modal-btn-spinner {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Info Banner */
+
+.modal-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f0f6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  margin-top: -8px;
+}
+
+.modal-info-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.modal-info-text {
+  flex: 1;
+  font-size: 12px;
+  color: #1e40af;
+  line-height: 1.6;
+}
+
+.modal-info-text strong {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .modal-container {
+    width: 95%;
+    max-width: none;
+    max-height: 90vh;
+  }
+
+  .modal-header {
+    padding: 20px;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .modal-footer {
+    padding: 16px 20px;
+    flex-direction: column-reverse;
+  }
+
+  .modal-btn {
+    width: 100%;
+  }
+
+  .modal-examples-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-title {
+    font-size: 20px;
+  }
+}

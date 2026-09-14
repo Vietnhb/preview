@@ -1,0 +1,44 @@
+.navbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 68px; margin-left: 248px; padding: 14px max(28px, calc((100vw - 1240px) / 2)); border-bottom: 1px solid #e1e5eb; background: #fbfcfeee; backdrop-filter: blur(12px); }
+.topbar-context { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.topbar-kicker { color: #1967d2; font-size: 11px; font-weight: 800; letter-spacing: .12em; white-space: nowrap; }
+.topbar-title { padding-left: 14px; border-left: 1px solid #dadce0; color: #5f6368; font-size: 13px; white-space: nowrap; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
+.topbar-login, .topbar-logout { color: #174ea6; text-decoration: none; font-size: 13px; font-weight: 750; }
+.topbar-logout { min-height: 34px; padding: 7px 12px; border: 1px solid #c7dcfa; border-radius: 7px; background: #eef3fe; cursor: pointer; }
+.topbar-logout:hover { background: #e2ebfd; }
+.user-chip { display: inline-flex; align-items: center; gap: 8px; color: #3c4043; font-size: 13px; font-weight: 650; }
+.user-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #d2e3fc; color: #174ea6; font-size: 12px; font-weight: 800; }
+.sidebar { position: fixed; inset: 0 auto 0 0; z-index: 11; display: flex; flex-direction: column; width: 248px; padding: 20px 16px 18px; border-right: 1px solid #e1e5eb; background: #f8fafd; }
+.brand { display: inline-flex; align-items: center; gap: 12px; padding: 6px 10px; color: #202124; text-decoration: none; }
+.studio-brand-badge { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #06b6d4); display: flex; align-items: center; justify-content: center; font-size: 19px; color: #ffffff; box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25); flex: 0 0 auto; }
+.brand-text { display: flex; flex-direction: column; min-width: 0; }
+.brand-title { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; color: #0f172a; line-height: 1.2; }
+.brand-subtitle { font-size: 10px; color: #64748b; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.brand-mark { display: none; }
+.sidebar-rule { height: 1px; margin: 20px 12px 22px; background: #e1e5eb; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
+.sidebar-label { padding: 0 12px 8px; color: #80868b; font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+.sidebar-label-spaced { margin-top: 22px; }
+.sidebar-link { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 9px 12px; border-radius: 8px; color: #5f6368; text-decoration: none; font-size: 14px; font-weight: 650; }
+.sidebar-link:hover { background: #eef3fe; color: #174ea6; }
+.sidebar-link.active { background: #e8f0fe; color: #174ea6; font-weight: 750; }
+.nav-icon { width: 19px; height: 19px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.sidebar-footer { margin-top: auto; padding: 14px 12px; border-top: 1px solid #e1e5eb; color: #3c4043; font-size: 11px; line-height: 1.6; }
+.sidebar-footer span:last-child { color: #80868b; }
+.sidebar-footer-dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #34a853; }
+@media (max-width: 900px) {
+  .navbar { margin-left: 0; padding: 12px 18px; }
+  .sidebar { width: 72px; padding: 16px 10px; }
+  .brand { justify-content: center; padding: 6px 0; }
+  .brand > span:last-child, .sidebar-label, .sidebar-link > span, .sidebar-footer, .sidebar-rule { display: none; }
+  .sidebar-link { justify-content: center; padding: 10px; }
+  .sidebar-label-spaced { display: none; }
+  .main, .auth-page { margin-left: 72px !important; width: calc(100vw - 72px) !important; }
+}
+@media (max-width: 640px) {
+  .sidebar { display: none; }
+  .main, .auth-page { margin-left: 0 !important; width: 100% !important; }
+  .topbar-title { display: none; }
+  .topbar-kicker { font-size: 10px; }
+  .user-chip { display: none; }
+}
