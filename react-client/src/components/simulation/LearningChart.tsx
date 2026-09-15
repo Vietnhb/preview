@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { numberLabel, type LearningSeries } from "../utils/learningModel";
+import { numberLabel, type LearningSeries } from "../../utils/learningModel";
 
 export default function LearningChart({ series, times, index, onSeek }: { series: LearningSeries; times: number[]; index: number; onSeek: (time: number) => void }) {
   const host = useRef<HTMLDivElement>(null);

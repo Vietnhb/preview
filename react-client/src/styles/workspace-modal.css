@@ -382,3 +382,32 @@
     font-size: 20px;
   }
 }
+
+.modal-example-card.selected {
+  border-color: #2563eb;
+  background: #f0f6ff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+}
+
+:root[data-theme-effective="dark"] .modal-container {
+  background: #18202b;
+  color: #e8eef7;
+}
+:root[data-theme-effective="dark"] .modal-title { color: #e8eef7; }
+:root[data-theme-effective="dark"] .modal-subtitle,
+:root[data-theme-effective="dark"] .modal-examples-title,
+:root[data-theme-effective="dark"] .modal-label { color: #b8c5d7; }
+:root[data-theme-effective="dark"] .modal-header,
+:root[data-theme-effective="dark"] .modal-footer { border-color: #303a49; background: #141b24; }
+:root[data-theme-effective="dark"] .modal-textarea,
+:root[data-theme-effective="dark"] .modal-select,
+:root[data-theme-effective="dark"] .modal-example-card {
+  background: #10151d;
+  border-color: #303a49;
+  color: #e8eef7;
+}
+:root[data-theme-effective="dark"] .modal-btn-cancel {
+  background: #18202b;
+  border-color: #303a49;
+  color: #b8c5d7;
+}

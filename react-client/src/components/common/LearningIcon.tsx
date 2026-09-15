@@ -1,6 +1,9 @@
 type IconName =
   | "atom"
   | "back"
+  | "login"
+  | "logout"
+  | "menu"
   | "play"
   | "pause"
   | "reset"
@@ -30,6 +33,9 @@ type IconName =
 const paths: Record<IconName, string> = {
   atom: "M12 3c4 0 7 4 7 9s-3 9-7 9-7-4-7-9 3-9 7-9 M3 8c2-3 7-3 11-1s8 6 6 9-7 3-11 1S1 11 3 8 M3 16c-2-3 2-7 6-9s9-2 11 1-2 7-6 9-9 2-11-1",
   back: "M19 12H5m6-6-6 6 6 6",
+  login: "m10 17 5-5-5-5M15 12H3M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4",
+  logout: "m16 17 5-5-5-5M21 12H9M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4",
+  menu: "M4 6h16M4 12h16M4 18h16",
   play: "m8 5 11 7-11 7Z",
   pause: "M8 5v14M16 5v14",
   reset: "M4 10a8 8 0 1 1 1 8M4 4v6h6",

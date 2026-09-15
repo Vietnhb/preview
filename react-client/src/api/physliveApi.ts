@@ -1,5 +1,5 @@
 import axiosClient from "./axios";
-import type { Assignment, CreateAssignment, Curriculum, LibraryFolder, LibraryItem, Problem, Simulation, Specification, StudentOption, User } from "../types/physlive";
+import type { Assignment, AssignmentSubmission, CreateAssignment, Curriculum, LibraryFolder, LibraryItem, Problem, ProblemSummary, Simulation, Specification, StudentOption, User } from "../types/physlive";
 
 export const createProblem = (text: string) => axiosClient.post<Problem>("/problems", { text, sourceMode: "TEXT" }).then(r => r.data);
 export const createProblemFromImage = (file: File, text?: string) => { const body = new FormData(); body.append("file", file); if (text) body.append("text", text); return axiosClient.post<Problem>("/problems/image", body).then(r => r.data); };
@@ -41,5 +41,9 @@ export const studentOptions = () => axiosClient.get<StudentOption[]>("/user/stud
 export const createAssignment = (request: CreateAssignment) => axiosClient.post<Assignment>("/assignments", request).then(r => r.data);
 export const teacherAssignments = () => axiosClient.get<Assignment[]>("/assignments/mine/teacher").then(r => r.data);
 export const studentAssignments = () => axiosClient.get<Assignment[]>("/assignments/mine/student").then(r => r.data);
+export const assignmentSubmissions = (assignmentId: string) => axiosClient.get<AssignmentSubmission[]>(`/assignments/${assignmentId}/submissions`).then(r => r.data);
+export const submitAssignmentPrediction = (assignmentId: string, predictions: unknown) => axiosClient.post<AssignmentSubmission>(`/assignments/${assignmentId}/predictions`, { predictions }).then(r => r.data);
+export const problemHistory = (page = 0, size = 20) => axiosClient.get<{ content: ProblemSummary[]; totalElements: number; totalPages: number }>("/problems", { params: { page, size } }).then(r => r.data);
+export const getSpecification = (specificationId: string) => axiosClient.get<Specification>(`/specifications/${specificationId}`).then(r => r.data);
 export const adminUsers = () => axiosClient.get<User[]>("/admin/users").then(r => r.data);
 export const validationMetrics = () => axiosClient.get<{ total: number; failed: number; failureRate: number }>("/admin/metrics/validation").then(r => r.data);

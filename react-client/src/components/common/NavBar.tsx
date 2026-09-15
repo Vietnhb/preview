@@ -1,38 +1,248 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import type { ReactNode } from "react";
-import "../styles/NavBar.css";
-import { clearToken, getToken } from "../utils/token";
-import { usePhysliveStore } from "../store/usePhysliveStore";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import "../../styles/NavBar.css";
+import { clearToken } from "../../utils/token";
+import { usePhysliveStore } from "../../store/usePhysliveStore";
+import LearningIcon from "./LearningIcon";
 
-type IconName = "studio" | "player" | "workspace" | "library" | "assignments" | "curriculum" | "reviewer" | "admin";
+type NavItem = {
+  to: string;
+  label: string;
+  icon:
+    | "grid"
+    | "play"
+    | "book"
+    | "folder"
+    | "settings"
+    | "back"
+    | "login"
+    | "logout"
+    | "menu"
+    | "plus";
+};
 
-function NavIcon({ name }: { name: IconName }) {
-    const paths: Record<IconName, string> = {
-        studio: "M4 4h16v16H4z M8 16l3-4 2 2 3-5 2 3",
-        player: "M8 5l11 7-11 7V5z",
-        workspace: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
-        library: "M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5v-12z M4 6h16",
-        assignments: "M7 3h10v4H7z M5 7h14v14H5z M8 11h8 M8 15h6",
-        curriculum: "M4 5h6a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H4z M20 5h-6a3 3 0 0 0-3 3v11a3 3 0 0 1 3-3h6z",
-        reviewer: "M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z M9 12l2 2 4-4",
-        admin: "M12 3l2 2.5 3.2-.3.8 3.1 2.8 1.6-1.6 2.8.8 3.1-3.2.3L12 19l-2-2.5-3.2.3-.8-3.1L3.2 12l1.6-2.8L4 6.1l3.2.3L9 3.9z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"
-    };
-    return <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={paths[name]} /></svg>;
+const navItems: NavItem[] = [
+  { to: "/", label: "Trang chủ", icon: "grid" },
+  { to: "/about", label: "Giới thiệu", icon: "folder" },
+  { to: "/terms", label: "Điều khoản", icon: "book" },
+  { to: "/player", label: "Workspace", icon: "grid" },
+];
+
+const workspaceRoles = new Set(["TEACHER", "REVIEWER", "ADMIN"]);
+
+function NavItemLink({
+  item,
+  onClick,
+}: {
+  item: NavItem;
+  onClick?: () => void;
+}) {
+  return (
+    <Link to={item.to} onClick={onClick} className="learning-nav-link">
+      <LearningIcon name={item.icon} />
+      {item.label}
+    </Link>
+  );
 }
 
-function SidebarLink({ to, name, children }: { to: string; name: IconName; children: ReactNode }) {
-    return <NavLink className={({ isActive }) => `sidebar-link${isActive ? " active" : ""}`} to={to}><NavIcon name={name} /><span>{children}</span></NavLink>;
+function ThemeMenu({ onClose }: { onClose: () => void }) {
+  const setTheme = (theme: "light" | "dark") => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.themeEffective = theme;
+    try {
+      window.localStorage.setItem("physlive.theme", theme);
+    } catch {
+      /* storage may be unavailable */
+    }
+    onClose();
+  };
+  return (
+    <div className="learning-theme-menu" role="menu">
+      <button type="button" role="menuitem" onClick={() => setTheme("light")}>
+        <LearningIcon name="sun" />
+        Sáng
+      </button>
+      <button type="button" role="menuitem" onClick={() => setTheme("dark")}>
+        <LearningIcon name="moon" />
+        Tối
+      </button>
+    </div>
+  );
 }
 
-function NavBar() {
-    const navigate = useNavigate();
-    const user = usePhysliveStore((state) => state.user);
-    const token = getToken();
-    const logout = () => { clearToken(); navigate("/login"); window.location.reload(); };
+export default function NavBar() {
+  const navigate = useNavigate();
+  const user = usePhysliveStore((state) => state.user);
+  const setUser = usePhysliveStore((state) => state.setUser);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const logout = () => {
+    clearToken();
+    setUser(null);
+    setMobileOpen(false);
+    navigate("/login");
+  };
+  const visibleItems = navItems.filter(
+    (item) =>
+      item.to !== "/player" || workspaceRoles.has(user?.role ?? ""),
+  );
 
-    return <>
-        <header className="navbar"><div className="topbar-context"><span className="topbar-kicker">PHYSLIVE / STUDIO</span><span className="topbar-title">Interactive physics workspace</span></div><div className="topbar-actions">{user && <span className="user-chip"><span className="user-avatar">{user.fullName.slice(0, 1).toUpperCase()}</span>{user.fullName}</span>}{!token ? <NavLink className="topbar-login" to="/login">Đăng nhập</NavLink> : <button className="topbar-logout" onClick={logout}>Đăng xuất</button>}</div></header>
-        <aside className="sidebar"><Link className="brand" to="/"><div className="studio-brand-badge">⚛️</div><div className="brand-text"><span className="brand-title">PhysLive</span><span className="brand-subtitle">Interactive Studio</span></div></Link><div className="sidebar-rule" /><nav className="sidebar-nav" aria-label="Điều hướng chính"><span className="sidebar-label">Làm việc</span><SidebarLink to="/workspace" name="workspace">Workspace</SidebarLink>{token && <><SidebarLink to="/library" name="library">Thư viện</SidebarLink><SidebarLink to="/curriculum" name="curriculum">Chương trình</SidebarLink></>}{(user?.role === "REVIEWER" || user?.role === "ADMIN") && <><span className="sidebar-label sidebar-label-spaced">Review</span><SidebarLink to="/reviewer" name="reviewer">Kiểm duyệt nội dung</SidebarLink></>}{user?.role === "ADMIN" && <><span className="sidebar-label sidebar-label-spaced">System</span><SidebarLink to="/admin" name="admin">Quản trị</SidebarLink></>}</nav><div className="sidebar-footer"><span className="sidebar-footer-dot" />Validated physics<br /><span>OpenRouter + solver engine</span></div></aside>
-    </>;
+  return (
+    <nav className="learning-navbar">
+      <div className="learning-nav-container">
+        <div className="learning-nav-inner">
+          <Link
+            to="/"
+            className="learning-brand"
+            onClick={() => setMobileOpen(false)}
+          >
+            <img src="/favicon.ico" alt="" aria-hidden="true" />
+            <span>PhysLive</span>
+          </Link>
+          <div className="learning-desktop-nav">
+            {visibleItems.map((item) => (
+              <NavItemLink key={item.to} item={item} />
+            ))}
+            {(user?.role === "REVIEWER" || user?.role === "ADMIN") && (
+              <NavItemLink
+                item={{ to: "/reviewer", label: "Thẩm định", icon: "settings" }}
+              />
+            )}
+            {user?.role === "ADMIN" && (
+              <NavItemLink
+                item={{ to: "/admin", label: "Quản trị", icon: "settings" }}
+              />
+            )}
+            <div className="learning-theme-anchor">
+              <button
+                type="button"
+                className="learning-icon-button"
+                title="Chọn theme"
+                aria-label="Chọn theme"
+                aria-haspopup="menu"
+                aria-expanded={themeOpen}
+                onClick={() => setThemeOpen((open) => !open)}
+              >
+                <LearningIcon name="sun" />
+                <span className="sr-only">Chọn theme</span>
+              </button>
+              {themeOpen && <ThemeMenu onClose={() => setThemeOpen(false)} />}
+            </div>
+            <div className="learning-auth-divider">
+              {user ? (
+                <div className="learning-auth-user">
+                  <Link to="/profile" className="learning-profile-link">
+                    <span className="learning-avatar">
+                      {user.fullName?.slice(0, 1).toUpperCase() || "U"}
+                    </span>
+                    <span className="learning-profile-name">
+                      {user.fullName}
+                    </span>
+                  </Link>
+                  <button
+                    type="button"
+                    className="learning-auth-button"
+                    onClick={logout}
+                  >
+                    <LearningIcon name="logout" />
+                    Đăng xuất
+                  </button>
+                </div>
+              ) : (
+                <div className="learning-auth-actions">
+                  <Link to="/login" className="learning-auth-button">
+                    <LearningIcon name="login" />
+                    Đăng nhập
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="learning-auth-button learning-auth-button-primary"
+                  >
+                    Đăng ký
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="learning-mobile-nav">
+            <div className="learning-theme-anchor">
+              <button
+                type="button"
+                className="learning-icon-button"
+                title="Chọn theme"
+                aria-label="Chọn theme"
+                aria-haspopup="menu"
+                aria-expanded={themeOpen}
+                onClick={() => setThemeOpen((open) => !open)}
+              >
+                <LearningIcon name="sun" />
+              </button>
+              {themeOpen && <ThemeMenu onClose={() => setThemeOpen(false)} />}
+            </div>
+            <button
+              type="button"
+              className="learning-mobile-menu-button"
+              aria-label="Mở menu điều hướng"
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((open) => !open)}
+            >
+              <LearningIcon name="menu" />
+            </button>
+          </div>
+        </div>
+      </div>
+      {mobileOpen && (
+        <div className="learning-mobile-menu">
+          <div className="learning-mobile-menu-title">Menu</div>
+          {visibleItems.map((item) => (
+            <NavItemLink
+              key={item.to}
+              item={item}
+              onClick={() => setMobileOpen(false)}
+            />
+          ))}
+          {user?.role === "REVIEWER" || user?.role === "ADMIN" ? (
+            <NavItemLink
+              item={{ to: "/reviewer", label: "Thẩm định", icon: "settings" }}
+              onClick={() => setMobileOpen(false)}
+            />
+          ) : null}
+          {user?.role === "ADMIN" ? (
+            <NavItemLink
+              item={{ to: "/admin", label: "Quản trị", icon: "settings" }}
+              onClick={() => setMobileOpen(false)}
+            />
+          ) : null}
+          <div className="learning-mobile-separator" />
+          {user ? (
+            <>
+              <NavItemLink
+                item={{ to: "/profile", label: "Hồ sơ", icon: "settings" }}
+                onClick={() => setMobileOpen(false)}
+              />
+              <button
+                type="button"
+                className="learning-mobile-logout"
+                onClick={logout}
+              >
+                <LearningIcon name="logout" />
+                Đăng xuất
+              </button>
+            </>
+          ) : (
+            <>
+              <NavItemLink
+                item={{ to: "/login", label: "Đăng nhập", icon: "login" }}
+                onClick={() => setMobileOpen(false)}
+              />
+              <NavItemLink
+                item={{ to: "/signup", label: "Đăng ký", icon: "plus" }}
+                onClick={() => setMobileOpen(false)}
+              />
+            </>
+          )}
+        </div>
+      )}
+    </nav>
+  );
 }
-export default NavBar;

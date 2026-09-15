@@ -1,4 +1,4 @@
-export type User = { id: number; email: string; fullName: string; role: string; active?: boolean };
+export type User = { id: number; email: string; fullName: string; role: string; active?: boolean; dateOfBirth?: string | null; avatarUrl?: string | null };
 
 export type Quantity = {
   name: string; symbol?: string; value: number; originalValue?: number; originalUnit?: string;
@@ -47,3 +47,6 @@ export type LibraryItem = { id: string; simulationId: string; folderId?: string;
 export type StudentOption = { id: number; fullName: string };
 export type Assignment = { id: string; libraryItemId: string; specificationId: string; title: string; description?: string; questions: unknown; studentIds: number[]; status: string; assignedAt: string; dueAt?: string };
 export type CreateAssignment = { libraryItemId: string; title: string; description?: string; questions: { prompt: string }; studentIds: number[]; dueAt?: string };
+export type AssignmentSubmission = { id: string; assignmentId: string; studentId: number; studentName: string; predictions: unknown; submittedAt: string };
+export type ProblemSummary = { id: string; previewText: string; status: string; sourceMode: string; createdAt: string; hasImage: boolean };
+export type EvaluationResult = { benchmarkCount: number; precision: number; recall: number; f1: number; kappa: number; incorrectRate: number };

@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
-import axiosClient from "../api/axios";
-import { createLibraryFolder, curriculum, getSimulation, saveLibrary } from "../api/physliveApi";
-import { useTeacherLibrary } from "../store/useTeacherLibrary";
-import PhysicsScene from "./PhysicsScene";
-import LearningChart from "./LearningChart";
-import Icon from "./LearningIcon";
+import axiosClient from "../../api/axios";
+import { createLibraryFolder, saveLibrary } from "../../api/libraryApi";
+import { curriculum } from "../../api/curriculumApi";
+import { getSimulation } from "../../api/simulationApi";
+import { useTeacherLibrary } from "../../store/useTeacherLibrary";
+import PhysicsScene from "../simulation/PhysicsScene";
+import LearningChart from "../simulation/LearningChart";
+import Icon from "../common/LearningIcon";
 import TeacherLibraryPane from "./TeacherLibraryPane";
-import type { Curriculum, Problem, Simulation } from "../types/physlive";
-import type { LibraryItem } from "../types/physlive";
-import { controlValue, indexAtTime, learningSeries, lessonCopy, lessonKind, numberLabel } from "../utils/learningModel";
-import { reSolveSimulation } from "../utils/clientSolver";
-import { usePhysliveStore } from "../store/usePhysliveStore";
+import type { Curriculum, Problem, Simulation, LibraryItem } from "../../types/physlive";
+import { controlValue, indexAtTime, learningSeries, lessonCopy, lessonKind, numberLabel } from "../../utils/learningModel";
+import { reSolveSimulation } from "../../utils/clientSolver";
+import { usePhysliveStore } from "../../store/usePhysliveStore";
 
 function Tabs<T extends string>({ id, label, items, value, onChange }: { id: string; label: string; items: { value: T; label: string }[]; value: T; onChange: (value: T) => void }) {
   return <div className="learn-tabs" role="tablist" aria-label={label}>{items.map((item, index) => <button key={item.value} type="button" role="tab" id={`${id}-${item.value}`} aria-controls={`${id}-panel`} aria-selected={item.value === value} tabIndex={item.value === value ? 0 : -1}
@@ -106,7 +107,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   useEffect(() => {
     // Only update the baseline when a NEW simulation arrives from the server (different id).
     baseSimulationRef.current = simulation;
-  }, [simulation.simulationId]);
+  }, [simulation]);
 
   // initialValues is derived from the baseline ref once per simulationId, so it stays stable
   // while the user drags sliders and onUpdate fires with re-solved copies.

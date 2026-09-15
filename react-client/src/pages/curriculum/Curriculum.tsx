@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { curriculum } from "../api/physliveApi";
-import type { Curriculum as CurriculumTree } from "../types/physlive";
+import { curriculum } from "../../api/curriculumApi";
+import type { Curriculum as CurriculumTree } from "../../types/physlive";
 
 function Curriculum() {
   const [tree, setTree] = useState<CurriculumTree | null>(null);

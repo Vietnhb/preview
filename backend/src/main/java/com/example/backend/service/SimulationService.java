@@ -152,13 +152,16 @@ public class SimulationService {
 
     private SimulationResponse latestResponse(Simulation simulation) {
         JsonNode latest = simulation.getLatestResult();
+        boolean ready = simulation.getStatus() == SimulationStatus.READY
+                || simulation.getStatus() == SimulationStatus.ARCHIVED;
+        String status = simulation.getStatus() == null ? "UNKNOWN" : simulation.getStatus().name();
         return new SimulationResponse(simulation.getId(), null, simulation.getSpecification().getId(), simulation.getSchemaId(),
-                simulation.getStatus() == SimulationStatus.READY,
-                simulation.getStatus() == SimulationStatus.READY,
+                ready,
+                ready,
                 list(latest, "time"), map(latest, "positions"), map(latest, "velocities"),
                 map(latest, "accelerations"), map(latest, "values"), mapNumbers(latest, "parameters"),
                 safeVisualization(simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion()),
-                null, latest, 0, simulation.getStatus().name());
+                null, latest, 0, status);
     }
 
     private void specificationStatus(Specification specification, ValidationResponse validation, JsonNode result) {

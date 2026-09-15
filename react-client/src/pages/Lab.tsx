@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import LearningWorkspace, { LearningHeader } from "../components/LearningWorkspace";
-import Icon from "../components/LearningIcon";
+import LearningWorkspace, { LearningHeader } from "../components/workspace/LearningWorkspace";
+import Icon from "../components/common/LearningIcon";
 import { usePhysliveStore } from "../store/usePhysliveStore";
 import "../styles/learning.css";
 

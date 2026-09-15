@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
-import type { LibraryFolder, LibraryItem } from "../types/physlive";
-import Icon from "./LearningIcon";
+import type { LibraryFolder, LibraryItem } from "../../types/physlive";
+import Icon from "../common/LearningIcon";
 import LibraryItemActions from "./LibraryItemActions";
 
 type Props = {

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { LibraryFolder, LibraryItem } from "../types/physlive";
-import { deleteLibraryItem, moveLibraryItem, renameLibraryItem } from "../api/physliveApi";
-import { teacherLibraryStore } from "../store/useTeacherLibrary";
-import { getToken } from "../utils/token";
-import Icon from "./LearningIcon";
-import "../styles/library-actions.css";
+import type { LibraryFolder, LibraryItem } from "../../types/physlive";
+import { deleteLibraryItem, moveLibraryItem, renameLibraryItem } from "../../api/libraryApi";
+import { teacherLibraryStore } from "../../store/useTeacherLibrary";
+import { getToken } from "../../utils/token";
+import Icon from "../common/LearningIcon";
+import "../../styles/library-actions.css";
 
 export default function LibraryItemActions({ item, folders }: { item: LibraryItem; folders: LibraryFolder[] }) {
   const trigger = useRef<HTMLButtonElement>(null);

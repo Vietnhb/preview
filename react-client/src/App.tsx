@@ -1,19 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import axios from "axios";
 import { Route, Routes, useLocation, Navigate } from "react-router-dom";
 import { getMe } from "./api/userApi";
-import NavBar from "./components/NavBar";
-import Admin from "./pages/AdminConsole";
-import Assignments from "./pages/Assignments";
+import NavBar from "./components/common/NavBar";
+import Admin from "./pages/admin/AdminConsole";
+import Assignments from "./pages/teacher/Assignments";
 import Home from "./pages/Home";
-import Library from "./pages/Library";
-import Login from "./pages/Login";
-import Reviewer from "./pages/ReviewerConsole";
-import Signup from "./pages/Signup";
-import Curriculum from "./pages/Curriculum";
-import Workspace from "./pages/Workspace";
-import AssignmentWorkspace from "./pages/AssignmentWorkspace";
+import Library from "./pages/library/Library";
+import Login from "./pages/auth/Login";
+import Reviewer from "./pages/reviewer/ReviewerConsole";
+import Signup from "./pages/auth/Signup";
+import Curriculum from "./pages/curriculum/Curriculum";
+import Workspace from "./pages/teacher/Workspace";
+import AssignmentWorkspace from "./pages/teacher/AssignmentWorkspace";
 import Lab from "./pages/Lab";
+import ProfilePage from "./pages/profile/ProfilePage";
+import SiteInfo from "./pages/SiteInfo";
 import { usePhysliveStore } from "./store/usePhysliveStore";
 import { clearToken, getToken } from "./utils/token";
 import { isTokenExpired } from "./utils/jwt";
@@ -21,25 +23,30 @@ import "./styles/app.css";
 
 function App() {
   const pathname = useLocation().pathname;
-  const isFullPage = pathname === "/" || pathname === "/player" || pathname === "/workspace" || pathname === "/assignments/workspace" || pathname === "/models" || pathname === "/lab";
+  const isFullPage = pathname === "/player" || pathname === "/workspace" || pathname === "/assignments/workspace" || pathname === "/models" || pathname === "/lab";
   const setUser = usePhysliveStore((state) => state.setUser);
+  const user = usePhysliveStore((state) => state.user);
   const [authAttempt, setAuthAttempt] = useState(0);
   const [authError, setAuthError] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   useEffect(() => {
     const token = getToken();
-    if (!token || isTokenExpired(token)) { if (token) clearToken(); setUser(null); return; }
+    if (!token || isTokenExpired(token)) { if (token) clearToken(); setUser(null); void Promise.resolve().then(() => setAuthReady(true)); return; }
     let active = true;
     void getMe().then(user => {
-      if (active && getToken() === token) { setUser(user); setAuthError(false); }
+      if (active && getToken() === token) { setUser(user); setAuthError(false); setAuthReady(true); }
     }).catch(error => {
       if (!active || getToken() !== token) return;
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         clearToken();
         setUser(null);
       } else setAuthError(true);
+      setAuthReady(true);
     });
     return () => { active = false; };
   }, [setUser, authAttempt]);
+  const canAccessWorkspace = ["TEACHER", "REVIEWER", "ADMIN"].includes(user?.role ?? "");
+  const workspaceElement = (element: ReactElement) => authReady && !canAccessWorkspace ? <Navigate to="/" replace /> : element;
   return <div className={isFullPage ? "full-shell" : "shell"}>{!isFullPage && <NavBar />}
     {authError && <div className="workspace-error" role="alert">
       <span>Chưa tải được thông tin tài khoản. Vui lòng thử lại.</span>
@@ -48,13 +55,16 @@ function App() {
     <Routes>
     <Route path="/" element={<Home />} />
     <Route path="/player" element={<Navigate to="/workspace" replace />} />
-    <Route path="/workspace" element={<Workspace />} />
-    <Route path="/assignments/workspace" element={<AssignmentWorkspace />} />
+    <Route path="/workspace" element={workspaceElement(<Workspace />)} />
+    <Route path="/assignments/workspace" element={workspaceElement(<AssignmentWorkspace />)} />
     <Route path="/models" element={<Navigate to={`/assignments/workspace${window.location.search}`} replace />} />
-    <Route path="/lab" element={<Lab />} />
+    <Route path="/lab" element={workspaceElement(<Lab />)} />
     <Route path="/library" element={<Library />} /><Route path="/assignments" element={<Assignments />} />
     <Route path="/admin" element={<Admin />} /><Route path="/reviewer" element={<Reviewer />} />
     <Route path="/curriculum" element={<Curriculum />} />
+    <Route path="/profile" element={<ProfilePage />} />
+    <Route path="/about" element={<SiteInfo kind="about" />} />
+    <Route path="/terms" element={<SiteInfo kind="terms" />} />
     <Route path="/login" element={<Login />} /><Route path="/signup" element={<Signup />} />
   </Routes></div>;
 }

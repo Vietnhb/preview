@@ -1,3 +1,3 @@
-import CanvasPhysicsScene from "./simulation-canvas/CanvasPhysicsScene";
+import CanvasPhysicsScene from "../simulation-canvas/CanvasPhysicsScene";
 
 export default CanvasPhysicsScene;

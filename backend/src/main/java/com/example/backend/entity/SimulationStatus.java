@@ -4,5 +4,7 @@ public enum SimulationStatus {
     VALIDATING,
     READY,
     BLOCKED,
-    FAILED
+    FAILED,
+    /** Kept for simulations created by the previous preview schema. */
+    ARCHIVED
 }

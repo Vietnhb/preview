@@ -35,7 +35,7 @@ public class AuthService {
         userRepository.save(user);
         String role = user.getRole() == null ? "TEACHER" : user.getRole().getName();
         return new LoginResponse(jwtUtil.generateToken(user.getEmail(), role),
-                new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role));
+                new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(), user.getAvatarUrl()));
     }
 
     public void signup(SignupRequest request) {

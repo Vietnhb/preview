@@ -1,0 +1,34 @@
+.account-auth-page { display: flex; width: 100%; min-height: calc(100vh - 64px); overflow: hidden; background: #fff; color: #111827; }
+.account-auth-visual { position: relative; display: none; width: 55%; flex-shrink: 0; overflow: hidden; background: #f8fafc; }
+.account-dot-pattern { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #fff; }
+.account-dot-pattern > div { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+.account-dot-pattern canvas { display: block; width: 100%; height: 100%; }
+.account-auth-form-wrap { display: flex; width: 100%; flex-direction: column; justify-content: center; overflow-y: auto; padding: 48px 16px; }
+.account-auth-form { width: 100%; max-width: 360px; margin: 0 auto; }
+.account-heading { text-align: center; }
+.account-heading h1 { margin: 0; color: #111827; font-size: 24px; line-height: 1.25; letter-spacing: -.025em; }
+.account-heading p { margin: 4px 0 0; color: #6b7280; font-size: 14px; }
+.account-form { display: grid; gap: 16px; margin-top: 32px; }
+.account-form input { width: 100%; height: 36px; padding: 4px 12px; border: 1px solid #e5e7eb; border-radius: 6px; outline: 0; background: transparent; color: #111827; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.account-form input::placeholder { color: #9ca3af; }
+.account-form input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.18); }
+.account-form button, .account-success-card button { height: 36px; border: 0; border-radius: 6px; background: #8b5cf6; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; }
+.account-form button:hover, .account-success-card button:hover { background: #7c3aed; }
+.account-form button:disabled { cursor: not-allowed; opacity: .65; }
+.account-error { display: flex; align-items: flex-start; gap: 8px; padding: 12px; border: 1px solid rgba(248,113,113,.35); border-radius: 6px; background: rgba(254,242,242,.7); color: #dc2626; font-size: 13px; line-height: 1.4; }
+.account-error .learn-icon { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 1px; }
+.account-links { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 24px; color: #6b7280; font-size: 14px; }
+.account-links a, .account-legal a { color: inherit; text-decoration: none; }
+.account-links a:hover, .account-legal a:hover { color: #111827; text-decoration: underline; text-underline-offset: 3px; }
+.account-legal { margin: 48px 0 0; color: #9ca3af; font-size: 12px; line-height: 1.5; text-align: center; }
+.account-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.5); border-top-color: #fff; border-radius: 50%; animation: account-spin .7s linear infinite; }
+@keyframes account-spin { to { transform: rotate(360deg); } }
+.account-success-page { display: flex; min-height: calc(100vh - 64px); align-items: center; justify-content: center; padding: 16px; background: linear-gradient(135deg,#f8fafc,#fff,#f3f4f6); }
+.account-success-card { width: 100%; max-width: 448px; padding: 32px; border: 1px solid #bbf7d0; border-radius: 8px; background: #fff; box-shadow: 0 10px 30px rgba(15,23,42,.1); text-align: center; }
+.account-success-icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%; background: #dcfce7; color: #16a34a; }
+.account-success-icon .learn-icon { width: 36px; height: 36px; }
+.account-success-card h1 { margin: 0; color: #16a34a; font-size: 24px; }
+.account-success-card p { margin: 10px 0 24px; color: #4b5563; line-height: 1.6; }
+.account-success-card button { padding: 0 18px; }
+@media (min-width: 1024px) { .account-auth-visual { display: block; } .account-auth-form-wrap { width: 45%; padding-left: 32px; padding-right: 32px; } .account-heading { text-align: left; } }
+@media (min-width: 1280px) { .account-auth-form-wrap { padding-left: 48px; padding-right: 48px; } }

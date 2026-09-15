@@ -3,6 +3,8 @@ package com.example.backend.entity;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -32,6 +34,7 @@ public class Simulation extends AuditedEntity {
     private String solverVersion;
 
     @Column(nullable = false, length = 16)
+    @Enumerated(EnumType.STRING)
     private SimulationStatus status = SimulationStatus.VALIDATING;
 
     @JdbcTypeCode(SqlTypes.JSON)

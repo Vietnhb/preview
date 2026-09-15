@@ -55,7 +55,7 @@ export function reSolveSimulation(
     const x0 = getParam("initial_position", overrides, simulation, specification, 0);
     const y0 = getParam("initial_height", overrides, simulation, specification, 0);
 
-    let vx = v0 * Math.cos(angle);
+    const vx = v0 * Math.cos(angle);
     let vy = v0 * Math.sin(angle);
     let x = x0;
     let y = y0;

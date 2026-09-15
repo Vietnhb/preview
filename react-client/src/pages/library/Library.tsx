@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { library, personalLibrary } from "../api/physliveApi";
-import type { LibraryItem } from "../types/physlive";
-import { usePhysliveStore } from "../store/usePhysliveStore";
+import { library, personalLibrary } from "../../api/libraryApi";
+import type { LibraryItem } from "../../types/physlive";
+import { usePhysliveStore } from "../../store/usePhysliveStore";
 
 function LibraryRows({ items, assignable }: { items: LibraryItem[]; assignable: boolean }) {
   if (!items.length) return <p className="muted">Chưa có simulation trong mục này.</p>;
