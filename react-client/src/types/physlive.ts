@@ -6,6 +6,7 @@ export type Quantity = {
 };
 
 export type Ambiguity = { id?: string; code: string; fieldPath?: string; field?: string; question: string; options?: string[]; status?: string; resolution?: string; resolvedAt?: string };
+export type ConversationMessage = { id: string; role: "user" | "assistant"; text: string };
 export type VisualizationControl = { key: string; label: string; symbol: string; unit: string; min: number; max: number; step: number };
 export type VisualizationSeries = { key: string; source: string; label: string; symbol: string; unit: string; color: string };
 export type VisualizationActor = {
@@ -45,7 +46,7 @@ export type Curriculum = { topics: { id: string; name: string; slug: string; ena
 export type LibraryFolder = { id: string; name: string; itemCount: number; createdAt: string; updatedAt: string };
 export type LibraryItem = { id: string; simulationId: string; folderId?: string; lessonId: string; specificationId: string; title: string; topic?: string; validationStatus: string; visibility: "PERSONAL" | "SHARED"; createdAt: string };
 export type StudentOption = { id: number; fullName: string };
-export type Assignment = { id: string; libraryItemId: string; specificationId: string; title: string; description?: string; questions: unknown; studentIds: number[]; status: string; assignedAt: string; dueAt?: string };
+export type Assignment = { id: string; libraryItemId: string; specificationId: string; title: string; description?: string; questions: unknown; studentIds: number[]; status: string; assignedAt: string; dueAt?: string; predictionSubmitted?: boolean };
 export type CreateAssignment = { libraryItemId: string; title: string; description?: string; questions: { prompt: string }; studentIds: number[]; dueAt?: string };
 export type AssignmentSubmission = { id: string; assignmentId: string; studentId: number; studentName: string; predictions: unknown; submittedAt: string };
 export type ProblemSummary = { id: string; previewText: string; status: string; sourceMode: string; createdAt: string; hasImage: boolean };

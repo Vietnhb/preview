@@ -23,35 +23,29 @@ import "./styles/app.css";
 
 function App() {
   const pathname = useLocation().pathname;
-  const isFullPage = pathname === "/player" || pathname === "/workspace" || pathname === "/assignments/workspace" || pathname === "/models" || pathname === "/lab";
+  const isFullPage = pathname === "/player" || pathname === "/workspace" || pathname === "/assignments/workspace" || pathname === "/models" || pathname === "/lab" || pathname === "/admin";
   const setUser = usePhysliveStore((state) => state.setUser);
   const user = usePhysliveStore((state) => state.user);
-  const [authAttempt, setAuthAttempt] = useState(0);
-  const [authError, setAuthError] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   useEffect(() => {
     const token = getToken();
     if (!token || isTokenExpired(token)) { if (token) clearToken(); setUser(null); void Promise.resolve().then(() => setAuthReady(true)); return; }
     let active = true;
     void getMe().then(user => {
-      if (active && getToken() === token) { setUser(user); setAuthError(false); setAuthReady(true); }
+      if (active && getToken() === token) { setUser(user); setAuthReady(true); }
     }).catch(error => {
       if (!active || getToken() !== token) return;
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         clearToken();
         setUser(null);
-      } else setAuthError(true);
+      }
       setAuthReady(true);
     });
     return () => { active = false; };
-  }, [setUser, authAttempt]);
+  }, [setUser]);
   const canAccessWorkspace = ["TEACHER", "REVIEWER", "ADMIN"].includes(user?.role ?? "");
   const workspaceElement = (element: ReactElement) => authReady && !canAccessWorkspace ? <Navigate to="/" replace /> : element;
   return <div className={isFullPage ? "full-shell" : "shell"}>{!isFullPage && <NavBar />}
-    {authError && <div className="workspace-error" role="alert">
-      <span>Chưa tải được thông tin tài khoản. Vui lòng thử lại.</span>
-      <button type="button" onClick={() => { setAuthError(false); setAuthAttempt(value => value + 1); }}>Thử lại</button>
-    </div>}
     <Routes>
     <Route path="/" element={<Home />} />
     <Route path="/player" element={<Navigate to="/workspace" replace />} />

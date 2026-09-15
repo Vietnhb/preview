@@ -77,6 +77,69 @@ body {
   padding: 32px 24px 64px;
 }
 
+/* Assignment workspace: the assignment studio uses the same three-pane shell as /workspace. */
+.assignment-workspace-main {
+  display: flex !important;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100dvh - 56px);
+  min-height: 0;
+  padding: 12px 20px 16px;
+  overflow: hidden;
+}
+
+.assignment-workspace-container {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+.assignment-workspace-container > .modern-header {
+  flex: 0 0 auto;
+  margin-bottom: 12px;
+}
+
+.assignment-workspace-container > .status-pill {
+  flex: 0 0 auto;
+}
+
+.assignment-workspace-grid {
+  display: grid;
+  flex: 1 1 0;
+  grid-template-columns: 280px minmax(0, 1fr) 380px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.assignment-workspace-grid > .learn-library-pane,
+.assignment-workspace-grid > .assignment-workspace-panel {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 0;
+  border-right: 1px solid var(--border-subtle);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.assignment-workspace-grid > .assignment-workspace-panel {
+  padding: 20px;
+}
+
+.assignment-workspace-grid > .assignment-workspace-panel:last-child {
+  border-right: 0;
+}
+
 .modern-header {
   margin-bottom: 28px;
   display: flex;
@@ -943,6 +1006,150 @@ body {
   border: 1px solid #fde68a;
 }
 
+/* Student learning area: assignments and shared resources, without teacher workspace chrome. */
+.main.student-main {
+  margin-left: 0;
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  min-height: calc(100vh - 64px);
+}
+
+.main.student-main.student-layout-assigned,
+.main.student-main.student-layout-library {
+  background: var(--bg-canvas);
+}
+
+.student-main .modern-container {
+  width: min(100%, 1180px);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-top: 40px;
+}
+
+.student-main .modern-header {
+  margin-bottom: 24px;
+}
+
+.student-layout-assigned .modern-card,
+.student-layout-library .modern-card {
+  width: 100%;
+}
+
+.student-layout-library .modern-card > .modern-card-header {
+  align-items: flex-start;
+}
+
+.student-layout-library .modern-card > .modern-card-header > div:last-child {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.student-empty-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--role-student-subtle);
+  color: var(--role-student);
+}
+
+.student-empty-icon .learn-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.prediction-gate-badge .learn-icon,
+.prediction-prompt-box .learn-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.prediction-prompt-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.student-resource-player {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: #f8fafc;
+}
+
+.student-resource-player-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.student-resource-player-header h3 {
+  margin: 8px 0 0;
+  color: var(--text-primary);
+  font-size: 18px;
+}
+
+.student-resource-scene {
+  height: 380px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+}
+
+.student-playback {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.student-playback input[type="range"] {
+  flex: 1;
+  min-width: 80px;
+}
+
+.student-playback span {
+  min-width: 54px;
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
+  text-align: right;
+}
+
+.student-player-state {
+  margin: 0;
+  padding: 32px 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.student-player-state.error {
+  color: var(--status-fail-text);
+}
+
+@media (max-width: 768px) {
+  .student-main .modern-container {
+    padding: 24px 14px 48px;
+  }
+
+  .student-resource-player-header,
+  .student-playback {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .student-resource-scene {
+    height: 300px;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .stats-grid {
@@ -970,5 +1177,43 @@ body {
   
   .admin-tabs::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@media (max-width: 1100px) and (min-width: 769px) {
+  .assignment-workspace-grid {
+    grid-template-columns: 220px minmax(0, 1fr) 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .assignment-workspace-main {
+    height: calc(100dvh - 54px);
+    padding: 10px 12px 12px;
+    overflow-y: auto;
+  }
+
+  .assignment-workspace-container {
+    min-height: 0;
+  }
+
+  .assignment-workspace-grid {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+
+  .assignment-workspace-grid > .learn-library-pane,
+  .assignment-workspace-grid > .assignment-workspace-panel {
+    min-height: 360px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .assignment-workspace-grid > .learn-library-pane {
+    min-height: 280px;
+  }
+
+  .assignment-workspace-grid > .assignment-workspace-panel:last-child {
+    border-bottom: 0;
   }
 }

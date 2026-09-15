@@ -7,9 +7,10 @@ import {
   teacherAssignments,
   assignmentSubmissions
 } from "../../api/assignmentApi";
-import { personalLibrary } from "../../api/libraryApi";
-import type { Assignment, AssignmentSubmission, LibraryItem, StudentOption } from "../../types/physlive";
+import { createLibraryFolder, libraryFolders, personalLibrary } from "../../api/libraryApi";
+import type { Assignment, AssignmentSubmission, LibraryFolder, LibraryItem, StudentOption } from "../../types/physlive";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
+import TeacherLibraryPane from "../../components/workspace/TeacherLibraryPane";
 import "../../styles/modern-roles.css";
 
 const questionPrompt = (questions: unknown) => {
@@ -19,7 +20,11 @@ const questionPrompt = (questions: unknown) => {
   return "";
 };
 
-export default function Assignments() {
+type Props = {
+  workspaceLayout?: boolean;
+};
+
+export default function Assignments({ workspaceLayout = false }: Props) {
   const user = usePhysliveStore(state => state.user);
   const [searchParams] = useSearchParams();
 
@@ -28,6 +33,7 @@ export default function Assignments() {
   // TEACHER ASSIGNMENT STUDIO & SUBMISSIONS MANAGEMENT
   const [items, setItems] = useState<Assignment[]>([]);
   const [saved, setSaved] = useState<LibraryItem[]>([]);
+  const [folders, setFolders] = useState<LibraryFolder[]>([]);
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [libraryItemId, setLibraryItemId] = useState(searchParams.get("libraryItemId") ?? "");
   const [title, setTitle] = useState("");
@@ -47,24 +53,26 @@ export default function Assignments() {
   const [submissionsError, setSubmissionsError] = useState("");
 
   const loadData = useCallback(async () => {
-    if (isStudent) return;
+    if (!user || isStudent) return;
     setLoading(true);
     setError("");
     try {
-      const [assignments, libraryItems, studentItems] = await Promise.all([
+      const [assignments, libraryItems, folderItems, studentItems] = await Promise.all([
         teacherAssignments(),
         personalLibrary(),
+        libraryFolders(),
         studentOptions()
       ]);
       setItems(assignments);
       setSaved(libraryItems);
+      setFolders(folderItems);
       setStudents(studentItems);
     } catch {
       setError("Không thể tải dữ liệu bài tập và danh sách học sinh.");
     } finally {
       setLoading(false);
     }
-  }, [isStudent]);
+  }, [isStudent, user]);
 
   useEffect(() => {
     void loadData();
@@ -76,6 +84,22 @@ export default function Assignments() {
   }, [saved, libraryItemId, title]);
 
   const selectedLibrary = useMemo(() => saved.find(item => item.id === libraryItemId), [saved, libraryItemId]);
+
+  const createWorkspaceFolder = async (name: string) => {
+    try {
+      const folder = await createLibraryFolder(name);
+      setFolders(current => [...current, folder].sort((left, right) => left.name.localeCompare(right.name, "vi")));
+      return true;
+    } catch {
+      setError("Chưa tạo được thư mục. Tên thư mục có thể đã tồn tại.");
+      return false;
+    }
+  };
+
+  const selectLibraryItem = async (item: LibraryItem) => {
+    setLibraryItemId(item.id);
+    setTitle(current => current.trim() ? current : item.title);
+  };
 
   const toggleStudent = (id: number) => {
     setSelectedStudents(curr => curr.includes(id) ? curr.filter(x => x !== id) : [...curr, id]);
@@ -136,10 +160,20 @@ export default function Assignments() {
   };
 
   if (isStudent) return <StudentAssignments />;
+  if (!user) return (
+    <main className="main student-main">
+      <div className="modern-container">
+        <div className="modern-card">
+          <h1>Đăng nhập để xem bài tập</h1>
+          <p className="muted">Khu vực này dành cho giáo viên và học sinh đã đăng nhập.</p>
+        </div>
+      </div>
+    </main>
+  );
 
   return (
-    <div className="main">
-      <div className="modern-container">
+    <div className={workspaceLayout ? "learn-workspace assignment-workspace-main" : "main"}>
+      <div className={workspaceLayout ? "assignment-workspace-container" : "modern-container"}>
       {/* Header */}
       <header className="modern-header">
         <div className="modern-header-title">
@@ -163,9 +197,24 @@ export default function Assignments() {
       )}
 
       {/* Grid: Create Assignment & Assigned List */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}>
+      <div
+        className={workspaceLayout ? "assignment-workspace-grid" : undefined}
+        style={workspaceLayout ? undefined : { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}
+      >
+        {workspaceLayout && (
+          <TeacherLibraryPane
+            folders={folders}
+            items={saved}
+            currentSimulationId={selectedLibrary?.simulationId ?? ""}
+            loading={loading}
+            error={error}
+            openingId={null}
+            onCreateFolder={createWorkspaceFolder}
+            onOpen={selectLibraryItem}
+          />
+        )}
         {/* PANE 1: CREATE NEW ASSIGNMENT */}
-        <div className="modern-card">
+        <div className={`modern-card${workspaceLayout ? " assignment-workspace-panel" : ""}`}>
           <div className="modern-card-header">
             <div>
               <h2>Giao bài mới</h2>
@@ -292,7 +341,7 @@ export default function Assignments() {
         </div>
 
         {/* PANE 2: ASSIGNED LIST & SUBMISSION MONITOR */}
-        <div className="modern-card">
+        <div className={`modern-card${workspaceLayout ? " assignment-workspace-panel" : ""}`}>
           <div className="modern-card-header">
             <div>
               <h2>Bài đã giao & Theo dõi nộp bài</h2>

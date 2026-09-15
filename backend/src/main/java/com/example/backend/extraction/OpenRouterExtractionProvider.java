@@ -17,7 +17,7 @@ import com.example.backend.entity.SchemaVersion;
 @Component
 public class OpenRouterExtractionProvider implements ExtractionProvider {
 
-    private static final String DEFAULT_MODEL = "nex-agi/nex-n2.5-pro:free";
+    private static final String DEFAULT_MODEL = "openrouter/free";
     private static final String SYSTEM_PROMPT = """
             You are the PhysLive Problem Understanding Engine.
             Read Vietnamese or English physics problems by meaning, not by keyword matching.

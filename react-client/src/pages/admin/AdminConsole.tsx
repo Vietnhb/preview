@@ -1,94 +1,104 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import { adminUsers, validationMetrics } from "../../api/adminApi";
 import type { User } from "../../types/physlive";
+import LearningIcon from "../../components/common/LearningIcon";
 import "../../styles/admin-console.css";
 
+type AdminTab = "dashboard" | "users" | "feedback" | "messages";
+type AdminIconName = "grid" | "users" | "message" | "activity" | "book" | "shield" | "refresh" | "check" | "search";
+
+const navigation: Array<{ id: AdminTab; label: string; icon: AdminIconName }> = [
+  { id: "dashboard", label: "Tổng quan", icon: "grid" },
+  { id: "users", label: "Người dùng", icon: "users" },
+  { id: "feedback", label: "Phản hồi", icon: "message" },
+  { id: "messages", label: "Tin nhắn", icon: "message" },
+];
+
+const roleLabels: Record<string, string> = {
+  ADMIN: "Quản trị viên",
+  TEACHER: "Giáo viên",
+  STUDENT: "Học sinh",
+  REVIEWER: "Thẩm định viên",
+};
+
 export default function AdminConsole() {
-  const [activeTab, setActiveTab] = useState("users");
-  const user = usePhysliveStore(s => s.user);
+  const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
+  const user = usePhysliveStore(state => state.user);
+  const navigate = useNavigate();
 
   if (!user || user.role !== "ADMIN") {
     return (
-      <div className="admin-shell">
-        <div className="access-denied">
-          <h1>Truy cập bị từ chối</h1>
-          <p>Bạn cần quyền quản trị viên để truy cập trang này.</p>
-        </div>
+      <div className="admin-shell admin-shell-denied">
+        <section className="admin-access-card">
+          <div className="admin-access-icon"><LearningIcon name="shield" /></div>
+          <p className="admin-eyebrow">PhysLive Admin</p>
+          <h1>Không thể truy cập</h1>
+          <p>Bạn cần quyền quản trị viên để mở khu vực này.</p>
+          <button type="button" className="admin-primary-button" onClick={() => navigate("/")}>Về trang chủ</button>
+        </section>
       </div>
     );
   }
 
+  const activePage = navigation.find(item => item.id === activeTab) ?? navigation[0];
+  const initials = user.fullName?.trim().slice(0, 1).toUpperCase() || "A";
+
   return (
     <div className="admin-shell">
-      {/* Sidebar */}
       <aside className="admin-sidebar">
-        <div className="admin-sidebar-header">
-          <div className="admin-panel-icon">⚙</div>
-          <span className="admin-panel-title">Admin Panel</span>
-        </div>
-        
-        <nav className="admin-nav">
-          <button
-            className={`admin-nav-item ${activeTab === "dashboard" ? "active" : ""}`}
-            onClick={() => setActiveTab("dashboard")}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"/>
-              <rect x="14" y="3" width="7" height="7"/>
-              <rect x="14" y="14" width="7" height="7"/>
-              <rect x="3" y="14" width="7" height="7"/>
-            </svg>
-            Dashboard
-          </button>
-          
-          <button
-            className={`admin-nav-item ${activeTab === "users" ? "active" : ""}`}
-            onClick={() => setActiveTab("users")}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            Users
-          </button>
-          
-          <button
-            className={`admin-nav-item ${activeTab === "feedback" ? "active" : ""}`}
-            onClick={() => setActiveTab("feedback")}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            Feedback
-          </button>
-          
-          <button
-            className={`admin-nav-item ${activeTab === "messages" ? "active" : ""}`}
-            onClick={() => setActiveTab("messages")}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-            </svg>
-            Messages
-          </button>
+        <button type="button" className="admin-brand" onClick={() => navigate("/")} aria-label="Về trang chủ PhysLive">
+          <img src="/favicon.ico" alt="" aria-hidden="true" />
+          <span className="admin-brand-copy">
+            <strong>PhysLive</strong>
+            <small>Quản trị hệ thống</small>
+          </span>
+        </button>
+
+        <p className="admin-sidebar-label">Không gian quản trị</p>
+        <nav className="admin-nav" aria-label="Điều hướng quản trị">
+          {navigation.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              className={`admin-nav-item ${activeTab === item.id ? "active" : ""}`}
+              aria-current={activeTab === item.id ? "page" : undefined}
+              onClick={() => setActiveTab(item.id)}
+            >
+              <LearningIcon name={item.icon} />
+              <span>{item.label}</span>
+            </button>
+          ))}
         </nav>
-        
+
         <div className="admin-sidebar-footer">
-          <button className="admin-back-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 10l-5 5 5 5"/>
-              <path d="M20 4v7a4 4 0 0 1-4 4H4"/>
-            </svg>
-            Back to Site
+          <div className="admin-sidebar-user">
+            <span className="admin-user-avatar">{initials}</span>
+            <span className="admin-sidebar-user-copy">
+              <strong>{user.fullName || "Quản trị viên"}</strong>
+              <small>{roleLabels[user.role] ?? user.role}</small>
+            </span>
+          </div>
+          <button type="button" className="admin-back-button" onClick={() => navigate("/")}>
+            <LearningIcon name="back" />
+            <span>Về trang chủ</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="admin-main">
+        <header className="admin-topbar">
+          <div>
+            <span className="admin-topbar-kicker">PhysLive / Quản trị</span>
+            <strong>{activePage.label}</strong>
+          </div>
+          <div className="admin-topbar-user">
+            <span className="admin-user-avatar">{initials}</span>
+            <span>{user.fullName || user.email}</span>
+          </div>
+        </header>
+
         {activeTab === "dashboard" && <DashboardView />}
         {activeTab === "users" && <UsersView />}
         {activeTab === "feedback" && <FeedbackView />}
@@ -98,118 +108,110 @@ export default function AdminConsole() {
   );
 }
 
+function PageHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <header className="admin-content-header">
+      <p className="admin-eyebrow">PhysLive Admin</p>
+      <h1 className="admin-content-title">{title}</h1>
+      <p className="admin-content-subtitle">{description}</p>
+    </header>
+  );
+}
+
+function StatCard({ label, value, icon, tone, caption }: {
+  label: string;
+  value: string | number;
+  icon: AdminIconName;
+  tone: "blue" | "green" | "orange" | "purple";
+  caption?: string;
+}) {
+  return (
+    <article className="admin-stat-card">
+      <div className={`admin-stat-icon ${tone}`}><LearningIcon name={icon} /></div>
+      <p>{label}</p>
+      <strong>{value}</strong>
+      {caption && <small>{caption}</small>}
+    </article>
+  );
+}
+
 function DashboardView() {
   const [users, setUsers] = useState<User[]>([]);
   const [metrics, setMetrics] = useState<{ total: number; failed: number; failureRate: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [usersData, metricsData] = await Promise.all([
-          adminUsers(),
-          validationMetrics()
-        ]);
+        const [usersData, metricsData] = await Promise.all([adminUsers(), validationMetrics()]);
         setUsers(usersData);
         setMetrics(metricsData);
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
+        setError("");
+      } catch {
+        setError("Không thể tải dữ liệu tổng quan.");
       } finally {
         setLoading(false);
       }
     };
-    
-    fetchData();
+    void fetchData();
   }, []);
 
-  const stats = {
-    totalUsers: users.length,
-    activeUsers: users.filter(u => u.active).length,
-    teachers: users.filter(u => u.role === "TEACHER").length,
-    students: users.filter(u => u.role === "STUDENT").length,
-    validationTotal: metrics?.total || 0,
-    validationFailed: metrics?.failed || 0,
-    validationSuccess: metrics ? metrics.total - metrics.failed : 0,
-    validationRate: metrics ? ((1 - metrics.failureRate) * 100).toFixed(1) : "0"
-  };
+  const totalUsers = users.length;
+  const activeUsers = users.filter(item => item.active).length;
+  const teachers = users.filter(item => item.role === "TEACHER").length;
+  const validationRate = metrics ? Math.max(0, Math.min(100, (1 - metrics.failureRate) * 100)) : 0;
+  const validationSuccess = metrics ? metrics.total - metrics.failed : 0;
 
-  if (loading) {
-    return (
-      <div className="admin-content">
-        <div className="admin-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState label="Đang tải tổng quan..." />;
 
   return (
     <div className="admin-content">
-      <header className="admin-content-header">
-        <div>
-          <h1 className="admin-content-title">Dashboard</h1>
-          <p className="admin-content-subtitle">Overview of system statistics</p>
-        </div>
-      </header>
-      
-      <div className="admin-stats-grid">
-        <div className="admin-stat-card">
-          <div className="stat-label">Total Users</div>
-          <div className="stat-value">{stats.totalUsers}</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Active Users</div>
-          <div className="stat-value">{stats.activeUsers}</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Teachers</div>
-          <div className="stat-value">{stats.teachers}</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Students</div>
-          <div className="stat-value">{stats.students}</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Validation Runs</div>
-          <div className="stat-value">{stats.validationTotal}</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Success Rate</div>
-          <div className="stat-value">{stats.validationRate}%</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Successful</div>
-          <div className="stat-value">{stats.validationSuccess}</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Failed</div>
-          <div className="stat-value">{stats.validationFailed}</div>
-        </div>
-      </div>
-      
-      <div className="admin-section">
-        <h2 className="admin-section-title">System Health</h2>
-        <div className="health-cards">
-          <div className="health-card">
-            <div className="health-icon success">✓</div>
-            <div className="health-info">
-              <div className="health-title">Validation Quality</div>
-              <div className="health-value">{stats.validationRate}%</div>
-              <div className="health-desc">System validation success rate</div>
+      <PageHeader title="Tổng quan" description="Theo dõi người dùng và chất lượng mô phỏng trong PhysLive." />
+      {error && <div className="admin-error-banner" role="alert">{error}</div>}
+
+      <section className="admin-stats-grid" aria-label="Chỉ số tổng quan">
+        <StatCard label="Tổng người dùng" value={totalUsers} icon="users" tone="blue" />
+        <StatCard label="Đang hoạt động" value={activeUsers} icon="activity" tone="green" />
+        <StatCard label="Giáo viên" value={teachers} icon="book" tone="orange" />
+        <StatCard label="Tỷ lệ kiểm tra đạt" value={`${validationRate.toFixed(1)}%`} icon="shield" tone="purple" />
+      </section>
+
+      <section className="admin-dashboard-grid">
+        <article className="admin-panel admin-health-panel">
+          <div className="admin-panel-heading">
+            <div>
+              <p className="admin-eyebrow">Hệ thống</p>
+              <h2>Chất lượng validation</h2>
             </div>
+            <div className="admin-panel-icon green"><LearningIcon name="check" /></div>
           </div>
-          <div className="health-card">
-            <div className="health-icon info">👥</div>
-            <div className="health-info">
-              <div className="health-title">User Base</div>
-              <div className="health-value">{stats.totalUsers}</div>
-              <div className="health-desc">{stats.teachers} teachers, {stats.students} students</div>
+          <div className="admin-health-value">{validationRate.toFixed(1)}%</div>
+          <div className="admin-health-track" aria-label={`Tỷ lệ thành công ${validationRate.toFixed(1)}%`}>
+            <span style={{ width: `${validationRate}%` }} />
+          </div>
+          <div className="admin-health-meta">
+            <span>{validationSuccess} lượt đạt</span>
+            <span>{metrics?.failed ?? 0} lượt lỗi</span>
+          </div>
+        </article>
+
+        <article className="admin-panel">
+          <div className="admin-panel-heading">
+            <div>
+              <p className="admin-eyebrow">Phân bổ</p>
+              <h2>Người dùng</h2>
             </div>
+            <div className="admin-panel-icon blue"><LearningIcon name="users" /></div>
           </div>
-        </div>
-      </div>
+          <div className="admin-breakdown-list">
+            <div><span><i className="admin-dot blue" />Giáo viên</span><strong>{teachers}</strong></div>
+            <div><span><i className="admin-dot orange" />Học sinh</span><strong>{users.filter(item => item.role === "STUDENT").length}</strong></div>
+            <div><span><i className="admin-dot green" />Đang hoạt động</span><strong>{activeUsers}</strong></div>
+          </div>
+        </article>
+      </section>
     </div>
   );
 }
@@ -218,226 +220,108 @@ function UsersView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Fetch users from API
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const data = await adminUsers();
-        setUsers(data);
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch users:", err);
-        setError("Không thể tải danh sách người dùng");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchUsers();
-  }, []);
-  
-  // Filter users based on search
-  const filteredUsers = users.filter(user => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      user.email.toLowerCase().includes(searchLower) ||
-      (user.fullName && user.fullName.toLowerCase().includes(searchLower))
-    );
-  });
+  const [error, setError] = useState("");
 
-  // Calculate stats
-  const stats = {
-    totalUsers: users.length,
-    admins: users.filter(u => u.role === "ADMIN").length,
-    regularUsers: users.filter(u => u.role === "STUDENT" || u.role === "TEACHER").length,
-    teachers: users.filter(u => u.role === "TEACHER").length,
-    students: users.filter(u => u.role === "STUDENT").length,
-    bannedUsers: users.filter(u => !u.active).length,
-    activeUsers: users.filter(u => u.active).length,
-  };
-
-  const handleRefresh = async () => {
+  const fetchUsers = async () => {
     try {
       setLoading(true);
-      const data = await adminUsers();
-      setUsers(data);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to refresh users:", err);
-      setError("Không thể làm mới danh sách");
+      setUsers(await adminUsers());
+      setError("");
+    } catch {
+      setError("Không thể tải danh sách người dùng.");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => { void fetchUsers(); }, []);
+
+  const query = searchQuery.trim().toLowerCase();
+  const filteredUsers = users.filter(item =>
+    item.email.toLowerCase().includes(query) || (item.fullName || "").toLowerCase().includes(query),
+  );
+
   return (
     <div className="admin-content">
-      <header className="admin-content-header">
-        <div>
-          <div className="header-title-row">
-            <h1 className="admin-content-title">User Management</h1>
-            <span className="admin-role-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              Admin
-            </span>
-          </div>
-          <p className="admin-content-subtitle">Manage all users and their roles</p>
-        </div>
-      </header>
+      <PageHeader title="Người dùng" description="Xem danh sách tài khoản và trạng thái hoạt động." />
 
-      {/* Search Bar */}
-      <div className="admin-search-bar">
-        <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.35-4.35"/>
-        </svg>
-        <input
-          type="text"
-          placeholder="Search users by email or name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="admin-search-input"
-        />
-        <button className="search-refresh-btn" onClick={handleRefresh} disabled={loading}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-          </svg>
+      <div className="admin-toolbar">
+        <label className="admin-search-field">
+          <LearningIcon name="search" />
+          <span className="sr-only">Tìm người dùng</span>
+          <input
+            type="search"
+            placeholder="Tìm theo tên hoặc email..."
+            value={searchQuery}
+            onChange={event => setSearchQuery(event.target.value)}
+          />
+        </label>
+        <button type="button" className="admin-icon-button" aria-label="Làm mới danh sách" onClick={() => void fetchUsers()} disabled={loading}>
+          <LearningIcon name="refresh" />
         </button>
       </div>
 
-      {error && (
-        <div className="admin-error-banner">
-          {error}
-        </div>
-      )}
+      {error && <div className="admin-error-banner" role="alert">{error}</div>}
 
-      {/* Stats Cards */}
-      <div className="admin-stats-row">
-        <div className="stat-mini-card">
-          <div className="stat-mini-label">Total Users</div>
-          <div className="stat-mini-value">{stats.totalUsers}</div>
+      <section className="admin-panel admin-users-panel">
+        <div className="admin-panel-heading admin-panel-heading-inline">
+          <div>
+            <p className="admin-eyebrow">Danh sách tài khoản</p>
+            <h2>{filteredUsers.length} người dùng</h2>
+          </div>
+          <span className="admin-muted-label">Cập nhật theo yêu cầu</span>
         </div>
-        <div className="stat-mini-card">
-          <div className="stat-mini-label">Admins</div>
-          <div className="stat-mini-value">{stats.admins}</div>
-        </div>
-        <div className="stat-mini-card">
-          <div className="stat-mini-label">Teachers</div>
-          <div className="stat-mini-value">{stats.teachers}</div>
-        </div>
-        <div className="stat-mini-card">
-          <div className="stat-mini-label">Students</div>
-          <div className="stat-mini-value">{stats.students}</div>
-        </div>
-        <div className="stat-mini-card stat-mini-highlight">
-          <div className="stat-mini-label">Active Users</div>
-          <div className="stat-mini-value">{stats.activeUsers}</div>
-          <div className="stat-mini-subtitle">Currently enabled</div>
-        </div>
-      </div>
-
-      {/* Users Table */}
-      {loading ? (
-        <div className="admin-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading users...</p>
-        </div>
-      ) : (
-        <div className="admin-table-container">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Email</th>
-                <th>Full Name</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
-                    {searchQuery ? "No users found matching your search" : "No users available"}
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map(user => (
-                  <tr key={user.id}>
-                    <td className="cell-email">{user.email}</td>
-                    <td className="cell-name">{user.fullName || "—"}</td>
+        {loading ? <LoadingState label="Đang tải người dùng..." compact /> : (
+          <div className="admin-table-scroll">
+            <table className="admin-table">
+              <thead>
+                <tr><th>Người dùng</th><th>Vai trò</th><th>Trạng thái</th></tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length === 0 ? (
+                  <tr><td colSpan={3} className="admin-empty-table">{query ? "Không tìm thấy người dùng phù hợp." : "Chưa có người dùng."}</td></tr>
+                ) : filteredUsers.map(item => (
+                  <tr key={item.id}>
                     <td>
-                      <span className={`role-badge role-${user.role.toLowerCase()}`}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          {user.role === "ADMIN" ? (
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                          ) : user.role === "TEACHER" ? (
-                            <path d="M22 10v6M2 10l10-5 10 5-10 5z M2 10v6c0 2.21 4.47 4 10 4s10-1.79 10-4"/>
-                          ) : (
-                            <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>
-                          )}
-                        </svg>
-                        {user.role}
-                      </span>
+                      <div className="admin-table-user">
+                        {item.avatarUrl ? <img src={item.avatarUrl} alt="" /> : <span className="admin-user-avatar">{(item.fullName || item.email).slice(0, 1).toUpperCase()}</span>}
+                        <span><strong>{item.fullName || "Chưa cập nhật tên"}</strong><small>{item.email}</small></span>
+                      </div>
                     </td>
-                    <td>
-                      <span className={`status-badge ${user.active ? "active" : "banned"}`}>
-                        {user.active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td>
-                      <button className="action-menu-btn" title="Actions">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="1"/>
-                          <circle cx="12" cy="5" r="1"/>
-                          <circle cx="12" cy="19" r="1"/>
-                        </svg>
-                      </button>
-                    </td>
+                    <td><span className={`admin-role-badge ${item.role.toLowerCase()}`}><LearningIcon name={item.role === "ADMIN" ? "shield" : item.role === "TEACHER" ? "book" : "users"} />{roleLabels[item.role] ?? item.role}</span></td>
+                    <td><span className={`admin-status ${item.active ? "active" : "inactive"}`}><i />{item.active ? "Đang hoạt động" : "Đã khóa"}</span></td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function EmptyAdminView({ title, description, icon }: { title: string; description: string; icon: AdminIconName }) {
+  return (
+    <div className="admin-content">
+      <PageHeader title={title} description={description} />
+      <section className="admin-empty-panel">
+        <div className="admin-empty-icon"><LearningIcon name={icon} /></div>
+        <h2>Khu vực đang được hoàn thiện</h2>
+        <p>Chức năng này sẽ được bổ sung trong phiên bản tiếp theo.</p>
+      </section>
     </div>
   );
 }
 
 function FeedbackView() {
-  return (
-    <div className="admin-content">
-      <header className="admin-content-header">
-        <div>
-          <h1 className="admin-content-title">Feedback Management</h1>
-          <p className="admin-content-subtitle">Review and respond to user feedback</p>
-        </div>
-      </header>
-      <div className="admin-placeholder">
-        <p>Feedback management coming soon</p>
-      </div>
-    </div>
-  );
+  return <EmptyAdminView title="Phản hồi" description="Theo dõi góp ý để cải thiện trải nghiệm học tập." icon="message" />;
 }
 
 function MessagesView() {
-  return (
-    <div className="admin-content">
-      <header className="admin-content-header">
-        <div>
-          <h1 className="admin-content-title">Messages</h1>
-          <p className="admin-content-subtitle">Manage user conversations</p>
-        </div>
-      </header>
-      <div className="admin-placeholder">
-        <p>Messages management coming soon</p>
-      </div>
-    </div>
-  );
+  return <EmptyAdminView title="Tin nhắn" description="Quản lý trao đổi giữa PhysLive và người dùng." icon="message" />;
+}
+
+function LoadingState({ label, compact = false }: { label: string; compact?: boolean }) {
+  return <div className={`admin-loading ${compact ? "compact" : ""}`}><span className="admin-loading-spinner" /><p>{label}</p></div>;
 }

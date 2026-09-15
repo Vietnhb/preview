@@ -47,7 +47,6 @@
 .workspace-examples button, .workspace-card-footer button { border: 0; padding: 7px 10px; border-radius: 8px; color: #315478; background: #edf4fb; cursor: pointer; font-weight: 700; }
 .workspace-submit { min-height: 46px; margin-top: 4px; border: 0; border-radius: 11px; color: #fff; background: linear-gradient(135deg, #173e69, #087f94); cursor: pointer; font-weight: 800; font-size: 14px; box-shadow: 0 10px 24px rgba(9,104,124,.2); }
 .workspace-submit:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
-.workspace-error { display: grid; gap: 3px; padding: 12px 14px; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; background: #fff4f4; font-size: 12px; }
 .workspace-confirm-note { margin: 0 0 4px; color: #607086; font-size: 12px; line-height: 1.55; }
 .workspace-clarify-progress { height: 4px; overflow: hidden; border-radius: 999px; background: #e7edf4; }
 .workspace-clarify-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #173e69, #0b94a5); transition: width .35s ease; }

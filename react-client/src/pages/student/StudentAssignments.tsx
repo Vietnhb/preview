@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link } from "react-router-dom";
 import PhysicsScene from "../../components/simulation/PhysicsScene";
-import { studentAssignments, submitAssignmentPrediction } from "../../api/assignmentApi";
-import { getSimulation } from "../../api/simulationApi";
+import { assignedSimulation, studentAssignments, submitAssignmentPrediction } from "../../api/assignmentApi";
+import { getSharedSimulation } from "../../api/simulationApi";
 import { library } from "../../api/libraryApi";
 import type { Assignment, LibraryItem, Simulation } from "../../types/physlive";
+import LearningIcon from "../../components/common/LearningIcon";
 import "../../styles/modern-roles.css";
 
 interface PredictionPayload {
@@ -13,8 +13,8 @@ interface PredictionPayload {
   reasoning?: string;
 }
 
-export default function StudentAssignments() {
-  const [activeTab, setActiveTab] = useState<"assigned" | "library">("assigned");
+export default function StudentAssignments({ initialTab = "assigned" }: { initialTab?: "assigned" | "library" }) {
+  const [activeTab, setActiveTab] = useState<"assigned" | "library">(initialTab);
 
   // Assigned items
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -44,6 +44,12 @@ export default function StudentAssignments() {
   const [sharedItems, setSharedItems] = useState<LibraryItem[]>([]);
   const [selectedTopic, setSelectedTopic] = useState("");
   const [sharedLoading, setSharedLoading] = useState(false);
+  const [selectedSharedItem, setSelectedSharedItem] = useState<LibraryItem | null>(null);
+  const [sharedSimulation, setSharedSimulation] = useState<Simulation | null>(null);
+  const [sharedSimLoading, setSharedSimLoading] = useState(false);
+  const [sharedSimError, setSharedSimError] = useState("");
+  const [sharedFrame, setSharedFrame] = useState(0);
+  const [sharedPlaying, setSharedPlaying] = useState(false);
 
   const loadAssignments = useCallback(async () => {
     setLoading(true);
@@ -62,7 +68,7 @@ export default function StudentAssignments() {
     setSharedLoading(true);
     try {
       const data = await library(topic || undefined);
-      setSharedItems(data);
+      setSharedItems(data.filter(item => item.visibility === "SHARED"));
     } catch {
       // ignore
     } finally {
@@ -80,33 +86,48 @@ export default function StudentAssignments() {
     }
   }, [activeTab, selectedTopic, loadSharedLibrary]);
 
-  // When student selects an assignment
+  const loadAssignedSimulation = useCallback(async (assignmentId: string) => {
+    setSimLoading(true);
+    setSimError("");
+    try {
+      setSimulation(await assignedSimulation(assignmentId));
+    } catch {
+      setSimulation(null);
+      setSimError("Chưa tải được mô hình mô phỏng của bài tập này.");
+    } finally {
+      setSimLoading(false);
+    }
+  }, []);
+
+  // The simulation is deliberately requested only after the prediction gate is open.
   const handleSelectAssignment = async (item: Assignment) => {
     setSelectedAssignment(item);
-    setPredictionSubmitted(false);
-    setSubmittedPredictionText("");
+    const alreadySubmitted = Boolean(item.predictionSubmitted);
+    setPredictionSubmitted(alreadySubmitted);
+    setSubmittedPredictionText(alreadySubmitted ? "Dự đoán đã được gửi trước đó." : "");
     setPredictionInput("");
     setReasoningInput("");
     setPredictionError("");
     setSimulation(null);
     setFrame(0);
     setPlaying(false);
-
-    // Fetch simulation linked with the assignment
-    setSimLoading(true);
     setSimError("");
+    if (alreadySubmitted) await loadAssignedSimulation(item.id);
+  };
+
+  const handleOpenShared = async (item: LibraryItem) => {
+    setSelectedSharedItem(item);
+    setSharedSimulation(null);
+    setSharedFrame(0);
+    setSharedPlaying(false);
+    setSharedSimLoading(true);
+    setSharedSimError("");
     try {
-      // Find simulation by specification or libraryItemId
-      // If we have libraryItemId, we can fetch simulation
-      // Backend simulation is loaded by simulationId or specificationId
-      const sim = await getSimulation(item.libraryItemId).catch(async () => {
-        return await getSimulation(item.specificationId);
-      });
-      setSimulation(sim);
+      setSharedSimulation(await getSharedSimulation(item.simulationId));
     } catch {
-      setSimError("Chưa tải được mô hình mô phỏng của bài tập này.");
+      setSharedSimError("Chưa tải được mô phỏng trong tài nguyên này.");
     } finally {
-      setSimLoading(false);
+      setSharedSimLoading(false);
     }
   };
 
@@ -127,6 +148,7 @@ export default function StudentAssignments() {
       await submitAssignmentPrediction(selectedAssignment.id, payload);
       setPredictionSubmitted(true);
       setSubmittedPredictionText(predictionInput.trim());
+      await loadAssignedSimulation(selectedAssignment.id);
     } catch (err: unknown) {
       // If student has already submitted prediction previously, unlock simulation
       if (typeof err === "object" && err !== null && "response" in err) {
@@ -134,6 +156,7 @@ export default function StudentAssignments() {
         if (axiosErr.response?.status === 409) {
           setPredictionSubmitted(true);
           setSubmittedPredictionText(predictionInput.trim() || "Dự đoán đã ghi nhận trước đó");
+          await loadAssignedSimulation(selectedAssignment.id);
           return;
         }
       }
@@ -152,6 +175,14 @@ export default function StudentAssignments() {
     return () => window.clearInterval(interval);
   }, [playing, simulation]);
 
+  useEffect(() => {
+    if (!sharedPlaying || !sharedSimulation?.time.length) return;
+    const interval = window.setInterval(() => {
+      setSharedFrame(current => (current + 1) % sharedSimulation.time.length);
+    }, 40);
+    return () => window.clearInterval(interval);
+  }, [sharedPlaying, sharedSimulation]);
+
   const teacherPrompt = useMemo(() => {
     if (!selectedAssignment?.questions) return "Hãy quan sát hiện tượng và đưa ra dự đoán kết quả trước khi chạy mô phỏng.";
     if (typeof selectedAssignment.questions === "object" && selectedAssignment.questions !== null && "prompt" in selectedAssignment.questions) {
@@ -161,16 +192,16 @@ export default function StudentAssignments() {
   }, [selectedAssignment]);
 
   return (
-    <div className="main">
+    <div className={`main student-main student-layout-${activeTab}`}>
       <div className="modern-container">
       {/* Header */}
       <header className="modern-header">
         <div className="modern-header-title">
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-            <h1>Khu vực Học tập của Học sinh</h1>
+            <h1>Bài tập của tôi</h1>
             <span className="modern-badge-role student">Học sinh</span>
           </div>
-          <p>Thực hành bài tập mô phỏng được giao (với Cổng Dự Đoán Vật Lý) và khám phá thư viện mở.</p>
+          <p>Xem bài được giao, gửi dự đoán trước khi chạy mô phỏng và học từ tài nguyên được chia sẻ.</p>
         </div>
       </header>
 
@@ -178,16 +209,16 @@ export default function StudentAssignments() {
       <div className="modern-tabs">
         <button
           className={`modern-tab-btn ${activeTab === "assigned" ? "active" : ""}`}
-          onClick={() => { setActiveTab("assigned"); setSelectedAssignment(null); }}
+          onClick={() => { setActiveTab("assigned"); setSelectedAssignment(null); setSelectedSharedItem(null); }}
         >
-          <span>Bài tập được giáo viên giao</span>
+          <span>Bài tập được giao</span>
           <span className="modern-tab-badge">{assignments.length}</span>
         </button>
         <button
           className={`modern-tab-btn ${activeTab === "library" ? "active" : ""}`}
           onClick={() => { setActiveTab("library"); setSelectedAssignment(null); }}
         >
-          <span>Thư viện lớp & Thực hành tự do</span>
+          <span>Tài nguyên lớp học</span>
         </button>
       </div>
 
@@ -217,7 +248,7 @@ export default function StudentAssignments() {
 
               {!loading && assignments.length === 0 ? (
                 <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-muted)" }}>
-                  <div style={{ fontSize: "36px", marginBottom: "12px" }}>📚</div>
+                  <LearningIcon name="book" />
                   <h3 style={{ margin: "0 0 8px 0", color: "var(--text-primary)" }}>Chưa có bài tập nào được giao</h3>
                   <p style={{ margin: 0, fontSize: "14px" }}>Khi giáo viên giao bài mô phỏng, bài tập sẽ xuất hiện tại đây.</p>
                 </div>
@@ -252,7 +283,9 @@ export default function StudentAssignments() {
                             </small>
                           </td>
                           <td>
-                            <span className="status-pill draft">Chờ làm bài</span>
+                            <span className={item.predictionSubmitted ? "status-pill completed" : "status-pill draft"}>
+                              {item.predictionSubmitted ? "Đã dự đoán" : "Chưa làm"}
+                            </span>
                           </td>
                           <td>
                             <button
@@ -261,7 +294,7 @@ export default function StudentAssignments() {
                               style={{ padding: "6px 14px", fontSize: "13px" }}
                               onClick={() => void handleSelectAssignment(item)}
                             >
-                              Làm bài →
+                              {item.predictionSubmitted ? "Xem lại" : "Làm bài"}
                             </button>
                           </td>
                         </tr>
@@ -308,7 +341,7 @@ export default function StudentAssignments() {
                 {/* PREDICTION GATE (FR-STU-02): Required before simulation unlocking */}
                 {!predictionSubmitted ? (
                   <div className="prediction-gate-card">
-                    <span className="prediction-gate-badge">🔒 Cổng Dự Đoán Bắt Buộc (FR-STU-02)</span>
+                    <span className="prediction-gate-badge"><LearningIcon name="shield" /> Cổng dự đoán bắt buộc</span>
                     <h3 className="prediction-gate-title">Câu hỏi dự đoán trước khi xem mô phỏng</h3>
                     <p className="prediction-gate-desc">
                       Theo nguyên tắc học tập tương tác, bạn cần đưa ra giả thuyết / dự đoán kết quả trước. 
@@ -316,7 +349,7 @@ export default function StudentAssignments() {
                     </p>
 
                     <div className="prediction-prompt-box">
-                      📝 {teacherPrompt}
+                      <LearningIcon name="message" /> {teacherPrompt}
                     </div>
 
                     <form onSubmit={handleSubmitPrediction} className="prediction-input-area">
@@ -352,7 +385,7 @@ export default function StudentAssignments() {
                         className="prediction-submit-btn"
                         disabled={isSubmittingPrediction || !predictionInput.trim()}
                       >
-                        {isSubmittingPrediction ? "Đang ghi nhận dự đoán…" : "Xác nhận dự đoán & Mở khóa mô phỏng 🚀"}
+                        {isSubmittingPrediction ? "Đang ghi nhận dự đoán…" : "Xác nhận dự đoán & mở khóa"}
                       </button>
                     </form>
                   </div>
@@ -361,7 +394,7 @@ export default function StudentAssignments() {
                   <div>
                     <div className="simulation-unlocked-banner">
                       <div>
-                        <strong>✅ Dự đoán đã được gửi thành công:</strong> "{submittedPredictionText}"
+                        <strong>Dự đoán đã được gửi:</strong> "{submittedPredictionText}"
                       </div>
                       <span className="status-pill pass">Đã mở khóa mô phỏng</span>
                     </div>
@@ -425,7 +458,7 @@ export default function StudentAssignments() {
                                 style={{ padding: "6px 14px", fontSize: "13px" }}
                                 onClick={() => setPlaying(!playing)}
                               >
-                                {playing ? "Tạm dừng ⏸" : "Chạy tiếp ▶"}
+                                {playing ? "Tạm dừng" : "Chạy tiếp"}
                               </button>
                               <button
                                 type="button"
@@ -433,7 +466,7 @@ export default function StudentAssignments() {
                                 style={{ background: "#ffffff", border: "1px solid var(--border-subtle)" }}
                                 onClick={() => { setPlaying(false); setFrame(0); }}
                               >
-                                Tua về đầu ⏮
+                                Tua về đầu
                               </button>
                               <input
                                 type="range"
@@ -470,6 +503,9 @@ export default function StudentAssignments() {
                           <div style={{ background: "#eff6ff", padding: "12px", borderRadius: "8px", border: "1px solid #bfdbfe" }}>
                             <small style={{ color: "#1d4ed8", display: "block", marginBottom: "6px", fontWeight: "700" }}>Thông số mô phỏng thực tế:</small>
                             <div style={{ fontSize: "13px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                              {Object.entries(simulation.parameters ?? {}).map(([key, value]) => (
+                                <div key={key}><strong>{key}:</strong> {value}</div>
+                              ))}
                               <div><strong>Thời điểm t:</strong> {(simulation.time[frame] ?? 0).toFixed(2)} s</div>
                               {simulation.positions && Object.keys(simulation.positions).map(key => (
                                 <div key={key}>
@@ -487,7 +523,7 @@ export default function StudentAssignments() {
 
                         <div style={{ marginTop: "18px" }}>
                           <small style={{ color: "var(--text-muted)", lineHeight: "1.4", display: "block" }}>
-                            💡 <strong>Gợi ý học tập:</strong> Di chuyển thanh trượt thời gian để quan sát sự biến thiên của vận tốc và gia tốc so với dự đoán ban đầu của bạn.
+                            <strong>Gợi ý học tập:</strong> Di chuyển thanh trượt thời gian để quan sát sự biến thiên của vận tốc và gia tốc so với dự đoán ban đầu của bạn.
                           </small>
                         </div>
                       </div>
@@ -505,8 +541,8 @@ export default function StudentAssignments() {
         <div className="modern-card">
           <div className="modern-card-header">
             <div>
-              <h2>Thư viện Học tập & Mô phỏng Khám phá</h2>
-              <p>Trải nghiệm tự do các mô hình vật lý đã kiểm định từ giáo viên và cộng đồng.</p>
+              <h2>Tài nguyên lớp học</h2>
+              <p>Xem và chạy các mô phỏng đã được giáo viên chia sẻ.</p>
             </div>
             <div style={{ display: "flex", gap: "8px" }}>
               {["", "Kinematics", "Dynamics", "Circuits"].map(t => (
@@ -536,18 +572,59 @@ export default function StudentAssignments() {
                   <span className="status-pill pass" style={{ marginBottom: "8px" }}>{item.topic || "Vật lý"}</span>
                   <h3 style={{ fontSize: "15px", margin: "0 0 8px 0" }}>{item.title}</h3>
                   <small style={{ color: "var(--text-muted)", display: "block", marginBottom: "14px" }}>
-                    Dual validation: {item.validationStatus}
+                    Đã kiểm chứng: {item.validationStatus}
                   </small>
-                  <Link
-                    to={`/workspace?libraryItemId=${item.id}`}
+                  <button
+                    type="button"
                     className="prediction-submit-btn"
-                    style={{ textDecoration: "none", display: "inline-block", padding: "6px 12px", fontSize: "12px" }}
+                    style={{ padding: "6px 12px", fontSize: "12px" }}
+                    onClick={() => void handleOpenShared(item)}
                   >
-                    Mở mô phỏng →
-                  </Link>
+                    Xem tài nguyên
+                  </button>
                 </div>
               ))}
             </div>
+          )}
+          {selectedSharedItem && (
+            <section className="student-resource-player">
+              <div className="student-resource-player-header">
+                <div>
+                  <span className="status-pill info">Tài nguyên được chia sẻ</span>
+                  <h3>{selectedSharedItem.title}</h3>
+                </div>
+                <button type="button" className="modern-tab-btn" onClick={() => setSelectedSharedItem(null)}>
+                  Đóng
+                </button>
+              </div>
+              {sharedSimLoading ? (
+                <p className="student-player-state">Đang tải mô hình…</p>
+              ) : sharedSimError ? (
+                <p className="student-player-state error">{sharedSimError}</p>
+              ) : sharedSimulation ? (
+                <>
+                  <div className="student-resource-scene">
+                    <PhysicsScene simulation={sharedSimulation} index={sharedFrame} overlays={vectors} />
+                  </div>
+                  <div className="student-playback">
+                    <button type="button" className="prediction-submit-btn" onClick={() => setSharedPlaying(value => !value)}>
+                      {sharedPlaying ? "Tạm dừng" : "Chạy mô phỏng"}
+                    </button>
+                    <button type="button" className="modern-tab-btn" onClick={() => { setSharedPlaying(false); setSharedFrame(0); }}>
+                      Tua về đầu
+                    </button>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(0, sharedSimulation.time.length - 1)}
+                      value={sharedFrame}
+                      onChange={event => { setSharedPlaying(false); setSharedFrame(Number(event.target.value)); }}
+                    />
+                    <span>{(sharedSimulation.time[sharedFrame] ?? 0).toFixed(2)} s</span>
+                  </div>
+                </>
+              ) : null}
+            </section>
           )}
         </div>
       )}

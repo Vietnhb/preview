@@ -43,4 +43,9 @@ public class SimulationController {
     public SimulationResponse get(@PathVariable UUID id) {
         return simulationService.get(id);
     }
+
+    @GetMapping("/shared/{id}")
+    public SimulationResponse getShared(@PathVariable UUID id) {
+        return simulationService.getShared(id);
+    }
 }

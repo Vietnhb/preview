@@ -4,6 +4,7 @@ import com.example.backend.dto.assignment.AssignmentResponse;
 import com.example.backend.dto.assignment.AssignmentSubmissionResponse;
 import com.example.backend.dto.assignment.CreateAssignmentRequest;
 import com.example.backend.dto.assignment.SubmitPredictionRequest;
+import com.example.backend.dto.physics.SimulationResponse;
 import com.example.backend.service.AssignmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,12 @@ public class AssignmentController {
     public AssignmentSubmissionResponse submit(@PathVariable UUID id,
                                                @Valid @RequestBody SubmitPredictionRequest request) {
         return assignmentService.submit(id, request);
+    }
+
+    @GetMapping("/{id}/simulation")
+    @PreAuthorize("hasRole('STUDENT')")
+    public SimulationResponse simulation(@PathVariable UUID id) {
+        return assignmentService.simulationForStudent(id);
     }
 
     @GetMapping("/{id}/submissions")

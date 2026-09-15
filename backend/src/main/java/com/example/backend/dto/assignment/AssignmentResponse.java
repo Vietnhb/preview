@@ -17,5 +17,6 @@ public record AssignmentResponse(
         Set<Integer> studentIds,
         AssignmentStatus status,
         Instant assignedAt,
-        Instant dueAt) {
+        Instant dueAt,
+        boolean predictionSubmitted) {
 }

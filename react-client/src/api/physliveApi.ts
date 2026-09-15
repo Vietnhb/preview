@@ -26,6 +26,7 @@ export const runSimulation = (specificationId: string, schemaId: string, adjusta
 export const adjustSimulation = (simulationId: string, adjustableParams: Record<string, number>) => axiosClient.post<BackendSimulation>("/simulations/adjust", { simulationId, adjustableParams }, { timeout: 20000 }).then(r => normalizeSimulation(r.data));
 export const simulationHistory = () => axiosClient.get<BackendSimulation[]>("/simulations").then(r => r.data.map(normalizeSimulation));
 export const getSimulation = (simulationId: string) => axiosClient.get<BackendSimulation>(`/simulations/${simulationId}`).then(r => normalizeSimulation(r.data));
+export const getSharedSimulation = (simulationId: string) => axiosClient.get<BackendSimulation>(`/simulations/shared/${simulationId}`).then(r => normalizeSimulation(r.data));
 export const curriculum = () => axiosClient.get<Curriculum>("/curriculum").then(r => r.data);
 export const saveLibrary = (simulationId: string, folderId: string, lessonId: string, title: string, visibility: LibraryItem["visibility"] = "PERSONAL") => axiosClient.post<LibraryItem>("/library", { simulationId, folderId, lessonId, title, visibility }).then(r => r.data);
 export const library = (topic?: string) => axiosClient.get<LibraryItem[]>("/library", { params: { topic } }).then(r => r.data);
@@ -41,6 +42,7 @@ export const studentOptions = () => axiosClient.get<StudentOption[]>("/user/stud
 export const createAssignment = (request: CreateAssignment) => axiosClient.post<Assignment>("/assignments", request).then(r => r.data);
 export const teacherAssignments = () => axiosClient.get<Assignment[]>("/assignments/mine/teacher").then(r => r.data);
 export const studentAssignments = () => axiosClient.get<Assignment[]>("/assignments/mine/student").then(r => r.data);
+export const assignedSimulation = (assignmentId: string) => axiosClient.get<BackendSimulation>(`/assignments/${assignmentId}/simulation`).then(r => normalizeSimulation(r.data));
 export const assignmentSubmissions = (assignmentId: string) => axiosClient.get<AssignmentSubmission[]>(`/assignments/${assignmentId}/submissions`).then(r => r.data);
 export const submitAssignmentPrediction = (assignmentId: string, predictions: unknown) => axiosClient.post<AssignmentSubmission>(`/assignments/${assignmentId}/predictions`, { predictions }).then(r => r.data);
 export const problemHistory = (page = 0, size = 20) => axiosClient.get<{ content: ProblemSummary[]; totalElements: number; totalPages: number }>("/problems", { params: { page, size } }).then(r => r.data);

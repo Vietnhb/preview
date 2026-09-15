@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 @Component
 public class OpenRouterOcrProvider implements OcrProvider {
 
-    private static final String DEFAULT_MODEL = "nex-agi/nex-n2.5-pro:free";
+    private static final String DEFAULT_MODEL = "openrouter/free";
 
     private final OpenRouterClient client;
     private final String model;

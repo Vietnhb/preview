@@ -104,8 +104,13 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   const controls = useMemo(() => simulation.visualization?.controls ?? [], [simulation.visualization]);
   // Snapshot of the original server-generated simulation – never overwritten by client re-solves.
   const baseSimulationRef = useRef<Simulation>(simulation);
+  const baseSimulationIdentityRef = useRef(simulation.runId || simulation.simulationId);
   useEffect(() => {
-    // Only update the baseline when a NEW simulation arrives from the server (different id).
+    // Client-side parameter changes keep the same identity. Only replace the
+    // baseline when a genuinely new server simulation/run arrives.
+    const identity = simulation.runId || simulation.simulationId;
+    if (identity === baseSimulationIdentityRef.current) return;
+    baseSimulationIdentityRef.current = identity;
     baseSimulationRef.current = simulation;
   }, [simulation]);
 
@@ -306,21 +311,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   return <div className="learning-app">
     <LearningHeader onNewSimulation={onNewSimulation} libraryCollapsed={libraryCollapsed} onToggleLibrary={() => setLibraryCollapsed(value => !value)} />
     <main className="learn-workspace" id="learning-workspace">
-      <div className="learn-top-area">
-      {showSave && <form className="learn-save-panel" onSubmit={persistToLibrary}>
-        <label><span>Thư mục cá nhân</span><select value={folderId} onChange={event => setFolderId(event.target.value)} required><option value="">Chọn thư mục</option>{folders.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label>
-        <label><span>Topic do AI xác định</span><select value={topicId} onChange={event => { setTopicId(event.target.value); setModuleId(""); setLevelId(""); setLessonId(""); }} disabled={Boolean(problem?.currentSpecification?.topic)} required><option value="">Chọn topic</option>{topics.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Module</span><select value={moduleId} disabled={!topicId} onChange={event => { setModuleId(event.target.value); setLevelId(""); setLessonId(""); }} required><option value="">Chọn module</option>{modules.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Grade / Level</span><select value={levelId} disabled={!moduleId} onChange={event => { setLevelId(event.target.value); setLessonId(""); }} required><option value="">Chọn lớp</option>{levels.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Lesson</span><select value={lessonId} disabled={!levelId} onChange={event => setLessonId(event.target.value)} required><option value="">Chọn lesson</option>{lessons.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <div><strong>Lưu simulation đã kiểm chứng</strong><small>Bản lưu thuộc tài khoản giáo viên và có thể dùng để giao bài.</small></div>
-        <label><span>Tên trong thư viện</span><input value={saveTitle} maxLength={160} onChange={event => setSaveTitle(event.target.value)} required /></label>
-        <label><span>Phạm vi</span><select value={visibility} onChange={event => setVisibility(event.target.value as LibraryItem["visibility"])}><option value="PERSONAL">Cá nhân</option><option value="SHARED">Chia sẻ</option></select></label>
-        <button type="submit" disabled={saving || !saveTitle.trim() || !folderId || !lessonId}>{saving ? "Đang lưu…" : "Xác nhận lưu"}</button>
-        <button type="button" className="secondary" onClick={() => setShowSave(false)} disabled={saving}>Hủy</button>
-        {saveError && <p role="alert">{saveError}</p>}
-      </form>}
-      </div>
+      <div className="learn-top-area" />
       <nav className="learn-mobile-nav" aria-label="Chuyển vùng học tập"><button type="button" aria-pressed={mobilePanel === "observe"} onClick={() => setMobilePanel("observe")}><Icon name="play" />Quan sát</button><button type="button" aria-pressed={mobilePanel === "inspect" && inspector === "experiment"} onClick={() => { setMobilePanel("inspect"); setInspector("experiment"); }}><Icon name="sliders" />Thử nghiệm</button><button type="button" aria-pressed={mobilePanel === "inspect" && inspector !== "experiment"} onClick={() => { setMobilePanel("inspect"); setInspector("understand"); }}><Icon name="book" />Giải thích</button></nav>
       <div className="learn-layout" data-mobile-panel={mobilePanel} data-library-pane={user?.role === "TEACHER"} data-library-collapsed={libraryCollapsed}>
         {user?.role === "TEACHER" && <TeacherLibraryPane folders={folders} items={libraryItems}
@@ -413,12 +404,29 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
               { value: "steps", label: "Lời giải" },
               { value: "understand", label: "Số liệu" },
               { value: "problem", label: "Xuất" }
-            ]} value={inspector} onChange={setInspector} />
+            ]} value={inspector} onChange={value => { setInspector(value); setShowSave(false); }} />
             {user?.role === "TEACHER" && simulation.valid && (savedItem
               ? <Link className="learn-library-link" to={`/assignments/workspace?libraryItemId=${savedItem.id}`}>Giao bài</Link>
-              : <button type="button" className="learn-save-button" onClick={() => setShowSave(value => !value)}>Lưu</button>)}
+              : <button type="button" className={`learn-save-button${showSave ? " active" : ""}`} onClick={() => setShowSave(value => !value)}>{showSave ? "Đóng" : "Lưu"}</button>)}
           </div>
-          <div key={inspector} className="learn-inspector-body" id="inspector-panel" role="tabpanel" aria-labelledby={`inspector-${inspector}`} tabIndex={0}>
+          {showSave ? <form className="learn-save-panel" onSubmit={persistToLibrary}>
+            <div className="learn-save-heading">
+              <span className="learn-save-icon"><Icon name="upload" /></span>
+              <span><strong>Lưu vào thư viện</strong><small>Bản lưu thuộc tài khoản giáo viên và có thể dùng để giao bài.</small></span>
+            </div>
+            <label><span>Thư mục cá nhân</span><select value={folderId} onChange={event => setFolderId(event.target.value)} required><option value="">Chọn thư mục</option>{folders.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label>
+            <label><span>Topic do AI xác định</span><select value={topicId} onChange={event => { setTopicId(event.target.value); setModuleId(""); setLevelId(""); setLessonId(""); }} required><option value="">Chọn topic</option>{topics.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label><span>Module</span><select value={moduleId} disabled={!topicId} onChange={event => { setModuleId(event.target.value); setLevelId(""); setLessonId(""); }} required><option value="">Chọn module</option>{modules.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label><span>Grade / Level</span><select value={levelId} disabled={!moduleId} onChange={event => { setLevelId(event.target.value); setLessonId(""); }} required><option value="">Chọn lớp</option>{levels.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label><span>Lesson</span><select value={lessonId} disabled={!levelId} onChange={event => setLessonId(event.target.value)} required><option value="">Chọn lesson</option>{lessons.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label><span>Tên trong thư viện</span><input value={saveTitle} maxLength={160} onChange={event => setSaveTitle(event.target.value)} required /></label>
+            <label><span>Phạm vi</span><select value={visibility} onChange={event => setVisibility(event.target.value as LibraryItem["visibility"])}><option value="PERSONAL">Cá nhân</option><option value="SHARED">Chia sẻ</option></select></label>
+            <div className="learn-save-actions">
+              <button type="submit" className="learn-save-submit" disabled={saving || !saveTitle.trim() || !folderId || !lessonId}>{saving ? "Đang lưu…" : "Xác nhận lưu"}</button>
+              <button type="button" className="learn-save-cancel secondary" onClick={() => setShowSave(false)} disabled={saving}>Hủy</button>
+            </div>
+            {saveError && <p className="learn-save-error" role="alert">{saveError}</p>}
+          </form> : <div key={inspector} className="learn-inspector-body" id="inspector-panel" role="tabpanel" aria-labelledby={`inspector-${inspector}`} tabIndex={0}>
             {inspector === "experiment" && <>
               <div className="learn-section-title"><h2>Điều chỉnh tham số</h2><button type="button" className="learn-icon-button" aria-label="Hoàn tác thông số" title="Hoàn tác về đề ban đầu" disabled={!dirty} onClick={resetDraft}><Icon name="reset" /></button></div>
               <p className="learn-note">Kéo thanh trượt để thay đổi. Mô phỏng tự động cập nhật theo thời gian thực.</p>
@@ -564,7 +572,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
                 {problem?.editableText || problem?.originalText || "Nội dung đề bài chưa có trong phiên này."}
               </blockquote>
             </>}
-          </div>
+          </div>}
           <div className="learn-inspector-footer"><Icon name="book" /><span>Quan sát · Đặt câu hỏi · Tự khám phá</span></div>
         </aside>
       </div>

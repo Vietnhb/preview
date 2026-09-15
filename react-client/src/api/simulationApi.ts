@@ -6,7 +6,7 @@ import type { Simulation } from "../types/physlive";
  * Handles simulation execution, parameter adjustment, and dual validation
  */
 
-type BackendSimulation = Omit<Simulation, "runId" | "valid" | "elapsedMilliseconds" | "parameters"> & {
+export type BackendSimulation = Omit<Simulation, "runId" | "valid" | "elapsedMilliseconds" | "parameters"> & {
   simulationRunId: string;
   validationPassed: boolean;
   computationTimeMs: number;
@@ -14,7 +14,7 @@ type BackendSimulation = Omit<Simulation, "runId" | "valid" | "elapsedMillisecon
   parameters?: Record<string, number>;
 };
 
-const normalizeSimulation = (value: BackendSimulation): Simulation => ({
+export const normalizeSimulation = (value: BackendSimulation): Simulation => ({
   ...value,
   runId: value.simulationRunId,
   valid: value.validationPassed,
@@ -47,4 +47,8 @@ export const simulationHistory = () =>
 
 export const getSimulation = (simulationId: string) => 
   axiosClient.get<BackendSimulation>(`/simulations/${simulationId}`)
+    .then(r => normalizeSimulation(r.data));
+
+export const getSharedSimulation = (simulationId: string) =>
+  axiosClient.get<BackendSimulation>(`/simulations/shared/${simulationId}`)
     .then(r => normalizeSimulation(r.data));

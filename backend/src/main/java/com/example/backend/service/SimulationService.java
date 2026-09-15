@@ -10,6 +10,7 @@ import com.example.backend.entity.SimulationRun;
 import com.example.backend.entity.SimulationStatus;
 import com.example.backend.entity.Specification;
 import com.example.backend.entity.User;
+import com.example.backend.entity.Visibility;
 import com.example.backend.exception.ApiException;
 import com.example.backend.physics.PhysicsSolver;
 import com.example.backend.physics.PhysicsSolverRegistry;
@@ -18,6 +19,7 @@ import com.example.backend.entity.SchemaVersion;
 import com.example.backend.repository.SimulationRepository;
 import com.example.backend.repository.SimulationRunRepository;
 import com.example.backend.repository.SpecificationRepository;
+import com.example.backend.repository.LibraryItemRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -35,6 +37,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SimulationService {
     private final SimulationRepository simulationRepository;
+    private final LibraryItemRepository libraryItemRepository;
     private final SimulationRunRepository simulationRunRepository;
     private final SpecificationRepository specificationRepository;
     private final PhysicsSolverRegistry solverRegistry;
@@ -99,6 +102,21 @@ public class SimulationService {
         User user = currentUserService.requireCurrentUser();
         Simulation simulation = simulationRepository.findByIdAndOwnerId(id, user.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Simulation not found"));
+        return latestResponse(simulation);
+    }
+
+    public SimulationResponse latestFor(Simulation simulation) {
+        return latestResponse(simulation);
+    }
+
+    @Transactional(readOnly = true, noRollbackFor = Exception.class)
+    public SimulationResponse getShared(UUID id) {
+        currentUserService.requireCurrentUser();
+        Simulation simulation = libraryItemRepository
+                .findBySimulationIdAndActiveTrueAndVisibility(id, Visibility.SHARED)
+                .map(item -> item.getSimulation())
+                .filter(item -> item != null)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shared simulation not found"));
         return latestResponse(simulation);
     }
 

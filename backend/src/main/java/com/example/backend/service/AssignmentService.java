@@ -4,6 +4,7 @@ import com.example.backend.dto.assignment.AssignmentResponse;
 import com.example.backend.dto.assignment.AssignmentSubmissionResponse;
 import com.example.backend.dto.assignment.CreateAssignmentRequest;
 import com.example.backend.dto.assignment.SubmitPredictionRequest;
+import com.example.backend.dto.physics.SimulationResponse;
 import com.example.backend.entity.Assignment;
 import com.example.backend.entity.AssignmentSubmission;
 import com.example.backend.entity.Specification;
@@ -15,22 +16,47 @@ import com.example.backend.repository.AssignmentRepository;
 import com.example.backend.repository.AssignmentSubmissionRepository;
 import com.example.backend.repository.LibraryItemRepository;
 import com.example.backend.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 @Service
-@RequiredArgsConstructor
 public class AssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
+    private final SimulationService simulationService;
+
+    @Autowired
+    public AssignmentService(AssignmentRepository assignmentRepository,
+                             AssignmentSubmissionRepository submissionRepository,
+                             LibraryItemRepository libraryItemRepository,
+                             UserRepository userRepository,
+                             CurrentUserService currentUserService,
+                             SimulationService simulationService) {
+        this.assignmentRepository = assignmentRepository;
+        this.submissionRepository = submissionRepository;
+        this.libraryItemRepository = libraryItemRepository;
+        this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
+        this.simulationService = simulationService;
+    }
+
+    public AssignmentService(AssignmentRepository assignmentRepository,
+                             AssignmentSubmissionRepository submissionRepository,
+                             LibraryItemRepository libraryItemRepository,
+                             UserRepository userRepository,
+                             CurrentUserService currentUserService) {
+        this(assignmentRepository, submissionRepository, libraryItemRepository, userRepository,
+                currentUserService, null);
+    }
 
     @Transactional
     public AssignmentResponse create(CreateAssignmentRequest request) {
@@ -71,7 +97,26 @@ public class AssignmentService {
     @Transactional(readOnly = true)
     public List<AssignmentResponse> forStudent() {
         User student = currentUserService.requireCurrentUser();
-        return assignmentRepository.findByAssignedStudentIdsContaining(student.getId()).stream().map(this::toResponse).toList();
+        return assignmentRepository.findByAssignedStudentIdsContaining(student.getId()).stream()
+                .filter(item -> item.getStatus() == com.example.backend.entity.AssignmentStatus.ACTIVE)
+                .map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true, noRollbackFor = Exception.class)
+    public SimulationResponse simulationForStudent(java.util.UUID assignmentId) {
+        User student = currentUserService.requireCurrentUser();
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Assignment not found"));
+        if (!assignment.getAssignedStudentIds().contains(student.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Assignment is not assigned to this student");
+        }
+        if (!submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, student.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Submit a prediction before viewing the simulation");
+        }
+        if (assignment.getLibraryItem() == null || assignment.getLibraryItem().getSimulation() == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Assigned simulation not found");
+        }
+        return simulationService.latestFor(assignment.getLibraryItem().getSimulation());
     }
 
     @Transactional
@@ -105,9 +150,15 @@ public class AssignmentService {
     }
 
     private AssignmentResponse toResponse(Assignment item) {
+        User current = currentUserService.requireCurrentUser();
+        boolean predictionSubmitted = current.getRole() != null
+                && "STUDENT".equalsIgnoreCase(current.getRole().getName())
+                && submissionRepository.existsByAssignmentIdAndStudentId(item.getId(), current.getId());
         return new AssignmentResponse(item.getId(), item.getLibraryItem() == null ? null : item.getLibraryItem().getId(),
                 item.getSpecification().getId(), item.getTitle(), item.getDescription(),
-                item.getQuestions(), item.getAssignedStudentIds(), item.getStatus(), item.getAssignedAt(), item.getDueAt());
+                item.getQuestions(), item.getAssignedStudentIds() == null ? Set.of() : Set.copyOf(item.getAssignedStudentIds()),
+                item.getStatus(), item.getAssignedAt(), item.getDueAt(),
+                predictionSubmitted);
     }
 
     private AssignmentSubmissionResponse toSubmission(AssignmentSubmission item) {

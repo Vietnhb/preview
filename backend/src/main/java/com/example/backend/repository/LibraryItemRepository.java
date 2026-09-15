@@ -18,6 +18,8 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> 
 
     Optional<LibraryItem> findByIdAndOwnerIdAndActiveTrue(UUID id, Integer ownerId);
 
+    Optional<LibraryItem> findBySimulationIdAndActiveTrueAndVisibility(UUID simulationId, Visibility visibility);
+
     List<LibraryItem> findByOwnerIdAndActiveTrueOrderByCreatedAtDesc(Integer ownerId);
 
     boolean existsByFolderIdAndActiveTrue(UUID folderId);

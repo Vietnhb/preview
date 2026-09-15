@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import type { Ambiguity, Problem } from "../../types/physlive";
+import type { Ambiguity, ConversationMessage, Problem } from "../../types/physlive";
 import Icon from "../common/LearningIcon";
 import "../../styles/workspace-modal.css";
 
@@ -24,6 +24,7 @@ type Props = {
   questionTyping: boolean;
   ambiguities: Ambiguity[];
   activeAmbiguity: Ambiguity | undefined;
+  conversation: ConversationMessage[];
   canDismiss: boolean;
   onClose: () => void;
   onCreate: (event: FormEvent) => void;
@@ -51,6 +52,7 @@ export default function CreateSimulationModal({
   questionTyping,
   ambiguities,
   activeAmbiguity,
+  conversation,
   canDismiss,
   onClose,
   onCreate,
@@ -66,8 +68,12 @@ export default function CreateSimulationModal({
   const cameraVideoRef = useRef<HTMLVideoElement>(null);
   const cameraCanvasRef = useRef<HTMLCanvasElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const composerTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const attachmentControlRef = useRef<HTMLDivElement>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
 
   const stopCamera = () => {
     cameraStreamRef.current?.getTracks().forEach(track => track.stop());
@@ -92,12 +98,14 @@ export default function CreateSimulationModal({
 
   const handleFileInput = (event: ChangeEvent<HTMLInputElement>) => {
     stopCamera();
+    setAttachmentMenuOpen(false);
     onSourceFileChange(event.target.files?.[0] ?? null);
     event.target.value = "";
   };
 
   const openCamera = async () => {
     setCameraError("");
+    setAttachmentMenuOpen(false);
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError("Trình duyệt không hỗ trợ camera. Bạn có thể dùng Tải tệp.");
       return;
@@ -144,178 +152,239 @@ export default function CreateSimulationModal({
     }, "image/jpeg", 0.92);
   };
 
-  return (
+  const composerValue = pendingProblem && activeAmbiguity
+    ? answers[activeAmbiguity.code] ?? ""
+    : description;
+  const hasChatContent = conversation.length > 0 || Boolean(stage || error || pendingProblem);
+
+  useEffect(() => {
+    const textarea = composerTextareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 24), 120)}px`;
+  }, [composerValue, pendingProblem?.id, activeAmbiguity?.code]);
+
+  useEffect(() => {
+    const messages = messagesRef.current;
+    if (messages) messages.scrollTop = messages.scrollHeight;
+  }, [conversation, stage, error, activeAmbiguity?.code, questionTyping]);
+
+  useEffect(() => {
+    if (!attachmentMenuOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!attachmentControlRef.current?.contains(target)) setAttachmentMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [attachmentMenuOpen]);
+
+  const panel = (
     <div
-      className={inline ? "inline-create-host" : "modal-overlay"}
-      role={inline ? undefined : "presentation"}
-      onClick={inline ? undefined : () => { if (canDismiss && !loading) onClose(); }}
+      className={inline ? "inline-create-panel" : "modal-container"}
+      role="dialog"
+      aria-modal={inline ? undefined : "true"}
+      aria-labelledby="create-sim-title"
+      onClick={event => { if (!inline) event.stopPropagation(); }}
     >
-      <div
-        className={inline ? "modal-container inline-create-panel" : "modal-container"}
-        role="dialog"
-        aria-modal={inline ? undefined : "true"}
-        aria-labelledby="create-sim-title"
-        onClick={event => { if (!inline) event.stopPropagation(); }}
-      >
-        <div className="modal-header">
-          <div className="modal-title-group">
-            <h2 className="modal-title" id="create-sim-title">
-              {pendingProblem ? "AI đang làm rõ đề bài" : "Tạo mô phỏng mới"}
-            </h2>
-            <p className="modal-subtitle">
-              {pendingProblem
-                ? "Trả lời từng điểm chưa rõ. Solver chỉ chạy sau khi đủ dữ kiện."
-                : "AI đọc đề bài, tạo specification và hỏi lại khi dữ kiện chưa rõ."}
-            </p>
-          </div>
-          {canDismiss && (
-            <button type="button" className="modal-close-btn" aria-label="Đóng" disabled={loading} onClick={onClose}>
-              ×
-            </button>
+      <header className="create-chat-header">
+        <div className="create-chat-title-group">
+          <h2 id="create-sim-title">
+            {pendingProblem ? "AI đang làm rõ đề bài" : "Tạo mô phỏng mới"}
+          </h2>
+          <p>
+            {pendingProblem
+              ? "Trả lời từng điểm chưa rõ. Solver chỉ chạy sau khi đủ dữ kiện."
+              : "Trao đổi với PhysLive AI để xây dựng mô phỏng."}
+          </p>
+        </div>
+        {canDismiss && (
+          <button type="button" className="create-chat-close" aria-label="Đóng" disabled={loading} onClick={onClose}>
+            ×
+          </button>
+        )}
+      </header>
+
+      <div className="create-chat">
+        <div className="create-chat-messages" ref={messagesRef} aria-live="polite">
+          {!hasChatContent ? (
+            <div className="create-chat-empty-state">
+              <h3>Bạn muốn mô phỏng hiện tượng gì?</h3>
+              <p>Nhập đề bài, mô tả hiện tượng hoặc tải ảnh/PDF.<br />PhysLive AI sẽ phân tích và hỏi thêm nếu cần.</p>
+            </div>
+          ) : (
+            <>
+              {conversation.map(message => (
+                <div className={`create-chat-message ${message.role}`} key={message.id}>
+                  <span className="create-chat-avatar">{message.role === "assistant" ? "AI" : "Bạn"}</span>
+                  <div className="create-chat-bubble"><p>{message.text}</p></div>
+                </div>
+              ))}
+              {pendingProblem && activeAmbiguity && !loading && (
+                <div className="create-chat-message assistant create-chat-question" key={`${activeAmbiguity.code}-${ambiguityStep}`}>
+                  <span className="create-chat-avatar">AI</span>
+                  <div className="create-chat-bubble">
+                    <p>{questionTyping ? (typedQuestion || "AI đang viết…") : activeAmbiguity.question}</p>
+                  </div>
+                </div>
+              )}
+              {stage && (
+                <div className="create-chat-message assistant create-chat-status">
+                  <span className="create-chat-avatar">AI</span>
+                  <div className="create-chat-bubble"><span className="create-chat-status-dot" aria-hidden="true" />{stage}</div>
+                </div>
+              )}
+              {error && (
+                <div className="create-chat-message assistant create-chat-error" role="alert">
+                  <span className="create-chat-avatar">AI</span>
+                  <div className="create-chat-bubble">Mình chưa thể tiếp tục: {error}</div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        <div className="modal-body">
-          {pendingProblem ? (
-            <form id="create-sim-form" onSubmit={onConfirmAmbiguities}>
-              <div className="modal-info-banner">
-                <span className="modal-info-icon" aria-hidden="true">✨</span>
-                <div className="modal-info-text">
-                  <strong>{questionTyping ? "AI đang viết…" : `Câu ${ambiguityStep + 1}/${ambiguities.length}`}</strong>
-                  {" "}AI hỏi từng điểm chưa rõ thay vì tự điền giá trị.
+        <form
+          id="create-sim-form"
+          className="create-chat-composer-wrap"
+          onSubmit={pendingProblem ? onConfirmAmbiguities : onCreate}
+        >
+          <div className="create-chat-composer-support">
+            {pendingProblem && activeAmbiguity && !questionTyping && activeAmbiguity.options && activeAmbiguity.options.length > 0 && (
+              <div className="create-chat-options" aria-label="Gợi ý trả lời">
+                {activeAmbiguity.options.map(option => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={answers[activeAmbiguity.code] === option ? "selected" : ""}
+                    onClick={() => onAnswersChange({ ...answers, [activeAmbiguity.code]: option })}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!pendingProblem && sourceFile && (
+              <div className="source-file-chip">
+                <span className="source-file-icon"><Icon name="file" /></span>
+                <span className="source-file-meta"><strong>{sourceFile.name}</strong><small>{formatFileSize(sourceFile.size)}</small></span>
+                <button type="button" aria-label="Xóa tệp đính kèm" disabled={loading} onClick={() => onSourceFileChange(null)}><Icon name="close" /></button>
+              </div>
+            )}
+
+            {!pendingProblem && cameraOpen && (
+              <div className="camera-capture-panel">
+                <video ref={cameraVideoRef} className="camera-capture-preview" autoPlay muted playsInline />
+                <canvas ref={cameraCanvasRef} hidden />
+                <div className="camera-capture-actions">
+                  <button type="button" className="source-picker-button" disabled={loading} onClick={capturePhoto}>
+                    <Icon name="camera" />Chụp ảnh
+                  </button>
+                  <button type="button" className="source-picker-button secondary" disabled={loading} onClick={stopCamera}>
+                    <Icon name="close" />Đóng camera
+                  </button>
                 </div>
               </div>
-              {activeAmbiguity && (
-                <div className="modal-input-section" key={activeAmbiguity.id ?? activeAmbiguity.code}>
-                  <label className="modal-label" htmlFor="ambiguity-answer">
-                    <span className="workspace-ai-mark">AI</span> {typedQuestion}
-                    {questionTyping && <i aria-hidden="true" />}
-                  </label>
-                  {!questionTyping && activeAmbiguity.options && activeAmbiguity.options.length > 0 && (
-                    <div className="modal-examples-grid" style={{ marginBottom: 12 }}>
-                      {activeAmbiguity.options.map(option => (
-                        <button
-                          key={option}
-                          type="button"
-                          className={`modal-example-card${answers[activeAmbiguity.code] === option ? " selected" : ""}`}
-                          onClick={() => onAnswersChange({ ...answers, [activeAmbiguity.code]: option })}
-                        >
-                          <span className="modal-example-text">{option}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <input
-                    id="ambiguity-answer"
-                    className="modal-select"
-                    autoFocus
-                    value={answers[activeAmbiguity.code] ?? ""}
-                    disabled={loading || questionTyping}
-                    onChange={event => onAnswersChange({ ...answers, [activeAmbiguity.code]: event.target.value })}
-                    placeholder="Nhập giá trị và đơn vị nếu có"
-                  />
-                  <small className="modal-input-hint">{activeAmbiguity.code} · {activeAmbiguity.fieldPath ?? activeAmbiguity.field}</small>
-                </div>
-              )}
-              {error && <div className="modal-info-banner" role="alert"><div className="modal-info-text"><strong>Chưa thể xác nhận</strong> {error}</div></div>}
-              {stage && <div className="modal-info-banner" role="status"><div className="modal-info-text">{stage}</div></div>}
-            </form>
-          ) : (
-            <form id="create-sim-form" onSubmit={onCreate}>
-              <div className="modal-input-section">
-                <label className="modal-label" htmlFor="workspace-description">Mô tả đầy đủ dữ kiện và yêu cầu</label>
-                <textarea
-                  id="workspace-description"
-                  className="modal-textarea"
-                  rows={7}
-                  value={description}
+            )}
+            {!pendingProblem && cameraError && <p className="source-file-error" role="alert">{cameraError}</p>}
+            {!pendingProblem && sourceFileError && <p className="source-file-error" role="alert">{sourceFileError}</p>}
+            {pendingProblem && activeAmbiguity && (
+              <small className="create-chat-input-hint">{activeAmbiguity.code} · {activeAmbiguity.fieldPath ?? activeAmbiguity.field}</small>
+            )}
+
+            {pendingProblem && (
+              <div className="create-chat-composer-actions">
+                <button type="button" className="create-chat-secondary-action" disabled={loading} onClick={onResetComposer}>Nhập đề khác</button>
+                <button type="button" className="create-chat-secondary-action" disabled={loading || ambiguityStep === 0} onClick={onBackAmbiguity}>Quay lại</button>
+              </div>
+            )}
+          </div>
+
+          <div className="create-chat-composer">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,.pdf,.docx,.txt"
+              hidden
+              onChange={handleFileInput}
+            />
+
+            {!pendingProblem && (
+              <div className="create-chat-attachment-control" ref={attachmentControlRef}>
+                <button
+                  type="button"
+                  className="create-chat-plus-button"
+                  aria-label="Thêm ảnh hoặc tệp"
+                  aria-expanded={attachmentMenuOpen}
                   disabled={loading}
-                  onChange={event => onDescriptionChange(event.target.value)}
-                  placeholder="Ví dụ: Một ô tô bắt đầu từ trạng thái nghỉ, tăng tốc đều 2 m/s² trong 8 giây. Hãy mô phỏng vị trí và vận tốc."
-                />
-                <div className="source-picker">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,.pdf,.docx,.txt"
-                    hidden
-                    onChange={handleFileInput}
-                  />
-                  <div className="source-picker-copy">
-                    <strong>Thêm nguồn đề bài</strong>
-                    <span>Ảnh, PDF, DOCX hoặc TXT</span>
-                  </div>
-                  <div className="source-picker-actions">
-                    <button type="button" className="source-picker-button" disabled={loading} onClick={() => fileInputRef.current?.click()}>
+                  onClick={() => setAttachmentMenuOpen(open => !open)}
+                >
+                  <Icon name="plus" />
+                </button>
+                {attachmentMenuOpen && (
+                  <div className="create-chat-attachment-menu" role="menu">
+                    <button type="button" role="menuitem" onClick={() => { setAttachmentMenuOpen(false); fileInputRef.current?.click(); }}>
                       <Icon name="upload" />Tải tệp
                     </button>
-                    <button type="button" className="source-picker-button secondary" disabled={loading} onClick={() => void openCamera()}>
+                    <button type="button" role="menuitem" onClick={() => void openCamera()}>
                       <Icon name="camera" />Chụp ảnh
                     </button>
                   </div>
-                  {cameraOpen && (
-                    <div className="camera-capture-panel">
-                      <video ref={cameraVideoRef} className="camera-capture-preview" autoPlay muted playsInline />
-                      <canvas ref={cameraCanvasRef} hidden />
-                      <div className="camera-capture-actions">
-                        <button type="button" className="source-picker-button" disabled={loading} onClick={capturePhoto}>
-                          <Icon name="camera" />Chụp ảnh
-                        </button>
-                        <button type="button" className="source-picker-button secondary" disabled={loading} onClick={stopCamera}>
-                          <Icon name="close" />Đóng camera
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {cameraError && <p className="source-file-error" role="alert">{cameraError}</p>}
-                  {sourceFile && (
-                    <div className="source-file-chip">
-                      <span className="source-file-icon"><Icon name="file" /></span>
-                      <span className="source-file-meta"><strong>{sourceFile.name}</strong><small>{formatFileSize(sourceFile.size)}</small></span>
-                      <button type="button" aria-label="Xóa tệp đính kèm" disabled={loading} onClick={() => onSourceFileChange(null)}><Icon name="close" /></button>
-                    </div>
-                  )}
-                  {sourceFileError && <p className="source-file-error" role="alert">{sourceFileError}</p>}
-                </div>
-                <div className="modal-input-hint">{token ? "AI sẵn sàng xử lý đề bài" : "Đăng nhập để dùng AI Problem Understanding"}</div>
+                )}
               </div>
-              {error && <div className="modal-info-banner" role="alert"><div className="modal-info-text"><strong>Chưa thể tạo mô phỏng</strong> {error}</div></div>}
-              {stage && <div className="modal-info-banner" role="status"><div className="modal-info-text">{stage}</div></div>}
-            </form>
-          )}
-        </div>
+            )}
 
-        <div className="modal-footer">
-          {pendingProblem ? (
-            <>
-              <button type="button" className="modal-btn modal-btn-cancel" disabled={loading} onClick={onResetComposer}>Nhập đề khác</button>
-              <button type="button" className="modal-btn modal-btn-cancel" disabled={loading || ambiguityStep === 0} onClick={onBackAmbiguity}>Quay lại</button>
-              <button
-                className="modal-btn modal-btn-primary"
-                type="submit"
-                form="create-sim-form"
-                disabled={loading || questionTyping || !activeAmbiguity || !answers[activeAmbiguity.code]?.trim()}
-              >
-                {loading ? <span className="modal-btn-spinner">⟳</span> : null}
-                {ambiguityStep < ambiguities.length - 1 ? "Tiếp tục" : "Gửi cho AI kiểm tra"}
-              </button>
-            </>
-          ) : (
-            <>
-              {canDismiss && <button type="button" className="modal-btn modal-btn-cancel" disabled={loading} onClick={onClose}>Hủy</button>}
-              <button
-                className="modal-btn modal-btn-primary"
-                type="submit"
-                form="create-sim-form"
-                disabled={(!description.trim() && !sourceFile) || loading}
-              >
-                {loading ? <span className="modal-btn-spinner">⟳</span> : null}
-                {loading ? "Đang xử lý…" : "Đưa đề bài cho AI"}
-              </button>
-            </>
-          )}
-        </div>
+            <textarea
+              ref={composerTextareaRef}
+              id={pendingProblem ? "ambiguity-answer" : "workspace-description"}
+              className="create-chat-textarea"
+              rows={1}
+              autoFocus
+              value={composerValue}
+              disabled={loading || Boolean(pendingProblem && questionTyping)}
+              onChange={event => {
+                if (pendingProblem && activeAmbiguity) {
+                  onAnswersChange({ ...answers, [activeAmbiguity.code]: event.target.value });
+                } else {
+                  onDescriptionChange(event.target.value);
+                }
+              }}
+              onKeyDown={event => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+              placeholder={pendingProblem ? "Nhập câu trả lời cho PhysLive AI…" : "Mô tả đề bài cần mô phỏng…"}
+              aria-label={pendingProblem ? "Câu trả lời cho PhysLive AI" : "Mô tả đề bài cần mô phỏng"}
+            />
+
+            <span className="create-chat-composer-note">{token ? "PhysLive AI" : "Đăng nhập để dùng AI"}</span>
+            <button
+              className={`create-chat-send-button${pendingProblem ? " create-chat-send-button-wide" : ""}`}
+              type="submit"
+              aria-label={pendingProblem ? "Gửi câu trả lời cho AI" : "Gửi đề bài cho AI"}
+              disabled={pendingProblem
+                ? loading || questionTyping || !activeAmbiguity || !composerValue.trim()
+                : (!description.trim() && !sourceFile) || loading}
+            >
+              {loading ? <span className="create-chat-spinner">⟳</span> : <Icon name="arrow" />}
+              {pendingProblem && <span>{ambiguityStep < ambiguities.length - 1 ? "Tiếp tục" : "Gửi cho AI"}</span>}
+            </button>
+          </div>
+        </form>
       </div>
+    </div>
+  );
+
+  return inline ? panel : (
+    <div
+      className="modal-overlay"
+      role="presentation"
+      onClick={() => { if (canDismiss && !loading) onClose(); }}
+    >
+      {panel}
     </div>
   );
 }

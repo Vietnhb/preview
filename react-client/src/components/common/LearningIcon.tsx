@@ -31,7 +31,12 @@ type IconName =
   | "folder"
   | "folderPlus"
   | "plus"
-  | "search";
+  | "search"
+  | "users"
+  | "message"
+  | "activity"
+  | "shield"
+  | "refresh";
 
 const paths: Record<IconName, string> = {
   atom: "M12 3c4 0 7 4 7 9s-3 9-7 9-7-4-7-9 3-9 7-9 M3 8c2-3 7-3 11-1s8 6 6 9-7 3-11 1S1 11 3 8 M3 16c-2-3 2-7 6-9s9-2 11 1-2 7-6 9-9 2-11-1",
@@ -70,6 +75,11 @@ const paths: Record<IconName, string> = {
     "M12 10v6M9 13h6M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z",
   plus: "M5 12h14M12 5v14",
   search: "m21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z",
+  users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7-7.5a4 4 0 0 1 0 7.75M22 21v-2a4 4 0 0 0-3-3.87",
+  message: "M21 11.5a8.5 8.5 0 0 1-9 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5Z",
+  activity: "M3 12h4l3-8 4 16 3-8h4",
+  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z",
+  refresh: "M20 11a8 8 0 1 0 2 5m0 0v-5m0 5h-5",
 };
 
 export default function LearningIcon({ name }: { name: IconName }) {

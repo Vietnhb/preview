@@ -12,7 +12,7 @@ import { getSimulation, runSimulation, simulationHistory } from "../../api/simul
 import { useTeacherLibrary } from "../../store/useTeacherLibrary";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import { getToken } from "../../utils/token";
-import type { Ambiguity, LibraryItem, Problem, Simulation } from "../../types/physlive";
+import type { Ambiguity, ConversationMessage, LibraryItem, Problem, Simulation } from "../../types/physlive";
 import "../../styles/learning.css";
 
 function apiMessage(error: unknown) {
@@ -84,6 +84,7 @@ export default function Workspace() {
   const [ambiguityStep, setAmbiguityStep] = useState(0);
   const [typedQuestion, setTypedQuestion] = useState("");
   const [questionTyping, setQuestionTyping] = useState(false);
+  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const { folders, setFolders, libraryItems, libraryLoading, libraryError, setLibraryError, retryLibrary } = useTeacherLibrary();
   const [openingLibraryId, setOpeningLibraryId] = useState<string | null>(null);
   const [composerOrigin, setComposerOrigin] = useState<{ simulation: Simulation; problem: Problem | null } | null>(null);
@@ -93,6 +94,14 @@ export default function Workspace() {
   const showTeacherLibrary = Boolean(token) && user?.role === "TEACHER";
   const ambiguities = openAmbiguities(pendingProblem);
   const activeAmbiguity = ambiguities[Math.min(ambiguityStep, Math.max(ambiguities.length - 1, 0))];
+
+  const appendConversationMessage = (role: ConversationMessage["role"], text: string) => {
+    setConversation(messages => [...messages, {
+      id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      role,
+      text,
+    }]);
+  };
 
   useEffect(() => {
     if (!token) { setHistoryLoading(false); return; }
@@ -162,6 +171,7 @@ export default function Workspace() {
     setDescription("");
     setSourceFile(null);
     setSourceFileError("");
+    setConversation([]);
     setComposerOpen(true);
   };
 
@@ -180,6 +190,7 @@ export default function Workspace() {
     setStage("");
     setSourceFile(null);
     setSourceFileError("");
+    setConversation([]);
   };
 
   const resetComposer = () => {
@@ -191,6 +202,7 @@ export default function Workspace() {
     setDescription("");
     setSourceFile(null);
     setSourceFileError("");
+    setConversation([]);
   };
 
   const createWorkspaceFolder = async (name: string) => {
@@ -238,6 +250,7 @@ export default function Workspace() {
       throw new Error("AI chưa trả về schema hợp lệ cho đề bài này.");
     }
     setStage("Đang chạy solver và đối chiếu kết quả…");
+    appendConversationMessage("assistant", "Các dữ kiện đã đủ. Mình bắt đầu chạy mô phỏng để kiểm tra kết quả.");
     const result = await runSimulation(specification.id, specification.schemaId, {});
     setProblem(resolvedProblem);
     setSimulation(result);
@@ -262,9 +275,24 @@ export default function Workspace() {
     }
     setLoading(true);
     setError("");
+    const promptMessage = [
+      text,
+      sourceFile ? `Tệp đính kèm: ${sourceFile.name}` : "",
+    ].filter(Boolean).join("\n");
+    const messageId = Date.now();
+    setConversation([
+      { id: `user-${messageId}`, role: "user", text: promptMessage },
+      {
+        id: `assistant-${messageId}`,
+        role: "assistant",
+        text: sourceFile
+          ? "Mình đã nhận đề bài và tệp đính kèm. Mình sẽ đọc nội dung rồi dựng mô hình vật lý."
+          : "Mình đã nhận đề bài. Mình sẽ đọc dữ kiện rồi dựng mô hình vật lý.",
+      },
+    ]);
     try {
       setStage("Đang lưu đề bài…");
-      if (sourceFile) setStage("Reading source file...");
+      if (sourceFile) setStage("Đang đọc tệp nguồn…");
       const created = sourceFile && IMAGE_TYPES.has(sourceFile.type)
         ? await createProblemFromImage(sourceFile, text || undefined)
         : await createProblem(sourceFile ? `${text}\n\n${await readDocumentText(sourceFile)}`.trim() : text);
@@ -274,7 +302,12 @@ export default function Workspace() {
         throw new Error("AI chưa xác định được mô hình vật lý hợp lệ.");
       }
       setProblem(extracted);
-      if (openAmbiguities(extracted).length > 0) {
+      const missingAmbiguities = openAmbiguities(extracted);
+      if (missingAmbiguities.length > 0) {
+        appendConversationMessage(
+          "assistant",
+          `Mình đã đọc xong đề bài nhưng còn ${missingAmbiguities.length} dữ kiện cần bạn xác nhận. Mình sẽ hỏi từng ý một.`,
+        );
         setPendingProblem(extracted);
         setAnswers({});
         setAmbiguityStep(0);
@@ -297,6 +330,11 @@ export default function Workspace() {
       setError("Hãy trả lời câu hỏi hiện tại trước khi tiếp tục.");
       return;
     }
+    const answer = answers[activeAmbiguity.code].trim();
+    const submittedAnswers = { ...answers, [activeAmbiguity.code]: answer };
+    appendConversationMessage("assistant", activeAmbiguity.question);
+    appendConversationMessage("user", answer);
+    setAnswers({ ...answers, [activeAmbiguity.code]: "" });
     if (ambiguityStep < ambiguities.length - 1) {
       setError("");
       setAmbiguityStep(step => step + 1);
@@ -304,11 +342,16 @@ export default function Workspace() {
     }
     setLoading(true);
     setError("");
+    appendConversationMessage("assistant", "Mình đã nhận câu trả lời. Đang cập nhật mô hình và kiểm tra xem còn thiếu dữ kiện nào không.");
     setStage("AI đang đọc câu trả lời và cập nhật specification…");
     try {
-      const resolved = await confirmProblem(pendingProblem.id, answers);
+      const resolved = await confirmProblem(pendingProblem.id, submittedAnswers);
       const remaining = openAmbiguities(resolved);
       if (remaining.length > 0) {
+        appendConversationMessage(
+          "assistant",
+          `Mình đã cập nhật mô hình, nhưng vẫn còn ${remaining.length} dữ kiện cần làm rõ.`,
+        );
         setProblem(resolved);
         setPendingProblem(resolved);
         setAnswers({});
@@ -343,6 +386,7 @@ export default function Workspace() {
     questionTyping,
     ambiguities,
     activeAmbiguity,
+    conversation,
     canDismiss: !pendingProblem && !loading,
     onClose: closeComposer,
     onCreate: create,

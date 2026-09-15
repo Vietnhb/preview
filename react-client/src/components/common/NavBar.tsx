@@ -29,6 +29,7 @@ const navItems: NavItem[] = [
 ];
 
 const workspaceRoles = new Set(["TEACHER", "REVIEWER", "ADMIN"]);
+const studentNavItem: NavItem = { to: "/assignments", label: "Học tập", icon: "book" };
 
 function NavItemLink({
   item,
@@ -83,9 +84,9 @@ export default function NavBar() {
     navigate("/login");
   };
   const visibleItems = navItems.filter(
-    (item) =>
-      item.to !== "/player" || workspaceRoles.has(user?.role ?? ""),
+    (item) => item.to !== "/player" || workspaceRoles.has(user?.role ?? ""),
   );
+  if (user?.role === "STUDENT") visibleItems.push(studentNavItem);
 
   return (
     <nav className="learning-navbar">
@@ -105,7 +106,7 @@ export default function NavBar() {
             ))}
             {(user?.role === "REVIEWER" || user?.role === "ADMIN") && (
               <NavItemLink
-                item={{ to: "/reviewer", label: "Thẩm định", icon: "settings" }}
+                item={{ to: "/reviewer", label: "Cài đặt", icon: "settings" }}
               />
             )}
             {user?.role === "ADMIN" && (
@@ -203,7 +204,7 @@ export default function NavBar() {
           ))}
           {user?.role === "REVIEWER" || user?.role === "ADMIN" ? (
             <NavItemLink
-              item={{ to: "/reviewer", label: "Thẩm định", icon: "settings" }}
+              item={{ to: "/reviewer", label: "Cài đặt", icon: "settings" }}
               onClick={() => setMobileOpen(false)}
             />
           ) : null}

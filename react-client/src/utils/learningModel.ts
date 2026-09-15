@@ -67,15 +67,36 @@ export const lessonCopy: Record<LessonKind, { title: string; topic: string; goal
 
 export function controlValue(control: LearningControl, simulation: Simulation, specification?: Specification): number {
   if (Number.isFinite(simulation.parameters?.[control.key])) return simulation.parameters[control.key];
-  const quantity = specification?.quantities.find(q => q.name.toLowerCase() === control.key || q.symbol?.toLowerCase() === control.key);
+  const lowerKey = control.key.toLowerCase();
+  const lowerSymbol = control.symbol.toLowerCase();
+  const quantity = specification?.quantities.find(q => {
+    const name = q.name.toLowerCase();
+    const symbol = q.symbol?.toLowerCase();
+    return name === lowerKey || symbol === lowerKey || symbol === lowerSymbol;
+  });
   if (quantity && Number.isFinite(quantity.normalizedValue)) return quantity.normalizedValue;
-  // Initial samples describe the actual run when overrides are absent.
-  if (control.key === "initial_velocity") {
+  // A simulation opened from history/library may not have a specification in
+  // the client and its initial run may have persisted an empty parameters map.
+  // In that case, read the value from the first solver sample instead of
+  // rendering an unusable "NaN" number input.
+  const initialSampleByKey: Record<string, number | undefined> = {
+    initial_position: simulation.positions?.x?.[0] ?? simulation.values?.x?.[0],
+    initial_position_1: simulation.positions?.x1?.[0] ?? simulation.values?.x1?.[0],
+    initial_position_2: simulation.positions?.x2?.[0] ?? simulation.values?.x2?.[0],
+    initial_height: simulation.positions?.y?.[0] ?? simulation.values?.y?.[0],
+    velocity_1: simulation.velocities?.v1?.[0] ?? simulation.values?.v1?.[0],
+    velocity_2: simulation.velocities?.v2?.[0] ?? simulation.values?.v2?.[0],
+    mass_1: simulation.values?.mass_1?.[0],
+    mass_2: simulation.values?.mass_2?.[0],
+  };
+  const initialSample = initialSampleByKey[lowerKey];
+  if (Number.isFinite(initialSample)) return initialSample as number;
+  if (lowerKey === "initial_velocity") {
     const x = simulation.velocities?.x?.[0] ?? simulation.values?.vx?.[0];
     const y = simulation.velocities?.y?.[0] ?? simulation.values?.vy?.[0] ?? 0;
     if (Number.isFinite(x)) return lessonKind(simulation.schemaId) === "projectile" ? Math.hypot(x, y) : x;
   }
-  if (control.key === "acceleration") {
+  if (lowerKey === "acceleration") {
     const value = simulation.accelerations?.x?.[0] ?? simulation.values?.ax?.[0];
     if (Number.isFinite(value)) return value;
   }
