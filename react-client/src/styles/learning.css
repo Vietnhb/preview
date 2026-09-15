@@ -2468,3 +2468,9 @@
 .learn-library-item > select:disabled {
   opacity: 0.6;
 }
+
+.learn-stage-wrapper.has-create-panel .learn-overlay-controls,
+.learn-stage-wrapper.has-create-panel .learn-readouts,
+.learn-stage-wrapper.has-create-panel .floating-playback-dock {
+  display: none;
+}

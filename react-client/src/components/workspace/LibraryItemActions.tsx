@@ -75,7 +75,7 @@ export default function LibraryItemActions({ item, folders }: { item: LibraryIte
         <button type="button" className="library-menu-danger" disabled={busy} onClick={() => setMode("delete")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>Xóa khỏi thư viện</button>
       </> : mode === "rename" ? <form onSubmit={event => { event.preventDefault(); if (title.trim()) void run(() => renameLibraryItem(item.id, title.trim())); }}>
         <label htmlFor={`rename-${item.id}`}>Đổi tên mô phỏng</label>
-        <input id={`rename-${item.id}`} value={title} maxLength={255} disabled={busy} onChange={event => setTitle(event.target.value)} />
+        <input id={`rename-${item.id}`} value={title} maxLength={160} disabled={busy} onChange={event => setTitle(event.target.value)} />
         <div className="library-menu-footer"><button type="button" disabled={busy} onClick={() => setMode("actions")}>Hủy</button><button type="submit" disabled={busy || !title.trim()}>Lưu</button></div>
       </form> : <>
         <p className="library-delete-copy">Xóa “{item.title}” khỏi thư viện? Mô phỏng vẫn còn trong lịch sử.</p>

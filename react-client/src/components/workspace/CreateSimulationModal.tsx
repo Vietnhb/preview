@@ -34,6 +34,7 @@ type Props = {
   onResetComposer: () => void;
   onOpenRecent: (item: Simulation) => void;
   onRetryHistory: () => void;
+  inline?: boolean;
 };
 
 export default function CreateSimulationModal({
@@ -62,15 +63,20 @@ export default function CreateSimulationModal({
   onResetComposer,
   onOpenRecent,
   onRetryHistory,
+  inline = false,
 }: Props) {
   return (
-    <div className="modal-overlay" role="presentation" onClick={() => { if (canDismiss && !loading) onClose(); }}>
+    <div
+      className={inline ? "inline-create-host" : "modal-overlay"}
+      role={inline ? undefined : "presentation"}
+      onClick={inline ? undefined : () => { if (canDismiss && !loading) onClose(); }}
+    >
       <div
-        className="modal-container"
+        className={inline ? "modal-container inline-create-panel" : "modal-container"}
         role="dialog"
-        aria-modal="true"
+        aria-modal={inline ? undefined : "true"}
         aria-labelledby="create-sim-title"
-        onClick={event => event.stopPropagation()}
+        onClick={event => { if (!inline) event.stopPropagation(); }}
       >
         <div className="modal-header">
           <div className="modal-title-group">

@@ -241,6 +241,35 @@ export default function Workspace() {
     }
   };
 
+  const composerProps = {
+    token,
+    description,
+    onDescriptionChange: setDescription,
+    pendingProblem,
+    answers,
+    onAnswersChange: setAnswers,
+    loading,
+    stage,
+    error,
+    ambiguityStep,
+    typedQuestion,
+    questionTyping,
+    ambiguities,
+    activeAmbiguity,
+    recent,
+    historyLoading,
+    historyError,
+    canDismiss: !pendingProblem && !loading,
+    onClose: closeComposer,
+    onCreate: create,
+    onConfirmAmbiguities: confirmAmbiguities,
+    onBackAmbiguity: () => { setError(""); setAmbiguityStep(step => Math.max(0, step - 1)); },
+    onResetComposer: resetComposer,
+    onOpenRecent: openRecent,
+    onRetryHistory: () => setHistoryAttempt(value => value + 1),
+  };
+  const composer = composerOpen ? <CreateSimulationModal {...composerProps} inline /> : null;
+
   const frame = current ? (
     <LearningWorkspace
       key={current.runId || current.simulationId}
@@ -248,6 +277,7 @@ export default function Workspace() {
       problem={problem}
       onUpdate={setSimulation}
       onNewSimulation={openComposer}
+      createPanel={composer}
     />
   ) : (
     <EmptySimulationFrame
@@ -261,39 +291,9 @@ export default function Workspace() {
       onCreateFolder={createWorkspaceFolder}
       onOpenLibraryItem={openWorkspaceLibraryItem}
       onNewSimulation={openComposer}
+      createPanel={composer}
     />
   );
 
-  return <>
-    {frame}
-    {composerOpen && (
-      <CreateSimulationModal
-        token={token}
-        description={description}
-        onDescriptionChange={setDescription}
-        pendingProblem={pendingProblem}
-        answers={answers}
-        onAnswersChange={setAnswers}
-        loading={loading}
-        stage={stage}
-        error={error}
-        ambiguityStep={ambiguityStep}
-        typedQuestion={typedQuestion}
-        questionTyping={questionTyping}
-        ambiguities={ambiguities}
-        activeAmbiguity={activeAmbiguity}
-        recent={recent}
-        historyLoading={historyLoading}
-        historyError={historyError}
-        canDismiss={!pendingProblem && !loading}
-        onClose={closeComposer}
-        onCreate={create}
-        onConfirmAmbiguities={confirmAmbiguities}
-        onBackAmbiguity={() => { setError(""); setAmbiguityStep(step => Math.max(0, step - 1)); }}
-        onResetComposer={resetComposer}
-        onOpenRecent={openRecent}
-        onRetryHistory={() => setHistoryAttempt(value => value + 1)}
-      />
-    )}
-  </>;
+  return frame;
 }

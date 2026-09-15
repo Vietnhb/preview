@@ -25,7 +25,7 @@ public class LibraryController {
     private final LibraryService libraryService;
 
     public record MoveRequest(@jakarta.validation.constraints.NotNull UUID folderId) {}
-    public record RenameRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 255) String title) {}
+    public record RenameRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 160) String title) {}
 
     @org.springframework.web.bind.annotation.PatchMapping("/{id}")
     @PreAuthorize("hasRole('TEACHER')")

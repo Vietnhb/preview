@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { LearningHeader } from "./LearningWorkspace";
 import TeacherLibraryPane from "./TeacherLibraryPane";
 import Icon from "../common/LearningIcon";
@@ -16,6 +16,7 @@ type Props = {
   onCreateFolder: (name: string) => Promise<boolean>;
   onOpenLibraryItem: (item: LibraryItem) => Promise<void>;
   onNewSimulation: () => void;
+  createPanel?: ReactNode;
 };
 
 /** Same chrome as LearningWorkspace (header + library + stage + inspector) with an empty stage CTA. */
@@ -30,6 +31,7 @@ export default function EmptySimulationFrame({
   onCreateFolder,
   onOpenLibraryItem,
   onNewSimulation,
+  createPanel,
 }: Props) {
   const [libraryCollapsed, setLibraryCollapsed] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<"observe" | "inspect">("observe");
@@ -42,6 +44,7 @@ export default function EmptySimulationFrame({
         onToggleLibrary={showTeacherLibrary ? () => setLibraryCollapsed(value => !value) : undefined}
       />
       <main className="learn-workspace" id="learning-workspace">
+        <div className="learn-top-area" aria-hidden="true" />
         <nav className="learn-mobile-nav" aria-label="Chuyển vùng học tập">
           <button type="button" aria-pressed={mobilePanel === "observe"} onClick={() => setMobilePanel("observe")}>
             <Icon name="play" />Quan sát
@@ -75,7 +78,8 @@ export default function EmptySimulationFrame({
               <div className="learn-stage-wrapper">
                 <div className="learn-canvas-container">
                   <div className="learn-canvas">
-                    <div className="learn-empty" style={{ minHeight: "100%", padding: 40 }}>
+                    {createPanel}
+                    {!createPanel && <div className="learn-empty" style={{ minHeight: "100%", padding: 40 }}>
                       <span className="learn-empty-icon"><Icon name="atom" /></span>
                       <span className="learn-small-label">SIMULATION FRAME</span>
                       <h1>Chưa có mô phỏng đang mở</h1>
@@ -83,7 +87,7 @@ export default function EmptySimulationFrame({
                       <button type="button" className="learn-primary-link" style={{ border: 0, cursor: "pointer", background: "transparent" }} onClick={onNewSimulation}>
                         Nhập đề bài mới <Icon name="arrow" />
                       </button>
-                    </div>
+                    </div>}
                   </div>
                 </div>
               </div>

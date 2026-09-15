@@ -411,3 +411,38 @@
   border-color: #303a49;
   color: #b8c5d7;
 }
+
+/* The composer can also live inside the workspace canvas. */
+.inline-create-host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 20px;
+  overflow: auto;
+}
+
+.modal-container.inline-create-panel {
+  position: relative;
+  inset: auto;
+  transform: none;
+  width: min(100%, 680px);
+  max-width: 680px;
+  max-height: 100%;
+  margin: 0;
+  z-index: auto;
+  animation: none;
+}
+
+@media (max-width: 768px) {
+  .inline-create-host {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .modal-container.inline-create-panel {
+    width: 100%;
+  }
+}
