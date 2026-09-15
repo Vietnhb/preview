@@ -3,7 +3,10 @@ import axios from "axios";
 import LearningWorkspace from "../../components/workspace/LearningWorkspace";
 import CreateSimulationModal from "../../components/workspace/CreateSimulationModal";
 import EmptySimulationFrame from "../../components/workspace/EmptySimulationFrame";
-import { confirmProblem, createProblem, extractProblem } from "../../api/problemApi";
+import { confirmProblem, createProblem, createProblemFromImage, extractProblem } from "../../api/problemApi";
+import mammoth from "mammoth";
+import { GlobalWorkerOptions, getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
 import { createLibraryFolder } from "../../api/libraryApi";
 import { getSimulation, runSimulation, simulationHistory } from "../../api/simulationApi";
 import { useTeacherLibrary } from "../../store/useTeacherLibrary";
@@ -25,6 +28,40 @@ function openAmbiguities(problem: Problem | null): Ambiguity[] {
     .filter(item => !item.status || item.status === "OPEN");
 }
 
+const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
+const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+
+function fileExtension(file: File) {
+  return file.name.toLowerCase().split(".").pop() ?? "";
+}
+
+async function readPdfText(file: File) {
+  GlobalWorkerOptions.workerSrc = pdfWorker;
+  const loadingTask = getDocument({ data: await file.arrayBuffer() });
+  const document = await loadingTask.promise;
+  try {
+    const pages: string[] = [];
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+      const page = await document.getPage(pageNumber);
+      const content = await page.getTextContent();
+      pages.push(content.items.map(item => ("str" in item ? item.str : "")).join(" "));
+    }
+    return pages.join("\n").trim();
+  } finally {
+    await loadingTask.destroy();
+  }
+}
+
+async function readDocumentText(file: File) {
+  const extension = fileExtension(file);
+  if (extension === "txt" || file.type === "text/plain") return (await file.text()).trim();
+  if (extension === "docx" || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    return (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value.trim();
+  }
+  if (extension === "pdf" || file.type === "application/pdf") return readPdfText(file);
+  throw new Error("Chỉ hỗ trợ ảnh PNG/JPEG/WebP/GIF, PDF, DOCX và TXT.");
+}
+
 export default function Workspace() {
   const token = getToken();
   const user = usePhysliveStore(state => state.user);
@@ -33,6 +70,8 @@ export default function Workspace() {
   const setProblem = usePhysliveStore(state => state.setProblem);
   const setSimulation = usePhysliveStore(state => state.setSimulation);
   const [description, setDescription] = useState("");
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [sourceFileError, setSourceFileError] = useState("");
   const [recent, setRecent] = useState<Simulation[]>([]);
   const [pendingProblem, setPendingProblem] = useState<Problem | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -47,6 +86,7 @@ export default function Workspace() {
   const [questionTyping, setQuestionTyping] = useState(false);
   const { folders, setFolders, libraryItems, libraryLoading, libraryError, setLibraryError, retryLibrary } = useTeacherLibrary();
   const [openingLibraryId, setOpeningLibraryId] = useState<string | null>(null);
+  const [composerOrigin, setComposerOrigin] = useState<{ simulation: Simulation; problem: Problem | null } | null>(null);
   /** Create/clarify composer — open by default when no simulation is loaded. */
   const [composerOpen, setComposerOpen] = useState(() => !simulation);
   const current = simulation;
@@ -87,25 +127,59 @@ export default function Workspace() {
     return () => window.clearInterval(timer);
   }, [activeAmbiguity?.code, activeAmbiguity?.question]);
 
-  /** Open the create composer on the same simulation frame (do not swap to a separate start page). */
+  const handleSourceFileChange = (file: File | null) => {
+    setSourceFileError("");
+    if (!file) {
+      setSourceFile(null);
+      return;
+    }
+    const extension = fileExtension(file);
+    const supported = IMAGE_TYPES.has(file.type)
+      || ["pdf", "docx", "txt"].includes(extension);
+    if (!supported) {
+      setSourceFile(null);
+      setSourceFileError("Chỉ hỗ trợ ảnh PNG/JPEG/WebP/GIF, PDF, DOCX và TXT.");
+      return;
+    }
+    if (file.size > MAX_SOURCE_FILE_BYTES) {
+      setSourceFile(null);
+      setSourceFileError("Tệp không được vượt quá 10 MB.");
+      return;
+    }
+    setSourceFile(file);
+  };
+
+  /** Open a fresh three-column workspace for creating a simulation. */
   const openComposer = () => {
+    setComposerOrigin(current ? { simulation: current, problem } : null);
+    setSimulation(null);
+    setProblem(null);
     setPendingProblem(null);
     setAnswers({});
     setAmbiguityStep(0);
     setError("");
     setStage("");
     setDescription("");
+    setSourceFile(null);
+    setSourceFileError("");
     setComposerOpen(true);
   };
 
   const closeComposer = () => {
     if (loading) return;
+    if (composerOrigin) {
+      setSimulation(composerOrigin.simulation);
+      setProblem(composerOrigin.problem);
+    }
+    setComposerOrigin(null);
     setComposerOpen(false);
     setPendingProblem(null);
     setAnswers({});
     setAmbiguityStep(0);
     setError("");
     setStage("");
+    setSourceFile(null);
+    setSourceFileError("");
   };
 
   const resetComposer = () => {
@@ -115,6 +189,8 @@ export default function Workspace() {
     setError("");
     setStage("");
     setDescription("");
+    setSourceFile(null);
+    setSourceFileError("");
   };
 
   const createWorkspaceFolder = async (name: string) => {
@@ -138,6 +214,7 @@ export default function Workspace() {
       const selected = await getSimulation(item.simulationId);
       setProblem(null);
       setSimulation(selected);
+      setComposerOrigin(null);
       setComposerOpen(false);
       setPendingProblem(null);
     } catch {
@@ -150,6 +227,7 @@ export default function Workspace() {
   const openRecent = (item: Simulation) => {
     setProblem(null);
     setSimulation(item);
+    setComposerOrigin(null);
     setComposerOpen(false);
     setPendingProblem(null);
   };
@@ -164,9 +242,12 @@ export default function Workspace() {
     setProblem(resolvedProblem);
     setSimulation(result);
     setRecent(items => [result, ...items.filter(item => item.simulationId !== result.simulationId)]);
+    setComposerOrigin(null);
     setPendingProblem(null);
     setAnswers({});
     setDescription("");
+    setSourceFile(null);
+    setSourceFileError("");
     setStage("");
     setComposerOpen(false);
   };
@@ -174,7 +255,7 @@ export default function Workspace() {
   const create = async (event: FormEvent) => {
     event.preventDefault();
     const text = description.trim();
-    if (!text || loading) return;
+    if ((!text && !sourceFile) || loading) return;
     if (!token) {
       setError("Bạn cần đăng nhập để dùng AI Problem Understanding.");
       return;
@@ -183,7 +264,10 @@ export default function Workspace() {
     setError("");
     try {
       setStage("Đang lưu đề bài…");
-      const created = await createProblem(text);
+      if (sourceFile) setStage("Reading source file...");
+      const created = sourceFile && IMAGE_TYPES.has(sourceFile.type)
+        ? await createProblemFromImage(sourceFile, text || undefined)
+        : await createProblem(sourceFile ? `${text}\n\n${await readDocumentText(sourceFile)}`.trim() : text);
       setStage("AI đang đọc đề và tạo specification…");
       const extracted = await extractProblem(created.id);
       if (!extracted.currentSpecification?.id || !extracted.currentSpecification.schemaId) {
@@ -245,6 +329,9 @@ export default function Workspace() {
     token,
     description,
     onDescriptionChange: setDescription,
+    sourceFile,
+    sourceFileError,
+    onSourceFileChange: handleSourceFileChange,
     pendingProblem,
     answers,
     onAnswersChange: setAnswers,
@@ -256,17 +343,12 @@ export default function Workspace() {
     questionTyping,
     ambiguities,
     activeAmbiguity,
-    recent,
-    historyLoading,
-    historyError,
     canDismiss: !pendingProblem && !loading,
     onClose: closeComposer,
     onCreate: create,
     onConfirmAmbiguities: confirmAmbiguities,
     onBackAmbiguity: () => { setError(""); setAmbiguityStep(step => Math.max(0, step - 1)); },
     onResetComposer: resetComposer,
-    onOpenRecent: openRecent,
-    onRetryHistory: () => setHistoryAttempt(value => value + 1),
   };
   const composer = composerOpen ? <CreateSimulationModal {...composerProps} inline /> : null;
 
@@ -277,7 +359,6 @@ export default function Workspace() {
       problem={problem}
       onUpdate={setSimulation}
       onNewSimulation={openComposer}
-      createPanel={composer}
     />
   ) : (
     <EmptySimulationFrame
@@ -292,6 +373,12 @@ export default function Workspace() {
       onOpenLibraryItem={openWorkspaceLibraryItem}
       onNewSimulation={openComposer}
       createPanel={composer}
+      recent={recent}
+      historyLoading={historyLoading}
+      historyError={historyError}
+      onRetryHistory={() => setHistoryAttempt(value => value + 1)}
+      onOpenRecent={openRecent}
+      onExampleSelect={setDescription}
     />
   );
 

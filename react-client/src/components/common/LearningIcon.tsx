@@ -15,6 +15,9 @@ type IconName =
   | "arrow"
   | "check"
   | "download"
+  | "upload"
+  | "camera"
+  | "file"
   | "bulb"
   | "close"
   | "settings"
@@ -47,6 +50,9 @@ const paths: Record<IconName, string> = {
   arrow: "M5 12h14m-6-6 6 6-6 6",
   check: "m5 12 4 4L19 6",
   download: "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5",
+  upload: "M12 16V4m0 0L7 9m5-5 5 5M5 20h14",
+  camera: "M4 7h3l1.5-2h7L17 7h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Zm8 3.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z",
+  file: "M6 3h8l4 4v14H6zM14 3v5h5",
   bulb: "M9 18h6m-5 3h4M8 15a7 7 0 1 1 8 0l-1 3H9Z",
   close: "m6 6 12 12M6 18 18 6",
   settings:

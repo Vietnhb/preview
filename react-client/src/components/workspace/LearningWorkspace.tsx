@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axiosClient from "../../api/axios";
 import { createLibraryFolder, saveLibrary } from "../../api/libraryApi";
@@ -96,7 +96,7 @@ export function LearningHeader({ onNewSimulation, viewMode = "2d", threeDEnabled
   </header>;
 }
 
-export default function LearningWorkspace({ simulation, problem, onUpdate, onNewSimulation, createPanel }: { simulation: Simulation; problem: Problem | null; onUpdate: (simulation: Simulation) => void; onNewSimulation?: () => void; createPanel?: ReactNode }) {
+export default function LearningWorkspace({ simulation, problem, onUpdate, onNewSimulation }: { simulation: Simulation; problem: Problem | null; onUpdate: (simulation: Simulation) => void; onNewSimulation?: () => void }) {
   const user = usePhysliveStore(state => state.user);
   const kind = lessonKind(simulation.schemaId), copy = lessonCopy[kind];
   const times = simulation.time;
@@ -330,9 +330,9 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
         <section className="learn-exploration" aria-label="Quan sát và khám phá">
           <section className="learn-stage" aria-label="Mô phỏng tương tác">
             {/* Canvas + Controls in unified container (like Desmos) */}
-            <div className={createPanel ? "learn-stage-wrapper has-create-panel" : "learn-stage-wrapper"}>
+            <div className="learn-stage-wrapper">
               {/* Formula Hero Bar (HUD) - Above Canvas */}
-              {canPlay && !createPanel && <div className="studio-canvas-formula">
+              {canPlay && <div className="studio-canvas-formula">
                 <div className="formula-hero-left">
                   <div>
                     <div className="formula-hero-kicker">PHƯƠNG TRÌNH CHUYỂN ĐỘNG</div>
@@ -348,10 +348,8 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
               {/* Canvas viewport container */}
               <div className="learn-canvas-container">
                 <div className="learn-canvas">
-                  {createPanel ?? <>
                   {!canPlay ? <div className="learn-blocked" role="alert"><Icon name="book" /><h2>{validData ? "Mô hình cần được kiểm tra lại" : "Chưa có đủ dữ liệu để quan sát"}</h2><p>Trở về đề bài, kiểm tra thông tin và chạy lại mô phỏng.</p><Link to="/" className="learn-primary-link">Về đề bài <Icon name="arrow" /></Link></div>
                     : <PhysicsScene simulation={simulation} index={index} overlays={overlays} time={time} />}
-                  </>}
                 </div>
                 <div className="learn-overlay-controls" role="group" aria-label="Thành phần hiển thị">{([
                   ["grid", "Lưới"], ["trajectory", kind === "circuit" ? "Tín hiệu" : "Quỹ đạo"], ["velocity", kind === "circuit" ? "Dòng điện" : "Vận tốc"], ...(!["circuit", "collision"].includes(kind) ? [["acceleration", "Gia tốc"]] : []),

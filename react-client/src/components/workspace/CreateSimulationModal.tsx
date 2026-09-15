@@ -1,12 +1,13 @@
-import { type FormEvent } from "react";
-import type { Ambiguity, Problem, Simulation } from "../../types/physlive";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import type { Ambiguity, Problem } from "../../types/physlive";
+import Icon from "../common/LearningIcon";
 import "../../styles/workspace-modal.css";
 
-const EXAMPLES = [
-  "Một vật chuyển động thẳng với vận tốc đầu 10 m/s và gia tốc 2 m/s². Hãy mô phỏng trong 8 giây.",
-  "Ném một vật với vận tốc đầu 20 m/s, góc ném 45 độ, bỏ qua sức cản không khí.",
-  "Hai vật có khối lượng 2 kg và 3 kg chuyển động ngược chiều rồi va chạm đàn hồi.",
-];
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 type Props = {
   token: string | null;
@@ -23,17 +24,15 @@ type Props = {
   questionTyping: boolean;
   ambiguities: Ambiguity[];
   activeAmbiguity: Ambiguity | undefined;
-  recent: Simulation[];
-  historyLoading: boolean;
-  historyError: boolean;
   canDismiss: boolean;
   onClose: () => void;
   onCreate: (event: FormEvent) => void;
   onConfirmAmbiguities: (event: FormEvent) => void;
   onBackAmbiguity: () => void;
   onResetComposer: () => void;
-  onOpenRecent: (item: Simulation) => void;
-  onRetryHistory: () => void;
+  sourceFile: File | null;
+  sourceFileError: string;
+  onSourceFileChange: (file: File | null) => void;
   inline?: boolean;
 };
 
@@ -52,19 +51,99 @@ export default function CreateSimulationModal({
   questionTyping,
   ambiguities,
   activeAmbiguity,
-  recent,
-  historyLoading,
-  historyError,
   canDismiss,
   onClose,
   onCreate,
   onConfirmAmbiguities,
   onBackAmbiguity,
   onResetComposer,
-  onOpenRecent,
-  onRetryHistory,
+  sourceFile,
+  sourceFileError,
+  onSourceFileChange,
   inline = false,
 }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement>(null);
+  const cameraCanvasRef = useRef<HTMLCanvasElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+
+  const stopCamera = () => {
+    cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+    cameraStreamRef.current = null;
+    setCameraOpen(false);
+  };
+
+  useEffect(() => () => {
+    cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+  }, []);
+
+  useEffect(() => {
+    if (!cameraOpen || !cameraVideoRef.current || !cameraStreamRef.current) return;
+    const video = cameraVideoRef.current;
+    video.srcObject = cameraStreamRef.current;
+    void video.play().catch(() => undefined);
+
+    return () => {
+      video.srcObject = null;
+    };
+  }, [cameraOpen]);
+
+  const handleFileInput = (event: ChangeEvent<HTMLInputElement>) => {
+    stopCamera();
+    onSourceFileChange(event.target.files?.[0] ?? null);
+    event.target.value = "";
+  };
+
+  const openCamera = async () => {
+    setCameraError("");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Trình duyệt không hỗ trợ camera. Bạn có thể dùng Tải tệp.");
+      return;
+    }
+
+    try {
+      stopCamera();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      setCameraOpen(true);
+    } catch {
+      setCameraError("Không thể mở camera. Hãy cấp quyền camera hoặc dùng Tải tệp.");
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = cameraVideoRef.current;
+    const canvas = cameraCanvasRef.current;
+    if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
+      setCameraError("Camera chưa sẵn sàng, hãy thử lại.");
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      setCameraError("Không thể chụp ảnh. Bạn có thể dùng Tải tệp.");
+      return;
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => {
+      if (!blob) {
+        setCameraError("Không thể chụp ảnh. Bạn có thể dùng Tải tệp.");
+        return;
+      }
+
+      onSourceFileChange(new File([blob], `physlive-photo-${Date.now()}.jpg`, { type: "image/jpeg" }));
+      stopCamera();
+    }, "image/jpeg", 0.92);
+  };
+
   return (
     <div
       className={inline ? "inline-create-host" : "modal-overlay"}
@@ -154,47 +233,54 @@ export default function CreateSimulationModal({
                   onChange={event => onDescriptionChange(event.target.value)}
                   placeholder="Ví dụ: Một ô tô bắt đầu từ trạng thái nghỉ, tăng tốc đều 2 m/s² trong 8 giây. Hãy mô phỏng vị trí và vận tốc."
                 />
-                <div className="modal-input-hint">{token ? "AI sẵn sàng xử lý đề bài" : "Đăng nhập để dùng AI Problem Understanding"}</div>
-              </div>
-              <div className="modal-examples-section">
-                <div className="modal-examples-title">Điền nhanh</div>
-                <div className="modal-examples-grid">
-                  {EXAMPLES.map((example, index) => (
-                    <button
-                      type="button"
-                      className="modal-example-card"
-                      disabled={loading}
-                      key={example}
-                      onClick={() => onDescriptionChange(example)}
-                    >
-                      <span className="modal-example-icon" aria-hidden="true">{index + 1}</span>
-                      <span className="modal-example-text">{example}</span>
+                <div className="source-picker">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,.pdf,.docx,.txt"
+                    hidden
+                    onChange={handleFileInput}
+                  />
+                  <div className="source-picker-copy">
+                    <strong>Thêm nguồn đề bài</strong>
+                    <span>Ảnh, PDF, DOCX hoặc TXT</span>
+                  </div>
+                  <div className="source-picker-actions">
+                    <button type="button" className="source-picker-button" disabled={loading} onClick={() => fileInputRef.current?.click()}>
+                      <Icon name="upload" />Tải tệp
                     </button>
-                  ))}
+                    <button type="button" className="source-picker-button secondary" disabled={loading} onClick={() => void openCamera()}>
+                      <Icon name="camera" />Chụp ảnh
+                    </button>
+                  </div>
+                  {cameraOpen && (
+                    <div className="camera-capture-panel">
+                      <video ref={cameraVideoRef} className="camera-capture-preview" autoPlay muted playsInline />
+                      <canvas ref={cameraCanvasRef} hidden />
+                      <div className="camera-capture-actions">
+                        <button type="button" className="source-picker-button" disabled={loading} onClick={capturePhoto}>
+                          <Icon name="camera" />Chụp ảnh
+                        </button>
+                        <button type="button" className="source-picker-button secondary" disabled={loading} onClick={stopCamera}>
+                          <Icon name="close" />Đóng camera
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {cameraError && <p className="source-file-error" role="alert">{cameraError}</p>}
+                  {sourceFile && (
+                    <div className="source-file-chip">
+                      <span className="source-file-icon"><Icon name="file" /></span>
+                      <span className="source-file-meta"><strong>{sourceFile.name}</strong><small>{formatFileSize(sourceFile.size)}</small></span>
+                      <button type="button" aria-label="Xóa tệp đính kèm" disabled={loading} onClick={() => onSourceFileChange(null)}><Icon name="close" /></button>
+                    </div>
+                  )}
+                  {sourceFileError && <p className="source-file-error" role="alert">{sourceFileError}</p>}
                 </div>
+                <div className="modal-input-hint">{token ? "AI sẵn sàng xử lý đề bài" : "Đăng nhập để dùng AI Problem Understanding"}</div>
               </div>
               {error && <div className="modal-info-banner" role="alert"><div className="modal-info-text"><strong>Chưa thể tạo mô phỏng</strong> {error}</div></div>}
               {stage && <div className="modal-info-banner" role="status"><div className="modal-info-text">{stage}</div></div>}
-              {!historyLoading && historyError && (
-                <div className="modal-info-banner" role="alert">
-                  <div className="modal-info-text">
-                    Không tải được các mô phỏng gần đây.{" "}
-                    <button type="button" className="modal-btn modal-btn-cancel" style={{ display: "inline-flex", padding: "4px 10px" }} onClick={onRetryHistory}>Thử lại</button>
-                  </div>
-                </div>
-              )}
-              {!historyLoading && recent.length > 0 && (
-                <div className="modal-examples-section">
-                  <div className="modal-examples-title">Mô phỏng gần đây</div>
-                  <div className="modal-examples-grid">
-                    {recent.slice(0, 4).map(item => (
-                      <button type="button" className="modal-example-card" key={item.simulationId} onClick={() => onOpenRecent(item)}>
-                        <span className="modal-example-text"><strong>{item.schemaId}</strong><br />{item.time.length} mốc dữ liệu</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </form>
           )}
         </div>
@@ -221,7 +307,7 @@ export default function CreateSimulationModal({
                 className="modal-btn modal-btn-primary"
                 type="submit"
                 form="create-sim-form"
-                disabled={!description.trim() || loading}
+                disabled={(!description.trim() && !sourceFile) || loading}
               >
                 {loading ? <span className="modal-btn-spinner">⟳</span> : null}
                 {loading ? "Đang xử lý…" : "Đưa đề bài cho AI"}

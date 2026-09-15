@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { LearningHeader } from "./LearningWorkspace";
+import { CREATE_SIMULATION_EXAMPLES } from "./workspaceResources";
 import TeacherLibraryPane from "./TeacherLibraryPane";
 import Icon from "../common/LearningIcon";
-import type { LibraryFolder, LibraryItem } from "../../types/physlive";
+import type { LibraryFolder, LibraryItem, Simulation } from "../../types/physlive";
 import "../../styles/learning.css";
 
 type Props = {
@@ -17,6 +18,12 @@ type Props = {
   onOpenLibraryItem: (item: LibraryItem) => Promise<void>;
   onNewSimulation: () => void;
   createPanel?: ReactNode;
+  recent: Simulation[];
+  historyLoading: boolean;
+  historyError: boolean;
+  onRetryHistory: () => void;
+  onOpenRecent: (item: Simulation) => void;
+  onExampleSelect: (example: string) => void;
 };
 
 /** Same chrome as LearningWorkspace (header + library + stage + inspector) with an empty stage CTA. */
@@ -32,6 +39,12 @@ export default function EmptySimulationFrame({
   onOpenLibraryItem,
   onNewSimulation,
   createPanel,
+  recent,
+  historyLoading,
+  historyError,
+  onRetryHistory,
+  onOpenRecent,
+  onExampleSelect,
 }: Props) {
   const [libraryCollapsed, setLibraryCollapsed] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<"observe" | "inspect">("observe");
@@ -75,11 +88,12 @@ export default function EmptySimulationFrame({
           )}
           <section className="learn-exploration" aria-label="Quan sát và khám phá">
             <section className="learn-stage" aria-label="Khung mô phỏng">
-              <div className="learn-stage-wrapper">
+              {createPanel}
+              {!createPanel && (
+                <div className="learn-stage-wrapper">
                 <div className="learn-canvas-container">
                   <div className="learn-canvas">
-                    {createPanel}
-                    {!createPanel && <div className="learn-empty" style={{ minHeight: "100%", padding: 40 }}>
+                    <div className="learn-empty" style={{ minHeight: "100%", padding: 40 }}>
                       <span className="learn-empty-icon"><Icon name="atom" /></span>
                       <span className="learn-small-label">SIMULATION FRAME</span>
                       <h1>Chưa có mô phỏng đang mở</h1>
@@ -87,14 +101,51 @@ export default function EmptySimulationFrame({
                       <button type="button" className="learn-primary-link" style={{ border: 0, cursor: "pointer", background: "transparent" }} onClick={onNewSimulation}>
                         Nhập đề bài mới <Icon name="arrow" />
                       </button>
-                    </div>}
+                    </div>
                   </div>
                 </div>
-              </div>
+                </div>
+              )}
             </section>
           </section>
-          <aside className="learn-inspector" aria-label="Hướng dẫn">
-            <div className="learn-inspector-body" style={{ padding: 20 }}>
+          <aside className="learn-inspector learn-inspector-empty" aria-label="Hướng dẫn">
+            <div className={createPanel ? "learn-inspector-body create-resources-mode" : "learn-inspector-body"} style={{ padding: 20 }}>
+              {createPanel && (
+                <div className="create-resources-panel">
+                  <div className="create-resources-section">
+                    <span className="learn-small-label">Điền nhanh</span>
+                    <p className="create-resources-note">Chọn một đề mẫu để bắt đầu.</p>
+                    <div className="create-example-list">
+                      {CREATE_SIMULATION_EXAMPLES.map((example, index) => (
+                        <button type="button" className="create-example-item" key={example} onClick={() => onExampleSelect(example)}>
+                          <span>{index + 1}</span>
+                          <strong>{example}</strong>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="create-resources-section">
+                    <div className="create-resources-heading">
+                      <span className="learn-small-label">Mô phỏng gần đây</span>
+                      {!historyLoading && historyError && <button type="button" className="create-resource-retry" onClick={onRetryHistory}>Thử lại</button>}
+                    </div>
+                    {historyLoading && <p className="create-resources-note">Đang tải mô phỏng…</p>}
+                    {!historyLoading && historyError && <p className="create-resources-error">Không tải được mô phỏng gần đây.</p>}
+                    {!historyLoading && !historyError && recent.length === 0 && <p className="create-resources-note">Chưa có mô phỏng nào.</p>}
+                    {!historyLoading && !historyError && recent.length > 0 && (
+                      <div className="create-recent-list">
+                        {recent.slice(0, 6).map(item => (
+                          <button type="button" className="create-recent-item" key={item.simulationId} onClick={() => onOpenRecent(item)}>
+                            <span className="create-recent-icon"><Icon name="atom" /></span>
+                            <span><strong>{item.schemaId}</strong><small>{item.time.length} mốc dữ liệu</small></span>
+                            <Icon name="arrow" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               <span className="learn-small-label">AI PROBLEM UNDERSTANDING</span>
               <h2 style={{ marginTop: 8 }}>Từ đề bài đến mô phỏng đã kiểm chứng</h2>
               <ol style={{ marginTop: 16, paddingLeft: 18, color: "var(--learn-muted)", fontSize: 13, lineHeight: 1.7 }}>
