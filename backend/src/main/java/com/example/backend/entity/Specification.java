@@ -70,6 +70,11 @@ public class Specification extends AuditedEntity {
     @Column(nullable = false, columnDefinition = "jsonb")
     private JsonNode relations;
 
+    /** Declarative termination intent. Null is intentionally supported for legacy rows. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "end_condition", columnDefinition = "jsonb")
+    private JsonNode endCondition;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private JsonNode ambiguity;

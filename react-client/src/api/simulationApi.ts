@@ -1,5 +1,5 @@
 import axiosClient from "./axios";
-import type { Simulation, SimulationSummary } from "../types/physlive";
+import type { ResolvedEnd, Simulation, SimulationSummary } from "../types/physlive";
 
 /**
  * API endpoints for physics simulation
@@ -14,14 +14,22 @@ export type BackendSimulation = Omit<Simulation, "runId" | "valid" | "elapsedMil
   parameters?: Record<string, number>;
 };
 
-export const normalizeSimulation = (value: BackendSimulation): Simulation => ({
-  ...value,
-  runId: value.simulationRunId,
-  valid: value.validationPassed,
-  ready: value.validationPassed,
-  parameters: value.adjustableParams ?? value.parameters ?? {},
-  elapsedMilliseconds: value.computationTimeMs
-});
+export const normalizeSimulation = (value: BackendSimulation): Simulation => {
+  const resolvedEnd: ResolvedEnd = value.resolvedEnd ?? {
+    time: value.time.at(-1) ?? 0,
+    reason: "time_limit",
+    conditionReached: value.time.length > 0,
+  };
+  return {
+    ...value,
+    runId: value.simulationRunId,
+    valid: value.validationPassed,
+    ready: value.validationPassed,
+    parameters: value.adjustableParams ?? value.parameters ?? {},
+    resolvedEnd,
+    elapsedMilliseconds: value.computationTimeMs
+  };
+};
 
 export const runSimulation = (
   specificationId: string, 

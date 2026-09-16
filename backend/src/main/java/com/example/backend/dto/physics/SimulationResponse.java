@@ -22,6 +22,7 @@ public record SimulationResponse(
         JsonNode visualization,
         ValidationResponse validation,
         JsonNode rawResult,
+        ResolvedEnd resolvedEnd,
         double computationTimeMs,
         String message) {
 }

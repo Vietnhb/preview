@@ -10,6 +10,7 @@ public record SpecificationDocument(
         List<PhysicalObject> objects,
         List<PhysicalQuantity> quantities,
         List<PhysicalRelation> relations,
+        com.fasterxml.jackson.databind.JsonNode endCondition,
         BigDecimal confidence,
         List<AmbiguityItem> ambiguities) {
 
@@ -20,5 +21,13 @@ public record SpecificationDocument(
         quantities = quantities == null ? List.of() : List.copyOf(quantities);
         relations = relations == null ? List.of() : List.copyOf(relations);
         ambiguities = ambiguities == null ? List.of() : List.copyOf(ambiguities);
+    }
+
+    /** Source compatibility for integrations/tests that still build v1 documents. */
+    public SpecificationDocument(String schemaVersion, String topic, String schemaId,
+            List<PhysicalObject> objects, List<PhysicalQuantity> quantities,
+            List<PhysicalRelation> relations, BigDecimal confidence,
+            List<AmbiguityItem> ambiguities) {
+        this(schemaVersion, topic, schemaId, objects, quantities, relations, null, confidence, ambiguities);
     }
 }

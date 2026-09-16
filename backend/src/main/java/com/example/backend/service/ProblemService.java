@@ -42,6 +42,7 @@ import com.example.backend.extraction.ExtractionResult;
 import com.example.backend.extraction.OcrProvider;
 import com.example.backend.extraction.OcrResult;
 import com.example.backend.extraction.SpecificationDocument;
+import com.example.backend.physics.EndConditionResolver;
 import com.example.backend.repository.ExtractionRunRepository;
 import com.example.backend.repository.LessonRepository;
 import com.example.backend.repository.ProblemSubmissionRepository;
@@ -221,9 +222,15 @@ public class ProblemService {
             throw new ApiException(HttpStatus.CONFLICT, "Extract a specification before editing it");
         }
         validateQuantities(request.quantities());
+        if (request.endCondition() != null) {
+            var errors = EndConditionResolver.validateNode(request.endCondition(), 10);
+            if (!errors.isEmpty()) throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Invalid endCondition: " + String.join("; ", errors));
+        }
         specification.setObjects(request.objects().deepCopy());
         specification.setQuantities(request.quantities().deepCopy());
         specification.setRelations(request.relations().deepCopy());
+        if (request.endCondition() != null) specification.setEndCondition(request.endCondition().deepCopy());
         specification.setValidationStatus("NOT_VALIDATED");
         specification.setValidationResult(null);
         // Editing the structured facts is a new teacher confirmation. Keep the
@@ -262,6 +269,7 @@ public class ProblemService {
         specification.setObjects(objectMapper.valueToTree(document.objects()));
         specification.setQuantities(objectMapper.valueToTree(document.quantities()));
         specification.setRelations(objectMapper.valueToTree(document.relations()));
+        specification.setEndCondition(document.endCondition());
         specification.setAmbiguity(objectMapper.valueToTree(document.ambiguities()));
         specification.setConfirmationState(document.ambiguities().isEmpty()
                 ? ConfirmationState.NO_AMBIGUITY

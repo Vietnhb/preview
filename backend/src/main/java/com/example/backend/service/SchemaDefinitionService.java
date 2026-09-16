@@ -17,6 +17,7 @@ import com.example.backend.entity.LifecycleStatus;
 import com.example.backend.entity.SchemaVersion;
 import com.example.backend.entity.SolverVersion;
 import com.example.backend.exception.ApiException;
+import com.example.backend.physics.EndConditionResolver;
 import com.example.backend.repository.SchemaVersionRepository;
 import com.example.backend.repository.SolverVersionRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -160,6 +161,8 @@ public class SchemaDefinitionService {
                 blockers.add("Invalid unit for " + key + ": " + matched.path(NORMALIZED_UNIT).asText());
             }
         }
+        double fallbackDuration = definition.path("execution").path(DURATION_SECONDS).asDouble(10);
+        blockers.addAll(EndConditionResolver.validate(specification, fallbackDuration));
         return List.copyOf(blockers);
     }
 

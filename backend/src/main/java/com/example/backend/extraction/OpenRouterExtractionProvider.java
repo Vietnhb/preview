@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.backend.service.SchemaDefinitionService;
 import com.example.backend.entity.SchemaVersion;
+import com.example.backend.physics.EndConditionResolver;
 
 @Component
 public class OpenRouterExtractionProvider implements ExtractionProvider {
@@ -29,9 +30,17 @@ public class OpenRouterExtractionProvider implements ExtractionProvider {
             "quantities":[{"name":"string","symbol":"string|null","value":0,"originalUnit":"string",
             "normalizedValue":0,"normalizedUnit":"string","confidence":0.0,"sourceText":"string"}],
             "relations":[{"type":"string","subject":"string","object":"string|null","value":"number|string|boolean|null","unit":"string|null","sourceText":"string"}],
+            "endCondition":{"type":"time_limit", "duration":10},
             "confidence":0.0,
             "ambiguities":[{"code":"stable.machine.code","fieldPath":"concrete.path","question":"one concise Vietnamese teacher-facing question","options":["explicit answer with unit"]}]}.
             Select schemaId from the supplied approved schema catalog. Use canonical quantity keys and execution relation types from that schema.
+            Choose exactly one declarative endCondition from time_limit, threshold, event, cycle_count or manual.
+            threshold requires quantity/operator/value; event requires event.type (contact or collision) and
+            event.entities; cycle_count requires quantity/count; manual may have maxTime.
+            Map explicit context such as a fixed observation duration, a target position, contact/collision,
+            or a number of cycles to that generic type. Never invent a physics-specific type and never compute
+            the resolved end time; Java resolves it from solver output. Dynamic conditions must include maxTime
+            when the problem gives a safety horizon; otherwise the engine applies its bounded safety horizon.
             Detect missing required parameters, underspecified initial conditions, reference frames and implicit assumptions.
             For a missing required quantity, fieldPath must be exactly quantities.<canonical schema key>.
             Every ambiguity code must be unique in the response. Return at most one ambiguity for each unresolved fieldPath.
@@ -191,9 +200,19 @@ public class OpenRouterExtractionProvider implements ExtractionProvider {
                     quantity.sourceText()));
         }
 
+        JsonNode endCondition = document.endCondition() == null
+                ? EndConditionResolver.normalize(null, schema.getDefinition().path("execution").path("durationSeconds").asDouble(10))
+                : document.endCondition();
+        List<String> endConditionErrors = EndConditionResolver.validateNode(endCondition,
+                schema.getDefinition().path("execution").path("durationSeconds").asDouble(10));
+        if (!endConditionErrors.isEmpty()) {
+            throw new IllegalStateException("OpenRouter returned an invalid endCondition: "
+                    + String.join("; ", endConditionErrors));
+        }
+
         return new SpecificationDocument(
                 SpecificationDocument.CURRENT_SCHEMA_VERSION, topic, schemaId, document.objects(), quantities,
-                document.relations(), clamp(document.confidence()), document.ambiguities());
+                document.relations(), endCondition, clamp(document.confidence()), document.ambiguities());
     }
 
     private String systemPrompt() {

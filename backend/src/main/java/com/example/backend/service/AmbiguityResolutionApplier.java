@@ -96,6 +96,7 @@ public class AmbiguityResolutionApplier {
         current.put("schemaVersion", specification.getContractVersion()); current.put("topic", specification.getTopic());
         current.put("schemaId", specification.getSchemaId()); current.set("objects", specification.getObjects());
         current.set("quantities", specification.getQuantities()); current.set("relations", specification.getRelations());
+        if (specification.getEndCondition() != null) current.set("endCondition", specification.getEndCondition());
         current.put("confidence", specification.getConfidence()); current.set("ambiguities", specification.getAmbiguity());
         return current;
     }
@@ -141,6 +142,7 @@ public class AmbiguityResolutionApplier {
         specification.setSchemaId(document.schemaId()); specification.setObjects(objectMapper.valueToTree(document.objects()));
         specification.setQuantities(objectMapper.valueToTree(document.quantities()));
         specification.setRelations(objectMapper.valueToTree(document.relations())); specification.setConfidence(document.confidence());
+        specification.setEndCondition(document.endCondition());
         specification.setAmbiguity(objectMapper.valueToTree(document.ambiguities()));
     }
 }

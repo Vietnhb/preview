@@ -5,6 +5,23 @@ export type Quantity = {
   normalizedValue: number; normalizedUnit: string; confidence: number; sourceText?: string;
 };
 
+export type EventCondition =
+  | { type: "contact"; entities: string[] }
+  | { type: "collision"; entities: string[] };
+
+export type EndCondition =
+  | { type: "time_limit"; duration: number }
+  | { type: "threshold"; quantity: string; operator: ">=" | "<=" | ">" | "<" | "=="; value: number; maxTime?: number }
+  | { type: "event"; event: EventCondition; maxTime?: number }
+  | { type: "cycle_count"; quantity: string; count: number; maxTime?: number }
+  | { type: "manual"; maxTime?: number };
+
+export type ResolvedEnd = {
+  time: number;
+  reason: "time_limit" | "threshold" | "event" | "cycle_count" | "manual" | "max_time";
+  conditionReached: boolean;
+};
+
 export type Ambiguity = { id?: string; code: string; fieldPath?: string; field?: string; question: string; options?: string[]; status?: string; resolution?: string; resolvedAt?: string };
 export type ConversationMessage = { id: string; role: "user" | "assistant"; text: string };
 export type VisualizationControl = { key: string; label: string; symbol: string; unit: string; min: number; max: number; step: number };
@@ -55,7 +72,9 @@ export type VisualSpec = VisualizationNode;
 export type ControlSpec = VisualizationControl;
 export type ChartSpec = Record<string, unknown>;
 export type SimulationSpec = {
-  duration: number;
+  /** Legacy field; new specs should use endCondition. */
+  duration?: number;
+  endCondition?: EndCondition;
   entities: EntitySpec[];
   quantities: QuantitySpec[];
   bindings: BindingSpec[];
@@ -72,12 +91,12 @@ export type VisualizationDefinition = {
 };
 export type Specification = {
   id?: string; schemaVersion?: string; schemaId?: string; topic?: string; confidence: number;
-  objects: unknown[]; quantities: Quantity[]; relations: unknown[]; ambiguity?: unknown;
+  objects: unknown[]; quantities: Quantity[]; relations: unknown[]; endCondition?: EndCondition | null; ambiguity?: unknown;
   ambiguityCases?: Ambiguity[]; ambiguities?: Ambiguity[]; confirmationState: string; validationStatus?: string; validationResult?: unknown;
 };
 export type Problem = { id: string; editableText?: string; originalText?: string; sourceMode: string; status: string; currentSpecification?: Specification; sourceAssets?: { id: string; originalFilename: string }[] };
 export type Validation = { passed: boolean; tolerance: number; checkpoints: { time: number; maxRelativeError: number; passed: boolean }[] };
-export type Simulation = { simulationId: string; runId: string; specificationId: string; schemaId: string; valid: boolean; ready: boolean; time: number[]; positions: Record<string, number[]>; velocities: Record<string, number[]>; accelerations: Record<string, number[]>; values: Record<string, number[]>; parameters: Record<string, number>; visualization: VisualizationDefinition; validation: Validation; spec?: SimulationSpec; result?: unknown; elapsedMilliseconds: number };
+export type Simulation = { simulationId: string; runId: string; specificationId: string; schemaId: string; valid: boolean; ready: boolean; time: number[]; positions: Record<string, number[]>; velocities: Record<string, number[]>; accelerations: Record<string, number[]>; values: Record<string, number[]>; parameters: Record<string, number>; visualization: VisualizationDefinition; validation: Validation; endCondition?: EndCondition; resolvedEnd?: ResolvedEnd; spec?: SimulationSpec; result?: unknown; elapsedMilliseconds: number };
 export type SimulationSummary = { simulationId: string; specificationId: string; schemaId: string; status: string; createdAt: string };
 export type Curriculum = { topics: { id: string; name: string; slug: string; enabled: boolean; modules: { id: string; name: string; slug: string; levels: { id: string; name: string; lessons: { id: string; name: string; slug: string }[] }[] }[] }[] };
 export type LibraryFolder = { id: string; name: string; itemCount: number; createdAt: string; updatedAt: string };

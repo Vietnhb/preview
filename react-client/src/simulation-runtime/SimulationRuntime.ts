@@ -24,6 +24,7 @@ export class SimulationRuntime {
   private animationFrame: number | null = null;
   private playing = false;
   private time = 0;
+  private duration = 0;
   private speed = 1;
   private lastWallTime = 0;
 
@@ -36,6 +37,11 @@ export class SimulationRuntime {
     this.pause();
     this.data = simulation && "series" in simulation ? simulation : simulation ? prepareSimulationData(simulation) : null;
     this.time = this.data?.time[0] ?? 0;
+    const timelineEnd = this.data?.time[this.data.length - 1] ?? 0;
+    const resolvedEnd = this.data?.simulation.resolvedEnd?.time;
+    const legacyDuration = this.data?.simulation.spec?.duration;
+    const end = Number.isFinite(resolvedEnd) ? resolvedEnd : legacyDuration;
+    this.duration = Number.isFinite(end) ? Math.min(timelineEnd, end as number) : timelineEnd;
     this.cursor.index = 0;
     this.emit();
   }
@@ -70,6 +76,15 @@ export class SimulationRuntime {
 
   public setSpeed(speed: number): void {
     this.speed = Number.isFinite(speed) ? Math.max(0.01, speed) : 1;
+  }
+
+  /** Sets the authoritative playback boundary supplied by the backend. */
+  public setDuration(duration: number): void {
+    if (!this.data || !Number.isFinite(duration)) return;
+    const first = this.data.time[0] ?? 0;
+    const timelineEnd = this.data.time[this.data.length - 1] ?? first;
+    this.duration = Math.max(first, Math.min(timelineEnd, duration));
+    if (this.time > this.duration) this.seek(this.duration);
   }
 
   public subscribe(listener: (frame: RuntimeFrame) => void): () => void {
@@ -120,7 +135,7 @@ export class SimulationRuntime {
   }
 
   private lastTime(): number {
-    return this.data?.time[this.data.length - 1] ?? this.time;
+    return this.data ? Math.min(this.duration, this.data.time[this.data.length - 1] ?? this.time) : this.time;
   }
 
   private clampTime(time: number): number {

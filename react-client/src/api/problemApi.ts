@@ -38,7 +38,7 @@ export const updateProblemText = (id: string, text: string) =>
 
 export const updateSpecification = (
   problemId: string,
-  specification: Pick<Specification, "objects" | "quantities" | "relations">
+  specification: Pick<Specification, "objects" | "quantities" | "relations" | "endCondition">
 ) => axiosClient.put<Problem>(`/problems/${problemId}/specification`, specification).then(r => r.data);
 
 export const problemHistory = (page = 0, size = 20) => 

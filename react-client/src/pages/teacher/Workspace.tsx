@@ -389,7 +389,7 @@ export default function Workspace() {
     }
   };
 
-  const saveSpecification = async (draft: Pick<Specification, "objects" | "quantities" | "relations">) => {
+  const saveSpecification = async (draft: Pick<Specification, "objects" | "quantities" | "relations" | "endCondition">) => {
     if (!problem?.id || loading) return;
     setLoading(true);
     setError("");
@@ -413,7 +413,7 @@ export default function Workspace() {
     }
   };
 
-  const confirmSpecification = async (draft: Pick<Specification, "objects" | "quantities" | "relations">) => {
+  const confirmSpecification = async (draft: Pick<Specification, "objects" | "quantities" | "relations" | "endCondition">) => {
     if (!problem?.id || loading) return;
     setLoading(true);
     setError("");

@@ -8,6 +8,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -100,6 +104,8 @@ public class RuleBasedExtractionProvider implements ExtractionProvider {
         List<PhysicalQuantity> quantities = quantities(source, schemaId, lower);
         List<AmbiguityItem> ambiguities = missing(schemaId, quantities);
         String topic = topicFor(schemaId);
+        JsonNode endCondition = endCondition(source, lower);
+        if (endCondition == null) endCondition = com.example.backend.physics.EndConditionResolver.normalize(null, 10);
         SpecificationDocument document = new SpecificationDocument(
                 SpecificationDocument.CURRENT_SCHEMA_VERSION,
                 topic,
@@ -107,9 +113,51 @@ public class RuleBasedExtractionProvider implements ExtractionProvider {
                 List.of(new PhysicalObject("object_1", "Vật thể", "physical_object")),
                 quantities,
                 List.of(),
+                endCondition,
                 BigDecimal.valueOf(0.72),
                 ambiguities);
         return new ProviderExtractionResult(document, null);
+    }
+
+    /** Fallback extraction keeps termination declarative; it never calculates a time. */
+    private JsonNode endCondition(String source, String lower) {
+        if (containsAny(lower, "collision", "va cháº¡m")) {
+            ObjectNode event = JsonNodeFactory.instance.objectNode();
+            event.put("type", "collision");
+            event.putArray("entities").add("object_1").add("object_2");
+            return JsonNodeFactory.instance.objectNode().put("type", "event").set("event", event);
+        }
+        if (containsAny(lower, "ground", "earth", "cháº¡m Ä‘áº¥t")) {
+            ObjectNode event = JsonNodeFactory.instance.objectNode();
+            event.put("type", "contact");
+            event.putArray("entities").add("object_1").add("ground");
+            return JsonNodeFactory.instance.objectNode().put("type", "event").set("event", event);
+        }
+        Matcher cycles = Pattern.compile("(?i)(\\d+)\\s*(?:cycles?|chu(?:\\s|-)?ky)").matcher(source);
+        if (cycles.find()) {
+            ObjectNode condition = JsonNodeFactory.instance.objectNode();
+            condition.put("type", "cycle_count");
+            condition.put("quantity", "values.x");
+            condition.put("count", Integer.parseInt(cycles.group(1)));
+            return condition;
+        }
+        Matcher target = Pattern.compile("(?i)(?:from\\s+)?x\\s*=\\s*[-+]?\\d+(?:[.,]\\d+)?\\s*(?:m)?\\s*(?:to|->|until)\\s*x?\\s*=\\s*([-+]?\\d+(?:[.,]\\d+)?)").matcher(source);
+        if (target.find()) {
+            ObjectNode condition = JsonNodeFactory.instance.objectNode();
+            condition.put("type", "threshold");
+            condition.put("quantity", "positions.x");
+            condition.put("operator", ">=");
+            condition.put("value", Double.parseDouble(target.group(1).replace(',', '.')));
+            return condition;
+        }
+        Matcher seconds = Pattern.compile("(?i)(\\d+(?:[.,]\\d+)?)\\s*(?:seconds?|sec|s)").matcher(source);
+        if (seconds.find()) {
+            ObjectNode condition = JsonNodeFactory.instance.objectNode();
+            condition.put("type", "time_limit");
+            condition.put("duration", Double.parseDouble(seconds.group(1).replace(',', '.')));
+            return condition;
+        }
+        return null;
     }
 
     private String detectSchema(String text) {

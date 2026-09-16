@@ -157,6 +157,7 @@ public class SpecificationReadinessService {
         node.set("objects", specification.getObjects());
         node.set("quantities", specification.getQuantities());
         node.set("relations", specification.getRelations());
+        if (specification.getEndCondition() != null) node.set("endCondition", specification.getEndCondition());
         node.set("ambiguities", specification.getAmbiguity());
         return node;
     }

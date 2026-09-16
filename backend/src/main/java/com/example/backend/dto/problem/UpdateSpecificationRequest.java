@@ -6,5 +6,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 public record UpdateSpecificationRequest(
         JsonNode objects,
         JsonNode quantities,
-        JsonNode relations) {
+        JsonNode relations,
+        JsonNode endCondition) {
 }

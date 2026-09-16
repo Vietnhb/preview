@@ -54,6 +54,7 @@ public class ProblemResponseMapper {
                 specification.getObjects(),
                 specification.getQuantities(),
                 specification.getRelations(),
+                specification.getEndCondition(),
                 specification.getAmbiguity(),
                 specification.getConfirmationState(),
                 specification.getAmbiguityCases().stream().map(this::toAmbiguity).toList(),
