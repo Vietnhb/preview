@@ -1,6 +1,5 @@
 package com.example.backend.physics;
 
-import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,7 +18,8 @@ public class KinematicsReferenceSolver implements ReferenceSolver {
         if (projectile) {
             double y0 = PhysicsValues.require(spec, overrides, "initial_height", "y0", "height");
             double angle = PhysicsValues.require(spec, overrides, "launch_angle", "angle", "theta");
-            double vx = speed * Math.cos(angle), vy0 = speed * Math.sin(angle);
+            double vx = speed * Math.cos(angle);
+            double vy0 = speed * Math.sin(angle);
             return new AnalyticalPoint(Map.of("x", x0 + vx * t, "y", y0 + vy0 * t - .5 * GRAVITY * t * t,
                     "vx", vx, "vy", vy0 - GRAVITY * t, "ax", 0d, "ay", -GRAVITY));
         }

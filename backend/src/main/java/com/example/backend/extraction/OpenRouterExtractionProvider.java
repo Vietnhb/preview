@@ -18,6 +18,7 @@ import com.example.backend.entity.SchemaVersion;
 public class OpenRouterExtractionProvider implements ExtractionProvider {
 
     private static final String DEFAULT_MODEL = "openrouter/free";
+    private static final String SYSTEM_ROLE = "system";
     private static final String SYSTEM_PROMPT = """
             You are the PhysLive Problem Understanding Engine.
             Read Vietnamese or English physics problems by meaning, not by keyword matching.
@@ -75,7 +76,7 @@ public class OpenRouterExtractionProvider implements ExtractionProvider {
             throw new IllegalArgumentException("Problem text must not be blank.");
         }
         return complete(List.of(
-                client.textMessage("system", systemPrompt()),
+                client.textMessage(SYSTEM_ROLE, systemPrompt()),
                 client.textMessage("user", text.trim())),
                 "OpenRouter response does not match Specification v1.");
     }
@@ -108,7 +109,7 @@ public class OpenRouterExtractionProvider implements ExtractionProvider {
             throw new IllegalStateException("Cannot prepare ambiguity resolution request.", exception);
         }
         return complete(List.of(
-                client.textMessage("system", systemPrompt()),
+                client.textMessage(SYSTEM_ROLE, systemPrompt()),
                 client.textMessage("user", request)),
                 "OpenRouter ambiguity response does not match Specification v1.");
     }
@@ -136,7 +137,7 @@ public class OpenRouterExtractionProvider implements ExtractionProvider {
         } catch (Exception exception) {
             throw new IllegalStateException("Cannot prepare ambiguity resolution request.", exception);
         }
-        return complete(List.of(client.textMessage("system", systemPrompt()), client.textMessage("user", request)),
+        return complete(List.of(client.textMessage(SYSTEM_ROLE, systemPrompt()), client.textMessage("user", request)),
                 "OpenRouter ambiguity response does not match Specification v1.");
     }
 

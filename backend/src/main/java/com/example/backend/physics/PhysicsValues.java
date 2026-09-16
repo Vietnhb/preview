@@ -11,15 +11,28 @@ final class PhysicsValues {
     }
 
     private static Double find(JsonNode specification, Map<String, Double> overrides, String... names) {
+        Double override = findOverride(overrides, names);
+        if (override != null) return override;
+        Double quantity = findQuantity(specification, names);
+        if (quantity != null) return quantity;
+        return findDirect(specification, names);
+    }
+
+    private static Double findOverride(Map<String, Double> overrides, String... names) {
+        if (overrides == null) return null;
         for (String name : names) {
             String lower = name.toLowerCase(Locale.ROOT);
-            if (overrides != null && overrides.containsKey(lower)) {
+            if (overrides.containsKey(lower)) {
                 return overrides.get(lower);
             }
-            if (overrides != null && overrides.containsKey(name)) {
+            if (overrides.containsKey(name)) {
                 return overrides.get(name);
             }
         }
+        return null;
+    }
+
+    private static Double findQuantity(JsonNode specification, String... names) {
         JsonNode quantities = specification == null ? null : specification.get("quantities");
         if (quantities != null && quantities.isArray()) {
             for (JsonNode quantity : quantities) {
@@ -28,15 +41,24 @@ final class PhysicsValues {
                 for (String name : names) {
                     String lower = name.toLowerCase(Locale.ROOT);
                     if (matches(actual, lower) || matches(symbol, lower)) {
-                        return quantity.path("normalizedValue").isNumber()
-                                ? quantity.path("normalizedValue").asDouble()
-                                : quantity.path("value").isNumber() ? quantity.path("value").asDouble() : null;
+                        return numericValue(quantity);
                     }
                 }
             }
         }
+        return null;
+    }
+
+    private static Double numericValue(JsonNode quantity) {
+        if (quantity.path("normalizedValue").isNumber()) return quantity.path("normalizedValue").asDouble();
+        if (quantity.path("value").isNumber()) return quantity.path("value").asDouble();
+        return null;
+    }
+
+    private static Double findDirect(JsonNode specification, String... names) {
+        if (specification == null) return null;
         for (String name : names) {
-            JsonNode direct = specification == null ? null : specification.get(name);
+            JsonNode direct = specification.get(name);
             if (direct != null && direct.isNumber()) {
                 return direct.asDouble();
             }
@@ -55,17 +77,37 @@ final class PhysicsValues {
     private static boolean matches(String candidate, String target) {
         if (candidate.isBlank() || target.isBlank()) return false;
         if (candidate.equals(target)) return true;
-        if ((candidate.equals("distance") || candidate.equals("s"))
-                && (target.equals("initial_position") || target.equals("x0") || target.equals("position"))) return true;
-        if ((candidate.equals("speed") || candidate.equals("v"))
-                && (target.equals("initial_velocity") || target.equals("v0") || target.equals("velocity"))) return true;
-        if (candidate.equals("v1") && target.equals("velocity_1")) return true;
-        if (candidate.equals("v2") && target.equals("velocity_2")) return true;
-        if (candidate.equals("m1") && target.equals("mass_1")) return true;
-        if (candidate.equals("m2") && target.equals("mass_2")) return true;
-        if (candidate.equals("h") && (target.equals("initial_height") || target.equals("y0") || target.equals("height"))) return true;
-        if ((candidate.equals("angle") || candidate.equals("theta")) && target.equals("launch_angle")) return true;
-        return false;
+        return matchesPosition(candidate, target)
+                || matchesVelocity(candidate, target)
+                || matchesCollision(candidate, target)
+                || matchesHeight(candidate, target)
+                || matchesAngle(candidate, target);
+    }
+
+    private static boolean matchesPosition(String candidate, String target) {
+        return (candidate.equals("distance") || candidate.equals("s"))
+                && (target.equals("initial_position") || target.equals("x0") || target.equals("position"));
+    }
+
+    private static boolean matchesVelocity(String candidate, String target) {
+        return (candidate.equals("speed") || candidate.equals("v"))
+                && (target.equals("initial_velocity") || target.equals("v0") || target.equals("velocity"));
+    }
+
+    private static boolean matchesCollision(String candidate, String target) {
+        return (candidate.equals("v1") && target.equals("velocity_1"))
+                || (candidate.equals("v2") && target.equals("velocity_2"))
+                || (candidate.equals("m1") && target.equals("mass_1"))
+                || (candidate.equals("m2") && target.equals("mass_2"));
+    }
+
+    private static boolean matchesHeight(String candidate, String target) {
+        return candidate.equals("h")
+                && (target.equals("initial_height") || target.equals("y0") || target.equals("height"));
+    }
+
+    private static boolean matchesAngle(String candidate, String target) {
+        return (candidate.equals("angle") || candidate.equals("theta")) && target.equals("launch_angle");
     }
 
     static String schema(JsonNode specification) {

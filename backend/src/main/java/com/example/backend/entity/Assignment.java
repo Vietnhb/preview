@@ -19,6 +19,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "assignments")
@@ -36,6 +37,10 @@ public class Assignment extends AuditedEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
+
+    /** The exact validated teacher run visible to students after the prediction gate. */
+    @Column(name = "assigned_simulation_run_id")
+    private UUID assignedSimulationRunId;
 
     @Column(nullable = false, length = 160)
     private String title;

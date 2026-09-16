@@ -7,7 +7,7 @@ import { usePhysliveStore } from "../../store/usePhysliveStore";
 import LearningIcon from "../../components/common/LearningIcon";
 import "../../styles/profile.css";
 
-function ProfileContent({ user }: { user: User }) {
+function ProfileContent({ user }: Readonly<{ user: User }>) {
   const setUser = usePhysliveStore((state) => state.setUser);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState(user.fullName);

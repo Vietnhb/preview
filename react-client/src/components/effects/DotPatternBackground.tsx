@@ -1,6 +1,6 @@
 import PixelBlast from "./PixelBlast";
 
-type DotPatternBackgroundProps = { className?: string };
+type DotPatternBackgroundProps = Readonly<{ className?: string }>;
 
 /** Learning Hub's account background: PixelBlast with its original settings. */
 export function DotPatternBackground({ className }: DotPatternBackgroundProps) {

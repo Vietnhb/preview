@@ -78,7 +78,9 @@ class PhysicsSolverTest {
     @Test
     void missingInputsAreRejectedInsteadOfDefaulted() throws Exception {
         var specification = mapper.readTree("{\"schemaId\":\"dynamics_collision\",\"model\":\"elastic_collision_1d\"}");
-        assertThatThrownBy(() -> new DynamicsSolver().solve(specification, Map.of("m1", 2d), 4, .05))
+        var solver = new DynamicsSolver();
+        var inputs = Map.of("m1", 2d);
+        assertThatThrownBy(() -> solver.solve(specification, inputs, 4, .05))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("mass_2");
     }
 }

@@ -98,7 +98,7 @@ public class CurriculumAdminService {
 
     private static String slug(CurriculumNodeRequest request, String fallback) {
         String value = request.slug() == null || request.slug().isBlank() ? fallback : request.slug();
-        return value.trim().toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+        return value.trim().toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-)|(-$)", "");
     }
 
     private Topic topic(UUID id) { return topicRepository.findById(id).orElseThrow(missing("Topic")); }

@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 public class JwtUtil {
 
     private static final int MINIMUM_SECRET_BYTES = 32;
+    private static final SecureRandom FALLBACK_RANDOM = new SecureRandom();
 
     private final SecretKey secretKey;
     private final long expiration;
@@ -70,7 +71,7 @@ public class JwtUtil {
         }
 
         byte[] generatedSecret = new byte[MINIMUM_SECRET_BYTES];
-        new SecureRandom().nextBytes(generatedSecret);
+        FALLBACK_RANDOM.nextBytes(generatedSecret);
         log.warn("JWT_SECRET is not configured; using an ephemeral development key for this process.");
         return Keys.hmacShaKeyFor(generatedSecret);
     }

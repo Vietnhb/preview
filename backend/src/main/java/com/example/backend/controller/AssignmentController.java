@@ -4,6 +4,7 @@ import com.example.backend.dto.assignment.AssignmentResponse;
 import com.example.backend.dto.assignment.AssignmentSubmissionResponse;
 import com.example.backend.dto.assignment.CreateAssignmentRequest;
 import com.example.backend.dto.assignment.SubmitPredictionRequest;
+import com.example.backend.dto.physics.ParameterAdjustmentRequest;
 import com.example.backend.dto.physics.SimulationResponse;
 import com.example.backend.service.AssignmentService;
 import jakarta.validation.Valid;
@@ -54,6 +55,13 @@ public class AssignmentController {
     @PreAuthorize("hasRole('STUDENT')")
     public SimulationResponse simulation(@PathVariable UUID id) {
         return assignmentService.simulationForStudent(id);
+    }
+
+    @PostMapping("/{id}/simulation/adjust")
+    @PreAuthorize("hasRole('STUDENT')")
+    public SimulationResponse adjustSimulation(@PathVariable UUID id,
+                                                @Valid @RequestBody ParameterAdjustmentRequest request) {
+        return assignmentService.adjustSimulationForStudent(id, request);
     }
 
     @GetMapping("/{id}/submissions")

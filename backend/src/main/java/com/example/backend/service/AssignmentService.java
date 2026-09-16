@@ -4,6 +4,7 @@ import com.example.backend.dto.assignment.AssignmentResponse;
 import com.example.backend.dto.assignment.AssignmentSubmissionResponse;
 import com.example.backend.dto.assignment.CreateAssignmentRequest;
 import com.example.backend.dto.assignment.SubmitPredictionRequest;
+import com.example.backend.dto.physics.ParameterAdjustmentRequest;
 import com.example.backend.dto.physics.SimulationResponse;
 import com.example.backend.entity.Assignment;
 import com.example.backend.entity.AssignmentSubmission;
@@ -27,6 +28,7 @@ import java.util.Set;
 
 @Service
 public class AssignmentService {
+    private static final String ASSIGNMENT_NOT_FOUND = "Assignment not found";
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
     private final LibraryItemRepository libraryItemRepository;
@@ -79,6 +81,9 @@ public class AssignmentService {
         assignment.setLibraryItem(libraryItem);
         assignment.setSpecification(specification);
         assignment.setTeacher(teacher);
+        if (simulationService != null) {
+            assignment.setAssignedSimulationRunId(simulationService.latestRunId(libraryItem.getSimulation()));
+        }
         assignment.setTitle(request.title().trim());
         assignment.setDescription(request.description());
         assignment.setQuestions(request.questions());
@@ -106,7 +111,7 @@ public class AssignmentService {
     public SimulationResponse simulationForStudent(java.util.UUID assignmentId) {
         User student = currentUserService.requireCurrentUser();
         Assignment assignment = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Assignment not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
         if (!assignment.getAssignedStudentIds().contains(student.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Assignment is not assigned to this student");
         }
@@ -116,14 +121,49 @@ public class AssignmentService {
         if (assignment.getLibraryItem() == null || assignment.getLibraryItem().getSimulation() == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Assigned simulation not found");
         }
-        return simulationService.latestFor(assignment.getLibraryItem().getSimulation());
+        java.util.UUID runId = assignment.getAssignedSimulationRunId();
+        if (runId == null) {
+            // Legacy assignments predate the run snapshot column. Select the last
+            // run available when the assignment was created instead of a later
+            // teacher adjustment, preserving the best reproducible result.
+            runId = simulationService.runIdAtOrBefore(
+                    assignment.getLibraryItem().getSimulation(), assignment.getAssignedAt());
+        }
+        return simulationService.replay(assignment.getLibraryItem().getSimulation(), runId);
+    }
+
+    @Transactional(readOnly = true, noRollbackFor = Exception.class)
+    public SimulationResponse adjustSimulationForStudent(java.util.UUID assignmentId,
+                                                          ParameterAdjustmentRequest request) {
+        User student = currentUserService.requireCurrentUser();
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
+        if (!assignment.getAssignedStudentIds().contains(student.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Assignment is not assigned to this student");
+        }
+        if (!submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, student.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Submit a prediction before adjusting the simulation");
+        }
+        if (assignment.getLibraryItem() == null || assignment.getLibraryItem().getSimulation() == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Assigned simulation not found");
+        }
+
+        var simulation = assignment.getLibraryItem().getSimulation();
+        if (request.simulationId() == null || !simulation.getId().equals(request.simulationId())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Simulation does not belong to this assignment");
+        }
+        java.util.UUID runId = assignment.getAssignedSimulationRunId();
+        if (runId == null) {
+            runId = simulationService.runIdAtOrBefore(simulation, assignment.getAssignedAt());
+        }
+        return simulationService.previewAdjustment(simulation, runId, request.adjustableParams());
     }
 
     @Transactional
     public AssignmentSubmissionResponse submit(java.util.UUID assignmentId, SubmitPredictionRequest request) {
         User student = currentUserService.requireCurrentUser();
         Assignment assignment = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Assignment not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
         if (!assignment.getAssignedStudentIds().contains(student.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Assignment is not assigned to this student");
         }
@@ -142,7 +182,7 @@ public class AssignmentService {
     public List<AssignmentSubmissionResponse> submissions(java.util.UUID assignmentId) {
         User teacher = currentUserService.requireCurrentUser();
         Assignment assignment = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Assignment not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
         if (!assignment.getTeacher().getId().equals(teacher.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the teacher can view submissions");
         }
@@ -155,7 +195,7 @@ public class AssignmentService {
                 && "STUDENT".equalsIgnoreCase(current.getRole().getName())
                 && submissionRepository.existsByAssignmentIdAndStudentId(item.getId(), current.getId());
         return new AssignmentResponse(item.getId(), item.getLibraryItem() == null ? null : item.getLibraryItem().getId(),
-                item.getSpecification().getId(), item.getTitle(), item.getDescription(),
+                item.getSpecification().getId(), item.getAssignedSimulationRunId(), item.getTitle(), item.getDescription(),
                 item.getQuestions(), item.getAssignedStudentIds() == null ? Set.of() : Set.copyOf(item.getAssignedStudentIds()),
                 item.getStatus(), item.getAssignedAt(), item.getDueAt(),
                 predictionSubmitted);

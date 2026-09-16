@@ -16,7 +16,7 @@ type Props = {
   onRetry?: () => void;
 };
 
-export default function TeacherLibraryPane({ folders, items, currentSimulationId, loading, error, openingId, onCreateFolder, onOpen, onNewSimulation, onRetry }: Props) {
+export default function TeacherLibraryPane({ folders, items, currentSimulationId, loading, error, openingId, onCreateFolder, onOpen, onNewSimulation, onRetry }: Readonly<Props>) {
   const [creating, setCreating] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [name, setName] = useState("");
@@ -60,7 +60,7 @@ export default function TeacherLibraryPane({ folders, items, currentSimulationId
         <button className="learn-new-folder-trigger" type="button" aria-label="Thư mục mới" title="Thư mục mới" aria-expanded={creatorOpen} aria-controls="new-library-folder-form" onClick={() => setCreatorOpen(value => !value)}><Icon name="folderPlus" /></button>
       </div>
       <label className="learn-library-search"><Icon name="search" /><span className="learn-sr-only">Tìm trong thư viện</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm trong thư viện" /></label>
-      {creatorOpen && <form id="new-library-folder-form" className="learn-folder-popover" onSubmit={create} onKeyDown={event => { if (event.key === "Escape" && !creating) setCreatorOpen(false); }}>
+      {creatorOpen && <form id="new-library-folder-form" className="learn-folder-popover" onSubmit={create}>
         <label htmlFor="new-library-folder">Tạo thư mục mới</label>
         <input id="new-library-folder" autoFocus value={name} maxLength={120} onChange={event => setName(event.target.value)} placeholder="Ví dụ: Chuyển động lớp 10" disabled={creating} />
         <div><button type="button" onClick={() => { setCreatorOpen(false); setName(""); }} disabled={creating}>Hủy</button><button className="primary" type="submit" disabled={!name.trim() || creating}>{creating ? "Đang tạo…" : "Tạo thư mục"}</button></div>

@@ -49,7 +49,8 @@ public class AdminOperationsController {
     @GetMapping("/validation-runs") @Transactional(readOnly=true)
     public List<ValidationRow> validationRuns() {
         return validations.findAll(org.springframework.data.domain.Sort.by("createdAt").descending()).stream().map(v -> {
-            var sim = v.getSimulation(); var spec = sim.getSpecification();
+            var sim = v.getSimulation();
+            var spec = sim.getSpecification();
             return new ValidationRow(v.getId(), spec.getSubmission().getId(), spec.getTopic(), sim.getSchemaId(),
                     spec.getSchemaVersion(), sim.getSolverVersion(), v.isPassed(), v.getStatus(), v.getErrorMessage(), v.getCreatedAt());
         }).toList();

@@ -1,10 +1,9 @@
 .workspace-start { min-height: 100vh; overflow: hidden; color: #17243a; background: radial-gradient(circle at 15% 15%, #dff4ff 0, transparent 30%), linear-gradient(145deg, #f8fbff 0%, #eef3f9 100%); }
 .workspace-start-main { width: calc(100% - 36px); height: calc(100vh - 56px); margin: 0 auto; display: grid; grid-template-columns: minmax(560px, 1fr) clamp(320px, 19vw, 360px); grid-template-areas: "create context"; gap: 16px; align-items: stretch; padding: 18px 0; overflow: hidden; }
-.workspace-start-main[data-library-pane="true"] { grid-template-columns: clamp(272px, 16vw, 304px) minmax(560px, 1fr) clamp(320px, 19vw, 360px); grid-template-areas: "library create context"; }
+.workspace-start-main[data-library-pane="true"] { grid-template-columns: clamp(272px, 16vw, 304px) minmax(560px, 1fr) clamp(320px, 19vw, 360px); grid-template-areas: "library create context"; gap: 0; border: 1px solid #d9e3ee; border-radius: 14px; background: rgba(255,255,255,.48); }
 .workspace-start-main > .learn-library-pane { grid-area: library; }
 .workspace-start-main > .workspace-create-card { grid-area: create; }
 .workspace-start-main > .workspace-start-copy { grid-area: context; }
-.workspace-start-main[data-library-pane="true"] { gap: 0; border: 1px solid #d9e3ee; border-radius: 14px; background: rgba(255,255,255,.48); }
 .workspace-start-main[data-library-pane="true"] > * { border-radius: 0; box-shadow: none; }
 .workspace-start-main[data-library-pane="true"] > .learn-library-pane { border-width: 0 1px 0 0; }
 .workspace-start-main[data-library-pane="true"] > .workspace-create-card { border-width: 0 1px 0 0; }

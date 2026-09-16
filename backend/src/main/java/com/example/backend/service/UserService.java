@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ public class UserService {
     UserRepository userRepository;
 
     public UserResponse getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(normalizeEmail(email))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Khong Thay User"));
         return toResponse(user);
     }
@@ -40,7 +41,7 @@ public class UserService {
 
     public void changePassword(String email, String currentPassword, String newPassword, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         User user = findCurrent(email);
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+        if (!matchesPassword(currentPassword, user.getPassword(), passwordEncoder)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại không đúng");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -54,12 +55,25 @@ public class UserService {
     }
 
     private User findCurrent(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmail(normalizeEmail(email))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
     }
 
     private UserResponse toResponse(User user) {
-        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole().getName(), user.getDateOfBirth(), user.getAvatarUrl());
+        String role = user.getRole() == null ? "UNKNOWN" : user.getRole().getName();
+        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(), user.getAvatarUrl());
+    }
+
+    private static String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean matchesPassword(String rawPassword, String storedPassword,
+            org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+        if (rawPassword == null || storedPassword == null) return false;
+        return storedPassword.startsWith("$2")
+                ? passwordEncoder.matches(rawPassword, storedPassword)
+                : rawPassword.equals(storedPassword);
     }
 
     public List<StudentOptionResponse> getActiveStudents() {

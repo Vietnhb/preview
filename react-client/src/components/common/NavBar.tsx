@@ -34,10 +34,10 @@ const studentNavItem: NavItem = { to: "/assignments", label: "Học tập", icon
 function NavItemLink({
   item,
   onClick,
-}: {
+}: Readonly<{
   item: NavItem;
   onClick?: () => void;
-}) {
+}>) {
   return (
     <Link to={item.to} onClick={onClick} className="learning-nav-link">
       <LearningIcon name={item.icon} />
@@ -46,12 +46,12 @@ function NavItemLink({
   );
 }
 
-function ThemeMenu({ onClose }: { onClose: () => void }) {
+function ThemeMenu({ onClose }: Readonly<{ onClose: () => void }>) {
   const setTheme = (theme: "light" | "dark") => {
     document.documentElement.dataset.theme = theme;
     document.documentElement.dataset.themeEffective = theme;
     try {
-      window.localStorage.setItem("physlive.theme", theme);
+      globalThis.localStorage.setItem("physlive.theme", theme);
     } catch {
       /* storage may be unavailable */
     }

@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class OpenRouterClient {
 
     private static final String DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
+    private static final String CONTENT = "content";
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
@@ -28,8 +29,11 @@ public class OpenRouterClient {
         this.objectMapper = objectMapper;
         this.apiKey = environment.getProperty("OPENROUTER_API_KEY", "").trim();
         String baseUrl = environment.getProperty("OPENROUTER_BASE_URL", DEFAULT_BASE_URL).trim();
-        int connectTimeoutMs = timeout(environment, "OPENROUTER_CONNECT_TIMEOUT_MS", 5_000);
-        int readTimeoutMs = timeout(environment, "OPENROUTER_READ_TIMEOUT_MS", 30_000);
+        // Keep provider calls bounded so a free model cannot leave the teacher
+        // composer spinning for minutes. The rule-based provider takes over
+        // after this budget for text extraction.
+        int connectTimeoutMs = networkTimeout(environment, "OPENROUTER_CONNECT_TIMEOUT_MS", 3_000);
+        int readTimeoutMs = networkTimeout(environment, "OPENROUTER_READ_TIMEOUT_MS", 3_000);
         this.maxTokens = timeout(environment, "OPENROUTER_MAX_TOKENS", 8_000);
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(connectTimeoutMs);
@@ -47,6 +51,10 @@ public class OpenRouterClient {
         } catch (NumberFormatException exception) {
             return fallback;
         }
+    }
+
+    private int networkTimeout(Environment environment, String property, int fallback) {
+        return Math.min(3_000, timeout(environment, property, fallback));
     }
 
     public boolean isAvailable() {
@@ -78,7 +86,7 @@ public class OpenRouterClient {
         if (response == null || response.path("choices").isEmpty()) {
             throw new IllegalStateException("OpenRouter returned an empty response.");
         }
-        String content = response.path("choices").path(0).path("message").path("content").asText();
+        String content = response.path("choices").path(0).path("message").path(CONTENT).asText();
         if (!StringUtils.hasText(content)) {
             throw new IllegalStateException("OpenRouter returned empty content.");
         }
@@ -86,14 +94,14 @@ public class OpenRouterClient {
     }
 
     public Map<String, Object> textMessage(String role, String content) {
-        return Map.of("role", role, "content", content);
+        return Map.of("role", role, CONTENT, content);
     }
 
     public Map<String, Object> imageMessage(String prompt, String contentType, byte[] content) {
         String dataUrl = "data:" + contentType + ";base64," + java.util.Base64.getEncoder().encodeToString(content);
         return Map.of(
                 "role", "user",
-                "content", List.of(
+                CONTENT, List.of(
                         Map.of("type", "text", "text", prompt),
                         Map.of("type", "image_url", "image_url", Map.of("url", dataUrl))));
     }

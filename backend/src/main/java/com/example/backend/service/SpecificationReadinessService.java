@@ -96,24 +96,25 @@ public class SpecificationReadinessService {
             List<SchemaDefinitionService.RequiredGap> gaps) {
         Set<String> seen = new HashSet<>();
         for (AmbiguityCase ambiguity : specification.getAmbiguityCases()) {
-            if (ambiguity.getStatus() != AmbiguityStatus.OPEN) continue;
-            SchemaDefinitionService.RequiredGap gap = gaps.stream()
-                    .filter(candidate -> refersTo(ambiguity, candidate.key()))
-                    .findFirst().orElse(null);
-            String code;
-            if (gap != null) {
-                code = "schema.required." + gap.key();
-                ambiguity.setFieldPath("quantities." + gap.key());
-            } else {
-                code = semanticCode(ambiguity);
+            if (ambiguity.getStatus() == AmbiguityStatus.OPEN) {
+                SchemaDefinitionService.RequiredGap gap = gaps.stream()
+                        .filter(candidate -> refersTo(ambiguity, candidate.key()))
+                        .findFirst().orElse(null);
+                String code;
+                if (gap != null) {
+                    code = "schema.required." + gap.key();
+                    ambiguity.setFieldPath("quantities." + gap.key());
+                } else {
+                    code = semanticCode(ambiguity);
+                }
+                if (seen.add(code)) {
+                    ambiguity.setCode(code);
+                } else {
+                    ambiguity.setStatus(AmbiguityStatus.RESOLVED);
+                    ambiguity.setResolution("Merged with canonical ambiguity " + code);
+                    ambiguity.setResolvedAt(java.time.Instant.now());
+                }
             }
-            if (!seen.add(code)) {
-                ambiguity.setStatus(AmbiguityStatus.RESOLVED);
-                ambiguity.setResolution("Merged with canonical ambiguity " + code);
-                ambiguity.setResolvedAt(java.time.Instant.now());
-                continue;
-            }
-            ambiguity.setCode(code);
         }
     }
 
@@ -147,16 +148,20 @@ public class SpecificationReadinessService {
 
     public JsonNode toJson(Specification specification) {
         ObjectNode node = objectMapper.createObjectNode();
-        node.put("schemaId", specification.getSchemaId());
-        node.put("schemaVersion", specification.getSchemaVersion());
-        node.put("contractVersion", specification.getContractVersion());
-        if (StringUtils.hasText(specification.getSchemaId())) node.put("model",
+        putText(node, "schemaId", specification.getSchemaId());
+        putText(node, "schemaVersion", specification.getSchemaVersion());
+        putText(node, "contractVersion", specification.getContractVersion());
+        if (StringUtils.hasText(specification.getSchemaId())) putText(node, "model",
                 schemas.requireApproved(specification.getSchemaId(), specification.getSchemaVersion()).getDefinition().path("model").asText());
-        node.put("topic", specification.getTopic());
+        putText(node, "topic", specification.getTopic());
         node.set("objects", specification.getObjects());
         node.set("quantities", specification.getQuantities());
         node.set("relations", specification.getRelations());
         node.set("ambiguities", specification.getAmbiguity());
         return node;
+    }
+
+    private void putText(ObjectNode node, String key, String value) {
+        node.set(key, value == null ? objectMapper.nullNode() : objectMapper.getNodeFactory().textNode(value));
     }
 }

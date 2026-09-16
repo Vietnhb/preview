@@ -31,6 +31,9 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 @Service
 @RequiredArgsConstructor
 public class ExportService {
+    private static final String SPECIFICATION_NOT_FOUND = "Specification not found";
+    private static final String SPECIFICATION = "specification";
+    private static final String SIMULATION = "simulation";
     private final SpecificationRepository specificationRepository;
     private final SimulationRepository simulationRepository;
     private final CurrentUserService currentUserService;
@@ -43,16 +46,26 @@ public class ExportService {
     public byte[] specificationJson(java.util.UUID specificationId) {
         User user = currentUserService.requireCurrentUser();
         Specification specification = specificationRepository.findByIdAndSubmissionOwner(specificationId, user)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Specification not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, SPECIFICATION_NOT_FOUND));
+        Simulation simulation = findSimulation(specificationId, user);
         ObjectNode document = objectMapper.createObjectNode();
-        document.set("specification", objectMapper.valueToTree(problemMapper.toSpecification(specification)));
+        document.set(SPECIFICATION, objectMapper.valueToTree(problemMapper.toSpecification(specification)));
         List<SchemaVersion> schemas = schemaService.list(false);
-        schemas.stream().filter(schema -> schema.getSchemaId().equalsIgnoreCase(resolveSchema(specification)))
+        schemas.stream().filter(schema -> schema.getSchemaId().equalsIgnoreCase(resolveSchema(specification))
+                        && schema.getVersion().equals(specification.getSchemaVersion()))
                 .findFirst().ifPresent(schema -> document.set("schema", objectMapper.valueToTree(schema)));
         ObjectNode solver = objectMapper.createObjectNode();
-        solver.put("solverId", resolveSchema(specification) + "-solver");
-        solver.put("version", "1.0.0");
+        if (simulation == null || simulation.getSolverVersion() == null) {
+            solver.putNull("solverId");
+            solver.putNull("version");
+        } else {
+            String[] binding = simulation.getSolverVersion().split(":", 2);
+            solver.set("version", objectMapper.getNodeFactory().textNode(binding[0]));
+            solver.set("solverId", objectMapper.getNodeFactory().textNode(
+                    binding.length > 1 ? binding[1] : simulation.getSolverVersion()));
+        }
         document.set("solverMetadata", solver);
+        document.set(SIMULATION, simulation == null ? objectMapper.nullNode() : objectMapper.valueToTree(simulationService.get(simulation.getId())));
         document.set("validationResults", specification.getValidationResult());
         try {
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(document);
@@ -64,9 +77,7 @@ public class ExportService {
     @Transactional(readOnly = true)
     public byte[] simulationCsv(java.util.UUID specificationId) {
         User user = currentUserService.requireCurrentUser();
-        Simulation simulation = simulationRepository.findByOwnerIdOrderByCreatedAtDesc(user.getId()).stream()
-                .filter(item -> item.getSpecification().getId().equals(specificationId))
-                .findFirst().orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No simulation run found"));
+        Simulation simulation = findSimulation(specificationId, user);
         SimulationResponse response = simulationService.get(simulation.getId());
         StringBuilder csv = new StringBuilder("time");
         List<String> columns = new ArrayList<>(response.values().keySet());
@@ -87,9 +98,7 @@ public class ExportService {
     @Transactional(readOnly = true)
     public byte[] simulationPdf(java.util.UUID specificationId) {
         User user = currentUserService.requireCurrentUser();
-        Simulation simulation = simulationRepository.findByOwnerIdOrderByCreatedAtDesc(user.getId()).stream()
-                .filter(item -> item.getSpecification().getId().equals(specificationId))
-                .findFirst().orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No simulation run found"));
+        Simulation simulation = findSimulation(specificationId, user);
         SimulationResponse response = simulationService.get(simulation.getId());
         try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             PDPage page = new PDPage();
@@ -136,7 +145,7 @@ public class ExportService {
     public byte[] offlineReplayHtml(java.util.UUID specificationId) {
         User user = currentUserService.requireCurrentUser();
         Specification specification = specificationRepository.findByIdAndSubmissionOwner(specificationId, user)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Specification not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, SPECIFICATION_NOT_FOUND));
         Simulation simulation = simulationRepository.findByOwnerIdOrderByCreatedAtDesc(user.getId()).stream()
                 .filter(item -> item.getSpecification().getId().equals(specificationId))
                 .findFirst().orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No simulation run found"));
@@ -146,8 +155,8 @@ public class ExportService {
         }
         SimulationResponse response = simulationService.get(simulation.getId());
         ObjectNode bundle = objectMapper.createObjectNode();
-        bundle.set("specification", objectMapper.valueToTree(problemMapper.toSpecification(specification)));
-        bundle.set("simulation", objectMapper.valueToTree(response));
+        bundle.set(SPECIFICATION, objectMapper.valueToTree(problemMapper.toSpecification(specification)));
+        bundle.set(SIMULATION, objectMapper.valueToTree(response));
         String payload;
         try {
             payload = objectMapper.writeValueAsString(bundle).replace("</", "<\\/");
@@ -171,6 +180,41 @@ public class ExportService {
                 """
                 .formatted(payload);
         return html.getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] slidesHtml(java.util.UUID specificationId) {
+        User user = currentUserService.requireCurrentUser();
+        Specification specification = specificationRepository.findByIdAndSubmissionOwner(specificationId, user)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, SPECIFICATION_NOT_FOUND));
+        if (!"PASSED".equals(specification.getValidationStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Only validated simulations can be exported as slides");
+        }
+        Simulation simulation = findSimulation(specificationId, user);
+        SimulationResponse response = simulationService.get(simulation.getId());
+        ObjectNode bundle = objectMapper.createObjectNode();
+        bundle.set(SPECIFICATION, objectMapper.valueToTree(problemMapper.toSpecification(specification)));
+        bundle.set(SIMULATION, objectMapper.valueToTree(response));
+        try {
+            String payload = objectMapper.writeValueAsString(bundle).replace("</", "<\\/");
+            String html = """
+                    <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+                    <title>PhysLive - Slides</title><style>
+                    *{box-sizing:border-box}body{margin:0;background:#eef4fb;color:#15233b;font-family:Inter,system-ui,sans-serif}.deck{width:min(1100px,100%%);margin:auto;padding:28px}.slide{min-height:620px;margin:0 0 22px;padding:54px;border:1px solid #d8e2ef;border-radius:24px;background:#fff;box-shadow:0 8px 28px #233d5c14;page-break-after:always}.kicker{color:#3569b8;font-size:12px;font-weight:800;letter-spacing:.12em}.title{font-size:46px;line-height:1.08;margin:18px 0 14px}.muted{color:#667892;line-height:1.7}.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:36px}.metric{padding:20px;border-radius:16px;background:#f1f6fd}.metric strong{display:block;margin-top:8px;font-size:28px;color:#2563eb}.table{width:100%%;border-collapse:collapse;margin-top:26px}.table th,.table td{text-align:left;padding:13px 10px;border-bottom:1px solid #e1e8f0}.table th{color:#5c7190;font-size:12px}.result{padding:18px;border-radius:16px;background:#f5f8fc;margin-top:14px}.controls{display:flex;gap:10px;flex-wrap:wrap}.controls span{padding:8px 12px;border-radius:999px;background:#e8f1fd;color:#244e88}@media print{body{background:#fff}.deck{padding:0}.slide{border:0;box-shadow:none;margin:0;border-radius:0}}
+                    </style></head><body><main class="deck" id="deck"></main><script id="bundle" type="application/json">%s</script><script>
+                    const b=JSON.parse(document.getElementById('bundle').textContent),s=b.simulation,q=b.specification,deck=document.getElementById('deck');const params=Object.entries(s.parameters||{}).map(([k,v])=>`<span>${k}: ${v}</span>`).join('');const quantities=(q.quantities||[]).map(x=>`<tr><td>${x.name}</td><td>${x.normalizedValue}</td><td>${x.normalizedUnit}</td></tr>`).join('');const values=Object.entries(s.values||{}).map(([k,v])=>`<div class="result"><strong>${k}</strong><br>Điểm đầu: ${v[0]??'—'} · Điểm cuối: ${v[v.length-1]??'—'} · ${v.length} mẫu</div>`).join('');deck.innerHTML=`<section class="slide"><span class="kicker">PHYSLIVE / SIMULATION SLIDES</span><h1 class="title">${q.schemaId||'Mô phỏng vật lý'}</h1><p class="muted">Bộ slide được tạo từ specification đã kiểm chứng độc lập.</p><div class="metric-grid"><div class="metric">Validation<strong>${s.validationPassed?'PASS':'FAIL'}</strong></div><div class="metric">Schema<strong>${q.schemaVersion||'—'}</strong></div><div class="metric">Samples<strong>${(s.time||[]).length}</strong></div></div></section><section class="slide"><span class="kicker">01 / INPUT</span><h2>Các đại lượng đầu vào</h2><table class="table"><thead><tr><th>Tên</th><th>Giá trị chuẩn hóa</th><th>Đơn vị</th></tr></thead><tbody>${quantities}</tbody></table><div class="controls">${params}</div></section><section class="slide"><span class="kicker">02 / OUTPUT</span><h2>Kết quả mô phỏng</h2><p class="muted">Thời gian: ${(s.time||[])[0]??0} → ${(s.time||[]).slice(-1)[0]??0} s</p>${values}</section>`;
+                    </script></body></html>
+                    """.formatted(payload);
+            return html.getBytes(StandardCharsets.UTF_8);
+        } catch (Exception exception) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not create slides export");
+        }
+    }
+
+    private Simulation findSimulation(java.util.UUID specificationId, User user) {
+        return simulationRepository.findByOwnerIdOrderByCreatedAtDesc(user.getId()).stream()
+                .filter(item -> item.getSpecification().getId().equals(specificationId))
+                .findFirst().orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No simulation run found"));
     }
 
     private String resolveSchema(Specification specification) {

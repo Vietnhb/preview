@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnableMethodSecurity
 @AllArgsConstructor
 public class SecurityConfig {
+    private static final String ADMIN_ROLE = "ADMIN";
     private final JwtFilter jwtFilter;
 
     @Bean
@@ -35,9 +36,9 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/auth/**", "/ws/**", "/actuator/health").permitAll()
                         .requestMatchers("/api/user/me").authenticated()
-                        .requestMatchers("/api/user/all").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/reviewer/**").hasAnyRole("REVIEWER", "ADMIN")
+                        .requestMatchers("/api/user/all").hasRole(ADMIN_ROLE)
+                        .requestMatchers("/api/admin/**").hasRole(ADMIN_ROLE)
+                        .requestMatchers("/api/reviewer/**").hasAnyRole("REVIEWER", ADMIN_ROLE)
                         .requestMatchers("/api/schemas/**").authenticated()
                         .anyRequest().authenticated())
 

@@ -33,8 +33,7 @@ public class ReviewerService {
 
     @Transactional(readOnly = true)
     public List<ReviewerAmbiguityResponse> openAmbiguities() {
-        return ambiguityRepository.findAll().stream()
-                .filter(item -> item.getStatus() == AmbiguityStatus.OPEN)
+        return ambiguityRepository.findByStatus(AmbiguityStatus.OPEN).stream()
                 .map(item -> new ReviewerAmbiguityResponse(item.getId(), item.getSpecification().getId(), item.getCode(),
                         item.getFieldPath(), item.getQuestion(), item.getOptions(), item.getStatus(),
                         item.getSpecification().getSubmission().getEditableText() == null

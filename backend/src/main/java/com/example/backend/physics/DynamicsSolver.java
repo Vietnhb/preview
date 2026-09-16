@@ -6,12 +6,12 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @Component
 public class DynamicsSolver implements PhysicsSolver {
     private static final double GRAVITY = 9.81;
+    private static final String COLLISION_TIME = "collision_time";
 
     @Override
     public String solverId() { return "dynamics_solver"; }
@@ -43,16 +43,18 @@ public class DynamicsSolver implements PhysicsSolver {
         List<Double> vx = new ArrayList<>();
         List<Double> ax = new ArrayList<>();
         List<Double> netForce = new ArrayList<>();
-        int points = Math.max(1, (int) Math.ceil(Math.max(0.01, duration) / Math.max(0.001, step)));
+        double effectiveDuration = Math.max(0.01, duration);
+        double effectiveStep = Math.max(0.001, step);
+        int points = Math.max(1, (int) Math.ceil(effectiveDuration / effectiveStep));
         for (int i = 0; i <= points; i++) {
-            double t = Math.min(Math.max(0.01, duration), i * Math.max(0.001, step));
+            double t = Math.min(effectiveDuration, i * effectiveStep);
             times.add(t);
             x.add(position);
             vx.add(velocity);
             ax.add(acceleration);
             netForce.add(force - friction * mass * GRAVITY);
             if (i == points) break;
-            double dt = Math.min(Math.max(0.001, step), Math.max(0.01, duration) - t);
+            double dt = Math.min(effectiveStep, effectiveDuration - t);
             position += velocity * dt + 0.5 * acceleration * dt * dt;
             velocity += acceleration * dt;
         }
@@ -74,31 +76,33 @@ public class DynamicsSolver implements PhysicsSolver {
                                         double duration, double step) {
         double m1 = positive(PhysicsValues.require(specification, overrides, "mass_1", "m1"));
         double m2 = positive(PhysicsValues.require(specification, overrides, "mass_2", "m2"));
-        double x1_0 = PhysicsValues.require(specification, overrides, "initial_position_1", "x1_0", "x10", "x1");
-        double x2_0 = PhysicsValues.require(specification, overrides, "initial_position_2", "x2_0", "x20", "x2");
+        double x1Initial = PhysicsValues.require(specification, overrides, "initial_position_1", "x1_0", "x10", "x1");
+        double x2Initial = PhysicsValues.require(specification, overrides, "initial_position_2", "x2_0", "x20", "x2");
         double v1 = PhysicsValues.require(specification, overrides, "velocity_1", "v1");
         double v2 = PhysicsValues.require(specification, overrides, "velocity_2", "v2");
 
-        double collisionAt = calculateCollisionTime(x1_0, x2_0, v1, v2, overrides, specification);
+        double collisionAt = calculateCollisionTime(x1Initial, x2Initial, v1, v2, overrides, specification);
         boolean willCollide = collisionAt > 0;
         double afterV1 = willCollide ? ((m1 - m2) * v1 + 2 * m2 * v2) / (m1 + m2) : v1;
         double afterV2 = willCollide ? ((m2 - m1) * v2 + 2 * m1 * v1) / (m1 + m2) : v2;
-        double x1Coll = willCollide ? (x1_0 + v1 * collisionAt) : 0;
-        double x2Coll = willCollide ? (x2_0 + v2 * collisionAt) : 0;
+        double x1Coll = willCollide ? (x1Initial + v1 * collisionAt) : 0;
+        double x2Coll = willCollide ? (x2Initial + v2 * collisionAt) : 0;
 
         List<Double> times = new ArrayList<>();
         List<Double> x1 = new ArrayList<>();
         List<Double> x2 = new ArrayList<>();
         List<Double> v1Series = new ArrayList<>();
         List<Double> v2Series = new ArrayList<>();
-        int points = Math.max(1, (int) Math.ceil(Math.max(0.01, duration) / Math.max(0.001, step)));
+        double effectiveDuration = Math.max(0.01, duration);
+        double effectiveStep = Math.max(0.001, step);
+        int points = Math.max(1, (int) Math.ceil(effectiveDuration / effectiveStep));
         for (int i = 0; i <= points; i++) {
-            double t = Math.min(Math.max(0.01, duration), i * Math.max(0.001, step));
+            double t = Math.min(effectiveDuration, i * effectiveStep);
             times.add(t);
-            double currentX1 = (!willCollide || t <= collisionAt) ? (x1_0 + v1 * t) : (x1Coll + afterV1 * (t - collisionAt));
-            double currentX2 = (!willCollide || t <= collisionAt) ? (x2_0 + v2 * t) : (x2Coll + afterV2 * (t - collisionAt));
-            double currentV1 = (!willCollide || t < collisionAt) ? v1 : afterV1;
-            double currentV2 = (!willCollide || t < collisionAt) ? v2 : afterV2;
+            double currentX1 = positionAt(x1Initial, v1, x1Coll, afterV1, t, collisionAt, willCollide);
+            double currentX2 = positionAt(x2Initial, v2, x2Coll, afterV2, t, collisionAt, willCollide);
+            double currentV1 = velocityAt(v1, afterV1, t, collisionAt, willCollide);
+            double currentV2 = velocityAt(v2, afterV2, t, collisionAt, willCollide);
             x1.add(currentX1);
             x2.add(currentX2);
             v1Series.add(currentV1);
@@ -130,9 +134,11 @@ public class DynamicsSolver implements PhysicsSolver {
         List<Double> position = new ArrayList<>();
         List<Double> velocity = new ArrayList<>();
         List<Double> acceleration = new ArrayList<>();
-        int points = Math.max(1, (int) Math.ceil(Math.max(0.01, duration) / Math.max(0.001, step)));
+        double effectiveDuration = Math.max(0.01, duration);
+        double effectiveStep = Math.max(0.001, step);
+        int points = Math.max(1, (int) Math.ceil(effectiveDuration / effectiveStep));
         for (int i = 0; i <= points; i++) {
-            double t = Math.min(Math.max(0.01, duration), i * Math.max(0.001, step));
+            double t = Math.min(effectiveDuration, i * effectiveStep);
             double angle = omega * t + phase;
             double x = amplitude * Math.cos(angle);
             double v = -amplitude * omega * Math.sin(angle);
@@ -148,9 +154,9 @@ public class DynamicsSolver implements PhysicsSolver {
     private double calculateCollisionTime(double x1, double x2, double v1, double v2,
                                           Map<String, Double> overrides, JsonNode spec) {
         if (overrides != null && overrides.containsKey("collision_at")) return overrides.get("collision_at");
-        if (overrides != null && overrides.containsKey("collision_time")) return overrides.get("collision_time");
-        if (spec != null && spec.has("collision_time") && spec.get("collision_time").isNumber()) {
-            return spec.get("collision_time").asDouble();
+        if (overrides != null && overrides.containsKey(COLLISION_TIME)) return overrides.get(COLLISION_TIME);
+        if (spec != null && spec.has(COLLISION_TIME) && spec.get(COLLISION_TIME).isNumber()) {
+            return spec.get(COLLISION_TIME).asDouble();
         }
         if (x1 < x2 && v1 > v2) {
             return (x2 - x1) / (v1 - v2);
@@ -158,6 +164,19 @@ public class DynamicsSolver implements PhysicsSolver {
             return (x1 - x2) / (v2 - v1);
         }
         return -1.0;
+    }
+
+    private static double positionAt(double initialPosition, double initialVelocity,
+                                     double collisionPosition, double finalVelocity,
+                                     double time, double collisionTime, boolean willCollide) {
+        return !willCollide || time <= collisionTime
+                ? initialPosition + initialVelocity * time
+                : collisionPosition + finalVelocity * (time - collisionTime);
+    }
+
+    private static double velocityAt(double initialVelocity, double finalVelocity,
+                                     double time, double collisionTime, boolean willCollide) {
+        return !willCollide || time < collisionTime ? initialVelocity : finalVelocity;
     }
 
     private static double positive(double value) {

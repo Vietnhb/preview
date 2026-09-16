@@ -3,6 +3,7 @@ package com.example.backend.controller;
 import com.example.backend.dto.physics.ParameterAdjustmentRequest;
 import com.example.backend.dto.physics.SimulationRequest;
 import com.example.backend.dto.physics.SimulationResponse;
+import com.example.backend.dto.physics.SimulationSummaryResponse;
 import com.example.backend.service.SimulationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,11 @@ public class SimulationController {
     @GetMapping
     public List<SimulationResponse> history() {
         return simulationService.history();
+    }
+
+    @GetMapping("/recent")
+    public List<SimulationSummaryResponse> recent() {
+        return simulationService.recent();
     }
 
     @GetMapping("/{id}")

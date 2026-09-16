@@ -11,6 +11,7 @@ public record AssignmentResponse(
         UUID id,
         UUID libraryItemId,
         UUID specificationId,
+        UUID simulationRunId,
         String title,
         String description,
         JsonNode questions,

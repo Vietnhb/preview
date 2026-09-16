@@ -5,7 +5,7 @@ import type { LibraryItem } from "../../types/physlive";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import StudentAssignments from "../student/StudentAssignments";
 
-function LibraryRows({ items, assignable }: { items: LibraryItem[]; assignable: boolean }) {
+function LibraryRows({ items, assignable }: Readonly<{ items: LibraryItem[]; assignable: boolean }>) {
   if (!items.length) return <p className="muted">Chưa có simulation trong mục này.</p>;
   return <div className="table-wrap"><table><thead><tr><th>Tên</th><th>Chủ đề</th><th>Phạm vi</th><th>Ngày lưu</th>{assignable && <th />}</tr></thead><tbody>{items.map(item => <tr key={item.id}><td><strong>{item.title}</strong></td><td>{item.topic ?? "—"}</td><td>{item.visibility === "PERSONAL" ? "Cá nhân" : "Chia sẻ"}</td><td>{new Date(item.createdAt).toLocaleDateString("vi-VN")}</td>{assignable && <td><Link className="table-action" to={`/assignments/workspace?libraryItemId=${item.id}`}>Giao bài</Link></td>}</tr>)}</tbody></table></div>;
 }
@@ -16,7 +16,7 @@ export default function Library() {
   return <LibraryCatalog userRole={user?.role} />;
 }
 
-function LibraryCatalog({ userRole }: { userRole?: string }) {
+function LibraryCatalog({ userRole }: Readonly<{ userRole?: string }>) {
   const [mine, setMine] = useState<LibraryItem[]>([]);
   const [accessible, setAccessible] = useState<LibraryItem[]>([]);
   const [error, setError] = useState("");

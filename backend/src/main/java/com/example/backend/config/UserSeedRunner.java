@@ -61,21 +61,7 @@ public class UserSeedRunner implements CommandLineRunner {
         }
 
         Optional<User> existing = userRepository.findByEmail(email);
-        if (existing.isPresent()) {
-            User user = existing.get();
-            boolean changed = false;
-            if (user.getRole() == null || !roleName.equals(user.getRole().getName())) {
-                user.setRole(role);
-                changed = true;
-            }
-            if (Boolean.FALSE.equals(user.getActive())) {
-                user.setActive(true);
-                changed = true;
-            }
-            if (changed) {
-                userRepository.save(user);
-            }
-        } else {
+        if (existing.isEmpty()) {
             User user = new User();
             user.setEmail(email);
             user.setFullName(fullName);
@@ -84,5 +70,8 @@ public class UserSeedRunner implements CommandLineRunner {
             user.setActive(true);
             userRepository.save(user);
         }
+        // Existing accounts are deliberately left untouched. In particular, a
+        // suspended account must not be silently reactivated on application start,
+        // and an administrator's role must not be overwritten by demo seed data.
     }
 }

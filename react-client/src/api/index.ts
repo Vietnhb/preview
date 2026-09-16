@@ -29,17 +29,3 @@ export * from "./curriculumApi";
 
 // Export admin API
 export * from "./adminApi";
-
-// Export reviewer API
-export * from "./reviewerApi";
-
-/**
- * Legacy compatibility: Re-export everything from physliveApi
- * This ensures existing imports from 'api/physliveApi' continue to work
- */
-export * from "./problemApi";
-export * from "./simulationApi";
-export * from "./libraryApi";
-export * from "./assignmentApi";
-export * from "./curriculumApi";
-export * from "./adminApi";

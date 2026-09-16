@@ -3,7 +3,9 @@ package com.example.backend.service;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
@@ -25,8 +27,16 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class SchemaDefinitionService {
+    private static final String DURATION_SECONDS = "durationSeconds";
+    private static final String QUANTITIES = "quantities";
+    private static final String REQUIRED_QUANTITIES = "requiredQuantities";
+    private static final String NORMALIZED_VALUE = "normalizedValue";
+    private static final String ALLOWED_UNITS = "allowedUnits";
+    private static final String NORMALIZED_UNIT = "normalizedUnit";
+    private static final String ADJUSTABLE_PARAMETERS = "adjustableParameters";
     public record RequiredGap(String key, String unit) { }
     public record SolverBinding(String numericalSolverId, String referenceSolverId, String version) { }
+    public record AdjustableParameter(String key, double min, double max) { }
     private final SchemaVersionRepository repository;
     private final SolverVersionRepository solverRepository;
     private final com.example.backend.repository.TopicRepository topicRepository;
@@ -124,7 +134,7 @@ public class SchemaDefinitionService {
                 return value.asDouble();
             }
         }
-        JsonNode configured = execution.path("durationSeconds");
+        JsonNode configured = execution.path(DURATION_SECONDS);
         if (!configured.isNumber() || !Double.isFinite(configured.asDouble()) || configured.asDouble() <= 0) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Schema execution duration is invalid");
         }
@@ -133,21 +143,21 @@ public class SchemaDefinitionService {
 
     public List<String> validateSpecification(JsonNode specification, JsonNode definition) {
         List<String> blockers = new ArrayList<>();
-        JsonNode quantities = specification == null ? null : specification.path("quantities");
-        for (JsonNode field : definition.path("requiredQuantities")) {
+        JsonNode quantities = specification == null ? null : specification.path(QUANTITIES);
+        for (JsonNode field : definition.path(REQUIRED_QUANTITIES)) {
             JsonNode matched = findQuantity(quantities, names(field));
             String key = field.path("key").asText();
-            if (matched == null || !matched.path("normalizedValue").isNumber()) {
+            if (matched == null || !matched.path(NORMALIZED_VALUE).isNumber()) {
                 blockers.add("Missing required quantity: " + key);
                 continue;
             }
-            double value = matched.path("normalizedValue").asDouble();
+            double value = matched.path(NORMALIZED_VALUE).asDouble();
             if (!Double.isFinite(value) || (field.path("positive").asBoolean(false) && value <= 0)) {
                 blockers.add("Invalid value for required quantity: " + key);
             }
-            Set<String> units = textSet(field.path("allowedUnits"));
-            if (!units.isEmpty() && !units.contains(matched.path("normalizedUnit").asText())) {
-                blockers.add("Invalid unit for " + key + ": " + matched.path("normalizedUnit").asText());
+            Set<String> units = textSet(field.path(ALLOWED_UNITS));
+            if (!units.isEmpty() && !units.contains(matched.path(NORMALIZED_UNIT).asText())) {
+                blockers.add("Invalid unit for " + key + ": " + matched.path(NORMALIZED_UNIT).asText());
             }
         }
         return List.copyOf(blockers);
@@ -155,43 +165,83 @@ public class SchemaDefinitionService {
 
     public List<RequiredGap> missingRequiredQuantities(JsonNode specification, JsonNode definition) {
         List<RequiredGap> gaps = new ArrayList<>();
-        JsonNode quantities = specification == null ? null : specification.path("quantities");
-        for (JsonNode field : definition.path("requiredQuantities")) {
+        JsonNode quantities = specification == null ? null : specification.path(QUANTITIES);
+        for (JsonNode field : definition.path(REQUIRED_QUANTITIES)) {
             JsonNode matched = findQuantity(quantities, names(field));
-            boolean invalid = matched == null || !matched.path("normalizedValue").isNumber()
-                    || !Double.isFinite(matched.path("normalizedValue").asDouble())
-                    || (field.path("positive").asBoolean(false) && matched.path("normalizedValue").asDouble() <= 0)
-                    || (!textSet(field.path("allowedUnits")).isEmpty()
-                        && !textSet(field.path("allowedUnits")).contains(matched.path("normalizedUnit").asText()));
+            boolean invalid = matched == null || !matched.path(NORMALIZED_VALUE).isNumber()
+                    || !Double.isFinite(matched.path(NORMALIZED_VALUE).asDouble())
+                    || (field.path("positive").asBoolean(false) && matched.path(NORMALIZED_VALUE).asDouble() <= 0)
+                    || (!textSet(field.path(ALLOWED_UNITS)).isEmpty()
+                        && !textSet(field.path(ALLOWED_UNITS)).contains(matched.path(NORMALIZED_UNIT).asText()));
             if (invalid) gaps.add(new RequiredGap(field.path("key").asText(),
-                    field.path("allowedUnits").isArray() && !field.path("allowedUnits").isEmpty()
-                            ? field.path("allowedUnits").get(0).asText() : "SI"));
+                    field.path(ALLOWED_UNITS).isArray() && !field.path(ALLOWED_UNITS).isEmpty()
+                            ? field.path(ALLOWED_UNITS).get(0).asText() : "SI"));
         }
         return List.copyOf(gaps);
     }
 
     public Set<String> adjustableKeys(JsonNode definition) {
-        Set<String> keys = new HashSet<>();
-        for (JsonNode control : definition.path("adjustableParameters")) {
-            if (StringUtils.hasText(control.path("key").asText())) keys.add(control.path("key").asText());
+        return adjustableParameters(definition).stream()
+                .map(AdjustableParameter::key)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    public List<AdjustableParameter> adjustableParameters(JsonNode definition) {
+        List<AdjustableParameter> controls = new ArrayList<>();
+        for (JsonNode control : definition.path(ADJUSTABLE_PARAMETERS)) {
+            String key = control.path("key").asText("").trim();
+            if (!StringUtils.hasText(key) || !control.path("min").isNumber() || !control.path("max").isNumber()) continue;
+            double min = control.path("min").asDouble();
+            double max = control.path("max").asDouble();
+            if (Double.isFinite(min) && Double.isFinite(max) && min <= max) {
+                controls.add(new AdjustableParameter(key, min, max));
+            }
         }
-        return Set.copyOf(keys);
+        return List.copyOf(controls);
+    }
+
+    /** Builds the complete snapshot used by a solver without silently defaulting values. */
+    public Map<String, Double> effectiveAdjustments(JsonNode specification, JsonNode definition,
+            Map<String, Double> requested, Map<String, Double> previous) {
+        Map<String, Double> supplied = new LinkedHashMap<>();
+        if (previous != null) supplied.putAll(previous);
+        if (requested != null) supplied.putAll(requested);
+        Map<String, Double> effective = new LinkedHashMap<>();
+        for (AdjustableParameter control : adjustableParameters(definition)) {
+            Double value = supplied.get(control.key());
+            if (value == null) {
+                JsonNode quantity = findQuantityForControl(specification, definition, control.key());
+                if (quantity != null && quantity.path(NORMALIZED_VALUE).isNumber()) {
+                    value = quantity.path(NORMALIZED_VALUE).asDouble();
+                }
+            }
+            if (value == null || !Double.isFinite(value)) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Missing or invalid adjustable parameter: " + control.key());
+            }
+            if (value < control.min() || value > control.max()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "Parameter " + control.key() + " must be between " + control.min() + " and " + control.max());
+            }
+            effective.put(control.key(), value);
+        }
+        return Map.copyOf(effective);
     }
 
     public JsonNode visualization(JsonNode definition) {
         ObjectNode presentation = definition.path("visualization").deepCopy();
-        presentation.set("controls", definition.path("adjustableParameters"));
+        presentation.set("controls", definition.path(ADJUSTABLE_PARAMETERS));
         return presentation;
     }
 
     public void validateDefinition(JsonNode definition, String schemaId) {
         JsonNode execution = definition == null ? null : definition.path("execution");
         if (definition == null || !definition.isObject()
-                || !definition.path("requiredQuantities").isArray()
-                || !definition.path("adjustableParameters").isArray()
+                || !definition.path(REQUIRED_QUANTITIES).isArray()
+                || !definition.path(ADJUSTABLE_PARAMETERS).isArray()
                 || !definition.path("visualization").isObject()
                 || execution == null || !execution.isObject()
-                || !execution.path("durationSeconds").isNumber()
+                || !execution.path(DURATION_SECONDS).isNumber()
                 || !execution.path("stepSeconds").isNumber()
                 || !execution.path("durationBindings").isArray()
                 || !definition.path("validation").isObject()
@@ -199,10 +249,10 @@ public class SchemaDefinitionService {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Approved schema has an incomplete production definition: " + schemaId);
         }
-        double duration = execution.path("durationSeconds").asDouble();
+        double duration = execution.path(DURATION_SECONDS).asDouble();
         double step = execution.path("stepSeconds").asDouble();
         JsonNode validation = definition.path("validation");
-        if (!(duration > 0) || !(step > 0) || step > duration || duration / step > 1_000_000
+        if (duration <= 0 || step <= 0 || step > duration || duration / step > 1_000_000
                 || !validation.path("tolerance").isNumber() || validation.path("tolerance").asDouble() < 0) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Schema timing or validation tolerance is invalid");
         }
@@ -216,6 +266,15 @@ public class SchemaDefinitionService {
             if (acceptedNames.contains(name) || acceptedNames.contains(symbol)) return quantity;
         }
         return null;
+    }
+
+    private JsonNode findQuantityForControl(JsonNode specification, JsonNode definition, String key) {
+        for (JsonNode field : definition.path(REQUIRED_QUANTITIES)) {
+            if (key.equalsIgnoreCase(field.path("key").asText())) {
+                return findQuantity(specification == null ? null : specification.path(QUANTITIES), names(field));
+            }
+        }
+        return findQuantity(specification == null ? null : specification.path(QUANTITIES), Set.of(key.toLowerCase()));
     }
 
     private Set<String> names(JsonNode field) {

@@ -11,6 +11,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "benchmark_problems")
@@ -34,10 +35,12 @@ public class BenchmarkProblem extends AuditedEntity {
     private boolean active;
 
     @OneToMany(mappedBy = "benchmarkProblem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     @OrderBy("createdAt ASC")
     private List<GoldAnnotation> annotations = new ArrayList<>();
 
     @OneToMany(mappedBy = "benchmarkProblem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     @OrderBy("createdAt ASC")
     private List<Adjudication> adjudications = new ArrayList<>();
 

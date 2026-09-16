@@ -19,6 +19,7 @@ import com.example.backend.dto.problem.CreateProblemRequest;
 import com.example.backend.dto.problem.PageResponse;
 import com.example.backend.dto.problem.ProblemResponse;
 import com.example.backend.dto.problem.ProblemSummaryResponse;
+import com.example.backend.dto.problem.UpdateSpecificationRequest;
 import com.example.backend.entity.AmbiguityCase;
 import com.example.backend.entity.AmbiguityStatus;
 import com.example.backend.entity.AssetType;
@@ -54,7 +55,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProblemService {
 
-    private static final long MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+    private static final long MAX_IMAGE_BYTES = 10L * 1024 * 1024;
     private static final Set<String> IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp", "image/gif");
 
     private final ProblemSubmissionRepository problemRepository;
@@ -103,7 +104,9 @@ public class ProblemService {
         problem.setLesson(resolveLesson(lessonId));
         problem.setSourceMode(StringUtils.hasText(suppliedText) ? SourceMode.MIXED : SourceMode.IMAGE);
         problem.setOriginalText(trimToNull(suppliedText));
-        problem.setEditableText(ocr.status() == OcrStatus.SUCCEEDED ? ocr.text() : trimToNull(suppliedText));
+        String ocrText = ocr.status() == OcrStatus.SUCCEEDED ? trimToNull(ocr.text()) : null;
+        String supplied = trimToNull(suppliedText);
+        problem.setEditableText(joinSourceText(supplied, ocrText));
         problem.setStatus(ocr.status() == OcrStatus.SUCCEEDED
                 ? SubmissionStatus.OCR_PREVIEW_READY
                 : SubmissionStatus.DRAFT);
@@ -127,7 +130,7 @@ public class ProblemService {
     public PageResponse<ProblemSummaryResponse> history(int page, int size) {
         User owner = currentUserService.requireCurrentUser();
         int safePage = Math.max(page, 0);
-        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safeSize = Math.clamp(size, 1, 100);
         return PageResponse.from(problemRepository.findByOwnerOrderByCreatedAtDesc(
                 owner, PageRequest.of(safePage, safeSize)).map(mapper::toSummary));
     }
@@ -198,6 +201,41 @@ public class ProblemService {
         try { ambiguityResolutionApplier.applyAll(specification, safeAnswers); }
         catch (RuntimeException exception) { throw new ApiException(HttpStatus.BAD_GATEWAY,
                 "AI ambiguity confirmation failed; no changes were saved. Cause: " + safeCause(exception)); }
+        readinessService.ensureRequiredAmbiguities(specification);
+        problem.setStatus(specification.getConfirmationState() == ConfirmationState.UNRESOLVED
+                ? SubmissionStatus.NEEDS_CONFIRMATION : SubmissionStatus.READY_FOR_VALIDATION);
+        return mapper.toResponse(problem);
+    }
+
+    @Transactional
+    public ProblemResponse updateSpecification(UUID id, UpdateSpecificationRequest request) {
+        if (request == null || request.objects() == null || !request.objects().isArray()
+                || request.quantities() == null || !request.quantities().isArray()
+                || request.relations() == null || !request.relations().isArray()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Specification objects, quantities and relations must be arrays");
+        }
+        ProblemSubmission problem = requireOwnedProblem(id);
+        Specification specification = problem.getCurrentSpecification();
+        if (specification == null) {
+            throw new ApiException(HttpStatus.CONFLICT, "Extract a specification before editing it");
+        }
+        validateQuantities(request.quantities());
+        specification.setObjects(request.objects().deepCopy());
+        specification.setQuantities(request.quantities().deepCopy());
+        specification.setRelations(request.relations().deepCopy());
+        specification.setValidationStatus("NOT_VALIDATED");
+        specification.setValidationResult(null);
+        // Editing the structured facts is a new teacher confirmation. Keep the
+        // audit rows, but recompute required gaps from the edited JSON instead
+        // of trusting stale AI ambiguity decisions.
+        Instant now = Instant.now();
+        for (AmbiguityCase ambiguity : specification.getAmbiguityCases()) {
+            ambiguity.setStatus(AmbiguityStatus.RESOLVED);
+            ambiguity.setResolution("Rechecked after teacher specification edit");
+            ambiguity.setResolvedAt(now);
+        }
+        specification.setConfirmationState(ConfirmationState.CONFIRMED);
         readinessService.ensureRequiredAmbiguities(specification);
         problem.setStatus(specification.getConfirmationState() == ConfirmationState.UNRESOLVED
                 ? SubmissionStatus.NEEDS_CONFIRMATION : SubmissionStatus.READY_FOR_VALIDATION);
@@ -294,7 +332,7 @@ public class ProblemService {
 
     private String sha256(byte[] content) {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is unavailable", exception);
         }
@@ -304,6 +342,12 @@ public class ProblemService {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
 
+    private String joinSourceText(String first, String second) {
+        if (!StringUtils.hasText(first)) return second;
+        if (!StringUtils.hasText(second)) return first;
+        return first + "\n\n" + second;
+    }
+
     private String safeCause(Throwable failure) {
         Throwable current = failure;
         while (current.getCause() != null) current = current.getCause();
@@ -311,5 +355,17 @@ public class ProblemService {
         if (!StringUtils.hasText(message)) return current.getClass().getSimpleName();
         String sanitized = message.replaceAll("(?i)bearer\\s+[^\\s,]+", "Bearer [redacted]");
         return sanitized.substring(0, Math.min(240, sanitized.length()));
+    }
+
+    private void validateQuantities(com.fasterxml.jackson.databind.JsonNode quantities) {
+        for (com.fasterxml.jackson.databind.JsonNode quantity : quantities) {
+            if (!StringUtils.hasText(quantity.path("name").asText())
+                    || !quantity.path("normalizedValue").isNumber()
+                    || !Double.isFinite(quantity.path("normalizedValue").asDouble())
+                    || !StringUtils.hasText(quantity.path("normalizedUnit").asText())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "Each quantity needs name, finite normalizedValue and normalizedUnit");
+            }
+        }
     }
 }

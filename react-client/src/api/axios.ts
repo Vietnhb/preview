@@ -20,7 +20,8 @@ axiosClient.interceptors.response.use(response => response, async (error: unknow
     const config = error.config as ReadRetryConfig | undefined;
     const status = error.response?.status;
     const transient = status === undefined || [500, 502, 503, 504].includes(status);
-    if (!config || config.method !== "get" || !transient || (config.readRetryCount ?? 0) >= 2) throw error;
+    if (!config) throw error;
+    if (config?.method !== "get" || !transient || (config.readRetryCount ?? 0) >= 2) throw error;
     const authorization = config.headers.Authorization;
     config.readRetryCount = (config.readRetryCount ?? 0) + 1;
     await new Promise(resolve => setTimeout(resolve, 500 * config.readRetryCount!));

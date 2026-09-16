@@ -82,7 +82,7 @@ const paths: Record<IconName, string> = {
   refresh: "M20 11a8 8 0 1 0 2 5m0 0v-5m0 5h-5",
 };
 
-export default function LearningIcon({ name }: { name: IconName }) {
+export default function LearningIcon({ name }: Readonly<{ name: IconName }>) {
   return (
     <svg
       className="learn-icon"

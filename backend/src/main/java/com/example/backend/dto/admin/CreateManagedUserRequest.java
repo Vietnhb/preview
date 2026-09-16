@@ -2,7 +2,6 @@ package com.example.backend.dto.admin;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 public record CreateManagedUserRequest(
         @Email @NotBlank String email,

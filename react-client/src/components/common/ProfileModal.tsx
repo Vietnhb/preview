@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type MouseEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { problemHistory } from "../../api/problemApi";
 import type { ProblemSummary, User } from "../../types/physlive";
 import "../../styles/modern-roles.css";
 
-interface ProfileModalProps {
+type ProfileModalProps = Readonly<{
   user: User | null;
   onClose: () => void;
-}
+}>;
 
 export default function ProfileModal({ user, onClose }: ProfileModalProps) {
   const navigate = useNavigate();
@@ -37,11 +37,47 @@ export default function ProfileModal({ user, onClose }: ProfileModalProps) {
     }
   }, [activeTab]);
 
+  const renderHistory = (): ReactNode => {
+    if (loading) {
+      return <p style={{ color: "var(--text-muted)", padding: "20px" }}>Đang tải lịch sử đề bài…</p>;
+    }
+    if (error) return <div className="status-pill fail">{error}</div>;
+    if (history.length === 0) {
+      return <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+        Bạn chưa gửi đề bài nào trên hệ thống.
+      </div>;
+    }
+    return <div className="modern-table-wrapper" style={{ maxHeight: "380px" }}>
+      <table className="modern-table">
+        <thead><tr><th>Nội dung trích đoạn</th><th>Thời gian</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+        <tbody>{history.map((item) => (
+          <tr key={item.id}>
+            <td style={{ maxWidth: "340px" }}>
+              <span style={{ fontSize: "13px", color: "var(--text-primary)" }}>
+                {item.editableText || item.previewText || "(Đề bài không có văn bản xem trước)"}
+              </span>
+              {item.sourceMode === "IMAGE" && <span className="status-pill info" style={{ marginLeft: "6px", fontSize: "10px" }}>Ảnh OCR</span>}
+            </td>
+            <td><small style={{ color: "var(--text-muted)" }}>{new Date(item.createdAt).toLocaleDateString("vi-VN")}</small></td>
+            <td><span className="status-pill pass">{item.status}</span></td>
+            <td><button type="button" className="role-switch-pill" style={{ background: "#ffffff", border: "1px solid var(--border-subtle)" }} onClick={() => {
+              onClose();
+              navigate(`/workspace?problemId=${item.id}`);
+            }}>Mở →</button></td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>;
+  };
+
+  const handleOverlayClick = (event: MouseEvent<HTMLDialogElement>) => {
+    if (event.target === event.currentTarget) onClose();
+  };
+
   return (
-    <div className="modern-modal-overlay" onClick={onClose}>
+    <dialog open className="modern-modal-overlay" onPointerDown={handleOverlayClick}>
       <div
         className="modern-modal-content"
-        onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: "720px" }}
       >
         <div className="modern-modal-header">
@@ -156,92 +192,7 @@ export default function ProfileModal({ user, onClose }: ProfileModalProps) {
         {/* TAB 2: Submission History */}
         {activeTab === "history" && (
           <div>
-            {loading ? (
-              <p style={{ color: "var(--text-muted)", padding: "20px" }}>
-                Đang tải lịch sử đề bài…
-              </p>
-            ) : error ? (
-              <div className="status-pill fail">{error}</div>
-            ) : history.length === 0 ? (
-              <div
-                style={{
-                  padding: "40px",
-                  textAlign: "center",
-                  color: "var(--text-muted)",
-                }}
-              >
-                Bạn chưa gửi đề bài nào trên hệ thống.
-              </div>
-            ) : (
-              <div
-                className="modern-table-wrapper"
-                style={{ maxHeight: "380px" }}
-              >
-                <table className="modern-table">
-                  <thead>
-                    <tr>
-                      <th>Nội dung trích đoạn</th>
-                      <th>Thời gian</th>
-                      <th>Trạng thái</th>
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((item) => (
-                      <tr key={item.id}>
-                        <td style={{ maxWidth: "340px" }}>
-                          <span
-                            style={{
-                              fontSize: "13px",
-                              color: "var(--text-primary)",
-                            }}
-                          >
-                            {item.previewText ||
-                              "(Đề bài không có văn bản xem trước)"}
-                          </span>
-                          {item.hasImage && (
-                            <span
-                              className="status-pill info"
-                              style={{ marginLeft: "6px", fontSize: "10px" }}
-                            >
-                              Ảnh OCR
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <small style={{ color: "var(--text-muted)" }}>
-                            {new Date(item.createdAt).toLocaleDateString(
-                              "vi-VN",
-                            )}
-                          </small>
-                        </td>
-                        <td>
-                          <span className="status-pill pass">
-                            {item.status}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="role-switch-pill"
-                            style={{
-                              background: "#ffffff",
-                              border: "1px solid var(--border-subtle)",
-                            }}
-                            onClick={() => {
-                              onClose();
-                              navigate(`/workspace?problemId=${item.id}`);
-                            }}
-                          >
-                            Mở →
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            {renderHistory()}
           </div>
         )}
 
@@ -260,6 +211,6 @@ export default function ProfileModal({ user, onClose }: ProfileModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

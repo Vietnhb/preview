@@ -43,6 +43,10 @@ public class LibraryItem extends AuditedEntity {
     @Column(nullable = false, length = 16)
     private Visibility visibility = Visibility.PERSONAL;
 
+    /** Null keeps existing shared records visible while school scoping is introduced. */
+    @Column(name = "shared_institution_id", length = 120)
+    private String sharedInstitutionId;
+
     @Column(nullable = false)
     private boolean active = true;
 }

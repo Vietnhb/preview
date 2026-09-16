@@ -66,7 +66,7 @@
 }
 .assignment-source > p,
 .assignment-preview > div > span {
-  color: #7b8798;
+  color: #566577;
   font-size: 12px;
 }
 .assignment-source > button {
@@ -197,15 +197,11 @@
 }
 .assignment-playback input {
   accent-color: #6584b2;
-}
-.assignment-playback span {
-  font-variant-numeric: tabular-nums;
-}
-.assignment-playback input {
   flex: 1;
   min-width: 0;
 }
 .assignment-playback span {
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   font-size: 12px;
 }
@@ -218,7 +214,7 @@
   border-radius: 10px;
   background: #f8fafc;
   text-align: center;
-  color: #7b8798;
+  color: #566577;
   font-size: 13px;
   line-height: 1.7;
 }

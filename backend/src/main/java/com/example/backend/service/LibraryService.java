@@ -25,6 +25,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class LibraryService {
+    private static final String LIBRARY_ITEM_NOT_FOUND = "Library item not found";
     private final LibraryItemRepository libraryRepository;
     private final LibraryFolderRepository folderRepository;
     private final SimulationRepository simulationRepository;
@@ -57,6 +58,7 @@ public class LibraryService {
         item.setOwner(user);
         item.setTitle(request.title().trim());
         item.setVisibility(request.visibility() == null ? Visibility.PERSONAL : request.visibility());
+        item.setSharedInstitutionId(item.getVisibility() == Visibility.SHARED ? user.getInstitutionId() : null);
         item.setActive(true);
         return toResponse(libraryRepository.save(item));
     }
@@ -66,7 +68,7 @@ public class LibraryService {
         User user = currentUserService.requireCurrentUser();
         return libraryRepository.findAll().stream()
                 .filter(item -> item.isActive() && (item.getOwner().getId().equals(user.getId())
-                        || item.getVisibility() == Visibility.SHARED))
+                        || (item.getVisibility() == Visibility.SHARED && visibleTo(user, item))))
                 .filter(item -> topic == null || topic.isBlank() || (item.getSpecification().getTopic() != null
                         && item.getSpecification().getTopic().equalsIgnoreCase(topic)))
                 .map(this::toResponse)
@@ -85,7 +87,7 @@ public class LibraryService {
     public void remove(java.util.UUID id) {
         User user = currentUserService.requireCurrentUser();
         LibraryItem item = libraryRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Library item not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, LIBRARY_ITEM_NOT_FOUND));
         if (!item.getOwner().getId().equals(user.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the owner can remove this item");
         }
@@ -98,7 +100,7 @@ public class LibraryService {
         User user = currentUserService.requireCurrentUser();
         LibraryItem item = libraryRepository.findById(id)
                 .filter(value -> value.isActive() && value.getOwner().getId().equals(user.getId()))
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Library item not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, LIBRARY_ITEM_NOT_FOUND));
         item.setTitle(title.trim());
         return toResponse(libraryRepository.save(item));
     }
@@ -108,7 +110,7 @@ public class LibraryService {
         User user = currentUserService.requireCurrentUser();
         LibraryItem item = libraryRepository.findById(id)
                 .filter(value -> value.isActive() && value.getOwner().getId().equals(user.getId()))
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Library item not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, LIBRARY_ITEM_NOT_FOUND));
         LibraryFolder folder = folderRepository.findByIdAndOwnerIdAndActiveTrue(folderId, user.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Library folder not found"));
         item.setFolder(folder);
@@ -122,5 +124,10 @@ public class LibraryService {
                 item.getSpecification().getId(), item.getTitle(),
                 item.getSpecification().getTopic(), item.getSpecification().getValidationStatus(),
                 item.getVisibility(), item.getCreatedAt());
+    }
+
+    private boolean visibleTo(User user, LibraryItem item) {
+        String scope = item.getSharedInstitutionId();
+        return scope == null || scope.isBlank() || scope.equals(user.getInstitutionId());
     }
 }

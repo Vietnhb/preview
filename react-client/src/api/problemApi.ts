@@ -36,6 +36,11 @@ export const resolveAmbiguity = (
 export const updateProblemText = (id: string, text: string) => 
   axiosClient.put<Problem>(`/problems/${id}/text`, { text }).then(r => r.data);
 
+export const updateSpecification = (
+  problemId: string,
+  specification: Pick<Specification, "objects" | "quantities" | "relations">
+) => axiosClient.put<Problem>(`/problems/${problemId}/specification`, specification).then(r => r.data);
+
 export const problemHistory = (page = 0, size = 20) => 
   axiosClient.get<{ content: ProblemSummary[]; totalElements: number; totalPages: number }>(
     "/problems", 

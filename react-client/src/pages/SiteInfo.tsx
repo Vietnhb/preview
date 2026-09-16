@@ -1,6 +1,6 @@
 type SiteInfoProps = { kind: "about" | "terms" };
 
-export default function SiteInfo({ kind }: SiteInfoProps) {
+export default function SiteInfo({ kind }: Readonly<SiteInfoProps>) {
   const isAbout = kind === "about";
   return (
     <main className="site-info-page">

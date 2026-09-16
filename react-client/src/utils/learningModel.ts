@@ -123,8 +123,8 @@ export function indexAtTime(times: number[], time: number): number {
 }
 
 export function interpolateAtTime(times: number[], values: number[], time: number): number {
-  if (!values || !values.length) return 0;
-  if (!times || times.length < 2 || time <= times[0]) return values[0] ?? 0;
+  if (values.length === 0) return 0;
+  if (times.length < 2 || time <= times[0]) return values[0] ?? 0;
   const lastIndex = times.length - 1;
   if (time >= times[lastIndex]) return values[lastIndex] ?? 0;
 

@@ -2,8 +2,6 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.physics.ValidationRequest;
 import com.example.backend.dto.physics.ValidationResponse;
-import com.example.backend.physics.PhysicsSolver;
-import com.example.backend.physics.PhysicsSolverRegistry;
 import com.example.backend.physics.SolverOutput;
 import com.example.backend.service.PhysicsValidationService;
 import com.example.backend.service.SchemaDefinitionService;
@@ -20,13 +18,12 @@ import java.util.Map;
 @RequestMapping("/api/validations")
 @RequiredArgsConstructor
 public class ValidationController {
-    private final PhysicsSolverRegistry solverRegistry;
     private final SchemaDefinitionService schemaDefinitions;
     private final PhysicsValidationService validationService;
 
     @PostMapping
     public ValidationResponse validate(@Valid @RequestBody ValidationRequest request) {
-        PhysicsSolver solver = solverRegistry.get(schemaDefinitions.requireSolverBinding(request.schemaId()).numericalSolverId());
+        schemaDefinitions.requireSolverBinding(request.schemaId());
         SolverOutput numerical = new SolverOutput(request.simulation().time(), request.simulation().positions(),
                 request.simulation().velocities(), request.simulation().accelerations(), request.simulation().values());
         return validationService.validateWithoutPersistence(request.specification(), request.schemaId(), numerical,

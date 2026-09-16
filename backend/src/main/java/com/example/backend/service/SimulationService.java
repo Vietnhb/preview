@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.dto.physics.ParameterAdjustmentRequest;
 import com.example.backend.dto.physics.SimulationRequest;
 import com.example.backend.dto.physics.SimulationResponse;
+import com.example.backend.dto.physics.SimulationSummaryResponse;
 import com.example.backend.dto.physics.ValidationResponse;
 import com.example.backend.entity.ConfirmationState;
 import com.example.backend.entity.Simulation;
@@ -29,13 +30,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
 public class SimulationService {
+    private static final String PARAMETERS = "parameters";
+    private static final String VALIDATION = "validation";
     private final SimulationRepository simulationRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final SimulationRunRepository simulationRunRepository;
@@ -47,6 +52,9 @@ public class SimulationService {
     private final SchemaDefinitionService schemaDefinitions;
     private final SpecificationReadinessService readinessService;
 
+    private record CalculationContext(JsonNode input, String schemaId, String schemaVersion,
+                                      Map<String, Double> params, double duration, double step, String runType) { }
+
     @Transactional
     public SimulationResponse run(SimulationRequest request) {
         User user = currentUserService.requireCurrentUser();
@@ -57,13 +65,15 @@ public class SimulationService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Simulation input must use the persisted specification");
         }
         JsonNode input = readinessService.toJson(specification);
-        Map<String, Double> params = request.adjustableParams() == null ? Map.of() : Map.copyOf(request.adjustableParams());
+        Map<String, Double> requestedParams = request.adjustableParams() == null
+                ? Map.of() : new LinkedHashMap<>(request.adjustableParams());
         if (request.durationSeconds() != null || request.stepSeconds() != null) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Simulation timing is controlled by the persisted specification and schema contract");
         }
         SchemaVersion schema = schemaDefinitions.requireApproved(schemaId, specification.getSchemaVersion());
-        assertAllowedAdjustments(schema, params);
+        assertAllowedAdjustments(schema, requestedParams);
+        Map<String, Double> params = schemaDefinitions.effectiveAdjustments(input, schema.getDefinition(), requestedParams, Map.of());
         JsonNode execution = schema.getDefinition().path("execution");
         double duration = schemaDefinitions.durationSeconds(input, schema.getDefinition());
         double step = execution.path("stepSeconds").asDouble();
@@ -76,7 +86,8 @@ public class SimulationService {
         simulation.setSolverVersion(binding.version() + ":" + binding.numericalSolverId());
         simulation.setStatus(SimulationStatus.VALIDATING);
         simulation = simulationRepository.save(simulation);
-        return calculateAndPersist(simulation, input, schemaId, specification.getSchemaVersion(), params, duration, step, "INITIAL");
+        return calculateAndPersist(simulation, new CalculationContext(
+                input, schemaId, specification.getSchemaVersion(), params, duration, step, "INITIAL"));
     }
 
     @Transactional
@@ -88,13 +99,75 @@ public class SimulationService {
         JsonNode input = readinessService.toJson(simulation.getSpecification());
         SchemaVersion schema = schemaDefinitions.requireApproved(
                 simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion());
-        assertAllowedAdjustments(schema, request.adjustableParams());
+        Map<String, Double> requestedParams = request.adjustableParams() == null
+                ? Map.of() : new LinkedHashMap<>(request.adjustableParams());
+        assertAllowedAdjustments(schema, requestedParams);
+        Map<String, Double> previousParams = mapNumbers(simulation.getLatestResult(), PARAMETERS);
+        Map<String, Double> params = schemaDefinitions.effectiveAdjustments(input, schema.getDefinition(), requestedParams, previousParams);
         List<Double> previousTime = list(simulation.getLatestResult(), "time");
         if (previousTime.size() < 2) throw new ApiException(HttpStatus.CONFLICT, "Previous simulation timeline is unavailable");
         double duration = previousTime.get(previousTime.size() - 1);
         double step = previousTime.get(1) - previousTime.get(0);
-        return calculateAndPersist(simulation, input, simulation.getSchemaId(),
-                simulation.getSpecification().getSchemaVersion(), request.adjustableParams(), duration, step, "ADJUSTMENT");
+        return calculateAndPersist(simulation, new CalculationContext(
+                input, simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion(),
+                params, duration, step, "ADJUSTMENT"));
+    }
+
+    /**
+     * Calculates a student-side variation without changing the teacher-owned
+     * simulation or creating a new persisted run. The assignment's captured
+     * run remains the source of truth for replay.
+     */
+    @Transactional(readOnly = true, noRollbackFor = Exception.class)
+    public SimulationResponse previewAdjustment(Simulation simulation, UUID baseRunId,
+                                                Map<String, Double> requestedParams) {
+        if (simulation == null || simulation.getSpecification() == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Assigned simulation not found");
+        }
+        assertReady(simulation.getSpecification());
+        JsonNode input = readinessService.toJson(simulation.getSpecification());
+        String schemaVersion = simulation.getSpecification().getSchemaVersion();
+        SchemaVersion schema = schemaDefinitions.requireApproved(simulation.getSchemaId(), schemaVersion);
+        Map<String, Double> requested = requestedParams == null
+                ? Map.of() : new LinkedHashMap<>(requestedParams);
+        assertAllowedAdjustments(schema, requested);
+
+        JsonNode baseResult = simulation.getLatestResult();
+        if (baseRunId != null) {
+            SimulationRun baseRun = simulationRunRepository.findById(baseRunId)
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Assigned simulation run not found"));
+            if (baseRun.getSimulation() == null || !simulation.getId().equals(baseRun.getSimulation().getId())) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "Assigned simulation run is not available");
+            }
+            baseResult = baseRun.getResult();
+        }
+
+        Map<String, Double> previousParams = mapNumbers(baseResult, PARAMETERS);
+        Map<String, Double> params = schemaDefinitions.effectiveAdjustments(input, schema.getDefinition(), requested, previousParams);
+        List<Double> previousTime = list(baseResult, "time");
+        if (previousTime.size() < 2) {
+            throw new ApiException(HttpStatus.CONFLICT, "Assigned simulation timeline is unavailable");
+        }
+        double duration = previousTime.get(previousTime.size() - 1);
+        double step = previousTime.get(1) - previousTime.get(0);
+        long started = System.nanoTime();
+        PhysicsSolver solver = solverRegistry.get(
+                schemaDefinitions.requireSolverBinding(simulation.getSchemaId(), schemaVersion).numericalSolverId());
+        SolverOutput output;
+        try {
+            output = solver.solve(input, params, duration, step);
+        } catch (RuntimeException exception) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Simulation failed: " + exception.getMessage());
+        }
+        ValidationResponse validation = validationService.validate(
+                input, simulation.getSchemaId(), schemaVersion, output, params, null);
+        JsonNode result = resultJson(output, params, validation);
+        double elapsed = (System.nanoTime() - started) / 1_000_000.0;
+        return new SimulationResponse(simulation.getId(), baseRunId, simulation.getSpecification().getId(),
+                simulation.getSchemaId(), validation.passed(), validation.passed(), output.time(),
+                output.positions(), output.velocities(), output.accelerations(), output.values(), params,
+                visualization(simulation.getSchemaId(), schemaVersion), validation, result, elapsed,
+                validation.passed() ? "Preview adjustment passed" : "Preview adjustment failed validation");
     }
 
     @Transactional(readOnly = true, noRollbackFor = Exception.class)
@@ -102,57 +175,86 @@ public class SimulationService {
         User user = currentUserService.requireCurrentUser();
         Simulation simulation = simulationRepository.findByIdAndOwnerId(id, user.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Simulation not found"));
-        return latestResponse(simulation);
+        return latestResponse(simulation, true);
     }
 
     public SimulationResponse latestFor(Simulation simulation) {
-        return latestResponse(simulation);
+        return latestResponse(simulation, true);
+    }
+
+    /** Captures the run that a teacher shared so later adjustments do not change student replay. */
+    public UUID latestRunId(Simulation simulation) {
+        return simulationRunRepository.findBySimulationIdOrderByCreatedAtDesc(simulation.getId()).stream()
+                .findFirst().map(SimulationRun::getId).orElse(null);
+    }
+
+    public UUID runIdAtOrBefore(Simulation simulation, Instant timestamp) {
+        return simulationRunRepository.findBySimulationIdOrderByCreatedAtDesc(simulation.getId()).stream()
+                .filter(run -> timestamp == null || run.getCreatedAt() == null || !run.getCreatedAt().isAfter(timestamp))
+                .findFirst().map(SimulationRun::getId).orElseGet(() -> latestRunId(simulation));
+    }
+
+    @Transactional(readOnly = true)
+    public SimulationResponse replay(Simulation simulation, UUID runId) {
+        if (runId == null) return latestResponse(simulation, true);
+        SimulationRun run = simulationRunRepository.findById(runId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Assigned simulation run not found"));
+        if (run.getSimulation() == null || !simulation.getId().equals(run.getSimulation().getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Assigned simulation run is not available");
+        }
+        return responseFromResult(simulation, run.getResult(), run.getId(), run.isValidationPassed(), "REPLAY");
     }
 
     @Transactional(readOnly = true, noRollbackFor = Exception.class)
     public SimulationResponse getShared(UUID id) {
-        currentUserService.requireCurrentUser();
+        User user = currentUserService.requireCurrentUser();
         Simulation simulation = libraryItemRepository
-                .findBySimulationIdAndActiveTrueAndVisibility(id, Visibility.SHARED)
+                .findVisibleSharedSimulation(id, Visibility.SHARED, user.getInstitutionId())
                 .map(item -> item.getSimulation())
-                .filter(item -> item != null)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shared simulation not found"));
-        return latestResponse(simulation);
+        return latestResponse(simulation, true);
     }
 
     @Transactional(readOnly = true, noRollbackFor = Exception.class)
     public List<SimulationResponse> history() {
         User user = currentUserService.requireCurrentUser();
-        return simulationRepository.findByOwnerIdOrderByCreatedAtDesc(user.getId()).stream()
-                .map(sim -> {
-                    try { return latestResponse(sim); }
-                    catch (Exception ignored) { return null; }
-                })
-                .filter(java.util.Objects::nonNull)
+        List<Simulation> simulations = simulationRepository.findByOwnerIdOrderByCreatedAtDesc(user.getId());
+        if (simulations.isEmpty()) return List.of();
+        Map<UUID, UUID> latestRunIds = new HashMap<>();
+        simulationRunRepository.findLatestRunIds(simulations.stream().map(Simulation::getId).toList())
+                .forEach(item -> latestRunIds.put(item.getSimulationId(), item.getRunId()));
+        return simulations.stream()
+                .map(simulation -> latestResponse(simulation, latestRunIds.get(simulation.getId())))
                 .toList();
     }
 
-    private SimulationResponse calculateAndPersist(Simulation simulation, JsonNode input, String schemaId,
-                                                   String schemaVersion,
-                                                   Map<String, Double> params, double duration,
-                                                   double step, String runType) {
+    @Transactional(readOnly = true)
+    public List<SimulationSummaryResponse> recent() {
+        User user = currentUserService.requireCurrentUser();
+        return simulationRepository.findSummariesByOwnerId(user.getId()).stream()
+                .map(item -> new SimulationSummaryResponse(item.getSimulationId(), item.getSpecificationId(),
+                        item.getSchemaId(), item.getStatus(), item.getCreatedAt()))
+                .toList();
+    }
+
+    private SimulationResponse calculateAndPersist(Simulation simulation, CalculationContext context) {
         long started = System.nanoTime();
         PhysicsSolver solver = solverRegistry.get(
-                schemaDefinitions.requireSolverBinding(schemaId, schemaVersion).numericalSolverId());
+                schemaDefinitions.requireSolverBinding(context.schemaId(), context.schemaVersion()).numericalSolverId());
         SolverOutput output;
         try {
-            output = solver.solve(input, params, duration, step);
+            output = solver.solve(context.input(), context.params(), context.duration(), context.step());
         } catch (RuntimeException exception) {
             simulation.setStatus(SimulationStatus.FAILED);
             simulationRepository.save(simulation);
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Simulation failed: " + exception.getMessage());
         }
         ValidationResponse validation = validationService.validate(
-                input, schemaId, schemaVersion, output, params, simulation);
-        JsonNode result = resultJson(output, params, validation);
+                context.input(), context.schemaId(), context.schemaVersion(), output, context.params(), simulation);
+        JsonNode result = resultJson(output, context.params(), validation);
         SimulationRun run = new SimulationRun();
         run.setSimulation(simulation);
-        run.setRunType(runType);
+        run.setRunType(context.runType());
         run.setValidationPassed(validation.passed());
         run.setDurationSeconds(output.time().isEmpty() ? 0 : output.time().get(output.time().size() - 1));
         run.setResult(result);
@@ -162,24 +264,64 @@ public class SimulationService {
         simulationRepository.save(simulation);
         specificationStatus(simulation.getSpecification(), validation, result);
         double elapsed = (System.nanoTime() - started) / 1_000_000.0;
-        return new SimulationResponse(simulation.getId(), run.getId(), simulation.getSpecification().getId(), schemaId,
+        return new SimulationResponse(simulation.getId(), run.getId(), simulation.getSpecification().getId(), context.schemaId(),
                 validation.passed(), validation.passed(), output.time(), output.positions(), output.velocities(),
-                output.accelerations(), output.values(), params, visualization(schemaId, schemaVersion), validation, result, elapsed,
+                output.accelerations(), output.values(), context.params(),
+                visualization(context.schemaId(), context.schemaVersion()), validation, result, elapsed,
                 validation.passed() ? "Validation passed" : "Simulation blocked because validation failed");
     }
 
-    private SimulationResponse latestResponse(Simulation simulation) {
+    private SimulationResponse latestResponse(Simulation simulation, boolean includeRunId) {
         JsonNode latest = simulation.getLatestResult();
         boolean ready = simulation.getStatus() == SimulationStatus.READY
                 || simulation.getStatus() == SimulationStatus.ARCHIVED;
         String status = simulation.getStatus() == null ? "UNKNOWN" : simulation.getStatus().name();
-        return new SimulationResponse(simulation.getId(), null, simulation.getSpecification().getId(), simulation.getSchemaId(),
-                ready,
-                ready,
-                list(latest, "time"), map(latest, "positions"), map(latest, "velocities"),
-                map(latest, "accelerations"), map(latest, "values"), mapNumbers(latest, "parameters"),
+        UUID latestRunId = includeRunId
+                ? simulationRunRepository.findBySimulationIdOrderByCreatedAtDesc(simulation.getId()).stream()
+                        .findFirst().map(SimulationRun::getId).orElse(null)
+                : null;
+        return responseFromResult(simulation, latest, latestRunId, ready, status);
+    }
+
+    private SimulationResponse latestResponse(Simulation simulation, UUID runId) {
+        JsonNode latest = simulation.getLatestResult();
+        boolean ready = simulation.getStatus() == SimulationStatus.READY
+                || simulation.getStatus() == SimulationStatus.ARCHIVED;
+        String status = simulation.getStatus() == null ? "UNKNOWN" : simulation.getStatus().name();
+        return responseFromResult(simulation, latest, runId, ready, status);
+    }
+
+    private SimulationResponse responseFromResult(Simulation simulation, JsonNode result, UUID runId,
+                                                   boolean ready, String message) {
+        Map<String, Double> parameters = mapNumbers(result, PARAMETERS);
+        if (parameters.isEmpty()) parameters = historicalParameters(simulation);
+        return new SimulationResponse(simulation.getId(), runId, simulation.getSpecification().getId(), simulation.getSchemaId(),
+                ready, ready, list(result, "time"), map(result, "positions"), map(result, "velocities"),
+                map(result, "accelerations"), map(result, "values"), parameters,
                 safeVisualization(simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion()),
-                null, latest, 0, status);
+                validationFromResult(result), result, 0, message);
+    }
+
+    private Map<String, Double> historicalParameters(Simulation simulation) {
+        try {
+            SchemaVersion schema = schemaDefinitions.requireHistorical(
+                    simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion());
+            return schemaDefinitions.effectiveAdjustments(
+                    readinessService.toJson(simulation.getSpecification()), schema.getDefinition(), Map.of(), Map.of());
+        } catch (RuntimeException ignored) {
+            // Legacy runs without a persisted snapshot stay readable, but no
+            // guessed value is returned when the old schema cannot prove it.
+            return Map.of();
+        }
+    }
+
+    private ValidationResponse validationFromResult(JsonNode result) {
+        if (result == null || result.get(VALIDATION) == null || result.get(VALIDATION).isNull()) return null;
+        try {
+            return objectMapper.treeToValue(result.get(VALIDATION), ValidationResponse.class);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private void specificationStatus(Specification specification, ValidationResponse validation, JsonNode result) {
@@ -214,6 +356,11 @@ public class SimulationService {
         List<String> rejected = params.keySet().stream().filter(key -> !allowed.contains(key)).toList();
         if (!rejected.isEmpty()) throw new ApiException(HttpStatus.BAD_REQUEST,
                 "Unsupported adjustable parameters: " + String.join(", ", rejected));
+        params.forEach((key, value) -> {
+            if (value == null || !Double.isFinite(value)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Parameter " + key + " must be a finite number");
+            }
+        });
     }
 
     private JsonNode visualization(String schemaId, String schemaVersion) {
@@ -235,8 +382,8 @@ public class SimulationService {
         node.set("velocities", objectMapper.valueToTree(output.velocities()));
         node.set("accelerations", objectMapper.valueToTree(output.accelerations()));
         node.set("values", objectMapper.valueToTree(output.values()));
-        node.set("parameters", objectMapper.valueToTree(params));
-        node.set("validation", objectMapper.valueToTree(validation));
+        node.set(PARAMETERS, objectMapper.valueToTree(params));
+        node.set(VALIDATION, objectMapper.valueToTree(validation));
         return node;
     }
 

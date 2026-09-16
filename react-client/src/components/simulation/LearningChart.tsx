@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { numberLabel, type LearningSeries } from "../../utils/learningModel";
 
-export default function LearningChart({ series, times, index, onSeek }: { series: LearningSeries; times: number[]; index: number; onSeek: (time: number) => void }) {
+export default function LearningChart({ series, times, index, onSeek }: Readonly<{ series: LearningSeries; times: number[]; index: number; onSeek: (time: number) => void }>) {
   const host = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(720);
   useEffect(() => {
@@ -14,7 +14,7 @@ export default function LearningChart({ series, times, index, onSeek }: { series
     const low = Math.min(...series.data), high = Math.max(...series.data);
     const pad = Math.max((high - low) * 0.15, Math.abs(high) * 0.08, 0.01);
     const min = low - pad, max = high + pad;
-    const start = times[0], duration = times[times.length - 1] - start || 1;
+    const start = times[0], duration = (times.at(-1) ?? start) - start || 1;
     const left = 62, right = width - 18, top = 18, bottom = 126;
     const x = (t: number) => left + (t - start) / duration * (right - left);
     const y = (value: number) => bottom - (value - min) / (max - min) * (bottom - top);
@@ -23,7 +23,7 @@ export default function LearningChart({ series, times, index, onSeek }: { series
     return { x, y, left, right, top, bottom, min, max, points, start, duration };
   }, [series, times, width]);
   return <div className="learn-chart" ref={host}>
-    <svg viewBox={`0 0 ${width} 160`} role="img" aria-label={`Đồ thị ${series.label.toLowerCase()} theo thời gian. ${numberLabel(series.data[index], 4)} ${series.unit} tại ${numberLabel(times[index])} giây.`}
+    <svg viewBox={`0 0 ${width} 160`} aria-label={`Đồ thị ${series.label.toLowerCase()} theo thời gian. ${numberLabel(series.data[index], 4)} ${series.unit} tại ${numberLabel(times[index])} giây.`}
       onPointerDown={event => {
         const rect = event.currentTarget.getBoundingClientRect();
         const x = (event.clientX - rect.left) / rect.width * width;

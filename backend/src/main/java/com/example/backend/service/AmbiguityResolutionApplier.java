@@ -15,9 +15,13 @@ import com.example.backend.entity.Specification;
 import com.example.backend.extraction.AmbiguityItem;
 import com.example.backend.extraction.OpenRouterExtractionProvider;
 import com.example.backend.extraction.ProviderExtractionResult;
+import com.example.backend.extraction.PhysicalQuantity;
+import com.example.backend.extraction.RuleBasedExtractionProvider;
 import com.example.backend.extraction.SpecificationDocument;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,15 +30,65 @@ import lombok.RequiredArgsConstructor;
 public class AmbiguityResolutionApplier {
     private final ObjectMapper objectMapper;
     private final OpenRouterExtractionProvider aiProvider;
+    private final RuleBasedExtractionProvider ruleBasedProvider;
     private final SchemaDefinitionService schemaDefinitions;
+    private final SpecificationReadinessService readinessService;
 
     public void applyAll(Specification specification, Map<String, String> answers) {
-        if (!aiProvider.isAvailable()) throw new IllegalStateException("OPENROUTER_API_KEY is required for ambiguity confirmation.");
+        if (!aiProvider.isAvailable()) {
+            applyRuleBased(specification, answers);
+            return;
+        }
         ObjectNode current = currentDocument(specification);
-        ProviderExtractionResult result = aiProvider.resolveAmbiguities(
-                specification.getSubmission().getEditableText(), current, Map.copyOf(answers));
-        applyDocument(specification, result.document());
-        synchronizeCases(specification, result.document(), answers);
+        try {
+            ProviderExtractionResult result = aiProvider.resolveAmbiguities(
+                    specification.getSubmission().getEditableText(), current, Map.copyOf(answers));
+            applyDocument(specification, result.document());
+            synchronizeCases(specification, result.document(), answers);
+        } catch (RuntimeException aiFailure) {
+            applyRuleBased(specification, answers);
+        }
+    }
+
+    private void applyRuleBased(Specification specification, Map<String, String> answers) {
+        if (answers == null || answers.isEmpty()) throw new IllegalArgumentException("Ambiguity answers are required.");
+        JsonNode source = specification.getQuantities();
+        ArrayNode quantities = source != null && source.isArray()
+                ? (ArrayNode) source.deepCopy() : objectMapper.createArrayNode();
+        int resolvedCount = 0;
+        for (AmbiguityCase ambiguity : specification.getAmbiguityCases()) {
+            String answer = answers.get(ambiguity.getCode());
+            // The reviewer endpoint resolves one case at a time. The teacher
+            // batch endpoint validates that all cases were answered before it
+            // reaches this method, so unrelated OPEN cases remain untouched.
+            if (ambiguity.getStatus() == AmbiguityStatus.OPEN
+                    && org.springframework.util.StringUtils.hasText(answer)) {
+                applyRuleBasedAnswer(ambiguity, answer, quantities);
+                resolvedCount++;
+            }
+        }
+        if (resolvedCount == 0) throw new IllegalArgumentException("No open ambiguity matched the supplied answer.");
+        specification.setQuantities(quantities);
+        readinessService.ensureRequiredAmbiguities(specification);
+        boolean open = specification.getAmbiguityCases().stream().anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
+        specification.setConfirmationState(open ? ConfirmationState.UNRESOLVED : ConfirmationState.CONFIRMED);
+    }
+
+    private void applyRuleBasedAnswer(AmbiguityCase ambiguity, String answer, ArrayNode quantities) {
+            String prefix = "quantities.";
+            if (ambiguity.getFieldPath() == null || !ambiguity.getFieldPath().startsWith(prefix)) {
+                throw new IllegalArgumentException("This ambiguity needs an AI-capable confirmation provider.");
+            }
+            String key = ambiguity.getFieldPath().substring(prefix.length()).trim();
+            PhysicalQuantity parsed = ruleBasedProvider.explicitQuantity(key, answer);
+            for (int index = quantities.size() - 1; index >= 0; index--) {
+                JsonNode item = quantities.get(index);
+                if (key.equalsIgnoreCase(item.path("name").asText())) quantities.remove(index);
+            }
+            quantities.add(objectMapper.valueToTree(parsed));
+            ambiguity.setResolution(answer.trim());
+            ambiguity.setStatus(AmbiguityStatus.RESOLVED);
+            ambiguity.setResolvedAt(java.time.Instant.now());
     }
 
     private ObjectNode currentDocument(Specification specification) {

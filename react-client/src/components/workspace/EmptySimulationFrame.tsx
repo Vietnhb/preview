@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from "react";
-import { LearningHeader } from "./LearningWorkspace";
+import LearningHeader from "../common/LearningHeader";
 import { CREATE_SIMULATION_EXAMPLES } from "./workspaceResources";
 import TeacherLibraryPane from "./TeacherLibraryPane";
 import Icon from "../common/LearningIcon";
-import type { LibraryFolder, LibraryItem, Simulation } from "../../types/physlive";
+import type { LibraryFolder, LibraryItem, SimulationSummary } from "../../types/physlive";
 import "../../styles/learning.css";
 
 type Props = {
@@ -18,11 +18,11 @@ type Props = {
   onOpenLibraryItem: (item: LibraryItem) => Promise<void>;
   onNewSimulation: () => void;
   createPanel?: ReactNode;
-  recent: Simulation[];
+  recent: SimulationSummary[];
   historyLoading: boolean;
   historyError: boolean;
   onRetryHistory: () => void;
-  onOpenRecent: (item: Simulation) => void;
+  onOpenRecent: (item: SimulationSummary) => void;
   onExampleSelect: (example: string) => void;
 };
 
@@ -45,7 +45,7 @@ export default function EmptySimulationFrame({
   onRetryHistory,
   onOpenRecent,
   onExampleSelect,
-}: Props) {
+}: Readonly<Props>) {
   const [libraryCollapsed, setLibraryCollapsed] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<"observe" | "inspect">("observe");
 
@@ -137,7 +137,7 @@ export default function EmptySimulationFrame({
                         {recent.slice(0, 6).map(item => (
                           <button type="button" className="create-recent-item" key={item.simulationId} onClick={() => onOpenRecent(item)}>
                             <span className="create-recent-icon"><Icon name="atom" /></span>
-                            <span><strong>{item.schemaId}</strong><small>{item.time.length} mốc dữ liệu</small></span>
+                            <span><strong>{item.schemaId}</strong><small>{item.status === "READY" ? "Đã kiểm chứng" : "Đang xử lý"}</small></span>
                             <Icon name="arrow" />
                           </button>
                         ))}

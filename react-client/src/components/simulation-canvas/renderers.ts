@@ -16,17 +16,20 @@ function drawBackground(frame: SceneFrame) {
   ctx.fillRect(0, 0, width, height);
 }
 
-function drawGrid(frame: SceneFrame, bounds = { left: 0, top: 0, right: frame.width, bottom: frame.height }, step = 40) {
+type GridBounds = { left: number; top: number; right: number; bottom: number };
+
+function drawGrid(frame: SceneFrame, bounds?: GridBounds, step = 40) {
   if (!frame.overlays.grid) return;
   const { ctx, palette } = frame;
+  const gridBounds = bounds ?? { left: 0, top: 0, right: frame.width, bottom: frame.height };
   ctx.save();
   ctx.strokeStyle = palette.grid;
   ctx.lineWidth = 1;
-  for (let x = bounds.left; x <= bounds.right; x += step) {
-    ctx.beginPath(); ctx.moveTo(x, bounds.top); ctx.lineTo(x, bounds.bottom); ctx.stroke();
+  for (let x = gridBounds.left; x <= gridBounds.right; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, gridBounds.top); ctx.lineTo(x, gridBounds.bottom); ctx.stroke();
   }
-  for (let y = bounds.top; y <= bounds.bottom; y += step) {
-    ctx.beginPath(); ctx.moveTo(bounds.left, y); ctx.lineTo(bounds.right, y); ctx.stroke();
+  for (let y = gridBounds.top; y <= gridBounds.bottom; y += step) {
+    ctx.beginPath(); ctx.moveTo(gridBounds.left, y); ctx.lineTo(gridBounds.right, y); ctx.stroke();
   }
   ctx.restore();
 }
@@ -283,6 +286,11 @@ function drawCollisionScene(frame: SceneFrame) {
   drawRuler(frame, min, max, baseline + 88, left, right);
 }
 
+function coilOffset(index: number, total: number) {
+  if (index === total) return 0;
+  return index % 2 ? -15 : 15;
+}
+
 function drawSpringScene(frame: SceneFrame) {
   const { ctx, width, height, simulation, presentation, overlays, palette } = frame;
   drawBackground(frame); drawGrid(frame);
@@ -302,7 +310,7 @@ function drawSpringScene(frame: SceneFrame) {
   const coils = 16;
   for (let i = 1; i <= coils; i++) {
     const x = anchor.x + (position.x - 30 - anchor.x) * i / coils;
-    const y = anchor.y + (i === coils ? 0 : (i % 2 ? -15 : 15));
+    const y = anchor.y + coilOffset(i, coils);
     ctx.lineTo(x, y);
   }
   ctx.stroke(); ctx.restore();

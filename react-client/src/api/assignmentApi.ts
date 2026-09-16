@@ -22,6 +22,16 @@ export const studentAssignments = () =>
 export const assignedSimulation = (assignmentId: string) =>
   axiosClient.get<BackendSimulation>(`/assignments/${assignmentId}/simulation`).then(r => normalizeSimulation(r.data));
 
+export const adjustAssignedSimulation = (
+  assignmentId: string,
+  simulationId: string,
+  adjustableParams: Record<string, number>
+) => axiosClient.post<BackendSimulation>(
+  `/assignments/${assignmentId}/simulation/adjust`,
+  { simulationId, adjustableParams },
+  { timeout: 20000 }
+).then(r => normalizeSimulation(r.data));
+
 export const assignmentSubmissions = (assignmentId: string) => 
   axiosClient.get<AssignmentSubmission[]>(`/assignments/${assignmentId}/submissions`).then(r => r.data);
 

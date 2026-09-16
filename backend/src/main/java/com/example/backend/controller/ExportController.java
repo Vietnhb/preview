@@ -36,7 +36,12 @@ public class ExportController {
 
     @GetMapping("/{specificationId}/html")
     public ResponseEntity<byte[]> html(@PathVariable UUID specificationId) {
-        return download(exportService.offlineReplayHtml(specificationId), "physlive-offline-replay.html", MediaType.TEXT_HTML);
+                return download(exportService.offlineReplayHtml(specificationId), "physlive-offline-replay.html", MediaType.TEXT_HTML);
+    }
+
+    @GetMapping("/{specificationId}/slides")
+    public ResponseEntity<byte[]> slides(@PathVariable UUID specificationId) {
+        return download(exportService.slidesHtml(specificationId), "physlive-slides.html", MediaType.TEXT_HTML);
     }
 
     private ResponseEntity<byte[]> download(byte[] body, String filename, MediaType contentType) {

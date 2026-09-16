@@ -1,7 +1,12 @@
 import { useState, type FormEvent } from "react";
 import api from "../../api/axios";
 import { Access, LoadState } from "../../components/operations/OperationsKit";
-import { downloadJson, parseObject, useAction, useResource } from "../../components/operations/operationsData";
+import {
+  downloadJson,
+  parseObject,
+  useAction,
+  useResource,
+} from "../../components/operations/operationsData";
 import type { Specification } from "../../types/physlive";
 import "../../styles/modern-roles.css";
 
@@ -31,6 +36,15 @@ type Version = {
   createdAt: string;
 };
 
+type ModuleRelease = {
+  id: string;
+  topic: string;
+  moduleName: string;
+  schemaId: string;
+  schemaVersion: string;
+  lifecycleStatus: "DRAFT" | "APPROVED" | "RETIRED";
+};
+
 type Benchmark = {
   id: string;
   problemText: string;
@@ -58,7 +72,8 @@ const TABS = [
   { id: "queue", label: "Hàng đợi Phân xử Extraction (Queue)" },
   { id: "schemas", label: "Topic Schemas" },
   { id: "solvers", label: "Reference Solvers" },
-  { id: "benchmarks", label: "Benchmark & Đánh giá Nghiên cứu" }
+  { id: "modules", label: "Module Approval" },
+  { id: "benchmarks", label: "Benchmark & Đánh giá Nghiên cứu" },
 ];
 
 export default function ReviewerConsole() {
@@ -73,38 +88,33 @@ function ReviewerPage() {
   const [tab, setTab] = useState("queue");
 
   return (
-    <div className="main">
-      <div className="modern-container">
-      {/* Header */}
-      <header className="modern-header">
-        <div className="modern-header-title">
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-            <h1>Kiểm duyệt Nội dung & Thẩm định Vật lý</h1>
-            <span className="modern-badge-role reviewer">Content Reviewer</span>
-          </div>
-          <p>Phân xử các ca trích xuất mơ hồ, định nghĩa Topic Schemas, liên kết solver độc lập và đánh giá benchmark gold standard.</p>
+    <div className="main reviewer-main">
+      <aside className="reviewer-sidebar" aria-label="Khu vực kiểm duyệt">
+        <div className="reviewer-sidebar-brand">
+          <span className="reviewer-sidebar-kicker">PHYSLIVE</span>
+          <strong>Kiểm duyệt</strong>
+          <p>Quản lý nội dung và kiểm chứng vật lý.</p>
         </div>
-      </header>
-
-      {/* Tabs */}
-      <div className="modern-tabs">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            type="button"
-            className={`modern-tab-btn ${tab === t.id ? "active" : ""}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "queue" && <QueueTab />}
-      {tab === "schemas" && <VersionsTab solver={false} />}
-      {tab === "solvers" && <VersionsTab solver={true} />}
-      {tab === "benchmarks" && <BenchmarksTab />}
-    </div>
+        <nav className="reviewer-sidebar-nav" aria-label="Các khu vực review">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`reviewer-sidebar-button ${tab === t.id ? "active" : ""}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+      <section className="reviewer-content">
+        {tab === "queue" && <QueueTab />}
+        {tab === "schemas" && <VersionsTab solver={false} />}
+        {tab === "solvers" && <VersionsTab solver={true} />}
+        {tab === "modules" && <ModuleApprovalTab />}
+        {tab === "benchmarks" && <BenchmarksTab />}
+      </section>
     </div>
   );
 }
@@ -117,22 +127,31 @@ function QueueTab() {
   const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
 
-  const items = (resource.data ?? []).filter(i =>
-    `${i.topic} ${i.question} ${i.problemText}`.toLowerCase().includes(query.toLowerCase())
+  const items = (resource.data ?? []).filter((i) =>
+    `${i.topic} ${i.question} ${i.problemText}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
   );
-  const selected = items.find(i => i.id === selectedId) ?? items[0];
+  const selected = items.find((i) => i.id === selectedId) ?? items[0];
 
   return (
-    <div className="modern-card">
+    <section className="modern-card reviewer-queue-card">
       <div className="modern-card-header">
         <div>
           <h2>Hàng đợi Phân xử Extraction (FR-REV-03)</h2>
-          <p>Các trường hợp trích xuất có dữ kiện hoặc hướng chuyển động chưa đủ tin cậy cần chuyên gia giải quyết.</p>
+          <p>
+            Các trường hợp trích xuất có dữ kiện hoặc hướng chuyển động chưa đủ
+            tin cậy cần chuyên gia giải quyết.
+          </p>
         </div>
         <button
           type="button"
           className="role-switch-pill"
-          style={{ border: "1px solid var(--border-subtle)", background: "#ffffff", padding: "8px 16px" }}
+          style={{
+            border: "1px solid var(--border-subtle)",
+            background: "#ffffff",
+            padding: "8px 16px",
+          }}
           onClick={resource.refresh}
           disabled={resource.loading}
         >
@@ -142,63 +161,78 @@ function QueueTab() {
 
       <LoadState {...resource} />
 
-      <div style={{ marginBottom: "16px" }}>
+      <div className="reviewer-queue-search">
         <input
-          style={{ width: "100%", maxWidth: "420px", border: "1px solid var(--border-strong)", borderRadius: "8px", padding: "8px 12px", fontSize: "13.5px" }}
           placeholder="Tìm theo nội dung đề bài, câu hỏi, chủ đề…"
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
         />
       </div>
 
       {!resource.loading && !resource.error && items.length === 0 ? (
-        <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
-          <span style={{ fontSize: "28px", display: "block", marginBottom: "8px" }}>✨</span>
+        <div
+          style={{
+            padding: "40px",
+            textAlign: "center",
+            color: "var(--text-muted)",
+          }}
+        >
+          <span
+            style={{ fontSize: "28px", display: "block", marginBottom: "8px" }}
+          >
+            ✨
+          </span>
           <strong>Hàng đợi trống</strong>
-          <p style={{ margin: "4px 0 0 0", fontSize: "13px" }}>Không có extraction nào đang chờ phân xử.</p>
+          <p style={{ margin: "4px 0 0 0", fontSize: "13px" }}>
+            Không có extraction nào đang chờ phân xử.
+          </p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "20px", alignItems: "start" }}>
+        <div className="reviewer-queue-layout">
           {/* Left: Ambiguity Items List */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "640px", overflowY: "auto" }}>
-            {items.map(item => (
+          <aside
+            className="reviewer-queue-list"
+            aria-label="Danh sách ca cần review"
+          >
+            {items.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                style={{
-                  textAlign: "left",
-                  background: selected?.id === item.id ? "#eff6ff" : "#ffffff",
-                  border: `1.5px solid ${selected?.id === item.id ? "var(--role-reviewer)" : "var(--border-subtle)"}`,
-                  borderRadius: "10px",
-                  padding: "14px",
-                  cursor: "pointer",
-                  transition: "all 0.15s ease"
-                }}
+                className={`reviewer-queue-item${selected?.id === item.id ? " active" : ""}`}
                 onClick={() => setSelectedId(item.id)}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                  <span className="status-pill draft">{item.topic || "Vật lý"}</span>
-                  <small style={{ color: "var(--text-muted)" }}>{item.fieldPath}</small>
+                <div className="reviewer-queue-item-meta">
+                  <span className="status-pill draft">
+                    {item.topic || "Vật lý"}
+                  </span>
+                  <small>{item.fieldPath}</small>
                 </div>
-                <strong style={{ fontSize: "14px", color: "var(--text-primary)", display: "block", marginBottom: "4px" }}>
-                  {item.question}
-                </strong>
-                <p style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
-                  {item.problemText?.slice(0, 100)}…
-                </p>
+                <strong>{item.question}</strong>
+                <p>{item.problemText?.slice(0, 100)}…</p>
               </button>
             ))}
-          </div>
+          </aside>
 
           {/* Right: Resolution Workspace */}
-          {selected && <ResolutionForm key={selected.id} item={selected} onResolved={resource.refresh} />}
+          <main className="reviewer-queue-detail">
+            {selected && (
+              <ResolutionForm
+                key={selected.id}
+                item={selected}
+                onResolved={resource.refresh}
+              />
+            )}
+          </main>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
-function ResolutionForm({ item, onResolved }: { item: ReviewItem; onResolved: () => void }) {
+function ResolutionForm({
+  item,
+  onResolved,
+}: Readonly<{ item: ReviewItem; onResolved: () => void }>) {
   const [answer, setAnswer] = useState("");
   const [comment, setComment] = useState("");
   const action = useAction();
@@ -206,58 +240,69 @@ function ResolutionForm({ item, onResolved }: { item: ReviewItem; onResolved: ()
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     await action.run(async () => {
-      const response = await api.post<Specification>(`/reviewer/ambiguities/${item.id}/resolve`, {
-        answer: answer.trim(),
-        comment
-      });
-      const open = response.data.ambiguityCases ?? response.data.ambiguities ?? [];
-      if (open.some(a => a.code === item.code && a.status === "OPEN")) {
-        throw new Error("Câu trả lời đã gửi nhưng dữ kiện vẫn chưa đủ rõ. Hãy bổ sung giá trị hoặc hướng chuẩn.");
+      const response = await api.post<Specification>(
+        `/reviewer/ambiguities/${item.id}/resolve`,
+        {
+          answer: answer.trim(),
+          comment,
+        },
+      );
+      const open =
+        response.data.ambiguityCases ?? response.data.ambiguities ?? [];
+      if (open.some((a) => a.code === item.code && a.status === "OPEN")) {
+        throw new Error(
+          "Câu trả lời đã gửi nhưng dữ kiện vẫn chưa đủ rõ. Hãy bổ sung giá trị hoặc hướng chuẩn.",
+        );
       }
       onResolved();
     }, "Đã cập nhật đặc tả specification với phân xử chuyên môn thành công.");
   };
 
   return (
-    <div style={{ background: "#ffffff", border: "1px solid var(--border-subtle)", borderRadius: "10px", padding: "20px" }}>
-      <h3 style={{ margin: "0 0 14px 0", fontSize: "16px" }}>Đề bài gốc</h3>
-      <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "8px", border: "1px solid var(--border-subtle)", marginBottom: "16px", fontSize: "13.5px", lineHeight: "1.6" }}>
+    <article className="reviewer-resolution-form">
+      <h3 className="reviewer-detail-title">Đề bài gốc</h3>
+      <div className="reviewer-original-problem">
         {item.problemText || "(Chưa có văn bản đề bài)"}
       </div>
 
-      <details style={{ marginBottom: "16px", fontSize: "13px" }}>
-        <summary style={{ cursor: "pointer", fontWeight: "600", color: "var(--role-reviewer)" }}>
+      <details className="reviewer-extraction-details">
+        <summary>
           Xem thực thể & quan hệ đã bóc tách (Quantities & Relations)
         </summary>
-        <pre style={{ background: "#1e293b", color: "#f8fafc", padding: "12px", borderRadius: "8px", overflowX: "auto", fontSize: "12px", marginTop: "8px" }}>
-          {JSON.stringify({ quantities: item.quantities, relations: item.relations }, null, 2)}
+        <pre>
+          {JSON.stringify(
+            { quantities: item.quantities, relations: item.relations },
+            null,
+            2,
+          )}
         </pre>
       </details>
 
       <form onSubmit={submit}>
-        <div className="form-group" style={{ marginBottom: "14px" }}>
-          <label style={{ color: "var(--role-reviewer)", fontSize: "14px", fontWeight: "700" }}>
+        <div className="form-group reviewer-question-group">
+          <p className="reviewer-review-question">
             ❓ {item.question}
-          </label>
+          </p>
           <textarea
             rows={3}
             required
             placeholder="Nhập câu trả lời phân xử chính xác có kèm đại lượng, đơn vị hoặc hướng..."
             value={answer}
-            onChange={e => setAnswer(e.target.value)}
+            onChange={(e) => setAnswer(e.target.value)}
           />
         </div>
 
         {Array.isArray(item.options) && item.options.length > 0 && (
-          <div style={{ marginBottom: "14px" }}>
-            <small style={{ color: "var(--text-muted)", display: "block", marginBottom: "6px" }}>Gợi ý nhanh từ pipeline:</small>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-              {item.options.map(opt => (
+          <div className="reviewer-suggestions">
+            <small className="reviewer-suggestion-label">
+              Gợi ý nhanh từ pipeline:
+            </small>
+            <div className="reviewer-suggestion-list">
+              {item.options.map((opt) => (
                 <button
                   key={opt}
                   type="button"
                   className="role-switch-pill"
-                  style={{ background: "#f1f5f9", border: "1px solid var(--border-subtle)" }}
                   onClick={() => setAnswer(opt)}
                 >
                   {opt}
@@ -267,12 +312,15 @@ function ResolutionForm({ item, onResolved }: { item: ReviewItem; onResolved: ()
           </div>
         )}
 
-        <div className="form-group" style={{ marginBottom: "16px" }}>
-          <label>Căn cứ chuyên môn / Ghi chú thẩm định:</label>
+        <div className="form-group reviewer-comment-group">
+          <label htmlFor="review-comment">
+            Căn cứ chuyên môn / Ghi chú thẩm định:
+          </label>
           <input
+            id="review-comment"
             placeholder="Ví dụ: Lấy g = 9.8 m/s² theo giả định sách giáo khoa hiện hành..."
             value={comment}
-            onChange={e => setComment(e.target.value)}
+            onChange={(e) => setComment(e.target.value)}
           />
         </div>
 
@@ -280,39 +328,59 @@ function ResolutionForm({ item, onResolved }: { item: ReviewItem; onResolved: ()
 
         <button
           type="submit"
-          className="prediction-submit-btn"
-          style={{ background: "var(--role-reviewer)" }}
+          className="prediction-submit-btn reviewer-resolution-submit"
           disabled={action.busy || !answer.trim()}
         >
-          {action.busy ? "Đang cập nhật đặc tả…" : "Gửi kết luận phân xử chuyên môn"}
+          {action.busy
+            ? "Đang cập nhật đặc tả…"
+            : "Gửi kết luận phân xử chuyên môn"}
         </button>
       </form>
-    </div>
+    </article>
   );
 }
 
 // --------------------------------------------------------------------------
 // TAB 2 & 3: SCHEMAS AND REFERENCE SOLVERS
 // --------------------------------------------------------------------------
-function VersionsTab({ solver }: { solver: boolean }) {
-  const resource = useResource<Version[]>(solver ? "/reviewer/solvers" : "/reviewer/schemas");
-  const implementations = useResource<{ numerical: string[]; reference: string[] }>("/reviewer/solver-implementations");
+function VersionsTab({ solver }: Readonly<{ solver: boolean }>) {
+  const resource = useResource<Version[]>(
+    solver ? "/reviewer/solvers" : "/reviewer/schemas",
+  );
+  const implementations = useResource<{
+    numerical: string[];
+    reference: string[];
+  }>("/reviewer/solver-implementations");
   const action = useAction();
 
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
-  const [editor, setEditor] = useState<{ version?: Version; clone: boolean } | null>(null);
-  const [decision, setDecision] = useState<{ version: Version; status: string } | null>(null);
+  const [editor, setEditor] = useState<{
+    version?: Version;
+    clone: boolean;
+  } | null>(null);
+  const [decision, setDecision] = useState<{
+    version: Version;
+    status: string;
+  } | null>(null);
 
   const rows = (resource.data ?? []).filter(
-    v => (!filter || v.lifecycleStatus === filter) && `${v.schemaId} ${v.name ?? ""} ${v.version}`.toLowerCase().includes(query.toLowerCase())
+    (v) =>
+      (!filter || v.lifecycleStatus === filter) &&
+      `${v.schemaId} ${v.name ?? ""} ${v.version}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
   );
 
   return (
     <div className="modern-card">
       <div className="modern-card-header">
         <div>
-          <h2>{solver ? "Reference Solvers & Module Bindings (FR-REV-02)" : "Topic Schemas & Phê duyệt Module (FR-REV-01)"}</h2>
+          <h2>
+            {solver
+              ? "Reference Solvers & Module Bindings (FR-REV-02)"
+              : "Topic Schemas & Phê duyệt Module (FR-REV-01)"}
+          </h2>
           <p>
             {solver
               ? "Liên kết numerical solver module với independent closed-form reference solver đã cài trên server."
@@ -322,7 +390,11 @@ function VersionsTab({ solver }: { solver: boolean }) {
         <button
           type="button"
           className="prediction-submit-btn"
-          style={{ background: "var(--role-reviewer)", padding: "8px 16px", fontSize: "13px" }}
+          style={{
+            background: "var(--role-reviewer)",
+            padding: "8px 16px",
+            fontSize: "13px",
+          }}
           onClick={() => setEditor({ clone: false })}
         >
           + Tạo bản nháp mới
@@ -334,40 +406,89 @@ function VersionsTab({ solver }: { solver: boolean }) {
 
       {/* Lifecycle Decision Dialog */}
       {decision && (
-        <div className="modern-modal-overlay" onClick={() => setDecision(null)}>
-          <div className="modern-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: "480px" }}>
+        <dialog
+          open
+          className="modern-modal-overlay"
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget) setDecision(null);
+          }}
+        >
+          <div className="modern-modal-content" style={{ maxWidth: "480px" }}>
             <div className="modern-modal-header">
-              <h3>{decision.status === "APPROVED" ? "Phê duyệt phát hành" : "Ngừng sử dụng"}</h3>
-              <button type="button" className="modern-modal-close" onClick={() => setDecision(null)}>✕</button>
+              <h3>
+                {decision.status === "APPROVED"
+                  ? "Phê duyệt phát hành"
+                  : "Ngừng sử dụng"}
+              </h3>
+              <button
+                type="button"
+                className="modern-modal-close"
+                onClick={() => setDecision(null)}
+              >
+                ✕
+              </button>
             </div>
             <p style={{ fontSize: "14px", lineHeight: "1.5" }}>
-              Bạn có chắc chắn muốn chuyển trạng thái <strong>{decision.version.schemaId}</strong> @{decision.version.version} sang <strong>{decision.status}</strong>?
+              Bạn có chắc chắn muốn chuyển trạng thái{" "}
+              <strong>{decision.version.schemaId}</strong> @
+              {decision.version.version} sang <strong>{decision.status}</strong>
+              ?
             </p>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
-              <button type="button" className="role-switch-pill" style={{ border: "1px solid var(--border-subtle)", padding: "8px 16px" }} onClick={() => setDecision(null)}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+                marginTop: "20px",
+              }}
+            >
+              <button
+                type="button"
+                className="role-switch-pill"
+                style={{
+                  border: "1px solid var(--border-subtle)",
+                  padding: "8px 16px",
+                }}
+                onClick={() => setDecision(null)}
+              >
                 Hủy
               </button>
               <button
                 type="button"
                 className="prediction-submit-btn"
-                style={{ background: decision.status === "APPROVED" ? "var(--role-student)" : "#dc2626" }}
+                style={{
+                  background:
+                    decision.status === "APPROVED"
+                      ? "var(--role-student)"
+                      : "#dc2626",
+                }}
                 disabled={action.busy}
                 onClick={() =>
-                  void action.run(
-                    () => api.put(`/reviewer/${solver ? "solvers" : "schema-versions"}/${decision.version.id}/lifecycle`, null, {
-                      params: { status: decision.status }
-                    }),
-                    `Đã cập nhật trạng thái sang ${decision.status}`
-                  ).then(ok => {
-                    if (ok) { setDecision(null); resource.refresh(); }
-                  })
+                  void action
+                    .run(
+                      () =>
+                        api.put(
+                          `/reviewer/${solver ? "solvers" : "schema-versions"}/${decision.version.id}/lifecycle`,
+                          null,
+                          {
+                            params: { status: decision.status },
+                          },
+                        ),
+                      `Đã cập nhật trạng thái sang ${decision.status}`,
+                    )
+                    .then((ok) => {
+                      if (ok) {
+                        setDecision(null);
+                        resource.refresh();
+                      }
+                    })
                 }
               >
                 Xác nhận
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* Editor Modal */}
@@ -378,32 +499,60 @@ function VersionsTab({ solver }: { solver: boolean }) {
           clone={editor.clone}
           implementations={implementations.data}
           onClose={() => setEditor(null)}
-          onSaved={() => { setEditor(null); resource.refresh(); }}
+          onSaved={() => {
+            setEditor(null);
+            resource.refresh();
+          }}
         />
       )}
 
       {/* Filter bar */}
-      <div style={{ display: "flex", gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          marginBottom: "16px",
+          flexWrap: "wrap",
+        }}
+      >
         <input
-          style={{ flex: 1, minWidth: "240px", border: "1px solid var(--border-strong)", borderRadius: "8px", padding: "8px 12px", fontSize: "13.5px" }}
+          style={{
+            flex: 1,
+            minWidth: "240px",
+            border: "1px solid var(--border-strong)",
+            borderRadius: "8px",
+            padding: "8px 12px",
+            fontSize: "13.5px",
+          }}
           placeholder="Tìm schema ID, tên hoặc phiên bản…"
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
         />
         <select
-          style={{ border: "1px solid var(--border-strong)", borderRadius: "8px", padding: "8px 12px", fontSize: "13.5px" }}
+          style={{
+            border: "1px solid var(--border-strong)",
+            borderRadius: "8px",
+            padding: "8px 12px",
+            fontSize: "13.5px",
+          }}
           value={filter}
-          onChange={e => setFilter(e.target.value)}
+          onChange={(e) => setFilter(e.target.value)}
         >
           <option value="">Tất cả trạng thái</option>
-          {["DRAFT", "APPROVED", "RETIRED"].map(s => (
-            <option key={s} value={s}>{s}</option>
+          {["DRAFT", "APPROVED", "RETIRED"].map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
         </select>
         <button
           type="button"
           className="role-switch-pill"
-          style={{ border: "1px solid var(--border-subtle)", background: "#ffffff", padding: "8px 16px" }}
+          style={{
+            border: "1px solid var(--border-subtle)",
+            background: "#ffffff",
+            padding: "8px 16px",
+          }}
           onClick={resource.refresh}
         >
           Làm mới
@@ -422,27 +571,36 @@ function VersionsTab({ solver }: { solver: boolean }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map(v => (
+            {rows.map((v) => (
               <tr key={v.id}>
                 <td>
                   <strong>{solver ? v.solverId : v.name}</strong>
-                  <small style={{ display: "block", color: "var(--text-muted)" }}>
+                  <small
+                    style={{ display: "block", color: "var(--text-muted)" }}
+                  >
                     {v.schemaId} {v.topic ? `· ${v.topic}` : ""}
                   </small>
                   {solver && (
                     <small style={{ color: "var(--role-reviewer)" }}>
-                      Reference solver: <code>{v.outputDefinition?.referenceSolverId || "closed-form"}</code>
+                      Reference solver:{" "}
+                      <code>
+                        {v.outputDefinition?.referenceSolverId || "closed-form"}
+                      </code>
                     </small>
                   )}
                 </td>
                 <td>
                   <code>v{v.version}</code>
-                  <small style={{ display: "block", color: "var(--text-muted)" }}>
+                  <small
+                    style={{ display: "block", color: "var(--text-muted)" }}
+                  >
                     {new Date(v.createdAt).toLocaleDateString("vi-VN")}
                   </small>
                 </td>
                 <td>
-                  <span className={`status-pill ${v.lifecycleStatus === "APPROVED" ? "pass" : v.lifecycleStatus === "DRAFT" ? "draft" : "fail"}`}>
+                  <span
+                    className={`status-pill ${lifecycleClass(v.lifecycleStatus)}`}
+                  >
                     {v.lifecycleStatus}
                   </span>
                 </td>
@@ -451,8 +609,16 @@ function VersionsTab({ solver }: { solver: boolean }) {
                     <button
                       type="button"
                       className="role-switch-pill"
-                      style={{ border: "1px solid var(--border-subtle)", background: "#ffffff" }}
-                      onClick={() => setEditor({ version: v, clone: v.lifecycleStatus !== "DRAFT" })}
+                      style={{
+                        border: "1px solid var(--border-subtle)",
+                        background: "#ffffff",
+                      }}
+                      onClick={() =>
+                        setEditor({
+                          version: v,
+                          clone: v.lifecycleStatus !== "DRAFT",
+                        })
+                      }
                     >
                       {v.lifecycleStatus === "DRAFT" ? "Sửa" : "Nhân bản"}
                     </button>
@@ -460,8 +626,13 @@ function VersionsTab({ solver }: { solver: boolean }) {
                       <button
                         type="button"
                         className="role-switch-pill"
-                        style={{ background: "var(--status-pass-bg)", color: "var(--status-pass-text)" }}
-                        onClick={() => setDecision({ version: v, status: "APPROVED" })}
+                        style={{
+                          background: "var(--status-pass-bg)",
+                          color: "var(--status-pass-text)",
+                        }}
+                        onClick={() =>
+                          setDecision({ version: v, status: "APPROVED" })
+                        }
                       >
                         Phê duyệt
                       </button>
@@ -470,8 +641,135 @@ function VersionsTab({ solver }: { solver: boolean }) {
                       <button
                         type="button"
                         className="role-switch-pill"
-                        style={{ background: "var(--status-fail-bg)", color: "var(--status-fail-text)" }}
-                        onClick={() => setDecision({ version: v, status: "RETIRED" })}
+                        style={{
+                          background: "var(--status-fail-bg)",
+                          color: "var(--status-fail-text)",
+                        }}
+                        onClick={() =>
+                          setDecision({ version: v, status: "RETIRED" })
+                        }
+                      >
+                        Ngừng dùng
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function lifecycleClass(status: string) {
+  if (status === "APPROVED") return "pass";
+  if (status === "DRAFT") return "draft";
+  return "fail";
+}
+
+function ModuleApprovalTab() {
+  const resource = useResource<ModuleRelease[]>("/reviewer/module-releases");
+  const action = useAction();
+
+  const changeLifecycle = async (
+    release: ModuleRelease,
+    status: ModuleRelease["lifecycleStatus"],
+  ) => {
+    const ok = await action.run(
+      () =>
+        api.put(`/reviewer/module-releases/${release.id}/lifecycle`, null, {
+          params: { status },
+        }),
+      `Đã cập nhật module ${release.moduleName} sang ${status}.`,
+    );
+    if (ok) resource.refresh();
+  };
+
+  return (
+    <div className="modern-card">
+      <div className="modern-card-header">
+        <div>
+          <h2>Phê duyệt Topic Module (FR-REV-04)</h2>
+          <p>
+            Module chỉ khả dụng cho giáo viên sau khi schema version tương ứng
+            được kiểm tra và phê duyệt.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="role-switch-pill"
+          style={{
+            border: "1px solid var(--border-subtle)",
+            background: "#ffffff",
+          }}
+          onClick={resource.refresh}
+          disabled={resource.loading}
+        >
+          Làm mới
+        </button>
+      </div>
+      <LoadState {...resource} />
+      {action.feedback}
+      <div className="modern-table-wrapper">
+        <table className="modern-table">
+          <thead>
+            <tr>
+              <th>Topic</th>
+              <th>Module</th>
+              <th>Schema</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(resource.data ?? []).map((release) => (
+              <tr key={release.id}>
+                <td>{release.topic}</td>
+                <td>
+                  <strong>{release.moduleName}</strong>
+                </td>
+                <td>
+                  <code>
+                    {release.schemaId}@{release.schemaVersion}
+                  </code>
+                </td>
+                <td>
+                  <span
+                    className={`status-pill ${lifecycleClass(release.lifecycleStatus)}`}
+                  >
+                    {release.lifecycleStatus}
+                  </span>
+                </td>
+                <td>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    {release.lifecycleStatus === "DRAFT" && (
+                      <button
+                        type="button"
+                        className="role-switch-pill"
+                        style={{
+                          background: "var(--status-pass-bg)",
+                          color: "var(--status-pass-text)",
+                        }}
+                        disabled={action.busy}
+                        onClick={() =>
+                          void changeLifecycle(release, "APPROVED")
+                        }
+                      >
+                        Phê duyệt
+                      </button>
+                    )}
+                    {release.lifecycleStatus === "APPROVED" && (
+                      <button
+                        type="button"
+                        className="role-switch-pill"
+                        style={{
+                          background: "var(--status-fail-bg)",
+                          color: "var(--status-fail-text)",
+                        }}
+                        disabled={action.busy}
+                        onClick={() => void changeLifecycle(release, "RETIRED")}
                       >
                         Ngừng dùng
                       </button>
@@ -493,17 +791,21 @@ function VersionEditorModal({
   clone,
   implementations,
   onClose,
-  onSaved
-}: {
+  onSaved,
+}: Readonly<{
   solver: boolean;
   initial?: Version;
   clone: boolean;
   implementations?: { numerical: string[]; reference: string[] };
   onClose: () => void;
   onSaved: () => void;
-}) {
+}>) {
   const [definition, setDefinition] = useState(
-    JSON.stringify((solver ? initial?.outputDefinition : initial?.definition) ?? {}, null, 2)
+    JSON.stringify(
+      (solver ? initial?.outputDefinition : initial?.definition) ?? {},
+      null,
+      2,
+    ),
   );
   const action = useAction();
   const isEdit = Boolean(initial && !clone);
@@ -518,47 +820,92 @@ function VersionEditorModal({
           schemaId: fields.schemaId,
           version: fields.version,
           solverId: fields.solverId,
-          outputDefinition: { ...json, referenceSolverId: fields.referenceSolverId }
+          outputDefinition: {
+            ...json,
+            referenceSolverId: fields.referenceSolverId,
+          },
         }
       : { ...fields, definition: json };
 
-    const ok = await action.run(() =>
-      isEdit
-        ? api.put(`/reviewer/${solver ? "solvers" : "schema-versions"}/${initial?.id}`, body)
-        : api.post(`/reviewer/${solver ? "solvers" : "schemas"}`, body)
-    );
+    const editResource = solver ? "solvers" : "schema-versions";
+    const createResource = solver ? "solvers" : "schemas";
+    const endpoint = isEdit
+      ? `/reviewer/${editResource}/${initial?.id}`
+      : `/reviewer/${createResource}`;
+    const request = isEdit
+      ? () => api.put(endpoint, body)
+      : () => api.post(endpoint, body);
+    const ok = await action.run(request);
     if (ok) onSaved();
   };
 
   return (
-    <div className="modern-modal-overlay" onClick={onClose}>
-      <div className="modern-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: "680px" }}>
+    <dialog
+      open
+      className="modern-modal-overlay"
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="modern-modal-content" style={{ maxWidth: "680px" }}>
         <div className="modern-modal-header">
           <h3>{isEdit ? "Chỉnh sửa bản nháp" : "Tạo phiên bản mới"}</h3>
-          <button type="button" className="modern-modal-close" onClick={onClose}>✕</button>
+          <button
+            type="button"
+            className="modern-modal-close"
+            onClick={onClose}
+          >
+            ✕
+          </button>
         </div>
 
         <form onSubmit={submit}>
           <div className="form-row">
             <div className="form-group">
-              <label>Schema ID *</label>
-              <input name="schemaId" required maxLength={80} readOnly={isEdit} defaultValue={initial?.schemaId ?? ""} placeholder="kinematics-1d" />
+              <label htmlFor="review-schema-id">Schema ID *</label>
+              <input
+                id="review-schema-id"
+                name="schemaId"
+                required
+                maxLength={80}
+                readOnly={isEdit}
+                defaultValue={initial?.schemaId ?? ""}
+                placeholder="kinematics-1d"
+              />
             </div>
             <div className="form-group">
-              <label>Phiên bản *</label>
-              <input name="version" required maxLength={16} readOnly={isEdit} defaultValue={clone ? "" : initial?.version ?? ""} placeholder="1.0.0" />
+              <label htmlFor="review-schema-version">Phiên bản *</label>
+              <input
+                id="review-schema-version"
+                name="version"
+                required
+                maxLength={16}
+                readOnly={isEdit}
+                defaultValue={clone ? "" : (initial?.version ?? "")}
+                placeholder="1.0.0"
+              />
             </div>
           </div>
 
           {!solver && (
             <div className="form-row">
               <div className="form-group">
-                <label>Tên Schema *</label>
-                <input name="name" required defaultValue={initial?.name ?? ""} placeholder="Chuyển động thẳng biến đổi đều" />
+                <label htmlFor="review-schema-name">Tên Schema *</label>
+                <input
+                  id="review-schema-name"
+                  name="name"
+                  required
+                  defaultValue={initial?.name ?? ""}
+                  placeholder="Chuyển động thẳng biến đổi đều"
+                />
               </div>
               <div className="form-group">
-                <label>Chủ đề *</label>
-                <select name="topic" defaultValue={initial?.topic ?? "Kinematics"}>
+                <label htmlFor="review-schema-topic">Chủ đề *</label>
+                <select
+                  id="review-schema-topic"
+                  name="topic"
+                  defaultValue={initial?.topic ?? "Kinematics"}
+                >
                   <option value="Kinematics">Kinematics (Động học)</option>
                   <option value="Dynamics">Dynamics (Động lực học)</option>
                   <option value="Circuits">Circuits (Mạch điện)</option>
@@ -570,45 +917,85 @@ function VersionEditorModal({
           {solver && (
             <div className="form-row">
               <div className="form-group">
-                <label>Numerical Module *</label>
-                <select name="solverId" required defaultValue={initial?.solverId ?? ""}>
+                <label htmlFor="review-solver-id">Numerical Module *</label>
+                <select
+                  id="review-solver-id"
+                  name="solverId"
+                  required
+                  defaultValue={initial?.solverId ?? ""}
+                >
                   <option value="">-- Chọn numerical solver --</option>
-                  {implementations?.numerical.map(id => <option key={id} value={id}>{id}</option>)}
+                  {implementations?.numerical.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>Independent Reference Solver *</label>
-                <select name="referenceSolverId" required defaultValue={initial?.outputDefinition?.referenceSolverId ?? ""}>
+                <label htmlFor="review-reference-solver-id">
+                  Independent Reference Solver *
+                </label>
+                <select
+                  id="review-reference-solver-id"
+                  name="referenceSolverId"
+                  required
+                  defaultValue={
+                    initial?.outputDefinition?.referenceSolverId ?? ""
+                  }
+                >
                   <option value="">-- Chọn reference solver --</option>
-                  {implementations?.reference.map(id => <option key={id} value={id}>{id}</option>)}
+                  {implementations?.reference.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
           )}
 
           <div className="form-group" style={{ marginBottom: "18px" }}>
-            <label>Định nghĩa JSON (Schema / Output definition)</label>
+            <label htmlFor="review-definition">
+              Định nghĩa JSON (Schema / Output definition)
+            </label>
             <textarea
+              id="review-definition"
               rows={8}
               style={{ fontFamily: "monospace", fontSize: "12.5px" }}
               value={definition}
-              onChange={e => setDefinition(e.target.value)}
+              onChange={(e) => setDefinition(e.target.value)}
             />
           </div>
 
           {action.feedback}
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-            <button type="button" className="role-switch-pill" style={{ border: "1px solid var(--border-subtle)", padding: "8px 16px" }} onClick={onClose}>
+          <div
+            style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}
+          >
+            <button
+              type="button"
+              className="role-switch-pill"
+              style={{
+                border: "1px solid var(--border-subtle)",
+                padding: "8px 16px",
+              }}
+              onClick={onClose}
+            >
               Hủy
             </button>
-            <button type="submit" className="prediction-submit-btn" style={{ background: "var(--role-reviewer)" }} disabled={action.busy}>
+            <button
+              type="submit"
+              className="prediction-submit-btn"
+              style={{ background: "var(--role-reviewer)" }}
+              disabled={action.busy}
+            >
               {action.busy ? "Đang lưu…" : "Lưu phiên bản"}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 }
 
@@ -620,6 +1007,13 @@ function BenchmarksTab() {
   const action = useAction();
   const [creating, setCreating] = useState(false);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [reviewing, setReviewing] = useState<{
+    id: string;
+    mode: "annotations" | "adjudication";
+  } | null>(null);
+  const [reviewJson, setReviewJson] = useState(
+    '{\n  "objects": [],\n  "quantities": [],\n  "relations": []\n}',
+  );
 
   const create = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -638,6 +1032,30 @@ function BenchmarksTab() {
     }, "Đã chạy pipeline đánh giá comparative evaluation trên benchmark corpus.");
   };
 
+  const submitReview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    let specification: unknown;
+    try {
+      specification = parseObject(reviewJson);
+    } catch (error) {
+      await action.run(async () => {
+        throw error;
+      });
+      return;
+    }
+    const ok = await action.run(
+      () =>
+        api.post(`/reviewer/benchmarks/${reviewing?.id}/${reviewing?.mode}`, {
+          specification,
+        }),
+      "Đã lưu thẩm định benchmark.",
+    );
+    if (ok) {
+      setReviewing(null);
+      resource.refresh();
+    }
+  };
+
   return (
     <div>
       {/* KPI Cards when evaluation is run */}
@@ -645,28 +1063,41 @@ function BenchmarksTab() {
         <div className="modern-kpis">
           <div className="modern-kpi-card">
             <div className="modern-kpi-title">Precision (Độ chính xác)</div>
-            <div className="modern-kpi-value" style={{ color: "var(--role-student)" }}>
+            <div
+              className="modern-kpi-value"
+              style={{ color: "var(--role-student)" }}
+            >
               {(evaluation.precision * 100).toFixed(1)}%
             </div>
             <div className="modern-kpi-sub">Field-level precision</div>
           </div>
           <div className="modern-kpi-card">
             <div className="modern-kpi-title">Recall (Độ bao phủ)</div>
-            <div className="modern-kpi-value" style={{ color: "var(--role-teacher)" }}>
+            <div
+              className="modern-kpi-value"
+              style={{ color: "var(--role-teacher)" }}
+            >
               {(evaluation.recall * 100).toFixed(1)}%
             </div>
             <div className="modern-kpi-sub">Field-level recall</div>
           </div>
           <div className="modern-kpi-card">
             <div className="modern-kpi-title">F1 Score</div>
-            <div className="modern-kpi-value" style={{ color: "var(--role-reviewer)" }}>
+            <div
+              className="modern-kpi-value"
+              style={{ color: "var(--role-reviewer)" }}
+            >
               {(evaluation.f1 * 100).toFixed(1)}%
             </div>
             <div className="modern-kpi-sub">F1 harmonic mean</div>
           </div>
           <div className="modern-kpi-card">
-            <div className="modern-kpi-title">Cohen's Kappa (Độ đồng thuận)</div>
-            <div className="modern-kpi-value">{evaluation.kappa.toFixed(3)}</div>
+            <div className="modern-kpi-title">
+              Cohen's Kappa (Độ đồng thuận)
+            </div>
+            <div className="modern-kpi-value">
+              {evaluation.kappa.toFixed(3)}
+            </div>
             <div className="modern-kpi-sub">Inter-annotator agreement</div>
           </div>
         </div>
@@ -676,22 +1107,38 @@ function BenchmarksTab() {
         <div className="modern-card-header">
           <div>
             <h2>Tập đề Benchmark & Đánh giá Nghiên cứu (FR-REV-06)</h2>
-            <p>Quy trình hai chuyên gia độc lập annotate và chuyên gia thứ ba phân xử tạo Gold Specification.</p>
+            <p>
+              Quy trình hai chuyên gia độc lập annotate và chuyên gia thứ ba
+              phân xử tạo Gold Specification.
+            </p>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
             <button
               type="button"
               className="role-switch-pill"
-              style={{ border: "1px solid var(--border-subtle)", background: "#ffffff", padding: "8px 14px" }}
-              disabled={!resource.data?.some(b => b.goldSpecification)}
-              onClick={() => downloadJson(resource.data?.filter(b => b.goldSpecification), "physlive-gold-corpus.json")}
+              style={{
+                border: "1px solid var(--border-subtle)",
+                background: "#ffffff",
+                padding: "8px 14px",
+              }}
+              disabled={!resource.data?.some((b) => b.goldSpecification)}
+              onClick={() =>
+                downloadJson(
+                  resource.data?.filter((b) => b.goldSpecification),
+                  "physlive-gold-corpus.json",
+                )
+              }
             >
               Xuất Gold Corpus JSON
             </button>
             <button
               type="button"
               className="prediction-submit-btn"
-              style={{ background: "var(--role-reviewer)", padding: "8px 16px", fontSize: "13px" }}
+              style={{
+                background: "var(--role-reviewer)",
+                padding: "8px 16px",
+                fontSize: "13px",
+              }}
               disabled={action.busy}
               onClick={() => void runEvaluationPipeline()}
             >
@@ -700,7 +1147,11 @@ function BenchmarksTab() {
             <button
               type="button"
               className="role-switch-pill"
-              style={{ border: "1px solid var(--border-subtle)", background: "#ffffff", padding: "8px 14px" }}
+              style={{
+                border: "1px solid var(--border-subtle)",
+                background: "#ffffff",
+                padding: "8px 14px",
+              }}
               onClick={() => setCreating(true)}
             >
               + Thêm bài Benchmark
@@ -712,29 +1163,49 @@ function BenchmarksTab() {
         {action.feedback}
 
         {creating && (
-          <div className="modern-modal-overlay" onClick={() => setCreating(false)}>
-            <div className="modern-modal-content" onClick={e => e.stopPropagation()}>
+          <dialog
+            open
+            className="modern-modal-overlay"
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) setCreating(false);
+            }}
+          >
+            <div className="modern-modal-content">
               <div className="modern-modal-header">
                 <h3>Thêm đề bài vào Benchmark Corpus</h3>
-                <button type="button" className="modern-modal-close" onClick={() => setCreating(false)}>✕</button>
+                <button
+                  type="button"
+                  className="modern-modal-close"
+                  onClick={() => setCreating(false)}
+                >
+                  ✕
+                </button>
               </div>
               <form onSubmit={create}>
                 <div className="form-group" style={{ marginBottom: "14px" }}>
-                  <label>Nội dung đề bài *</label>
-                  <textarea name="problemText" rows={4} required placeholder="Ví dụ: Một ô tô bắt đầu chuyển động thẳng nhanh dần đều..." />
+                  <label htmlFor="benchmark-problem-text">
+                    Nội dung đề bài *
+                  </label>
+                  <textarea
+                    id="benchmark-problem-text"
+                    name="problemText"
+                    rows={4}
+                    required
+                    placeholder="Ví dụ: Một ô tô bắt đầu chuyển động thẳng nhanh dần đều..."
+                  />
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Chủ đề *</label>
-                    <select name="topic">
+                    <label htmlFor="benchmark-topic">Chủ đề *</label>
+                    <select id="benchmark-topic" name="topic">
                       <option value="Kinematics">Kinematics (Động học)</option>
                       <option value="Dynamics">Dynamics (Động lực học)</option>
                       <option value="Circuits">Circuits (Mạch điện)</option>
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Khối lớp THPT *</label>
-                    <select name="gradeScope">
+                    <label htmlFor="benchmark-grade">Khối lớp THPT *</label>
+                    <select id="benchmark-grade" name="gradeScope">
                       <option value="10">Lớp 10</option>
                       <option value="11">Lớp 11</option>
                       <option value="12">Lớp 12</option>
@@ -742,20 +1213,112 @@ function BenchmarksTab() {
                   </div>
                 </div>
                 <div className="form-group" style={{ marginBottom: "18px" }}>
-                  <label>Nguồn đề / Quyền sử dụng *</label>
-                  <input name="sourceCategory" required placeholder="SGK Vật lý 10 Kết nối tri thức, Tr. 32" />
+                  <label htmlFor="benchmark-source">
+                    Nguồn đề / Quyền sử dụng *
+                  </label>
+                  <input
+                    id="benchmark-source"
+                    name="sourceCategory"
+                    required
+                    placeholder="SGK Vật lý 10 Kết nối tri thức, Tr. 32"
+                  />
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                  <button type="button" className="role-switch-pill" style={{ border: "1px solid var(--border-subtle)", padding: "8px 16px" }} onClick={() => setCreating(false)}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "10px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="role-switch-pill"
+                    style={{
+                      border: "1px solid var(--border-subtle)",
+                      padding: "8px 16px",
+                    }}
+                    onClick={() => setCreating(false)}
+                  >
                     Hủy
                   </button>
-                  <button type="submit" className="prediction-submit-btn" style={{ background: "var(--role-reviewer)" }} disabled={action.busy}>
+                  <button
+                    type="submit"
+                    className="prediction-submit-btn"
+                    style={{ background: "var(--role-reviewer)" }}
+                    disabled={action.busy}
+                  >
                     Thêm vào Corpus
                   </button>
                 </div>
               </form>
             </div>
-          </div>
+          </dialog>
+        )}
+
+        {reviewing && (
+          <dialog
+            open
+            className="modern-modal-overlay"
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) setReviewing(null);
+            }}
+          >
+            <div className="modern-modal-content">
+              <div className="modern-modal-header">
+                <h3>
+                  {reviewing.mode === "annotations"
+                    ? "Annotate benchmark"
+                    : "Phân xử benchmark"}
+                </h3>
+                <button
+                  type="button"
+                  className="modern-modal-close"
+                  onClick={() => setReviewing(null)}
+                >
+                  ✕
+                </button>
+              </div>
+              <p>
+                Nhập specification JSON. Backend sẽ kiểm tra đủ objects,
+                quantities, relations và quy tắc độc lập annotator.
+              </p>
+              <form onSubmit={submitReview}>
+                <textarea
+                  id="review-json"
+                  aria-label="Specification JSON"
+                  className="ops-code"
+                  rows={16}
+                  spellCheck={false}
+                  value={reviewJson}
+                  onChange={(e) => setReviewJson(e.target.value)}
+                  required
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "10px",
+                    marginTop: "14px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="role-switch-pill"
+                    onClick={() => setReviewing(null)}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="prediction-submit-btn"
+                    disabled={action.busy}
+                  >
+                    {action.busy ? "Đang lưu…" : "Lưu thẩm định"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </dialog>
         )}
 
         <div className="modern-table-wrapper">
@@ -770,20 +1333,28 @@ function BenchmarksTab() {
               </tr>
             </thead>
             <tbody>
-              {resource.data?.map(b => (
+              {resource.data?.map((b) => (
                 <tr key={b.id}>
                   <td style={{ maxWidth: "340px" }}>
                     <span style={{ fontSize: "13px" }}>{b.problemText}</span>
                   </td>
                   <td>
                     <strong>{b.topic}</strong>
-                    <small style={{ display: "block", color: "var(--text-muted)" }}>Lớp {b.gradeScope}</small>
+                    <small
+                      style={{ display: "block", color: "var(--text-muted)" }}
+                    >
+                      Lớp {b.gradeScope}
+                    </small>
                   </td>
                   <td>
-                    <small style={{ color: "var(--text-secondary)" }}>{b.sourceCategory}</small>
+                    <small style={{ color: "var(--text-secondary)" }}>
+                      {b.sourceCategory}
+                    </small>
                   </td>
                   <td>
-                    <span className={`status-pill ${b.goldSpecification ? "pass" : "draft"}`}>
+                    <span
+                      className={`status-pill ${b.goldSpecification ? "pass" : "draft"}`}
+                    >
                       {b.goldSpecification ? "Gold Ready" : "Chờ thẩm định"}
                     </span>
                   </td>
@@ -791,6 +1362,47 @@ function BenchmarksTab() {
                     <small style={{ color: "var(--text-muted)" }}>
                       {b.annotationCount} chuyên gia đã chú giải
                     </small>
+                    <div
+                      style={{ display: "flex", gap: "6px", marginTop: "8px" }}
+                    >
+                      {b.canAnnotate && (
+                        <button
+                          type="button"
+                          className="role-switch-pill"
+                          onClick={() => {
+                            setReviewing({ id: b.id, mode: "annotations" });
+                            setReviewJson(
+                              '{\n  "objects": [],\n  "quantities": [],\n  "relations": []\n}',
+                            );
+                          }}
+                        >
+                          Annotate
+                        </button>
+                      )}
+                      {b.canAdjudicate && (
+                        <button
+                          type="button"
+                          className="prediction-submit-btn"
+                          style={{ padding: "5px 9px", fontSize: "11px" }}
+                          onClick={() => {
+                            setReviewing({ id: b.id, mode: "adjudication" });
+                            setReviewJson(
+                              JSON.stringify(
+                                b.annotations[0]?.specification ?? {
+                                  objects: [],
+                                  quantities: [],
+                                  relations: [],
+                                },
+                                null,
+                                2,
+                              ),
+                            );
+                          }}
+                        >
+                          Phân xử
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

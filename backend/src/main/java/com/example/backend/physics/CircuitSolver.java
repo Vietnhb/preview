@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @Component
@@ -25,7 +23,7 @@ public class CircuitSolver implements PhysicsSolver {
         double capacitance = positive(PhysicsValues.require(specification, overrides, "capacitance", "c"));
         double tau = resistance * capacitance;
         double duration = Math.max(0.01, durationSeconds);
-        double step = Math.max(0.001, Math.min(0.2, stepSeconds));
+        double step = Math.clamp(stepSeconds, 0.001, 0.2);
         List<Double> times = new ArrayList<>();
         List<Double> voltages = new ArrayList<>();
         List<Double> currents = new ArrayList<>();

@@ -3,9 +3,11 @@ import axios from "axios";
 import api from "../../api/axios";
 
 export function message(error: unknown) {
-  return axios.isAxiosError<{ message?: string }>(error)
-    ? error.response?.data?.message || "Không thể kết nối máy chủ. Vui lòng thử lại."
-    : error instanceof Error ? error.message : "Thao tác chưa hoàn tất.";
+  if (axios.isAxiosError<{ message?: string }>(error)) {
+    return error.response?.data?.message || "Không thể kết nối máy chủ. Vui lòng thử lại.";
+  }
+  if (error instanceof Error) return error.message;
+  return "Thao tác chưa hoàn tất.";
 }
 export function useResource<T>(url: string) {
   const [revision, setRevision] = useState(0);
@@ -33,7 +35,7 @@ export function useAction() {
     catch (e) { setError(message(e)); return false; }
     finally { lock.current = false; setBusy(false); }
   };
-  return { busy, run, feedback: <>{error && <div className="ops-alert" role="alert">{error}</div>}{notice && <div className="ops-success" role="status">{notice}</div>}</> };
+  return { busy, run, feedback: <>{error && <div className="ops-alert" role="alert">{error}</div>}{notice && <output className="ops-success">{notice}</output>}</> };
 }
 export function parseObject(value: string) {
   const parsed: unknown = JSON.parse(value);

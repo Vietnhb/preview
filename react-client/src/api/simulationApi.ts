@@ -1,5 +1,5 @@
 import axiosClient from "./axios";
-import type { Simulation } from "../types/physlive";
+import type { Simulation, SimulationSummary } from "../types/physlive";
 
 /**
  * API endpoints for physics simulation
@@ -41,9 +41,9 @@ export const adjustSimulation = (simulationId: string, adjustableParams: Record<
     { timeout: 20000 }
   ).then(r => normalizeSimulation(r.data));
 
-export const simulationHistory = () => 
-  axiosClient.get<BackendSimulation[]>("/simulations")
-    .then(r => r.data.map(normalizeSimulation));
+export const recentSimulationHistory = () =>
+  axiosClient.get<SimulationSummary[]>("/simulations/recent")
+    .then(r => r.data);
 
 export const getSimulation = (simulationId: string) => 
   axiosClient.get<BackendSimulation>(`/simulations/${simulationId}`)

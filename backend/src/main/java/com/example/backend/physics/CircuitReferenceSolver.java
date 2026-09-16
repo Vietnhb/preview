@@ -1,6 +1,5 @@
 package com.example.backend.physics;
 
-import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,5 +19,10 @@ public class CircuitReferenceSolver implements ReferenceSolver {
         double current = (discharging ? -voltage : voltage) / resistance * decay;
         return new AnalyticalPoint(Map.of("voltage", capacitorVoltage, "current", current));
     }
-    private double positive(double value) { if (value <= 0) throw new IllegalArgumentException("R and C must be positive"); return value; }
+    private double positive(double value) {
+        if (value <= 0) {
+            throw new IllegalArgumentException("R and C must be positive");
+        }
+        return value;
+    }
 }

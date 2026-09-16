@@ -39,7 +39,8 @@ public class BenchmarkReviewService {
     @Transactional
     public View annotate(UUID id, AnnotationRequest request) {
         validate(request.specification());
-        BenchmarkProblem b = locked(id); String actor = actor();
+        BenchmarkProblem b = locked(id);
+        String actor = actor();
         if (!b.getAdjudications().isEmpty() || b.getAnnotations().size() >= 2
                 || b.getAnnotations().stream().anyMatch(a -> a.getAnnotatorReference().equals(actor)))
             throw new ApiException(HttpStatus.CONFLICT, "Two independent annotators are required; an annotation cannot be replaced");
@@ -50,7 +51,8 @@ public class BenchmarkReviewService {
     @Transactional
     public View adjudicate(UUID id, AnnotationRequest request) {
         validate(request.specification());
-        BenchmarkProblem b = locked(id); String actor = actor();
+        BenchmarkProblem b = locked(id);
+        String actor = actor();
         if (b.getAnnotations().size() != 2 || !b.getAdjudications().isEmpty()
                 || b.getAnnotations().stream().anyMatch(a -> a.getAnnotatorReference().equals(actor)))
             throw new ApiException(HttpStatus.CONFLICT, "A third independent reviewer must adjudicate after two annotations");
@@ -80,12 +82,17 @@ public class BenchmarkReviewService {
         JsonNode gold = b.getAdjudications().isEmpty() ? null : b.getAdjudications().get(0).getResolvedSpecification();
         boolean agreed = complete && b.getAnnotations().get(0).getGoldSpecification().equals(b.getAnnotations().get(1).getGoldSpecification());
         if (gold == null && agreed) gold = b.getAnnotations().get(0).getGoldSpecification();
-        String status = gold != null ? "GOLD_READY" : complete ? "DISAGREEMENT" : "ANNOTATING";
+        String status = statusFor(gold, complete);
         List<AnnotationView> visible = b.getAnnotations().stream()
                 .filter(a -> complete || a.getAnnotatorReference().equals(actor))
                 .map(a -> new AnnotationView(a.getAnnotatorReference(), a.getGoldSpecification())).toList();
         return new View(b.getId(), b.getProblemText(), b.getTopic(), b.getGradeScope(), b.getSourceCategory(), status,
                 b.getAnnotations().size(), b.isActive() && !complete && !own,
                 b.isActive() && complete && !own && gold == null, visible, gold);
+    }
+
+    private String statusFor(JsonNode gold, boolean complete) {
+        if (gold != null) return "GOLD_READY";
+        return complete ? "DISAGREEMENT" : "ANNOTATING";
     }
 }

@@ -25,6 +25,7 @@ import com.example.backend.dto.problem.PageResponse;
 import com.example.backend.dto.problem.ProblemResponse;
 import com.example.backend.dto.problem.ProblemSummaryResponse;
 import com.example.backend.dto.problem.UpdateProblemTextRequest;
+import com.example.backend.dto.problem.UpdateSpecificationRequest;
 import com.example.backend.entity.SourceAsset;
 import com.example.backend.service.ProblemService;
 
@@ -70,6 +71,12 @@ public class ProblemController {
     @PostMapping("/{id}/extract")
     public ProblemResponse extract(@PathVariable UUID id) {
         return problemService.extract(id);
+    }
+
+    @PutMapping("/{id}/specification")
+    public ProblemResponse updateSpecification(@PathVariable UUID id,
+            @RequestBody UpdateSpecificationRequest request) {
+        return problemService.updateSpecification(id, request);
     }
 
     @PostMapping("/{id}/confirm")

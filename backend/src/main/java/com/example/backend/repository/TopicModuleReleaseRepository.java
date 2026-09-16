@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface TopicModuleReleaseRepository extends JpaRepository<TopicModuleRelease, UUID> {
     List<TopicModuleRelease> findByTopicIgnoreCaseOrderByCreatedAtDesc(String topic);
+
+    List<TopicModuleRelease> findAllByOrderByTopicAscModuleNameAscSchemaVersionAsc();
 }

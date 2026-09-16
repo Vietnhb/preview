@@ -131,11 +131,13 @@ export function sample(values: number[] | undefined, times: number[], time: numb
 export function readSeries(simulation: Simulation, source: string | undefined): number[] {
   if (!source) return [];
   const [group, key] = source.split(".");
-  const record = group === "positions" ? simulation.positions
-    : group === "velocities" ? simulation.velocities
-      : group === "accelerations" ? simulation.accelerations
-        : group === "values" ? simulation.values
-          : undefined;
+  const records: Record<string, Record<string, number[]>> = {
+    positions: simulation.positions,
+    velocities: simulation.velocities,
+    accelerations: simulation.accelerations,
+    values: simulation.values,
+  };
+  const record = records[group];
   return record?.[key] ?? [];
 }
 

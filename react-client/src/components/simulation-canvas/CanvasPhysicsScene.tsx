@@ -3,12 +3,12 @@ import type { Simulation } from "../../types/physlive";
 import { paletteFor, presentationFor, type OverlayState } from "./model";
 import { renderScene, sceneRegistry } from "./renderers";
 
-type CanvasPhysicsSceneProps = {
+type CanvasPhysicsSceneProps = Readonly<{
   simulation: Simulation;
   index: number;
   overlays: OverlayState;
   time?: number;
-};
+}>;
 
 export default function CanvasPhysicsScene(props: CanvasPhysicsSceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,7 +42,7 @@ export default function CanvasPhysicsScene(props: CanvasPhysicsSceneProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !supported) return;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = Math.min(globalThis.devicePixelRatio || 1, 2);
     canvas.width = Math.round(size.width * ratio);
     canvas.height = Math.round(size.height * ratio);
     const ctx = canvas.getContext("2d");
@@ -63,7 +63,6 @@ export default function CanvasPhysicsScene(props: CanvasPhysicsSceneProps) {
         <canvas
           ref={canvasRef}
           className="physics-scene-canvas"
-          role="img"
           aria-label={`Mô phỏng ${scene} tại thời điểm ${(props.time ?? props.simulation.time[props.index] ?? 0).toFixed(2)} giây`}
         />
       ) : <div className="learn-blocked" role="alert">Schema chưa khai báo scene renderer hợp lệ.</div>}

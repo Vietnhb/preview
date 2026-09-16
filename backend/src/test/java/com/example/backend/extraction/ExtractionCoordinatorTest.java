@@ -43,12 +43,14 @@ class ExtractionCoordinatorTest {
     }
 
     @Test
-    void rejectsExtractionWhenAiIsNotConfigured() {
+    void usesDeterministicFallbackWhenAiIsNotConfigured() {
         when(openRouter.isAvailable()).thenReturn(false);
 
-        assertThatThrownBy(() -> coordinator.extract("problem"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("OPENROUTER_API_KEY");
+        ExtractionResult result = coordinator.extract("Một vật chuyển động với vận tốc 10 m/s và gia tốc 2 m/s2 tại vị trí 0 m.");
+
+        assertThat(result.path()).isEqualTo(ExtractionPath.RULE_BASED);
+        assertThat(result.outcome()).isEqualTo(ExtractionOutcome.RULE_BASED_FALLBACK);
+        assertThat(result.document().schemaId()).isEqualTo("kinematics_1d");
     }
 
     @Test

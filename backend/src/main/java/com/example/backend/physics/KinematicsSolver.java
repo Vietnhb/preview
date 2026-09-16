@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @Component
@@ -23,7 +22,7 @@ public class KinematicsSolver implements PhysicsSolver {
         if (!model.equals("uniform_acceleration_1d") && !model.equals("projectile_2d")) throw new IllegalArgumentException("Unsupported kinematics model: " + model);
         boolean projectile = model.equals("projectile_2d");
         double duration = Math.max(0.01, durationSeconds);
-        double step = Math.max(0.001, Math.min(0.2, stepSeconds));
+        double step = Math.clamp(stepSeconds, 0.001, 0.2);
         double x = PhysicsValues.require(specification, overrides, "initial_position", "x0", "position");
         double velocity = PhysicsValues.require(specification, overrides, "initial_velocity", "v0", "velocity");
         double acceleration = projectile ? 0 : PhysicsValues.require(specification, overrides, "acceleration", "a");
@@ -31,6 +30,18 @@ public class KinematicsSolver implements PhysicsSolver {
         double angle = projectile ? PhysicsValues.require(specification, overrides, "launch_angle", "angle", "theta") : 0;
         double vx = projectile ? velocity * Math.cos(angle) : velocity;
         double vy = projectile ? velocity * Math.sin(angle) : 0;
+        return simulate(new SimulationState(projectile, duration, step, x, acceleration, y, vx, vy));
+    }
+
+    private SolverOutput simulate(SimulationState state) {
+        boolean projectile = state.projectile();
+        double duration = state.duration();
+        double step = state.step();
+        double x = state.x();
+        double acceleration = state.acceleration();
+        double y = state.y();
+        double vx = state.vx();
+        double vy = state.vy();
         List<Double> time = new ArrayList<>();
         Map<String, List<Double>> positions = new LinkedHashMap<>();
         Map<String, List<Double>> velocities = new LinkedHashMap<>();
@@ -53,9 +64,7 @@ public class KinematicsSolver implements PhysicsSolver {
             vySeries.add(projectile ? vy : 0d);
             axSeries.add(projectile ? 0d : acceleration);
             aySeries.add(projectile ? -GRAVITY : 0d);
-            if (i == points) {
-                break;
-            }
+            if (i == points) break;
             double dt = Math.min(step, duration - currentTime);
             x += vx * dt;
             if (projectile) {
@@ -80,5 +89,8 @@ public class KinematicsSolver implements PhysicsSolver {
         values.put("ay", aySeries);
         return new SolverOutput(time, positions, velocities, accelerations, values);
     }
+
+    private record SimulationState(boolean projectile, double duration, double step,
+                                   double x, double acceleration, double y, double vx, double vy) { }
 
 }

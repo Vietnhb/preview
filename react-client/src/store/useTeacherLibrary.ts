@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { create } from "zustand";
-import { libraryFolders, personalLibrary } from "../api/physliveApi";
+import { libraryFolders, personalLibrary } from "../api/libraryApi";
 import { getToken } from "../utils/token";
 import { usePhysliveStore } from "./usePhysliveStore";
 import type { LibraryFolder, LibraryItem } from "../types/physlive";
