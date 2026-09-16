@@ -23,6 +23,7 @@ type Props = {
   historyError: boolean;
   onRetryHistory: () => void;
   onOpenRecent: (item: SimulationSummary) => void;
+  openingRecentId: string | null;
   onExampleSelect: (example: string) => void;
 };
 
@@ -44,6 +45,7 @@ export default function EmptySimulationFrame({
   historyError,
   onRetryHistory,
   onOpenRecent,
+  openingRecentId,
   onExampleSelect,
 }: Readonly<Props>) {
   const [libraryCollapsed, setLibraryCollapsed] = useState(false);
@@ -135,9 +137,9 @@ export default function EmptySimulationFrame({
                     {!historyLoading && !historyError && recent.length > 0 && (
                       <div className="create-recent-list">
                         {recent.slice(0, 6).map(item => (
-                          <button type="button" className="create-recent-item" key={item.simulationId} onClick={() => onOpenRecent(item)}>
+                          <button type="button" className="create-recent-item" key={item.simulationId} disabled={Boolean(openingRecentId)} aria-busy={openingRecentId === item.simulationId} onClick={() => onOpenRecent(item)}>
                             <span className="create-recent-icon"><Icon name="atom" /></span>
-                            <span><strong>{item.schemaId}</strong><small>{item.status === "READY" ? "Đã kiểm chứng" : "Đang xử lý"}</small></span>
+                            <span><strong>{openingRecentId === item.simulationId ? "Đang mở…" : item.schemaId}</strong><small>{item.status === "READY" ? "Đã kiểm chứng" : "Đang xử lý"}</small></span>
                             <Icon name="arrow" />
                           </button>
                         ))}

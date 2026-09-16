@@ -1,12 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import axios from "axios";
-import LearningWorkspace from "../../components/workspace/LearningWorkspace";
 import CreateSimulationModal from "../../components/workspace/CreateSimulationModal";
 import EmptySimulationFrame from "../../components/workspace/EmptySimulationFrame";
+import LearningWorkspace from "../../components/workspace/LearningWorkspace";
 import { confirmProblem, createProblem, createProblemFromImage, extractProblem, updateProblemText, updateSpecification } from "../../api/problemApi";
-import mammoth from "mammoth";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
 import { createLibraryFolder } from "../../api/libraryApi";
 import { getSimulation, recentSimulationHistory, runSimulation } from "../../api/simulationApi";
 import { useTeacherLibrary } from "../../store/useTeacherLibrary";
@@ -14,6 +11,16 @@ import { usePhysliveStore } from "../../store/usePhysliveStore";
 import { getToken } from "../../utils/token";
 import type { Ambiguity, ConversationMessage, LibraryItem, Problem, Simulation, SimulationSummary, Specification } from "../../types/physlive";
 import "../../styles/learning.css";
+
+const simulationCache = new Map<string, Simulation>();
+
+function rememberSimulation(value: Simulation) {
+  simulationCache.set(value.simulationId, value);
+  if (simulationCache.size > 12) {
+    const oldestId = simulationCache.keys().next().value;
+    if (oldestId) simulationCache.delete(oldestId);
+  }
+}
 
 function apiMessage(error: unknown) {
   if (axios.isAxiosError<{ message?: string }>(error)) {
@@ -36,8 +43,12 @@ function fileExtension(file: File) {
 }
 
 async function readPdfText(file: File) {
-  GlobalWorkerOptions.workerSrc = pdfWorker;
-  const loadingTask = getDocument({ data: await file.arrayBuffer() });
+  const [pdfjs, worker] = await Promise.all([
+    import("pdfjs-dist/legacy/build/pdf.mjs"),
+    import("pdfjs-dist/legacy/build/pdf.worker.mjs?url"),
+  ]);
+  pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+  const loadingTask = pdfjs.getDocument({ data: await file.arrayBuffer() });
   const document = await loadingTask.promise;
   try {
     const pages: string[] = [];
@@ -56,6 +67,7 @@ async function readDocumentText(file: File) {
   const extension = fileExtension(file);
   if (extension === "txt" || file.type === "text/plain") return (await file.text()).trim();
   if (extension === "docx" || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    const { default: mammoth } = await import("mammoth");
     return (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value.trim();
   }
   if (extension === "pdf" || file.type === "application/pdf") return readPdfText(file);
@@ -95,6 +107,10 @@ export default function Workspace() {
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const { folders, setFolders, libraryItems, libraryLoading, libraryError, setLibraryError, retryLibrary } = useTeacherLibrary();
   const [openingLibraryId, setOpeningLibraryId] = useState<string | null>(null);
+  const [openingRecentId, setOpeningRecentId] = useState<string | null>(null);
+  const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(() => simulation?.simulationId ?? null);
+  const [simulationLoadingId, setSimulationLoadingId] = useState<string | null>(null);
+  const selectionSourceRef = useRef<"library" | "recent">("library");
   const [composerOrigin, setComposerOrigin] = useState<{ simulation: Simulation; problem: Problem | null } | null>(null);
   /** Create/clarify composer — open by default when no simulation is loaded. */
   const [composerOpen, setComposerOpen] = useState(() => !simulation);
@@ -102,6 +118,59 @@ export default function Workspace() {
   const showTeacherLibrary = Boolean(token) && user?.role === "TEACHER";
   const ambiguities = openAmbiguities(pendingProblem);
   const activeAmbiguity = ambiguities[Math.min(ambiguityStep, Math.max(ambiguities.length - 1, 0))];
+
+  useEffect(() => {
+    if (simulation) rememberSimulation(simulation);
+  }, [simulation]);
+
+  useEffect(() => {
+    if (!selectedSimulationId) return;
+    const requestId = selectedSimulationId;
+    const source = selectionSourceRef.current;
+    let active = true;
+    const cached = simulationCache.get(requestId);
+    setSimulationLoadingId(requestId);
+
+    if (cached) {
+      if (usePhysliveStore.getState().simulation?.simulationId !== requestId) setProblem(null);
+      setSimulation(cached);
+      setComposerOrigin(null);
+      setComposerOpen(false);
+      setPendingProblem(null);
+      setSpecificationReview(null);
+      setSimulationLoadingId(null);
+      setOpeningLibraryId(null);
+      setOpeningRecentId(null);
+      return () => { active = false; };
+    }
+
+    void getSimulation(requestId)
+      .then(loaded => {
+        if (!active) return;
+        rememberSimulation(loaded);
+        setProblem(null);
+        setSimulation(loaded);
+        setComposerOrigin(null);
+        setComposerOpen(false);
+        setPendingProblem(null);
+        setSpecificationReview(null);
+      })
+      .catch(() => {
+        if (!active) return;
+        if (source === "library") setLibraryError("Không mở được mô phỏng đã lưu.");
+        else setHistoryError(true);
+      })
+      .finally(() => {
+        if (!active) return;
+        setSimulationLoadingId(null);
+        setOpeningLibraryId(null);
+        setOpeningRecentId(null);
+      });
+
+    return () => { active = false; };
+  // Loading is intentionally keyed only by the selected simulation ID.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSimulationId]);
 
   const appendConversationMessage = (role: ConversationMessage["role"], text: string) => {
     setConversation(messages => [...messages, {
@@ -136,12 +205,21 @@ export default function Workspace() {
     }
     setQuestionTyping(true);
     let visible = 0;
-    const timer = globalThis.setInterval(() => {
+    let lastTick = 0;
+    let animationFrame: number | null = null;
+    const tick = (now: number) => {
+      if (now - lastTick < 24) {
+        animationFrame = requestAnimationFrame(tick);
+        return;
+      }
+      lastTick = now;
       visible = Math.min(question.length, visible + 2);
       setTypedQuestion(question.slice(0, visible));
-      if (visible >= question.length) { globalThis.clearInterval(timer); setQuestionTyping(false); }
-    }, 24);
-    return () => globalThis.clearInterval(timer);
+      if (visible >= question.length) { setQuestionTyping(false); animationFrame = null; }
+      else animationFrame = requestAnimationFrame(tick);
+    };
+    animationFrame = requestAnimationFrame(tick);
+    return () => { if (animationFrame !== null) cancelAnimationFrame(animationFrame); };
   }, [activeAmbiguity?.code, activeAmbiguity?.question]);
 
   const handleSourceFileChange = (file: File | null) => {
@@ -168,7 +246,11 @@ export default function Workspace() {
 
   /** Open a fresh three-column workspace for creating a simulation. */
   const openComposer = () => {
+    setSimulationLoadingId(null);
+    setOpeningLibraryId(null);
+    setOpeningRecentId(null);
     setComposerOrigin(current ? { simulation: current, problem } : null);
+    setSelectedSimulationId(null);
     setSimulation(null);
     setProblem(null);
     setPendingProblem(null);
@@ -188,8 +270,11 @@ export default function Workspace() {
   const closeComposer = () => {
     if (loading) return;
     if (composerOrigin) {
+      setSelectedSimulationId(composerOrigin.simulation.simulationId);
       setSimulation(composerOrigin.simulation);
       setProblem(composerOrigin.problem);
+    } else {
+      setSelectedSimulationId(null);
     }
     setComposerOrigin(null);
     setComposerOpen(false);
@@ -232,38 +317,25 @@ export default function Workspace() {
     }
   };
 
+  const selectSimulation = (simulationId: string, source: "library" | "recent"): boolean => {
+    if (simulationLoadingId || selectedSimulationId === simulationId) return false;
+    selectionSourceRef.current = source;
+    setSelectedSimulationId(simulationId);
+    return true;
+  };
+
   const openWorkspaceLibraryItem = async (item: LibraryItem) => {
-    if (openingLibraryId) return;
-    setOpeningLibraryId(item.id);
+    if (simulationLoadingId) return;
     setLibraryError("");
-    try {
-      const selected = await getSimulation(item.simulationId);
-      setProblem(null);
-      setSimulation(selected);
-      setComposerOrigin(null);
-      setComposerOpen(false);
-      setPendingProblem(null);
-      setSpecificationReview(null);
-    } catch {
-      setLibraryError("Không mở được mô phỏng đã lưu.");
-    } finally {
-      setOpeningLibraryId(null);
-    }
+    setHistoryError(false);
+    if (selectSimulation(item.simulationId, "library")) setOpeningLibraryId(item.id);
   };
 
   const openRecent = async (item: SimulationSummary) => {
+    if (simulationLoadingId) return;
     setHistoryError(false);
-    try {
-      const fullSimulation = await getSimulation(item.simulationId);
-      setProblem(null);
-      setSimulation(fullSimulation);
-      setComposerOrigin(null);
-      setComposerOpen(false);
-      setPendingProblem(null);
-      setSpecificationReview(null);
-    } catch {
-      setHistoryError(true);
-    }
+    setLibraryError("");
+    if (selectSimulation(item.simulationId, "recent")) setOpeningRecentId(item.simulationId);
   };
 
   const finishSimulation = async (resolvedProblem: Problem) => {
@@ -274,6 +346,8 @@ export default function Workspace() {
     setStage("Đang chạy solver và đối chiếu kết quả…");
     appendConversationMessage("assistant", "Các dữ kiện đã đủ. Mình bắt đầu chạy mô phỏng để kiểm tra kết quả.");
     const result = await runSimulation(specification.id, specification.schemaId, {});
+    rememberSimulation(result);
+    setSelectedSimulationId(result.simulationId);
     setProblem(resolvedProblem);
     setSimulation(result);
     const recentResult: SimulationSummary = {
@@ -521,13 +595,15 @@ export default function Workspace() {
   const composer = composerOpen ? <CreateSimulationModal {...composerProps} inline /> : null;
 
   const frame = current ? (
-    <LearningWorkspace
-      key={current.runId || current.simulationId}
-      simulation={current}
-      problem={problem}
-      onUpdate={setSimulation}
-      onNewSimulation={openComposer}
-    />
+      <LearningWorkspace
+        simulation={current}
+        problem={problem}
+        onUpdate={setSimulation}
+        onNewSimulation={openComposer}
+        onSelectSimulation={simulationId => selectSimulation(simulationId, "library")}
+        simulationLoading={Boolean(simulationLoadingId)}
+        loadingSimulationId={simulationLoadingId}
+      />
   ) : (
     <EmptySimulationFrame
       showTeacherLibrary={showTeacherLibrary}
@@ -546,6 +622,7 @@ export default function Workspace() {
       historyError={historyError}
       onRetryHistory={() => setHistoryAttempt(value => value + 1)}
       onOpenRecent={openRecent}
+      openingRecentId={openingRecentId}
       onExampleSelect={setDescription}
     />
   );

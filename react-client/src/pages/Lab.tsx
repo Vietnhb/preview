@@ -2,253 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Icon from "../components/common/LearningIcon";
 import LearningHeader from "../components/common/LearningHeader";
-import {
-  assignmentSubmissions,
-  studentOptions,
-  teacherAssignments,
-} from "../api/assignmentApi";
-import type {
-  Assignment,
-  AssignmentSubmission,
-  StudentOption,
-} from "../types/physlive";
+import { assignmentSubmissions, studentOptions, teacherAssignments } from "../api/assignmentApi";
+import type { AssignmentSubmission, StudentOption } from "../types/physlive";
+import { TeacherAssignmentList } from "../components/roles/teacher/submissions/TeacherAssignmentList";
+import { TeacherSubmissionTable } from "../components/roles/teacher/submissions/TeacherSubmissionTable";
+import { TeacherSubmissionTableLoading } from "../components/roles/teacher/submissions/TeacherSubmissionTableLoading";
+import type { AssignmentRecord, SubmissionFilter } from "../components/roles/teacher/submissions/teacherSubmissionTypes";
+import { formatDate } from "../components/roles/teacher/submissions/teacherSubmissionUtils";
 import "../styles/learning.css";
 import "../styles/modern-roles.css";
 import "../styles/lab.css";
-
-type AssignmentRecord = {
-  assignment: Assignment;
-  submissions: AssignmentSubmission[];
-};
-
-type SubmissionFilter = "all" | "submitted" | "pending";
-
-function formatDate(value: string | undefined) {
-  if (!value) return "Chưa đặt hạn";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "Chưa đặt hạn"
-    : date.toLocaleDateString("vi-VN");
-}
-
-function formatShortDate(value: string | undefined) {
-  if (!value) return "Chưa đặt hạn";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Chưa đặt hạn";
-  return `${String(date.getDate()).padStart(2, "0")} Th${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("vi-VN");
-}
-
-function predictionText(predictions: unknown) {
-  if (typeof predictions === "string") return predictions;
-  if (predictions === null || predictions === undefined)
-    return "Chưa có dự đoán";
-  return JSON.stringify(predictions) ?? "Chưa có dự đoán";
-}
-
-function initials(name: string, studentId: number) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return `HS${studentId}`.slice(0, 3).toUpperCase();
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
-
-function AssignmentList({
-  records,
-  selectedId,
-  onSelect,
-  submissionsLoading,
-}: Readonly<{
-  records: AssignmentRecord[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-  submissionsLoading: boolean;
-}>) {
-  return (
-    <aside className="lab-assignment-list" aria-label="Danh sách bài đã giao">
-      <div className="lab-list-heading">
-        <div>
-          <h2>Bài đã giao</h2>
-          <p>Chọn một bài để xem tiến độ.</p>
-        </div>
-        <span className="lab-list-count">{records.length}</span>
-      </div>
-
-      <label className="lab-mobile-selector">
-        <span>Bài đang xem</span>
-        <select
-          value={selectedId}
-          onChange={(event) => onSelect(event.target.value)}
-          aria-label="Chọn bài đang xem"
-        >
-          {records.map(({ assignment }) => (
-            <option key={assignment.id} value={assignment.id}>
-              {assignment.title}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <nav className="lab-assignment-items" aria-label="Bài tập đã giao">
-        {records.map(({ assignment, submissions }) => (
-          <button
-            type="button"
-            key={assignment.id}
-            className={`lab-assignment-item${selectedId === assignment.id ? " active" : ""}`}
-            aria-pressed={selectedId === assignment.id}
-            onClick={() => onSelect(assignment.id)}
-          >
-            <span className="lab-assignment-item-title">
-              {assignment.title}
-            </span>
-            <span className="lab-assignment-item-meta">
-              {submissionsLoading
-                ? "Đang tải bài nộp…"
-                : `${submissions.length}/${assignment.studentIds.length} đã nộp`} · Hạn{" "}
-              {formatShortDate(assignment.dueAt)}
-            </span>
-          </button>
-        ))}
-      </nav>
-
-      <Link className="lab-create-link" to="/assignments/workspace">
-        <Icon name="plus" />
-        Tạo bài giao mới
-      </Link>
-    </aside>
-  );
-}
-
-function SubmissionTable({
-  record,
-  students,
-  filter,
-  query,
-}: Readonly<{
-  record: AssignmentRecord;
-  students: Map<number, StudentOption>;
-  filter: SubmissionFilter;
-  query: string;
-}>) {
-  const rows = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("vi-VN");
-    const submissionsByStudent = new Map(
-      record.submissions.map((submission) => [
-        submission.studentId,
-        submission,
-      ]),
-    );
-
-    return record.assignment.studentIds
-      .map((studentId) => {
-        const submission = submissionsByStudent.get(studentId);
-        const student = students.get(studentId);
-        const studentName =
-          submission?.studentName?.trim() ||
-          student?.fullName?.trim() ||
-          `Học sinh #${studentId}`;
-        return { studentId, studentName, submission };
-      })
-      .filter(({ submission, studentId, studentName }) => {
-        const matchesFilter =
-          filter === "all" ||
-          (filter === "submitted" ? Boolean(submission) : !submission);
-        const matchesQuery =
-          !normalizedQuery ||
-          studentName.toLocaleLowerCase("vi-VN").includes(normalizedQuery) ||
-          String(studentId).includes(normalizedQuery);
-        return matchesFilter && matchesQuery;
-      });
-  }, [filter, query, record, students]);
-
-  if (record.assignment.studentIds.length === 0) {
-    return (
-      <div className="lab-empty-state">
-        <strong>Chưa có học sinh trong bài giao này</strong>
-        <span>Thêm học sinh ở khu giao bài để bắt đầu theo dõi.</span>
-      </div>
-    );
-  }
-
-  if (rows.length === 0) {
-    return (
-      <div className="lab-empty-state">
-        Không có học sinh phù hợp với bộ lọc hiện tại.
-      </div>
-    );
-  }
-
-  return (
-    <div className="modern-table-wrapper lab-submission-table-wrapper">
-      <table className="modern-table lab-submission-table">
-        <thead>
-          <tr>
-            <th scope="col">Học sinh</th>
-            <th scope="col">Dự đoán</th>
-            <th scope="col">Nộp lúc</th>
-            <th scope="col">Trạng thái</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ studentId, studentName, submission }) => (
-            <tr key={studentId}>
-              <td data-label="Học sinh">
-                <div className="lab-student-cell">
-                  <span className="lab-student-avatar" aria-hidden="true">
-                    {initials(studentName, studentId)}
-                  </span>
-                  <span>
-                    <strong>{studentName}</strong>
-                    <small>ID {studentId}</small>
-                  </span>
-                </div>
-              </td>
-              <td
-                data-label="Dự đoán"
-                className={submission ? "" : "lab-muted-cell"}
-              >
-                {submission
-                  ? predictionText(submission.predictions)
-                  : "Chưa có dự đoán"}
-              </td>
-              <td data-label="Nộp lúc">
-                {submission ? (
-                  <time dateTime={submission.submittedAt}>
-                    {formatDateTime(submission.submittedAt)}
-                  </time>
-                ) : (
-                  "—"
-                )}
-              </td>
-              <td data-label="Trạng thái">
-                <span
-                  className={`lab-status ${submission ? "submitted" : "pending"}`}
-                >
-                  <span className="lab-status-dot" aria-hidden="true" />
-                  {submission ? "Đã nộp" : "Chưa nộp"}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function SubmissionTableLoading() {
-  return (
-    <div className="lab-submissions-loading" aria-live="polite" aria-busy="true">
-      <span className="lab-loading-spinner" aria-hidden="true" />
-      <strong>Đang tải bài nộp…</strong>
-      <span>Danh sách học sinh sẽ hiển thị ngay khi dữ liệu sẵn sàng.</span>
-    </div>
-  );
-}
 
 export default function Lab() {
   const [records, setRecords] = useState<AssignmentRecord[]>([]);
@@ -379,7 +142,7 @@ export default function Lab() {
 
           {!error && records.length > 0 && (
             <div className="lab-content-grid">
-              <AssignmentList
+              <TeacherAssignmentList
                 records={records}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
@@ -465,9 +228,9 @@ export default function Lab() {
                       </label>
                     </div>
                     {submissionsLoading ? (
-                      <SubmissionTableLoading />
+                      <TeacherSubmissionTableLoading />
                     ) : (
-                      <SubmissionTable
+                      <TeacherSubmissionTable
                         record={selected}
                         students={students}
                         filter={submissionFilter}

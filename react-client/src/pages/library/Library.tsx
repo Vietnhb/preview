@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { library, personalLibrary } from "../../api/libraryApi";
 import type { LibraryItem } from "../../types/physlive";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
-import StudentAssignments from "../student/StudentAssignments";
+
+const StudentAssignments = lazy(() => import("../student/StudentAssignments"));
 
 function LibraryRows({ items, assignable }: Readonly<{ items: LibraryItem[]; assignable: boolean }>) {
   if (!items.length) return <p className="muted">Chưa có simulation trong mục này.</p>;
@@ -12,7 +13,9 @@ function LibraryRows({ items, assignable }: Readonly<{ items: LibraryItem[]; ass
 
 export default function Library() {
   const user = usePhysliveStore(state => state.user);
-  if (user?.role === "STUDENT") return <StudentAssignments initialTab="library" />;
+  if (user?.role === "STUDENT") {
+    return <Suspense fallback={<main className="route-loading" aria-busy="true" />}><StudentAssignments initialTab="library" /></Suspense>;
+  }
   return <LibraryCatalog userRole={user?.role} />;
 }
 

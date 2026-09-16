@@ -987,6 +987,34 @@
   background: #f4f7fb;
 }
 
+.learn-simulation-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  color: var(--learn-text, #1f2937);
+  background: color-mix(in srgb, var(--surface, #ffffff) 78%, transparent);
+  backdrop-filter: blur(2px);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.learn-loading-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: learn-simulation-spin 0.7s linear infinite;
+}
+
+@keyframes learn-simulation-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* NEW: Wrapper cho toàn bộ canvas + controls - Desmos/PhET style */
 .learn-stage-wrapper {
   display: flex;

@@ -1,171 +1,20 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import axiosClient from "../../api/axios";
 import { createLibraryFolder, saveLibrary } from "../../api/libraryApi";
 import { curriculum } from "../../api/curriculumApi";
-import { adjustSimulation, getSimulation } from "../../api/simulationApi";
+import { adjustSimulation } from "../../api/simulationApi";
 import { useTeacherLibrary } from "../../store/useTeacherLibrary";
 import PhysicsScene from "../simulation/PhysicsScene";
-import LearningChart from "../simulation/LearningChart";
 import Icon from "../common/LearningIcon";
 import LearningHeader from "../common/LearningHeader";
 import TeacherLibraryPane from "./TeacherLibraryPane";
 import type { Curriculum, Problem, Simulation, LibraryItem } from "../../types/physlive";
-import { controlValue, indexAtTime, learningSeries, lessonCopy, lessonKind, numberLabel, type LearningControl } from "../../utils/learningModel";
+import { controlValue, indexAtTime, learningSeries, lessonCopy, lessonKind, numberLabel } from "../../utils/learningModel";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
+import { LearningInspector } from "./learning/LearningInspector";
 
-function Tabs<T extends string>({ id, label, items, value, onChange }: Readonly<{ id: string; label: string; items: { value: T; label: string }[]; value: T; onChange: (value: T) => void }>) {
-  const focusIndex = (key: string, index: number, length: number) => {
-    if (key === "ArrowRight") return (index + 1) % length;
-    if (key === "ArrowLeft") return (index + length - 1) % length;
-    if (key === "Home") return 0;
-    if (key === "End") return length - 1;
-    return -1;
-  };
-  return <div className="learn-tabs" role="tablist" aria-label={label}>{items.map((item, index) => <button key={item.value} type="button" role="tab" id={`${id}-${item.value}`} aria-controls={`${id}-panel`} aria-selected={item.value === value} tabIndex={item.value === value ? 0 : -1}
-    onClick={() => onChange(item.value)} onKeyDown={event => {
-      const next = focusIndex(event.key, index, items.length);
-      if (next >= 0) { event.preventDefault(); onChange(items[next].value); document.getElementById(`${id}-${items[next].value}`)?.focus(); }
-    }}>{item.label}</button>)}</div>;
-}
-
-type InspectorTab = "experiment" | "understand" | "steps" | "problem";
-type ExportFormat = "json" | "csv" | "pdf" | "html" | "slides";
-type LearningCopy = typeof lessonCopy.motion;
-type LearningInspectorProps = {
-  userRole?: string;
-  simulation: Simulation;
-  problem: Problem | null;
-  copy: LearningCopy;
-  times: number[];
-  lastTime: number;
-  allSeries: ReturnType<typeof learningSeries>;
-  controls: LearningControl[];
-  initialValues: Record<string, number>;
-  draft: Record<string, string>;
-  inspector: InspectorTab;
-  bottomTab: "graph" | "data";
-  selectedSeries: string | null;
-  series: ReturnType<typeof learningSeries>[number] | undefined;
-  index: number;
-  validData: boolean;
-  dirty: boolean;
-  savedItem: LibraryItem | null;
-  error: string;
-  exportError: string;
-  downloading: string | null;
-  showSave: boolean;
-  saving: boolean;
-  saveError: string;
-  folders: { id: string; name: string }[];
-  topics: Curriculum["topics"];
-  modules: Curriculum["topics"][number]["modules"];
-  levels: Curriculum["topics"][number]["modules"][number]["levels"];
-  lessons: Curriculum["topics"][number]["modules"][number]["levels"][number]["lessons"];
-  folderId: string;
-  topicId: string;
-  moduleId: string;
-  levelId: string;
-  lessonId: string;
-  saveTitle: string;
-  visibility: LibraryItem["visibility"];
-  onInspectorChange: (value: InspectorTab) => void;
-  onBottomTabChange: (value: "graph" | "data") => void;
-  onToggleSave: () => void;
-  onParamChange: (key: string, value: string) => void;
-  onResetDraft: () => void;
-  onSeek: (time: number) => void;
-  onSelectedSeriesChange: (key: string) => void;
-  onDownload: (format: ExportFormat) => void;
-  onPersist: (event: FormEvent) => void;
-  onFolderChange: (id: string) => void;
-  onTopicChange: (id: string) => void;
-  onModuleChange: (id: string) => void;
-  onLevelChange: (id: string) => void;
-  onLessonChange: (id: string) => void;
-  onSaveTitleChange: (value: string) => void;
-  onVisibilityChange: (value: LibraryItem["visibility"]) => void;
-  onCancelSave: () => void;
-};
-
-type LearningSavePanelProps = Pick<LearningInspectorProps, "folders" | "topics" | "modules" | "levels" | "lessons" | "folderId" | "topicId" | "moduleId" | "levelId" | "lessonId" | "saveTitle" | "visibility" | "saving" | "saveError" | "onPersist" | "onFolderChange" | "onTopicChange" | "onModuleChange" | "onLevelChange" | "onLessonChange" | "onSaveTitleChange" | "onVisibilityChange" | "onCancelSave">;
-
-function LearningSavePanel({ folders, topics, modules, levels, lessons, folderId, topicId, moduleId, levelId, lessonId, saveTitle, visibility, saving, saveError, onPersist, onFolderChange, onTopicChange, onModuleChange, onLevelChange, onLessonChange, onSaveTitleChange, onVisibilityChange, onCancelSave }: Readonly<LearningSavePanelProps>) {
-  return <form className="learn-save-panel" onSubmit={onPersist}>
-    <div className="learn-save-heading"><span className="learn-save-icon"><Icon name="upload" /></span><span><strong>Lưu vào thư viện</strong><small>Bản lưu thuộc tài khoản giáo viên và có thể dùng để giao bài.</small></span></div>
-    <label><span>Thư mục cá nhân</span><select value={folderId} onChange={event => onFolderChange(event.target.value)} required><option value="">Chọn thư mục</option>{folders.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label>
-    <label><span>Topic do AI xác định</span><select value={topicId} onChange={event => onTopicChange(event.target.value)} required><option value="">Chọn topic</option>{topics.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-    <label><span>Module</span><select value={moduleId} disabled={!topicId} onChange={event => onModuleChange(event.target.value)} required><option value="">Chọn module</option>{modules.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-    <label><span>Grade / Level</span><select value={levelId} disabled={!moduleId} onChange={event => onLevelChange(event.target.value)} required><option value="">Chọn lớp</option>{levels.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-    <label><span>Lesson</span><select value={lessonId} disabled={!levelId} onChange={event => onLessonChange(event.target.value)} required><option value="">Chọn lesson</option>{lessons.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-    <label><span>Tên trong thư viện</span><input value={saveTitle} maxLength={160} onChange={event => onSaveTitleChange(event.target.value)} required /></label>
-    <label><span>Phạm vi</span><select value={visibility} onChange={event => onVisibilityChange(event.target.value as LibraryItem["visibility"])}><option value="PERSONAL">Cá nhân</option><option value="SHARED">Chia sẻ</option></select></label>
-    <div className="learn-save-actions"><button type="submit" className="learn-save-submit" disabled={saving || !saveTitle.trim() || !folderId || !lessonId}>{saving ? "Đang lưu…" : "Xác nhận lưu"}</button><button type="button" className="learn-save-cancel secondary" onClick={onCancelSave} disabled={saving}>Hủy</button></div>
-    {saveError && <p className="learn-save-error" role="alert">{saveError}</p>}
-  </form>;
-}
-
-type LearningExperimentPanelProps = Pick<LearningInspectorProps, "copy" | "controls" | "initialValues" | "draft" | "dirty" | "error" | "onParamChange" | "onResetDraft" | "onInspectorChange">;
-
-function LearningExperimentPanel({ copy, controls, initialValues, draft, dirty, error, onParamChange, onResetDraft, onInspectorChange }: Readonly<LearningExperimentPanelProps>) {
-  return <>
-    <div className="learn-section-title"><h2>Điều chỉnh tham số</h2><button type="button" className="learn-icon-button" aria-label="Hoàn tác thông số" title="Hoàn tác về đề ban đầu" disabled={!dirty} onClick={onResetDraft}><Icon name="reset" /></button></div>
-    <p className="learn-note">Kéo thanh trượt để thay đổi. Mô phỏng tự động cập nhật theo thời gian thực.</p>
-    <div className="learn-parameters">{controls.map(control => { const value = Number(draft[control.key]); const fieldInvalid = !draft[control.key].trim() || !Number.isFinite(value) || (control.min >= 0 && value < control.min); const min = Math.min(control.min, initialValues[control.key], Number.isFinite(value) ? value : 0); const max = Math.max(control.max, initialValues[control.key], Number.isFinite(value) ? value : 0); return <div className="learn-parameter" key={control.key}><label htmlFor={`parameter-${control.key}`}><span className="learn-variable">{control.symbol}</span>{control.label}</label><div className="learn-parameter-value"><input id={`parameter-${control.key}`} aria-invalid={fieldInvalid} type="number" inputMode="decimal" step="any" min={control.min >= 0 ? control.min : undefined} value={draft[control.key]} onChange={event => onParamChange(control.key, event.target.value)} /><span>{control.unit}</span></div><input aria-label={`Điều chỉnh ${control.label.toLowerCase()}`} type="range" min={min} max={max} step={control.step} value={Number.isFinite(value) ? value : control.min} onChange={event => onParamChange(control.key, event.target.value)} /><div className="learn-range-labels"><span>{numberLabel(min)}</span><span>{numberLabel(max)} {control.unit}</span></div></div>; })}{error && <p className="learn-error" role="alert">{error}</p>}</div>
-    <div className="learn-discovery"><span className="learn-discovery-kicker"><Icon name="bulb" />Thử nghĩ trước khi chạy</span><p>{copy.prompt}</p><button type="button" onClick={() => onInspectorChange("steps")}>Xem lời giải chi tiết <Icon name="arrow" /></button></div>
-  </>;
-}
-
-type LearningStepsPanelProps = Pick<LearningInspectorProps, "copy" | "controls" | "initialValues" | "allSeries" | "times" | "lastTime">;
-
-function LearningStepsPanel({ copy, controls, initialValues, allSeries, times, lastTime }: Readonly<LearningStepsPanelProps>) {
-  return <>
-    <span className="learn-small-label">Lời giải theo yêu cầu của Thầy Phương</span><h2>📐 Các bước tính toán chi tiết</h2>
-    <div className="calc-step-card" style={{ marginTop: "20px" }}><div className="calc-step-badge">Bước 1</div><h3>Giả thiết và xác định đại lượng</h3><div className="learn-equation"><p>{copy.formula}</p></div><dl className="learn-givens" style={{ marginTop: "12px" }}>{controls.map(control => <div key={control.key}><dt>{control.label} ({control.symbol})</dt><dd>{numberLabel(initialValues[control.key], 3)} {control.unit}</dd></div>)}</dl></div>
-    <div className="calc-step-card"><div className="calc-step-badge">Bước 2</div><h3>Phương trình chuyển động</h3><p className="learn-explanation">{copy.explanation}</p></div>
-    <div className="calc-step-card"><div className="calc-step-badge">Bước 3</div><h3>Thay số và tính toán</h3><div className="learn-givens" style={{ marginTop: "12px" }}>{allSeries.slice(0, 3).map(item => <div key={item.key}><dt>{item.label} cực đại</dt><dd>{numberLabel(Math.max(...item.data), 4)} {item.unit}</dd></div>)}</div></div>
-    <div className="calc-step-card"><div className="calc-step-badge">Bước 4</div><h3>Kết quả và đối chứng</h3><div className="learn-validation" style={{ marginTop: "10px", display: "inline-flex" }}><Icon name="check" />Dual-Validation: PASSED ✓</div><p className="learn-note" style={{ marginTop: "12px" }}>Mô phỏng đã được kiểm chứng với {times.length} mốc thời gian.<br />Thời gian mô phỏng: {numberLabel(lastTime)} s</p></div>
-  </>;
-}
-
-type LearningAnalysisPanelProps = Pick<LearningInspectorProps, "copy" | "bottomTab" | "selectedSeries" | "allSeries" | "series" | "validData" | "times" | "index" | "downloading" | "exportError" | "onBottomTabChange" | "onSelectedSeriesChange" | "onSeek" | "onDownload">;
-
-function LearningAnalysisPanel({ copy, bottomTab, selectedSeries, allSeries, series, validData, times, index, downloading, exportError, onBottomTabChange, onSelectedSeriesChange, onSeek, onDownload }: Readonly<LearningAnalysisPanelProps>) {
-  return <>
-    <span className="learn-small-label">Xem đồ thị và dữ liệu</span><h2>📊 Đồ thị &amp; Bảng số liệu</h2>
-    <div style={{ marginTop: "16px" }}><Tabs id="analysis" label="Cách xem dữ liệu" items={[{ value: "graph", label: "Đồ thị" }, { value: "data", label: "Bảng số" }]} value={bottomTab} onChange={onBottomTabChange} /></div>
-    {bottomTab === "graph" && <><label className="learn-series-select" style={{ marginTop: "12px", display: "block" }}><span style={{ fontSize: "11px", color: "#6c7d94", marginBottom: "6px", display: "block" }}>Đại lượng hiển thị</span><select value={selectedSeries ?? ""} onChange={event => onSelectedSeriesChange(event.target.value)} style={{ width: "100%" }}>{allSeries.map(item => <option value={item.key} key={item.key}>{item.label} ({item.unit})</option>)}</select></label><div style={{ marginTop: "16px", height: "280px", border: "1px solid #e5e9ef", borderRadius: "8px", overflow: "hidden" }}>{series && validData ? <LearningChart series={series} times={times} index={index} onSeek={onSeek} /> : <p className="learn-note" style={{ padding: "20px", textAlign: "center" }}>Chưa có chuỗi dữ liệu hợp lệ.</p>}</div>{series && <div className="learn-instant" style={{ marginTop: "16px" }}><span>Ở thời điểm {numberLabel(times[index])} s</span><strong>{series.label}: {numberLabel(series.data[index], 4)} {series.unit}</strong></div>}</>}
-    {bottomTab === "data" && <><div style={{ marginTop: "12px" }}><div className="learn-export" style={{ marginBottom: "12px" }}>{(["csv", "json", "pdf", "html", "slides"] as const).map(format => <button type="button" key={format} onClick={() => onDownload(format)} disabled={Boolean(downloading)} aria-label={`Tải ${format.toUpperCase()}`}><Icon name="download" />{downloading === format ? "Đang tải…" : format.toUpperCase()}</button>)}</div></div><div className="learn-data-wrap" style={{ maxHeight: "400px", border: "1px solid #e5e9ef", borderRadius: "8px", overflow: "auto" }}><table><caption>Dữ liệu từng thời điểm · {times.length} mốc</caption><thead><tr><th>Thời gian (s)</th>{allSeries.map(item => <th key={item.key}>{item.symbol} ({item.unit})</th>)}</tr></thead><tbody>{times.map((t, i) => <tr key={`time-${t}`} aria-current={i === index ? "true" : undefined}><td><button type="button" onClick={() => onSeek(t)} aria-label={`Quan sát tại ${t} giây`}>{numberLabel(t, 3)}</button></td>{allSeries.map(item => <td key={item.key}>{numberLabel(item.data[i], 4)}</td>)}</tr>)}</tbody></table></div>{exportError && <p role="alert" className="learn-error">{exportError}</p>}</>}
-    <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid #e5e9ef" }}><h3 style={{ fontSize: "13px", marginBottom: "10px" }}>Giải thích ý nghĩa</h3><div className="learn-equation"><p>{copy.formula}</p></div><p className="learn-explanation">{copy.explanation}</p><div className="learn-observe"><Icon name="chart" /><div><h3>Đọc tại cùng một thời điểm</h3><p>Kéo thanh thời gian hoặc chạm vào đồ thị. Vị trí vật, các đại lượng và điểm trên đồ thị sẽ cùng thay đổi.</p></div></div></div>
-  </>;
-}
-
-type LearningProblemPanelProps = Pick<LearningInspectorProps, "problem" | "exportError" | "downloading" | "onDownload">;
-
-function LearningProblemPanel({ problem, exportError, downloading, onDownload }: Readonly<LearningProblemPanelProps>) {
-  return <><span className="learn-small-label">Bộ công cụ xuất dữ liệu</span><h2>📥 Xuất báo cáo &amp; dữ liệu</h2><div style={{ marginTop: "24px" }}><h3 style={{ fontSize: "13px", marginBottom: "12px", color: "#40516a" }}>Xuất JSON Replay Specification</h3><div className="learn-export"><button type="button" className="export-action-btn" onClick={() => onDownload("json")} disabled={Boolean(downloading)}><Icon name="download" />{downloading === "json" ? "Đang tải…" : "JSON"}</button></div></div><div style={{ marginTop: "24px" }}><h3 style={{ fontSize: "13px", marginBottom: "12px", color: "#40516a" }}>Xuất CSV chuỗi thời gian</h3><div className="learn-export"><button type="button" className="export-action-btn" onClick={() => onDownload("csv")} disabled={Boolean(downloading)}><Icon name="download" />{downloading === "csv" ? "Đang tải…" : "CSV"}</button></div></div><div style={{ marginTop: "24px" }}><h3 style={{ fontSize: "13px", marginBottom: "12px", color: "#40516a" }}>In báo cáo PDF</h3><div className="learn-export"><button type="button" className="export-action-btn" onClick={() => globalThis.print()}><Icon name="download" />In PDF (Ctrl+P)</button></div></div>{exportError && <p role="alert" className="learn-error" style={{ marginTop: "16px" }}>{exportError}</p>}<blockquote className="learn-problem-text" style={{ marginTop: "32px" }}><strong>Ngữ cảnh đề bài:</strong><br /><br />{problem?.editableText || problem?.originalText || "Nội dung đề bài chưa có trong phiên này."}</blockquote></>;
-}
-
-type LearningInspectorBodyProps = Pick<LearningInspectorProps, "inspector" | "copy" | "controls" | "initialValues" | "draft" | "dirty" | "error" | "bottomTab" | "selectedSeries" | "allSeries" | "series" | "validData" | "times" | "lastTime" | "index" | "downloading" | "exportError" | "problem" | "onInspectorChange" | "onBottomTabChange" | "onParamChange" | "onResetDraft" | "onSeek" | "onSelectedSeriesChange" | "onDownload">;
-
-function LearningInspectorBody({ inspector, ...props }: Readonly<LearningInspectorBodyProps>) {
-  if (inspector === "experiment") return <LearningExperimentPanel {...props} />;
-  if (inspector === "steps") return <LearningStepsPanel {...props} />;
-  if (inspector === "understand") return <LearningAnalysisPanel {...props} />;
-  return <LearningProblemPanel {...props} />;
-}
-
-function LearningInspector({ userRole, simulation, savedItem, showSave, onToggleSave, onInspectorChange, ...props }: Readonly<LearningInspectorProps>) {
-  return <aside className="learn-inspector" aria-label="Hướng dẫn học và thông số">
-    <div className="learn-inspector-nav">
-      <Tabs id="inspector" label="Bảng học tập" items={[{ value: "experiment", label: "Tham số" }, { value: "steps", label: "Lời giải" }, { value: "understand", label: "Số liệu" }, { value: "problem", label: "Xuất" }]} value={props.inspector} onChange={onInspectorChange} />
-      {userRole === "TEACHER" && simulation.valid && (savedItem ? <Link className="learn-library-link" to={`/assignments/workspace?libraryItemId=${savedItem.id}`}>Giao bài</Link> : <button type="button" className={`learn-save-button${showSave ? " active" : ""}`} onClick={onToggleSave}>{showSave ? "Đóng" : "Lưu"}</button>)}
-    </div>
-    {showSave ? <LearningSavePanel {...props} /> : <div key={props.inspector} className="learn-inspector-body" id="inspector-panel" role="tabpanel" aria-labelledby={`inspector-${props.inspector}`} tabIndex={0}><LearningInspectorBody {...props} onInspectorChange={onInspectorChange} /></div>}
-    <div className="learn-inspector-footer"><Icon name="book" /><span>Quan sát · Đặt câu hỏi · Tự khám phá</span></div>
-  </aside>;
-}
-export default function LearningWorkspace({ simulation, problem, onUpdate, onNewSimulation }: Readonly<{ simulation: Simulation; problem: Problem | null; onUpdate: (simulation: Simulation) => void; onNewSimulation?: () => void }>) {
+export default function LearningWorkspace({ simulation, problem, onUpdate, onNewSimulation, onSelectSimulation, simulationLoading = false, loadingSimulationId = null }: Readonly<{ simulation: Simulation; problem: Problem | null; onUpdate: (simulation: Simulation) => void; onNewSimulation?: () => void; onSelectSimulation?: (simulationId: string) => boolean | void; simulationLoading?: boolean; loadingSimulationId?: string | null }>) {
   const user = usePhysliveStore(state => state.user);
   const kind = lessonKind(simulation.schemaId), copy = lessonCopy[kind];
   const times = simulation.time;
@@ -213,6 +62,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [time, setTime] = useState(times[0] ?? 0);
+  const [seekRevision, setSeekRevision] = useState(0);
   const timeRef = useRef(time);
   const [error, setError] = useState("");
   const [exportError, setExportError] = useState("");
@@ -221,7 +71,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   const [saving, setSaving] = useState(false);
   const { folders, setFolders, libraryItems, setLibraryItems, libraryLoading, libraryError, setLibraryError, retryLibrary } = useTeacherLibrary();
   const savedItem = libraryItems.find(item => item.simulationId === simulation.simulationId) ?? null;
-  const [openingLibraryId, setOpeningLibraryId] = useState<string | null>(null);
+  const openingLibraryId = libraryItems.find(item => item.simulationId === loadingSimulationId)?.id ?? null;
   const [folderId, setFolderId] = useState("");
   const [saveError, setSaveError] = useState("");
   const [saveTitle, setSaveTitle] = useState(() => {
@@ -243,7 +93,14 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   const series = allSeries.find(item => item.key === selectedSeries) ?? allSeries[0];
   const validData = times.length > 1 && times.every((t, i) => Number.isFinite(t) && (i === 0 || t > times[i - 1])) && Boolean(series);
   const canPlay = validData && simulation.valid;
-  const dirty = controls.some(c => draft[c.key].trim() === "" || Number(draft[c.key]) !== initialValues[c.key]);
+  // A simulation swap keeps this component mounted. During the one render
+  // before the reset effect runs, the new controls can briefly be paired with
+  // the previous simulation's draft. Keep that transition render-safe.
+  const dirty = controls.some(c => {
+    const draftValue = draft[c.key] ?? "";
+    const initialValue = initialValues[c.key];
+    return draftValue.trim() === "" || !Number.isFinite(initialValue) || Number(draftValue) !== initialValue;
+  });
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => () => {
@@ -256,8 +113,41 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
     timeRef.current = times[0] ?? 0;
     setPlaying(false);
   }, [simulation.simulationId, times]);
+  useEffect(() => {
+    // Keep the workspace mounted between simulations so the shell does not
+    // flash/reload, while explicitly resetting simulation-specific controls.
+    if (adjustmentTimerRef.current !== null) globalThis.clearTimeout(adjustmentTimerRef.current);
+    adjustmentRequestRef.current += 1;
+    setInspector("experiment");
+    setMobilePanel("observe");
+    setBottomTab("graph");
+    setSelectedSeries(null);
+    setSpeed(1);
+    setError("");
+    setExportError("");
+    setDownloading(null);
+    setShowSave(false);
+    setSaving(false);
+    setFolderId("");
+    setSaveError("");
+    setSaveTitle((problem?.editableText || problem?.originalText || copy.title).trim().replaceAll(/\s+/g, " ").slice(0, 120));
+    setVisibility("PERSONAL");
+    setCurriculumTree(null);
+    setTopicId("");
+    setModuleId("");
+    setLevelId("");
+    setLessonId("");
+    setOverlays({ grid: true, trajectory: true, velocity: true, acceleration: false });
+  }, [copy.title, problem?.editableText, problem?.originalText, simulation.simulationId]);
   
   const handleParamChange = (key: string, valueStr: string) => {
+    // Stop and reset immediately, before the debounced solver request returns.
+    setPlaying(false);
+    setTime(times[0] ?? 0);
+    timeRef.current = times[0] ?? 0;
+    setSeekRevision(value => value + 1);
+    if (adjustmentTimerRef.current !== null) globalThis.clearTimeout(adjustmentTimerRef.current);
+    adjustmentRequestRef.current += 1;
     const nextDraft = { ...draft, [key]: valueStr };
     setDraft(nextDraft);
 
@@ -302,20 +192,19 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
     if (match) setTopicId(match.id);
   }, [curriculumTree, problem?.currentSpecification?.topic, topicId]);
   useEffect(() => { timeRef.current = time; }, [time]);
-  useEffect(() => {
-    if (!playing || !canPlay) return;
-    const startWall = performance.now(), startTime = timeRef.current;
-    let frame = 0;
-    const tick = (now: number) => {
-      const next = Math.min(lastTime, startTime + (now - startWall) / 1000 * speed);
-      setTime(next);
-      if (next >= lastTime) setPlaying(false); else frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [playing, canPlay, lastTime, speed]);
 
-  const seek = (next: number) => { setPlaying(false); setTime(Math.max(times[0] ?? 0, Math.min(lastTime, next))); };
+  const handleCanvasTimeChange = useCallback((next: number) => {
+    timeRef.current = next;
+    setTime(current => current === next ? current : next);
+  }, []);
+  const handlePlaybackEnd = useCallback(() => setPlaying(false), []);
+  const seek = (next: number) => {
+    const clamped = Math.max(times[0] ?? 0, Math.min(lastTime, next));
+    timeRef.current = clamped;
+    setPlaying(false);
+    setTime(clamped);
+    setSeekRevision(value => value + 1);
+  };
   const togglePlayback = () => { if (time >= lastTime) { timeRef.current = times[0]; setTime(times[0]); } setPlaying(value => !value); };
   const resetDraft = () => {
     const base = baseSimulationRef.current;
@@ -369,17 +258,9 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   };
 
   const openLibraryItem = async (item: LibraryItem) => {
-    if (item.simulationId === simulation.simulationId || openingLibraryId) return;
-    setOpeningLibraryId(item.id);
+    if (item.simulationId === simulation.simulationId || openingLibraryId || simulationLoading) return;
     setLibraryError("");
-    try {
-      const selected = await getSimulation(item.simulationId);
-      onUpdate(selected);
-    } catch {
-      setLibraryError("Không mở được mô phỏng đã lưu.");
-    } finally {
-      setOpeningLibraryId(null);
-    }
+    onSelectSimulation?.(item.simulationId);
   };
 
   const topics = curriculumTree?.topics ?? [];
@@ -420,8 +301,9 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
 
               {/* Canvas viewport container */}
               <div className="learn-canvas-container">
+                {simulationLoading && <div className="learn-simulation-loading" role="status" aria-live="polite"><span className="learn-loading-spinner" aria-hidden="true" />Đang mở simulation…</div>}
                 <div className="learn-canvas">
-                  {canPlay ? <PhysicsScene simulation={simulation} index={index} overlays={overlays} time={time} />
+                  {canPlay ? <PhysicsScene simulation={simulation} index={index} overlays={overlays} time={time} seekRevision={seekRevision} playing={playing} speed={speed} onTimeChange={handleCanvasTimeChange} onPlaybackEnd={handlePlaybackEnd} />
                     : <div className="learn-blocked" role="alert"><Icon name="book" /><h2>{validData ? "Mô hình cần được kiểm tra lại" : "Chưa có đủ dữ liệu để quan sát"}</h2><p>Trở về đề bài, kiểm tra thông tin và chạy lại mô phỏng.</p><Link to="/" className="learn-primary-link">Về đề bài <Icon name="arrow" /></Link></div>}
                 </div>
                 <fieldset className="learn-overlay-controls"><legend className="learn-sr-only">Thành phần hiển thị</legend>{([

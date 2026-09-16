@@ -1,8 +1,10 @@
+import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import LearningHeader from "../../components/common/LearningHeader";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
-import Assignments from "./Assignments";
 import "../../styles/learning.css";
+
+const Assignments = lazy(() => import("./Assignments"));
 
 export default function AssignmentWorkspace() {
   const user = usePhysliveStore((state) => state.user);
@@ -10,7 +12,9 @@ export default function AssignmentWorkspace() {
     <div className="learning-app">
       <LearningHeader />
       {user?.role === "TEACHER" ? (
-        <Assignments workspaceLayout />
+        <Suspense fallback={<main className="route-loading" aria-busy="true" />}>
+          <Assignments workspaceLayout />
+        </Suspense>
       ) : (
         <main className="learn-empty">
           <h1>Giao bài cho học sinh</h1>

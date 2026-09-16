@@ -296,7 +296,7 @@ body {
   height: calc(100dvh - 64px);
   min-height: 0;
   overflow: hidden;
-  padding: 32px 32px 64px;
+  padding: 20px;
 }
 
 .reviewer-sidebar {
@@ -376,7 +376,9 @@ body {
 .reviewer-content {
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .reviewer-content > .modern-header {
@@ -587,6 +589,7 @@ body {
   background: var(--role-reviewer);
 }
 
+.reviewer-content,
 .reviewer-sidebar,
 .reviewer-queue-list,
 .reviewer-queue-detail {
@@ -594,18 +597,21 @@ body {
   scrollbar-color: color-mix(in srgb, var(--text-muted) 35%, transparent) transparent;
 }
 
+.reviewer-content::-webkit-scrollbar,
 .reviewer-sidebar::-webkit-scrollbar,
 .reviewer-queue-list::-webkit-scrollbar,
 .reviewer-queue-detail::-webkit-scrollbar {
   width: 8px;
 }
 
+.reviewer-content::-webkit-scrollbar-track,
 .reviewer-sidebar::-webkit-scrollbar-track,
 .reviewer-queue-list::-webkit-scrollbar-track,
 .reviewer-queue-detail::-webkit-scrollbar-track {
   background: transparent;
 }
 
+.reviewer-content::-webkit-scrollbar-thumb,
 .reviewer-sidebar::-webkit-scrollbar-thumb,
 .reviewer-queue-list::-webkit-scrollbar-thumb,
 .reviewer-queue-detail::-webkit-scrollbar-thumb {
@@ -646,6 +652,7 @@ body {
 
   .reviewer-content {
     width: 100%;
+    overflow: visible;
   }
 
   .reviewer-queue-card {

@@ -1,27 +1,30 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactElement } from "react";
 import axios from "axios";
 import { Route, Routes, useLocation, Navigate } from "react-router-dom";
 import { getMe } from "./api/userApi";
 import NavBar from "./components/common/NavBar";
-import Admin from "./pages/admin/AdminConsole";
-import Assignments from "./pages/teacher/Assignments";
-import Home from "./pages/Home";
-import Library from "./pages/library/Library";
-import Login from "./pages/auth/Login";
-import Reviewer from "./pages/reviewer/ReviewerConsole";
-import Signup from "./pages/auth/Signup";
-import Curriculum from "./pages/curriculum/Curriculum";
-import Workspace from "./pages/teacher/Workspace";
-import AssignmentWorkspace from "./pages/teacher/AssignmentWorkspace";
-import Lab from "./pages/Lab";
-import StudentAssignments from "./pages/student/StudentAssignments";
-import ProfilePage from "./pages/profile/ProfilePage";
-import SiteInfo from "./pages/SiteInfo";
 import { usePhysliveStore } from "./store/usePhysliveStore";
 import { clearToken, getToken } from "./utils/token";
 import { isTokenExpired } from "./utils/jwt";
 import "./styles/app.css";
 import "./styles/app-refresh.css";
+
+// Keep the shell small. Page code and its page-specific CSS are fetched only
+// when the matching route is rendered.
+const Admin = lazy(() => import("./pages/admin/AdminConsole"));
+const Assignments = lazy(() => import("./pages/teacher/Assignments"));
+const Home = lazy(() => import("./pages/Home"));
+const Library = lazy(() => import("./pages/library/Library"));
+const Login = lazy(() => import("./pages/auth/Login"));
+const Reviewer = lazy(() => import("./pages/reviewer/ReviewerConsole"));
+const Signup = lazy(() => import("./pages/auth/Signup"));
+const Curriculum = lazy(() => import("./pages/curriculum/Curriculum"));
+const Workspace = lazy(() => import("./pages/teacher/Workspace"));
+const AssignmentWorkspace = lazy(() => import("./pages/teacher/AssignmentWorkspace"));
+const Lab = lazy(() => import("./pages/Lab"));
+const StudentAssignments = lazy(() => import("./pages/student/StudentAssignments"));
+const ProfilePage = lazy(() => import("./pages/profile/ProfilePage"));
+const SiteInfo = lazy(() => import("./pages/SiteInfo"));
 
 function App() {
   const pathname = useLocation().pathname;
@@ -86,38 +89,40 @@ function App() {
       }
     >
       {!isFullPage && <NavBar />}
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/player" element={<Navigate to="/workspace" replace />} />
-        <Route path="/workspace" element={workspaceElement(<Workspace />)} />
-        <Route
-          path="/assignments/workspace"
-          element={workspaceElement(<AssignmentWorkspace />)}
-        />
-        <Route
-          path="/models"
-          element={
-            <Navigate
-              to={`/assignments/workspace${globalThis.location.search}`}
-              replace
-            />
-          }
-        />
-        <Route path="/lab" element={roleElement(["TEACHER"], <Lab />)} />
-        <Route path="/library" element={<Library />} />
-        <Route path="/assignments" element={assignmentsElement} />
-        <Route path="/admin" element={roleElement(["ADMIN"], <Admin />)} />
-        <Route
-          path="/reviewer"
-          element={roleElement(["REVIEWER", "ADMIN"], <Reviewer />)}
-        />
-        <Route path="/curriculum" element={<Curriculum />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/about" element={<SiteInfo kind="about" />} />
-        <Route path="/terms" element={<SiteInfo kind="terms" />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-      </Routes>
+      <Suspense fallback={<main className="route-loading" aria-busy="true" />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/player" element={<Navigate to="/workspace" replace />} />
+          <Route path="/workspace" element={workspaceElement(<Workspace />)} />
+          <Route
+            path="/assignments/workspace"
+            element={workspaceElement(<AssignmentWorkspace />)}
+          />
+          <Route
+            path="/models"
+            element={
+              <Navigate
+                to={`/assignments/workspace${globalThis.location.search}`}
+                replace
+              />
+            }
+          />
+          <Route path="/lab" element={roleElement(["TEACHER"], <Lab />)} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/assignments" element={assignmentsElement} />
+          <Route path="/admin" element={roleElement(["ADMIN"], <Admin />)} />
+          <Route
+            path="/reviewer"
+            element={roleElement(["REVIEWER", "ADMIN"], <Reviewer />)}
+          />
+          <Route path="/curriculum" element={<Curriculum />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/about" element={<SiteInfo kind="about" />} />
+          <Route path="/terms" element={<SiteInfo kind="terms" />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 }

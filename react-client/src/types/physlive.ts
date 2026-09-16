@@ -27,12 +27,48 @@ export type VisualizationPresentation = {
   actors?: VisualizationActor[];
   props?: string[];
   effects?: string[];
+  /** Optional AI-generated scene graph. Legacy scene/actors remain supported. */
+  sceneGraph?: {
+    nodes: VisualizationNode[];
+  };
+};
+export type VisualizationBinding = number | string | {
+  source: "constant" | "series" | "entity" | "quantity";
+  key?: string;
+  entityId?: string;
+  path?: string;
+  value?: number;
+};
+export type VisualizationNode = {
+  id: string;
+  type: string;
+  layer?: "static" | "trajectory" | "dynamic";
+  transform?: Record<string, VisualizationBinding>;
+  style?: Record<string, string | number | boolean>;
+  properties?: Record<string, unknown>;
+  children?: VisualizationNode[];
+};
+export type EntitySpec = Record<string, unknown>;
+export type QuantitySpec = Record<string, unknown>;
+export type BindingSpec = VisualizationBinding;
+export type VisualSpec = VisualizationNode;
+export type ControlSpec = VisualizationControl;
+export type ChartSpec = Record<string, unknown>;
+export type SimulationSpec = {
+  duration: number;
+  entities: EntitySpec[];
+  quantities: QuantitySpec[];
+  bindings: BindingSpec[];
+  visuals: VisualSpec[];
+  controls?: ControlSpec[];
+  charts?: ChartSpec[];
 };
 export type VisualizationDefinition = {
   scene: string;
   controls: VisualizationControl[];
   series: VisualizationSeries[];
   presentation?: VisualizationPresentation;
+  spec?: SimulationSpec;
 };
 export type Specification = {
   id?: string; schemaVersion?: string; schemaId?: string; topic?: string; confidence: number;
@@ -41,7 +77,7 @@ export type Specification = {
 };
 export type Problem = { id: string; editableText?: string; originalText?: string; sourceMode: string; status: string; currentSpecification?: Specification; sourceAssets?: { id: string; originalFilename: string }[] };
 export type Validation = { passed: boolean; tolerance: number; checkpoints: { time: number; maxRelativeError: number; passed: boolean }[] };
-export type Simulation = { simulationId: string; runId: string; specificationId: string; schemaId: string; valid: boolean; ready: boolean; time: number[]; positions: Record<string, number[]>; velocities: Record<string, number[]>; accelerations: Record<string, number[]>; values: Record<string, number[]>; parameters: Record<string, number>; visualization: VisualizationDefinition; validation: Validation; result?: unknown; elapsedMilliseconds: number };
+export type Simulation = { simulationId: string; runId: string; specificationId: string; schemaId: string; valid: boolean; ready: boolean; time: number[]; positions: Record<string, number[]>; velocities: Record<string, number[]>; accelerations: Record<string, number[]>; values: Record<string, number[]>; parameters: Record<string, number>; visualization: VisualizationDefinition; validation: Validation; spec?: SimulationSpec; result?: unknown; elapsedMilliseconds: number };
 export type SimulationSummary = { simulationId: string; specificationId: string; schemaId: string; status: string; createdAt: string };
 export type Curriculum = { topics: { id: string; name: string; slug: string; enabled: boolean; modules: { id: string; name: string; slug: string; levels: { id: string; name: string; lessons: { id: string; name: string; slug: string }[] }[] }[] }[] };
 export type LibraryFolder = { id: string; name: string; itemCount: number; createdAt: string; updatedAt: string };

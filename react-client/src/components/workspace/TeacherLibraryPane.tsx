@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import type { LibraryFolder, LibraryItem } from "../../types/physlive";
 import Icon from "../common/LearningIcon";
-import LibraryItemActions from "./LibraryItemActions";
+import LibraryFolderView from "./LibraryFolder";
 
 type Props = {
   folders: LibraryFolder[];
@@ -21,19 +21,12 @@ export default function TeacherLibraryPane({ folders, items, currentSimulationId
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
-  const renderItem = (item: LibraryItem) => <div key={item.id} className="learn-library-item">
-    <button type="button" className={item.simulationId === currentSimulationId ? "active" : ""}
-      disabled={openingId === item.id} onClick={() => void onOpen(item)}>
-      <span>{openingId === item.id ? "Đang mở…" : item.title}</span>
-      <small>{item.topic ?? "Physics"} · {item.validationStatus}</small>
-    </button>
-    <LibraryItemActions item={item} folders={folders} />
-  </div>;
   const normalizedQuery = query.trim().toLocaleLowerCase("vi");
   const visibleItems = useMemo(() => normalizedQuery
     ? items.filter(item => `${item.title} ${item.topic ?? ""}`.toLocaleLowerCase("vi").includes(normalizedQuery))
     : items, [items, normalizedQuery]);
   const grouped = useMemo(() => new Map(folders.map(folder => [folder.id, visibleItems.filter(item => item.folderId === folder.id)])), [folders, visibleItems]);
+  const unassignedItems = useMemo(() => visibleItems.filter(item => !item.folderId), [visibleItems]);
   const visibleFolders = useMemo(() => normalizedQuery
     ? folders.filter(folder => folder.name.toLocaleLowerCase("vi").includes(normalizedQuery) || (grouped.get(folder.id)?.length ?? 0) > 0)
     : folders, [folders, grouped, normalizedQuery]);
@@ -70,18 +63,24 @@ export default function TeacherLibraryPane({ folders, items, currentSimulationId
       {loading && <p className="learn-library-state">Đang tải thư viện…</p>}
       {!loading && error && <div className="learn-library-state error" role="alert">{error} {onRetry && <button type="button" onClick={onRetry}>Thử lại</button>}</div>}
       {!loading && !error && folders.length === 0 && <div className="learn-library-empty"><strong>Chưa có thư mục</strong><p>Tạo thư mục để lưu và tổ chức các mô phỏng đã kiểm chứng.</p></div>}
-      {visibleFolders.map(folder => <details className="learn-library-folder" key={folder.id} open>
-        <summary className="learn-library-folder-name"><Icon name="folder" /><strong title={folder.name}>{folder.name}</strong><small>{grouped.get(folder.id)?.length ?? 0}</small></summary>
-        <div className="learn-library-items">
-          {(grouped.get(folder.id) ?? []).map(renderItem)}
-          {(grouped.get(folder.id)?.length ?? 0) === 0 && <p>Chưa có mô phỏng</p>}
-        </div>
-      </details>)}
-      {visibleItems.some(item => !item.folderId) && <details className="learn-library-folder legacy" open>
-        <summary className="learn-library-folder-name"><Icon name="folder" /><strong>Chưa phân loại</strong><small>{visibleItems.filter(item => !item.folderId).length}</small></summary>
-        <div className="learn-library-items">{visibleItems.filter(item => !item.folderId).map(renderItem)}</div>
-      </details>}
-      {!loading && !error && normalizedQuery && visibleFolders.length === 0 && !visibleItems.some(item => !item.folderId) && <p className="learn-library-state">Không tìm thấy thư mục hoặc mô phỏng phù hợp.</p>}
+      {visibleFolders.map(folder => <LibraryFolderView
+        key={folder.id}
+        folder={folder}
+        items={grouped.get(folder.id) ?? []}
+        folders={folders}
+        currentSimulationId={currentSimulationId}
+        openingId={openingId}
+        onOpen={onOpen}
+      />)}
+      {unassignedItems.length > 0 && <LibraryFolderView
+        folder={null}
+        items={unassignedItems}
+        folders={folders}
+        currentSimulationId={currentSimulationId}
+        openingId={openingId}
+        onOpen={onOpen}
+      />}
+      {!loading && !error && normalizedQuery && visibleFolders.length === 0 && unassignedItems.length === 0 && <p className="learn-library-state">Không tìm thấy thư mục hoặc mô phỏng phù hợp.</p>}
     </div>
   </aside>;
 }

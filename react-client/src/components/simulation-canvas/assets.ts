@@ -14,8 +14,6 @@ function drawCart(ctx: CanvasRenderingContext2D, actor: ActorFrame, palette: Can
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.shadowColor = orange ? "rgba(249,115,22,.42)" : "rgba(56,189,248,.42)";
-  ctx.shadowBlur = 14;
   const body = ctx.createLinearGradient(-38, -24, 40, 18);
   if (orange) {
     body.addColorStop(0, "#fdba74"); body.addColorStop(.45, "#f97316"); body.addColorStop(1, "#9a3412");
@@ -28,7 +26,6 @@ function drawCart(ctx: CanvasRenderingContext2D, actor: ActorFrame, palette: Can
   ctx.strokeStyle = orange ? "#fed7aa" : "#bfdbfe";
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.shadowBlur = 0;
   ctx.fillStyle = "rgba(9,13,22,.84)";
   ctx.beginPath();
   ctx.moveTo(-21, -21); ctx.lineTo(-8, -35); ctx.lineTo(17, -35); ctx.lineTo(29, -21); ctx.closePath(); ctx.fill();
@@ -59,15 +56,12 @@ function drawSportCar(ctx: CanvasRenderingContext2D, actor: ActorFrame) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.shadowColor = "rgba(37,99,235,.55)";
-  ctx.shadowBlur = 16;
   const body = ctx.createLinearGradient(-48, -27, 48, 20);
   body.addColorStop(0, "#67e8f9"); body.addColorStop(.35, "#3b82f6"); body.addColorStop(.7, "#1d4ed8"); body.addColorStop(1, "#172554");
   ctx.beginPath();
   ctx.moveTo(-49, 12); ctx.lineTo(-46, -7); ctx.lineTo(-28, -12); ctx.lineTo(-13, -29);
   ctx.lineTo(16, -29); ctx.lineTo(31, -12); ctx.lineTo(47, -5); ctx.lineTo(49, 14); ctx.closePath();
   ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = "#bae6fd"; ctx.lineWidth = 1.6; ctx.stroke();
-  ctx.shadowBlur = 0;
   const glass = ctx.createLinearGradient(-14, -28, 24, -10);
   glass.addColorStop(0, "rgba(224,242,254,.72)"); glass.addColorStop(.28, "rgba(30,64,175,.62)"); glass.addColorStop(1, "rgba(8,15,35,.9)");
   ctx.beginPath(); ctx.moveTo(-10, -27); ctx.lineTo(14, -27); ctx.lineTo(26, -12); ctx.lineTo(-22, -12); ctx.closePath();
@@ -94,9 +88,8 @@ function drawBlock(ctx: CanvasRenderingContext2D, actor: ActorFrame) {
   if (actor.rotation) ctx.rotate(actor.rotation);
   const gradient = ctx.createLinearGradient(-26, -26, 28, 28);
   gradient.addColorStop(0, "#fef3c7"); gradient.addColorStop(.35, "#fbbf24"); gradient.addColorStop(1, "#b45309");
-  ctx.shadowColor = "rgba(251,191,36,.5)"; ctx.shadowBlur = 15;
   roundedPath(ctx, -28, -28, 56, 56, 8); ctx.fillStyle = gradient; ctx.fill();
-  ctx.strokeStyle = "#fef9c3"; ctx.lineWidth = 1.7; ctx.stroke(); ctx.shadowBlur = 0;
+  ctx.strokeStyle = "#fef9c3"; ctx.lineWidth = 1.7; ctx.stroke();
   ctx.fillStyle = "rgba(255,255,255,.38)"; roundedPath(ctx, -20, -19, 39, 7, 3); ctx.fill();
   if (actor.label) { ctx.fillStyle = "#422006"; ctx.font = "800 14px Inter, sans-serif"; ctx.textAlign = "center"; ctx.fillText(actor.label, 0, 6); }
   ctx.restore();
@@ -105,7 +98,6 @@ function drawBlock(ctx: CanvasRenderingContext2D, actor: ActorFrame) {
 function drawProjectile(ctx: CanvasRenderingContext2D, actor: ActorFrame) {
   const { x, y } = actor.position;
   ctx.save();
-  ctx.shadowColor = "#38bdf8"; ctx.shadowBlur = 22;
   const orb = ctx.createRadialGradient(x - 4, y - 5, 2, x, y, 15);
   orb.addColorStop(0, "#ffffff"); orb.addColorStop(.28, "#a5f3fc"); orb.addColorStop(.65, "#0ea5e9"); orb.addColorStop(1, "#1d4ed8");
   ctx.fillStyle = orb; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.fill();
@@ -118,6 +110,10 @@ export const assetRegistry: Record<string, AssetPainter> = {
   "vehicle.sport.blue": drawSportCar,
   "object.block.amber": drawBlock,
   "projectile.energy": drawProjectile,
+  // Stable capability names exposed to AI-generated specs.
+  cart: (ctx, actor, palette) => drawCart(ctx, actor, palette, false),
+  ball: drawProjectile,
+  block: drawBlock,
 };
 
 function drawTower(ctx: CanvasRenderingContext2D, anchor: Point, _angle: number, palette: CanvasPalette) {
