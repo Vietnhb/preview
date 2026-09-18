@@ -2171,3 +2171,5 @@ th {
 .site-info-kicker { color: #2563eb; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .site-info-card h1 { margin: 8px 0 12px; color: #111827; font-size: clamp(28px, 4vw, 42px); }
 .site-info-card p { margin: 0; color: #4b5563; font-size: 16px; line-height: 1.8; }
+
+.license-notice { padding: 12px 20px; background: #fff3cd; color: #664d03; border-bottom: 1px solid #ffecb5; }

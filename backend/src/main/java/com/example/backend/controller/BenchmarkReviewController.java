@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController @RequestMapping("/api/reviewer/benchmarks") @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','REVIEWER')")
+@PreAuthorize("hasAnyRole('ADMIN','CONTENT_REVIEWER')")
 public class BenchmarkReviewController {
     private final BenchmarkReviewService service;
     @GetMapping public List<BenchmarkReviewService.View> list() { return service.list(); }

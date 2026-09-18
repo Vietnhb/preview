@@ -3,10 +3,8 @@ package com.example.backend.service;
 import com.example.backend.dto.LoginResponse;
 import com.example.backend.dto.SignupRequest;
 import com.example.backend.dto.UserResponse;
-import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
-import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +18,6 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
@@ -28,38 +25,34 @@ public class AuthService {
         String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Email or password is incorrect"));
+
+        // Check if user is deactivated (soft delete)
         if (Boolean.FALSE.equals(user.getActive())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Account is suspended");
+            throw new ApiException(HttpStatus.FORBIDDEN, "Account is deactivated");
         }
+
+        // Check if school is deactivated
+        if (user.getSchool() != null && Boolean.FALSE.equals(user.getSchool().isActive())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "School account is deactivated. Please contact administrator.");
+        }
+
+        // Note: License expiry does NOT block login (grace mode allows read-only access)
+
         if (!matchesPassword(password, user.getPassword())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Email or password is incorrect");
         }
+
         user.setLastLogin(java.time.Instant.now());
         userRepository.save(user);
+
         String role = user.getRole() == null ? "TEACHER" : user.getRole().getName();
         return new LoginResponse(jwtUtil.generateToken(user.getEmail(), role),
-                new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(), user.getAvatarUrl()));
+                new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(), user.getAvatarUrl(), user.getSchool() == null ? null : user.getSchool().getId()));
     }
 
     public void signup(SignupRequest request) {
-        if (request == null || request.getEmail() == null || request.getPassword() == null
-                || request.getEmail().isBlank() || request.getPassword().length() < 8) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email and password with at least 8 characters are required");
-        }
-        String normalizedEmail = request.getEmail().trim().toLowerCase(Locale.ROOT);
-        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email already exists");
-        }
-        Role role = roleRepository.findByName("TEACHER")
-                .orElseGet(() -> roleRepository.findByName("GUEST")
-                        .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Default role is missing")));
-        User user = new User();
-        user.setEmail(normalizedEmail);
-        user.setFullName(request.getFullName() == null ? "PhysLive user" : request.getFullName().trim());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(role);
-        user.setActive(true);
-        userRepository.save(user);
+        throw new ApiException(HttpStatus.FORBIDDEN,
+                "Self-registration is disabled. Contact your school manager for an account.");
     }
 
     private boolean matchesPassword(String rawPassword, String storedPassword) {

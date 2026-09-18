@@ -23,7 +23,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/reviewer/module-releases")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('REVIEWER','ADMIN')")
+@PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
 public class ReviewerModuleController {
     private final TopicModuleReleaseRepository releases;
     private final SchemaVersionRepository schemas;

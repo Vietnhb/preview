@@ -30,7 +30,7 @@ public class SchemaController {
     public List<SchemaVersion> list(@RequestParam(defaultValue = "false") boolean enabledOnly,
                                    org.springframework.security.core.Authentication authentication) {
         boolean privileged = authentication.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_REVIEWER"));
+                a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_CONTENT_REVIEWER"));
         return schemaService.list(enabledOnly).stream().filter(s -> privileged
                 || (s.isEnabled() && s.getLifecycleStatus() == LifecycleStatus.APPROVED)).toList();
     }
@@ -41,13 +41,13 @@ public class SchemaController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('REVIEWER','ADMIN')")
+    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public ResponseEntity<SchemaVersion> create(@Valid @RequestBody SchemaRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(schemaService.create(request));
     }
 
     @PutMapping("/{schemaId}/lifecycle")
-    @PreAuthorize("hasAnyRole('REVIEWER','ADMIN')")
+    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public SchemaVersion lifecycle(@PathVariable String schemaId, @RequestParam LifecycleStatus status) {
         return schemaService.changeLifecycle(schemaId, status);
     }

@@ -24,3 +24,13 @@ export const updateAvatar = async (avatarUrl: string) => {
 export const changePassword = async (currentPassword: string, newPassword: string) => {
     await axiosClient.put(`${API_URL}/user/me/password`, { currentPassword, newPassword });
 };
+
+export type LicenseStatus = {
+    active: boolean;
+    inGraceMode: boolean;
+    showRenewalBanner: boolean;
+    daysUntilExpiry: number;
+    canPerformWriteOperations: boolean;
+    licenseEnd: string | null;
+};
+export const getLicenseStatus = () => axiosClient.get<LicenseStatus>("/user/me/license").then(r => r.data);

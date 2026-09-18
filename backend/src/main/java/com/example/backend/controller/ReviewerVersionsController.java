@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController @RequestMapping("/api/reviewer") @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','REVIEWER')")
+@PreAuthorize("hasAnyRole('ADMIN','CONTENT_REVIEWER')")
 public class ReviewerVersionsController {
     private final SchemaService schemas;
     private final SolverVersionRepository solvers;

@@ -61,7 +61,7 @@ public class UserService {
 
     private UserResponse toResponse(User user) {
         String role = user.getRole() == null ? "UNKNOWN" : user.getRole().getName();
-        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(), user.getAvatarUrl());
+        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(), user.getAvatarUrl(), user.getSchool() == null ? null : user.getSchool().getId());
     }
 
     private static String normalizeEmail(String email) {

@@ -33,26 +33,26 @@ public class ReviewerController {
     private final SchemaService schemaService;
 
     @GetMapping("/ambiguities")
-    @PreAuthorize("hasAnyRole('REVIEWER','ADMIN')")
+    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public List<ReviewerAmbiguityResponse> openAmbiguities() {
         return reviewerService.openAmbiguities();
     }
 
     @PostMapping("/ambiguities/{ambiguityId}/resolve")
-    @PreAuthorize("hasAnyRole('REVIEWER','ADMIN')")
+    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public SpecificationResponse resolve(@PathVariable UUID ambiguityId,
                                          @Valid @RequestBody ResolveAmbiguityRequest request) {
         return reviewerService.resolve(ambiguityId, request);
     }
 
     @PostMapping("/schemas")
-    @PreAuthorize("hasAnyRole('REVIEWER','ADMIN')")
+    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public ResponseEntity<SchemaVersion> createSchema(@Valid @RequestBody SchemaRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(schemaService.create(request));
     }
 
     @PutMapping("/schemas/{schemaId}/lifecycle")
-    @PreAuthorize("hasAnyRole('REVIEWER','ADMIN')")
+    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public SchemaVersion changeLifecycle(@PathVariable String schemaId, @RequestParam LifecycleStatus status) {
         return schemaService.changeLifecycle(schemaId, status);
     }

@@ -27,6 +27,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @AllArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final com.example.backend.service.CurrentUserService currentUserService;
+    private final com.example.backend.service.LicenseCheckService licenseCheckService;
+
+    @GetMapping("me/license")
+    public com.example.backend.dto.LicenseStatusResponse license() {
+        return licenseCheckService.status(currentUserService.requireCurrentUser());
+    }
+
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("me")

@@ -29,6 +29,8 @@ public class AdminService {
     private final ValidationRunRepository validationRunRepository;
     private final PasswordEncoder passwordEncoder;
     private final CurrentUserService currentUserService;
+    private final RoleValidationService roleValidationService;
+    private final LicenseCheckService licenseCheckService;
     private final com.example.backend.repository.SchoolRepository schoolRepository;
 
     @Transactional(readOnly = true)
@@ -43,14 +45,18 @@ public class AdminService {
         }
         Role role = roleRepository.findByName(request.role().trim().toUpperCase())
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Role is not supported"));
-        validateSchool(request.institutionId());
+        var school = resolveSchool(request.institutionId());
+        roleValidationService.validateRoleSchoolConsistency(role.getName(), school);
+        requireManage(role.getName(), school);
         if (request.password().length() < 8) throw new ApiException(HttpStatus.BAD_REQUEST, "Password must have at least 8 characters");
         User user = new User();
         user.setEmail(request.email().trim().toLowerCase());
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setFullName(request.fullName().trim());
         user.setRole(role);
-        user.setInstitutionId(request.institutionId());
+        user.setSchool(school);
+        if ("SCHOOL_MANAGER".equals(role.getName()))
+            roleValidationService.validateSingleSchoolManager(school.getId(), null);
         user.setActive(true);
         return toUser(userRepository.save(user));
     }
@@ -62,7 +68,12 @@ public class AdminService {
         }
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        requireManage(user.getRole().getName(), user.getSchool());
+        if (active && "SCHOOL_MANAGER".equals(user.getRole().getName()))
+            roleValidationService.validateSingleSchoolManager(user.getSchool().getId(), user.getId());
         user.setActive(active);
+        user.setDeactivatedAt(active ? null : java.time.Instant.now());
+        user.setDeactivatedBy(active ? null : currentUserService.requireCurrentUser().getId());
         return toUser(userRepository.save(user));
     }
 
@@ -84,7 +95,8 @@ public class AdminService {
 
     private UserStatusResponse toUser(User user) {
         return new UserStatusResponse(user.getId(), user.getEmail(), user.getFullName(),
-                user.getRole() == null ? "UNKNOWN" : user.getRole().getName(), !Boolean.FALSE.equals(user.getActive()), user.getInstitutionId());
+                user.getRole() == null ? "UNKNOWN" : user.getRole().getName(), !Boolean.FALSE.equals(user.getActive()),
+                user.getInstitutionId(), user.getLastLogin(), user.getDateOfBirth());
     }
 
     public record UpdateUserRequest(@jakarta.validation.constraints.NotBlank String fullName,
@@ -93,20 +105,35 @@ public class AdminService {
     @Transactional
     public UserStatusResponse updateUser(Integer id, UpdateUserRequest request) {
         User user = userRepository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        requireManage(user.getRole().getName(), user.getSchool());
         Role role = roleRepository.findByName(request.role().trim().toUpperCase(java.util.Locale.ROOT))
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Role is not supported"));
         if (currentUserService.requireCurrentUser().getId().equals(id) && !role.getName().equals("ADMIN"))
             throw new ApiException(HttpStatus.CONFLICT, "You cannot remove your own admin role");
-        validateSchool(request.institutionId());
-        user.setFullName(request.fullName().trim()); user.setRole(role); user.setInstitutionId(request.institutionId());
+        var school = resolveSchool(request.institutionId());
+        roleValidationService.validateRoleSchoolConsistency(role.getName(), school);
+        requireManage(role.getName(), school);
+        if (Boolean.TRUE.equals(user.getActive()) && "SCHOOL_MANAGER".equals(role.getName()))
+            roleValidationService.validateSingleSchoolManager(school.getId(), user.getId());
+        user.setFullName(request.fullName().trim()); user.setRole(role); user.setSchool(school);
         return toUser(userRepository.save(user));
     }
 
-    private void validateSchool(String id) {
-        if (id == null || id.isBlank()) return;
+    private void requireManage(String targetRole, com.example.backend.entity.School school) {
+        User actor = currentUserService.requireCurrentUser();
+        if (actor.getRole() != null && "ADMIN".equals(actor.getRole().getName())) return;
+        if (school == null || !roleValidationService.canManageSchool(actor, school.getId())
+                || !("TEACHER".equals(targetRole) || "STUDENT".equals(targetRole)))
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can only manage teachers and students in your school");
+        licenseCheckService.requireWriteAccess(actor);
+    }
+
+    private com.example.backend.entity.School resolveSchool(String id) {
+        if (id == null || id.isBlank()) return null;
         try {
-            if (!schoolRepository.findById(java.util.UUID.fromString(id)).map(com.example.backend.entity.School::isActive).orElse(false))
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Select an active school");
+            return schoolRepository.findById(java.util.UUID.fromString(id))
+                    .filter(com.example.backend.entity.School::isActive)
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Select an active school"));
         } catch (IllegalArgumentException ex) { throw new ApiException(HttpStatus.BAD_REQUEST, "School ID is invalid"); }
     }
 }

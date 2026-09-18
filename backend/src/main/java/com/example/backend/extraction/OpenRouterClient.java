@@ -24,8 +24,11 @@ public class OpenRouterClient {
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final int maxTokens;
+    private final com.example.backend.service.SchoolService schoolService;
 
-    public OpenRouterClient(RestClient.Builder builder, ObjectMapper objectMapper, Environment environment) {
+    public OpenRouterClient(RestClient.Builder builder, ObjectMapper objectMapper, Environment environment,
+            com.example.backend.service.SchoolService schoolService) {
+        this.schoolService = schoolService;
         this.objectMapper = objectMapper;
         this.apiKey = environment.getProperty("OPENROUTER_API_KEY", "").trim();
         String baseUrl = environment.getProperty("OPENROUTER_BASE_URL", DEFAULT_BASE_URL).trim();
@@ -73,7 +76,7 @@ public class OpenRouterClient {
                 "max_tokens", maxTokens,
                 "response_format", Map.of("type", "json_object"));
 
-        JsonNode response = restClient.post()
+        JsonNode response = schoolService.meterAiCall(() -> restClient.post()
                 .uri("/chat/completions")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .header("HTTP-Referer", "http://localhost:8080")
@@ -81,7 +84,7 @@ public class OpenRouterClient {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
-                .body(JsonNode.class);
+                .body(JsonNode.class));
 
         if (response == null || response.path("choices").isEmpty()) {
             throw new IllegalStateException("OpenRouter returned an empty response.");

@@ -181,7 +181,7 @@ export default function ProfileModal({ user, onClose }: ProfileModalProps) {
                 " Bạn có thể soạn đề, tạo mô phỏng, lưu thư viện và giao bài cho học sinh."}
               {user?.role === "STUDENT" &&
                 " Bạn có thể hoàn thành bài tập dự đoán và khám phá thư viện mô phỏng."}
-              {user?.role === "REVIEWER" &&
+              {user?.role === "CONTENT_REVIEWER" &&
                 " Bạn có thể phân xử extraction, duyệt Topic Schemas, cấu hình Reference Solvers và thẩm định Benchmark corpus."}
               {user?.role === "ADMIN" &&
                 " Bạn có toàn quyền quản trị tài khoản, trường học, chương trình và giám sát chất lượng kiểm định."}

@@ -32,15 +32,35 @@ không phải một phần của password.
 
 Không dùng `anon key` hoặc `service_role key` làm mật khẩu PostgreSQL.
 
-## 2. Chạy backend
+## 2. Khởi tạo schema B2B trên Supabase
+
+`data.sql` hiện là migration tương thích PostgreSQL/Supabase: tạo role mới,
+đổi tên reviewer cũ, tạo trigger kiểm tra role-school, index manager duy nhất
+và index enrollment active. Hãy chạy nội dung file này một lần trong Supabase
+SQL Editor hoặc qua kết nối session/direct port `5432`, không chạy qua transaction
+pooler `6543`.
+
+Sau khi migration thành công, đặt:
+
+```properties
+JPA_DDL_AUTO=validate
+SQL_INIT_MODE=never
+```
+
+Nếu muốn Spring chạy seed/migration này trong môi trường tạm thời, dùng
+`JPA_DDL_AUTO=update` và `SQL_INIT_MODE=always`. Không dùng cấu hình đó cho
+production vì `data.sql` sẽ chạy lại ở mỗi lần khởi động.
+
+## 3. Chạy backend
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-Lần chạy đầu sẽ tạo/cập nhật bảng `roles`, `users` và thêm role `GUEST`.
+Các seed runner của ứng dụng vẫn tạo dữ liệu curriculum/schema/demo cần thiết;
+schema B2B nên được migration trước trên Supabase.
 
-## 3. Cấu hình production
+## 4. Cấu hình production
 
 Sau khi schema ổn định, đặt:
 

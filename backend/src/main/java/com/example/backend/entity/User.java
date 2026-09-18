@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
 import lombok.Data;
 
 @Entity
@@ -33,8 +34,39 @@ public class User {
     @Column(nullable = true)
     private Boolean active = true;
 
-    @Column(name = "institution_id", length = 120)
-    private String institutionId;
+    /**
+     * School the user belongs to (nullable for platform roles).
+     *
+     * Business Rules (enforced via database constraint in data.sql):
+     * - Platform roles (ADMIN, CONTENT_REVIEWER): school_id MUST be NULL
+     * - School roles (SCHOOL_MANAGER, TEACHER, STUDENT): school_id MUST be NOT NULL
+     */
+    @ManyToOne
+    @JoinColumn(name = "school_id")
+    private School school;
+
+    /** Legacy API field derived from the school relationship. */
+    public String getInstitutionId() {
+        return school == null ? null : school.getId().toString();
+    }
+
+    /**
+     * Soft delete tracking: who deactivated this user (User ID).
+     */
+    @Column(name = "deactivated_by")
+    private Integer deactivatedBy;
+
+    /**
+     * Soft delete tracking: reason for deactivation.
+     */
+    @Column(name = "deactivation_reason", columnDefinition = "TEXT")
+    private String deactivationReason;
+
+    /**
+     * Soft delete tracking: timestamp of deactivation.
+     */
+    @Column(name = "deactivated_at")
+    private Instant deactivatedAt;
 
     @Column(name = "last_login")
     private Instant lastLogin;

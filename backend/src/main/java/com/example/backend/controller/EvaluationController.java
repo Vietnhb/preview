@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/evaluations")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','REVIEWER')")
+@PreAuthorize("hasAnyRole('ADMIN','CONTENT_REVIEWER')")
 public class EvaluationController {
     private final EvaluationService evaluationService;
 

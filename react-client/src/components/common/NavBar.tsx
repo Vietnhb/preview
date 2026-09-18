@@ -21,14 +21,13 @@ type NavItem = {
     | "plus";
 };
 
-const navItems: NavItem[] = [
+const publicNavItems: NavItem[] = [
   { to: "/", label: "Trang chủ", icon: "grid" },
   { to: "/about", label: "Giới thiệu", icon: "folder" },
   { to: "/terms", label: "Điều khoản", icon: "book" },
-  { to: "/player", label: "Workspace", icon: "grid" },
 ];
 
-const workspaceRoles = new Set(["TEACHER", "REVIEWER", "ADMIN"]);
+const workspaceRoles = new Set(["TEACHER", "ADMIN"]);
 const studentNavItem: NavItem = { to: "/assignments", label: "Học tập", icon: "book" };
 
 function NavItemLink({
@@ -83,10 +82,14 @@ export default function NavBar() {
     setMobileOpen(false);
     navigate("/login");
   };
-  const visibleItems = navItems.filter(
-    (item) => item.to !== "/player" || workspaceRoles.has(user?.role ?? ""),
-  );
+  const visibleItems = [...publicNavItems];
+  if (workspaceRoles.has(user?.role ?? "")) {
+    visibleItems.push({ to: "/workspace", label: "Workspace", icon: "grid" });
+  }
   if (user?.role === "STUDENT") visibleItems.push(studentNavItem);
+  if (user?.role === "SCHOOL_MANAGER") {
+    visibleItems.push({ to: "/school", label: "Quản lý trường", icon: "settings" });
+  }
 
   return (
     <nav className="learning-navbar">
@@ -104,9 +107,9 @@ export default function NavBar() {
             {visibleItems.map((item) => (
               <NavItemLink key={item.to} item={item} />
             ))}
-            {(user?.role === "REVIEWER" || user?.role === "ADMIN") && (
+            {(user?.role === "CONTENT_REVIEWER" || user?.role === "ADMIN") && (
               <NavItemLink
-                item={{ to: "/reviewer", label: "Cài đặt", icon: "settings" }}
+                item={{ to: "/reviewer", label: "Kiểm duyệt", icon: "settings" }}
               />
             )}
             {user?.role === "ADMIN" && (
@@ -159,7 +162,7 @@ export default function NavBar() {
                     to="/signup"
                     className="learning-auth-button learning-auth-button-primary"
                   >
-                    Đăng ký
+                    Liên hệ trường
                   </Link>
                 </div>
               )}
@@ -202,9 +205,9 @@ export default function NavBar() {
               onClick={() => setMobileOpen(false)}
             />
           ))}
-          {user?.role === "REVIEWER" || user?.role === "ADMIN" ? (
+          {user?.role === "CONTENT_REVIEWER" || user?.role === "ADMIN" ? (
             <NavItemLink
-              item={{ to: "/reviewer", label: "Cài đặt", icon: "settings" }}
+              item={{ to: "/reviewer", label: "Kiểm duyệt", icon: "settings" }}
               onClick={() => setMobileOpen(false)}
             />
           ) : null}
@@ -237,7 +240,7 @@ export default function NavBar() {
                 onClick={() => setMobileOpen(false)}
               />
               <NavItemLink
-                item={{ to: "/signup", label: "Đăng ký", icon: "plus" }}
+                item={{ to: "/signup", label: "Liên hệ trường", icon: "plus" }}
                 onClick={() => setMobileOpen(false)}
               />
             </>

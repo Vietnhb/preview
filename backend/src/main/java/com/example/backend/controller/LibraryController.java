@@ -28,19 +28,19 @@ public class LibraryController {
     public record RenameRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 160) String title) {}
 
     @org.springframework.web.bind.annotation.PatchMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public LibraryItemResponse rename(@PathVariable UUID id, @Valid @RequestBody RenameRequest request) {
         return libraryService.rename(id, request.title());
     }
 
     @org.springframework.web.bind.annotation.PatchMapping("/{id}/folder")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public LibraryItemResponse move(@PathVariable UUID id, @Valid @RequestBody MoveRequest request) {
         return libraryService.move(id, request.folderId());
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public LibraryItemResponse save(@Valid @RequestBody LibrarySaveRequest request) {
         return libraryService.save(request);
     }
@@ -51,13 +51,13 @@ public class LibraryController {
     }
 
     @GetMapping("/mine")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public List<LibraryItemResponse> mine() {
         return libraryService.mine();
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public void remove(@PathVariable UUID id) {
         libraryService.remove(id);
     }

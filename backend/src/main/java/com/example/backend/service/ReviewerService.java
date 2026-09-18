@@ -63,7 +63,7 @@ public class ReviewerService {
         ReviewerDecision decision = new ReviewerDecision();
         decision.setAmbiguityCase(ambiguity);
         decision.setActorId(actor.getId());
-        decision.setActorRole(actor.getRole() == null ? "REVIEWER" : actor.getRole().getName());
+        decision.setActorRole(actor.getRole() == null ? "CONTENT_REVIEWER" : actor.getRole().getName());
         decision.setDecisionState(ambiguity.getStatus() == AmbiguityStatus.RESOLVED ? "ADJUDICATED" : "NEEDS_CLARIFICATION");
         decision.setAnswer(request.answer().trim());
         decision.setComment(request.comment());

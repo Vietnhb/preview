@@ -8,13 +8,13 @@ spring.config.import=optional:file:.env.local[.properties]
 
 spring.datasource.driver-class-name=org.postgresql.Driver
 
-spring.jpa.hibernate.ddl-auto=${JPA_DDL_AUTO:update}
+spring.jpa.hibernate.ddl-auto=${JPA_DDL_AUTO:validate}
 spring.jpa.show-sql=false
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.defer-datasource-initialization=true
 spring.jpa.open-in-view=false
 
-spring.sql.init.mode=always
+spring.sql.init.mode=${SQL_INIT_MODE:never}
 
 # Never enable request-body or SQL parameter logging in shared environments.
 logging.level.root=INFO

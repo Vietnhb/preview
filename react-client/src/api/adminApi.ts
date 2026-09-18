@@ -6,18 +6,20 @@ import type { User } from "../types/physlive";
  * Handles user management, validation metrics, and system administration
  */
 
-export const adminUsers = () => 
-  axiosClient.get<User[]>("/admin/users").then(r => r.data);
+const usersPath = (schoolId?: string) => schoolId ? `/schools/${schoolId}/users` : "/admin/users";
 
-export const validationMetrics = () => 
-  axiosClient.get<{ 
-    total: number; 
-    failed: number; 
-    failureRate: number 
+export const adminUsers = (schoolId?: string) =>
+  axiosClient.get<User[]>(usersPath(schoolId)).then(r => r.data);
+
+export const validationMetrics = () =>
+  axiosClient.get<{
+    total: number;
+    failed: number;
+    failureRate: number
   }>("/admin/metrics/validation").then(r => r.data);
 
-export type ManagedSchool = { id: string; code: string; name: string; address?: string | null; active: boolean };
-export type SchoolRequest = { code: string; name: string; address?: string; active: boolean };
+export type ManagedSchool = { id: string; code: string; name: string; address?: string | null; active: boolean; licenseStart?: string | null; licenseEnd?: string | null; monthlyTokenQuota?: number | null };
+export type SchoolRequest = { code: string; name: string; address?: string; active: boolean; licenseStart?: string | null; licenseEnd?: string | null; monthlyTokenQuota?: number | null };
 export type ValidationRun = {
   id: string; submissionId: string; topic: string; schemaId: string; schemaVersion: string;
   solverVersion: string; passed: boolean; status: string; errorMessage?: string | null; createdAt: string;
@@ -28,12 +30,12 @@ export type CurriculumModule = { id: string; name: string; slug: string; active:
 export type CurriculumTopic = { id: string; name: string; slug: string; enabled: boolean; sortOrder: number; modules: CurriculumModule[] };
 export type CurriculumTree = { topics: CurriculumTopic[] };
 
-export const createManagedUser = (payload: { email: string; password: string; fullName: string; role: string; institutionId?: string }) =>
-  axiosClient.post<User>("/admin/users", payload).then(r => r.data);
-export const updateManagedUser = (id: number, payload: { fullName: string; role: string; institutionId?: string }) =>
-  axiosClient.put<User>(`/admin/users/${id}`, payload).then(r => r.data);
-export const setManagedUserActive = (id: number, active: boolean) =>
-  axiosClient.put<User>(`/admin/users/${id}/${active ? "restore" : "suspend"}`).then(r => r.data);
+export const createManagedUser = (payload: { email: string; password: string; fullName: string; role: string; institutionId?: string }, schoolId?: string) =>
+  axiosClient.post<User>(usersPath(schoolId), payload).then(r => r.data);
+export const updateManagedUser = (id: number, payload: { fullName: string; role: string; institutionId?: string }, schoolId?: string) =>
+  axiosClient.put<User>(`${usersPath(schoolId)}/${id}`, payload).then(r => r.data);
+export const setManagedUserActive = (id: number, active: boolean, schoolId?: string) =>
+  axiosClient.put<User>(schoolId ? `${usersPath(schoolId)}/${id}/${active ? "restore" : "suspend"}` : `/admin/users/${id}/${active ? "restore" : "suspend"}`).then(r => r.data);
 export const adminSchools = () => axiosClient.get<ManagedSchool[]>("/admin/schools").then(r => r.data);
 export const createSchool = (payload: SchoolRequest) => axiosClient.post<ManagedSchool>("/admin/schools", payload).then(r => r.data);
 export const updateSchool = (id: string, payload: SchoolRequest) => axiosClient.put<ManagedSchool>(`/admin/schools/${id}`, payload).then(r => r.data);

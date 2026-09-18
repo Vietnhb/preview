@@ -23,7 +23,9 @@ public class AdminOperationsController {
     private final ValidationRunRepository validations;
     private final CurriculumService curriculum;
     public record SchoolRequest(@NotBlank @Size(max=80) String code, @NotBlank @Size(max=200) String name,
-                                @Size(max=300) String address, boolean active) { }
+                                @Size(max=300) String address, boolean active,
+                                java.time.LocalDate licenseStart, java.time.LocalDate licenseEnd,
+                                @PositiveOrZero Integer monthlyTokenQuota) { }
     public record ValidationRow(UUID id, UUID submissionId, String topic, String schemaId, String schemaVersion,
             String solverVersion, boolean passed, String status, String errorMessage, Instant createdAt) { }
 
@@ -32,6 +34,8 @@ public class AdminOperationsController {
     public School create(@Valid @RequestBody SchoolRequest request) {
         String code = request.code().trim().toUpperCase(Locale.ROOT);
         if (schools.existsByCode(code)) throw new ApiException(HttpStatus.CONFLICT, "School code already exists");
+        if (schools.findByName(request.name().trim()).isPresent())
+            throw new ApiException(HttpStatus.CONFLICT, "School name already exists");
         School school = new School(); school.setCode(code); return save(school, request);
     }
     @PutMapping("/schools/{id}") @Transactional
@@ -39,9 +43,17 @@ public class AdminOperationsController {
         School school = schools.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "School not found"));
         if (!school.getCode().equals(request.code().trim().toUpperCase(Locale.ROOT)))
             throw new ApiException(HttpStatus.CONFLICT, "School code cannot be changed");
+        schools.findByName(request.name().trim()).filter(existing -> !existing.getId().equals(id))
+                .ifPresent(existing -> { throw new ApiException(HttpStatus.CONFLICT, "School name already exists"); });
         return save(school, request);
     }
     private School save(School school, SchoolRequest request) {
+        if ((request.licenseStart() == null) != (request.licenseEnd() == null)
+                || (request.licenseStart() != null && request.licenseEnd().isBefore(request.licenseStart())))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Provide a valid license date range");
+        school.setLicenseStart(request.licenseStart());
+        school.setLicenseEnd(request.licenseEnd());
+        school.setMonthlyTokenQuota(request.monthlyTokenQuota());
         school.setName(request.name().trim()); school.setAddress(request.address()); school.setActive(request.active());
         return schools.save(school);
     }

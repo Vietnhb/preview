@@ -177,6 +177,8 @@ public class ProblemService {
                     ? SubmissionStatus.NEEDS_CONFIRMATION
                     : SubmissionStatus.READY_FOR_VALIDATION);
             return mapper.toResponse(problem);
+        } catch (ApiException exception) {
+            throw exception;
         } catch (RuntimeException exception) {
             run.setStatus(ExtractionRunStatus.FAILED);
             run.setOutcome(ExtractionOutcome.FAILED);
@@ -200,6 +202,7 @@ public class ProblemService {
             throw new ApiException(HttpStatus.CONFLICT, "Answer every ambiguity before confirming");
         }
         try { ambiguityResolutionApplier.applyAll(specification, safeAnswers); }
+        catch (ApiException exception) { throw exception; }
         catch (RuntimeException exception) { throw new ApiException(HttpStatus.BAD_GATEWAY,
                 "AI ambiguity confirmation failed; no changes were saved. Cause: " + safeCause(exception)); }
         readinessService.ensureRequiredAmbiguities(specification);

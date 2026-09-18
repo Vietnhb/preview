@@ -35,7 +35,7 @@ export default function Login() {
         {error && <div className="account-error"><LearningIcon name="close" /><span>{error}</span></div>}
         <button type="submit" disabled={loading}>{loading ? <span className="account-spinner" /> : "Tiếp tục"}</button>
       </form>
-      <div className="account-links"><Link to="/signup">Chưa có tài khoản? Đăng ký</Link><Link to="/">Về trang chủ</Link></div>
+      <div className="account-links"><Link to="/signup">Chưa có tài khoản? Liên hệ nhà trường</Link><Link to="/">Về trang chủ</Link></div>
       <p className="account-legal">Bằng việc tiếp tục, bạn đồng ý với <a href="#terms">Điều khoản dịch vụ</a> và <a href="#privacy">Chính sách bảo mật</a>.</p>
     </div></div>
   </div>;

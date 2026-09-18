@@ -26,11 +26,13 @@ public class SimulationController {
     private final SimulationService simulationService;
 
     @PostMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<SimulationResponse> run(@Valid @RequestBody SimulationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(simulationService.run(request));
     }
 
     @PostMapping("/adjust")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public SimulationResponse adjust(@Valid @RequestBody ParameterAdjustmentRequest request) {
         return simulationService.adjust(request);
     }

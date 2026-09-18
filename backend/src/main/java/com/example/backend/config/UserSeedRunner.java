@@ -34,22 +34,24 @@ public class UserSeedRunner implements CommandLineRunner {
     public void run(String... args) {
         ensureSchool();
         ensureUser("admin@physlive.com", "Quản trị viên Hệ thống", "admin123456", "ADMIN");
-        ensureUser("reviewer@physlive.com", "Chuyên gia Thẩm định Vật lý", "reviewer123456", "REVIEWER");
+        ensureUser("reviewer@physlive.com", "Chuyên gia Thẩm định Vật lý", "reviewer123456", "CONTENT_REVIEWER");
         ensureUser("teacher@physlive.com", "Giáo viên Vật lý", "password123", "TEACHER");
         ensureUser("student@physlive.com", "Nguyễn Văn An (Học sinh)", "student123456", "STUDENT");
         ensureUser("student2@physlive.com", "Trần Thị Bình (Học sinh)", "student123456", "STUDENT");
         log.info("PhysLive standard demo users verified across all roles.");
     }
 
-    private void ensureSchool() {
-        if (schoolRepository.count() == 0) {
+    private School ensureSchool() {
+        var existingSchool = schoolRepository.findByCode("AMS-HN");
+        if (existingSchool.isEmpty()) {
             School school = new School();
             school.setCode("AMS-HN");
             school.setName("THPT Chuyên Hà Nội - Amsterdam");
             school.setAddress("1 Hoàng Minh Giám, Cầu Giấy, Hà Nội");
             school.setActive(true);
-            schoolRepository.save(school);
+            return schoolRepository.save(school);
         }
+        return existingSchool.get();
     }
 
     private void ensureUser(String email, String fullName, String rawPassword, String roleName) {
@@ -67,6 +69,7 @@ public class UserSeedRunner implements CommandLineRunner {
             user.setFullName(fullName);
             user.setPassword(passwordEncoder.encode(rawPassword));
             user.setRole(role);
+            if (com.example.backend.constants.RoleConstants.isSchoolRole(roleName)) user.setSchool(ensureSchool());
             user.setActive(true);
             userRepository.save(user);
         }

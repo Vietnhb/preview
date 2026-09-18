@@ -36,6 +36,8 @@ public class ExtractionCoordinator {
                         openRouter.modelVersion(),
                         result.rawResponse(),
                         null);
+            } catch (com.example.backend.exception.ApiException accessFailure) {
+                throw accessFailure;
             } catch (RuntimeException aiFailure) {
                 return fallback(text, aiFailure);
             }

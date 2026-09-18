@@ -20,6 +20,9 @@ type IconName =
   | "file"
   | "bulb"
   | "close"
+  | "edit"
+  | "ban"
+  | "trash"
   | "settings"
   | "panel"
   | "view2d"
@@ -36,7 +39,8 @@ type IconName =
   | "message"
   | "activity"
   | "shield"
-  | "refresh";
+  | "refresh"
+  | "bell";
 
 const paths: Record<IconName, string> = {
   atom: "M12 3c4 0 7 4 7 9s-3 9-7 9-7-4-7-9 3-9 7-9 M3 8c2-3 7-3 11-1s8 6 6 9-7 3-11 1S1 11 3 8 M3 16c-2-3 2-7 6-9s9-2 11 1-2 7-6 9-9 2-11-1",
@@ -60,6 +64,9 @@ const paths: Record<IconName, string> = {
   file: "M6 3h8l4 4v14H6zM14 3v5h5",
   bulb: "M9 18h6m-5 3h4M8 15a7 7 0 1 1 8 0l-1 3H9Z",
   close: "m6 6 12 12M6 18 18 6",
+  edit: "M21.174 6.812a1 1 0 0 0-3.986-3.986L3.842 16.172a2 2 0 0 0-.5.83l-1.321 4.398a.5.5 0 0 0 .62.62l4.398-1.321a2 2 0 0 0 .83-.5zM15 5l4 4",
+  ban: "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2ZM4.93 4.93l14.14 14.14",
+  trash: "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6",
   settings:
     "M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915",
   panel: "M4 5h16v14H4zM9 5v14",
@@ -79,7 +86,8 @@ const paths: Record<IconName, string> = {
   message: "M21 11.5a8.5 8.5 0 0 1-9 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5Z",
   activity: "M3 12h4l3-8 4 16 3-8h4",
   shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z",
-  refresh: "M20 11a8 8 0 1 0 2 5m0 0v-5m0 5h-5",
+  refresh: "M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5",
+  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4",
 };
 
 export default function LearningIcon({ name }: Readonly<{ name: IconName }>) {
@@ -89,7 +97,7 @@ export default function LearningIcon({ name }: Readonly<{ name: IconName }>) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={name === "settings" ? 1.5 : 1.7}
+      strokeWidth={name === "settings" ? 1.5 : ["edit", "ban", "trash"].includes(name) ? 2 : 1.7}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

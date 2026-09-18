@@ -13,4 +13,5 @@ public class UserResponse {
     private String role;
     private LocalDate dateOfBirth;
     private String avatarUrl;
+    private java.util.UUID schoolId;
 }

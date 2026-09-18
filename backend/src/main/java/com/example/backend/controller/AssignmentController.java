@@ -27,13 +27,13 @@ public class AssignmentController {
     private final AssignmentService assignmentService;
 
     @PostMapping
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public AssignmentResponse create(@Valid @RequestBody CreateAssignmentRequest request) {
         return assignmentService.create(request);
     }
 
     @GetMapping("/mine/teacher")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public List<AssignmentResponse> teacherAssignments() {
         return assignmentService.forTeacher();
     }
@@ -65,7 +65,7 @@ public class AssignmentController {
     }
 
     @GetMapping("/{id}/submissions")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public List<AssignmentSubmissionResponse> submissions(@PathVariable UUID id) {
         return assignmentService.submissions(id);
     }
