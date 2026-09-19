@@ -27,8 +27,8 @@ public class JwtUtil {
     private final long expiration;
 
     public JwtUtil(
-            @Value("${jwt.secret:}") String configuredSecret,
-            @Value("${jwt.expiration:86400000}") long expiration,
+            @Value("${jwt.secret}") String configuredSecret,
+            @Value("${jwt.expiration}") long expiration,
             Environment environment) {
         this.expiration = expiration;
         this.secretKey = resolveSecretKey(configuredSecret, environment);

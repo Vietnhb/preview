@@ -1,7 +1,10 @@
 package com.example.backend.security;
 
-import com.example.backend.repository.UserRepository;
-import com.example.backend.dto.ErrorResponse;
+import com.example.backend.service.school.LicenseCheckService;
+
+import com.example.backend.repository.account.UserRepository;
+import com.example.backend.dto.common.ErrorResponse;
+import com.example.backend.entity.enums.RoleName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -25,7 +28,7 @@ import java.util.List;
 public class JwtFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
-    private final com.example.backend.service.LicenseCheckService licenseCheckService;
+    private final com.example.backend.service.school.LicenseCheckService licenseCheckService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -49,10 +52,10 @@ public class JwtFilter extends OncePerRequestFilter {
             if (currentUser.isPresent() && currentUser.get().getRole() != null) {
                 var user = currentUser.get();
                 String role = user.getRole().getName();
-                boolean schoolRole = com.example.backend.constants.RoleConstants.isSchoolRole(role);
+                boolean schoolRole = RoleName.from(role).map(RoleName::isSchoolRole).orElse(false);
                 boolean write = !List.of("GET", "HEAD", "OPTIONS").contains(request.getMethod());
                 String path = request.getRequestURI().substring(request.getContextPath().length());
-                boolean managerRenewalRequest = "SCHOOL_MANAGER".equals(role)
+                boolean managerRenewalRequest = RoleName.SCHOOL_MANAGER.matches(role)
                         && "POST".equals(request.getMethod())
                         && ("/api/school/billing/quote".equals(path)
                                 || "/api/school/billing/checkout".equals(path));

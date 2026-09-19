@@ -1,0 +1,33 @@
+package com.example.backend.controller.reviewer;
+
+import com.example.backend.dto.library.LibraryItemResponse;
+import com.example.backend.entity.enums.LibraryModerationStatus;
+import com.example.backend.service.library.LibraryModerationService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/reviewer/library")
+@PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
+@RequiredArgsConstructor
+public class LibraryModerationController {
+    private final LibraryModerationService service;
+    public record ModerationRequest(LibraryModerationStatus status, @Size(max = 4000) String comment) { }
+
+    @GetMapping
+    public List<LibraryItemResponse> queue(@RequestParam(required = false) LibraryModerationStatus status) { return service.queue(status); }
+
+    @PutMapping("/{id}")
+    public LibraryItemResponse moderate(@PathVariable UUID id, @Valid @RequestBody ModerationRequest request) {
+        return service.moderate(id, request.status(), request.comment());
+    }
+
+    @GetMapping("/{id}/history")
+    public List<LibraryModerationService.ModerationAuditView> history(@PathVariable UUID id) { return service.history(id); }
+}

@@ -2,7 +2,7 @@ package com.example.backend.dto.problem;
 
 import java.util.UUID;
 
-import com.example.backend.enums.OcrStatus;
+import com.example.backend.entity.enums.OcrStatus;
 
 public record SourceAssetResponse(
         UUID id,

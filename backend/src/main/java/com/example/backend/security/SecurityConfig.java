@@ -1,9 +1,12 @@
 package com.example.backend.security;
 
+
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import com.example.backend.dto.ErrorResponse;
+import com.example.backend.config.properties.SecurityProperties;
+import com.example.backend.entity.enums.RoleName;
+import com.example.backend.dto.common.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +42,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
     private final ObjectMapper objectMapper;
+    private final SecurityProperties securityProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -71,38 +75,38 @@ public class SecurityConfig {
                         .requestMatchers("/api/user/me", "/api/user/profile/**").authenticated()
 
                         // Platform admin only
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/user/all").hasRole("ADMIN")
-                        .requestMatchers("/api/schools/*/activate", "/api/schools/*/deactivate").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole(RoleName.ADMIN.name())
+                        .requestMatchers("/api/user/all").hasRole(RoleName.ADMIN.name())
+                        .requestMatchers("/api/schools/*/activate", "/api/schools/*/deactivate").hasRole(RoleName.ADMIN.name())
 
                         // Content Reviewer (platform-level content moderation)
-                        .requestMatchers("/api/reviewer/**").hasAnyRole("CONTENT_REVIEWER", "ADMIN")
-                        .requestMatchers("/api/simulations/*/approve", "/api/simulations/*/reject").hasAnyRole("CONTENT_REVIEWER", "ADMIN")
+                        .requestMatchers("/api/reviewer/**").hasAnyRole(RoleName.CONTENT_REVIEWER.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/simulations/*/approve", "/api/simulations/*/reject").hasAnyRole(RoleName.CONTENT_REVIEWER.name(), RoleName.ADMIN.name())
 
                         // School Manager (school-level management)
-                        .requestMatchers("/api/schools/*/users/**").hasAnyRole("SCHOOL_MANAGER", "ADMIN")
-                        .requestMatchers("/api/schools/*/classes/**").hasAnyRole("SCHOOL_MANAGER", "ADMIN")
-                        .requestMatchers("/api/schools/*/reports/**").hasAnyRole("SCHOOL_MANAGER", "ADMIN")
+                        .requestMatchers("/api/schools/*/users/**").hasAnyRole(RoleName.SCHOOL_MANAGER.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/schools/*/classes/**").hasAnyRole(RoleName.SCHOOL_MANAGER.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/schools/*/reports/**").hasAnyRole(RoleName.SCHOOL_MANAGER.name(), RoleName.ADMIN.name())
 
-                        .requestMatchers("/api/problems/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/api/problems/**").hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
 
                         // Teacher (content creation + teaching)
-                        .requestMatchers("/api/simulations/create").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers("/api/assignments/**").hasAnyRole("TEACHER", "STUDENT", "ADMIN")
-                        .requestMatchers("/api/classes/*/students").hasAnyRole("TEACHER", "SCHOOL_MANAGER", "ADMIN")
+                        .requestMatchers("/api/simulations/create").hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/assignments/**").hasAnyRole(RoleName.TEACHER.name(), RoleName.STUDENT.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/classes/*/students").hasAnyRole(RoleName.TEACHER.name(), RoleName.SCHOOL_MANAGER.name(), RoleName.ADMIN.name())
 
                         // Student (learning + submissions)
-                        .requestMatchers("/api/assignments/*/submit").hasAnyRole("STUDENT", "ADMIN")
-                        .requestMatchers("/api/student/**").hasAnyRole("STUDENT", "ADMIN")
-                        .requestMatchers("/api/support/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/assignments/*/submit").hasAnyRole(RoleName.STUDENT.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/student/**").hasAnyRole(RoleName.STUDENT.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/support/admin/**").hasRole(RoleName.ADMIN.name())
                         .requestMatchers("/api/support/**").authenticated()
 
                         // Shared library (view: all auth users, submit: teachers only)
-                        .requestMatchers("/api/library/submit").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/api/library/submit").hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
                         .requestMatchers("/api/library/**").authenticated()
 
                         // Schemas (CONTENT_REVIEWER + ADMIN manage, others view approved only)
-                        .requestMatchers("/api/schemas/create", "/api/schemas/*/update").hasAnyRole("CONTENT_REVIEWER", "ADMIN")
+                        .requestMatchers("/api/schemas/create", "/api/schemas/*/update").hasAnyRole(RoleName.CONTENT_REVIEWER.name(), RoleName.ADMIN.name())
                         .requestMatchers("/api/schemas/**").authenticated()
 
                         // All other requests require authentication
@@ -116,7 +120,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173"));
+        configuration.setAllowedOrigins(securityProperties.allowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -127,6 +131,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(securityProperties.passwordStrength());
     }
 }

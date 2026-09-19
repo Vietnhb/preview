@@ -1,7 +1,7 @@
 package com.example.backend.dto.reviewer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.example.backend.enums.LifecycleStatus;
+import com.example.backend.entity.enums.LifecycleStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 

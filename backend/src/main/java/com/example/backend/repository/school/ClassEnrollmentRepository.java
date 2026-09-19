@@ -1,0 +1,42 @@
+package com.example.backend.repository.school;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.example.backend.entity.school.ClassEnrollment;
+
+@Repository
+public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment, UUID> {
+    
+    /**
+     * Find student's active enrollment in a specific school year.
+     */
+    @Query("SELECT e FROM ClassEnrollment e WHERE e.student.id = :studentId AND e.schoolYear = :schoolYear AND e.status = 'ACTIVE'")
+    Optional<ClassEnrollment> findActiveEnrollment(@Param("studentId") Integer studentId, @Param("schoolYear") String schoolYear);
+
+    @Query("SELECT e FROM ClassEnrollment e WHERE e.student.id = :studentId AND e.status = 'ACTIVE'")
+    List<ClassEnrollment> findActiveEnrollmentsByStudentId(@Param("studentId") Integer studentId);
+    
+    /**
+     * Find all enrollments for a class.
+     */
+    @Query("SELECT e FROM ClassEnrollment e WHERE e.schoolClass.id = :classId")
+    List<ClassEnrollment> findByClassId(@Param("classId") UUID classId);
+    
+    /**
+     * Find all active students in a class.
+     */
+    @Query("SELECT e FROM ClassEnrollment e WHERE e.schoolClass.id = :classId AND e.status = 'ACTIVE'")
+    List<ClassEnrollment> findActiveStudentsByClassId(@Param("classId") UUID classId);
+    
+    @Query("SELECT COUNT(DISTINCT e.student.id) FROM ClassEnrollment e WHERE e.schoolClass.school.id = :schoolId AND e.status = 'ACTIVE'")
+    Long countActiveStudentsBySchoolId(@Param("schoolId") UUID schoolId);
+
+    java.util.Optional<ClassEnrollment> findBySchoolClassIdAndStudentIdAndStatus(UUID classId, Integer studentId, ClassEnrollment.EnrollmentStatus status);
+}

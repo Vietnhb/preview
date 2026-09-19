@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import com.example.backend.enums.SourceMode;
-import com.example.backend.enums.SubmissionStatus;
+import com.example.backend.entity.enums.SourceMode;
+import com.example.backend.entity.enums.SubmissionStatus;
 
 public record ProblemResponse(
         UUID id,

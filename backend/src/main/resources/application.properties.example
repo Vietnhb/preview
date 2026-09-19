@@ -1,32 +1,4 @@
-spring.application.name=physlive-backend
-server.port=8080
-debug=false
-spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
-
-# Loads backend/.env.local when running from the backend directory.
-spring.config.import=optional:file:.env.local[.properties]
-
-spring.datasource.driver-class-name=org.postgresql.Driver
-
-spring.jpa.hibernate.ddl-auto=${JPA_DDL_AUTO:validate}
-spring.jpa.show-sql=false
-spring.jpa.properties.hibernate.format_sql=true
-spring.jpa.defer-datasource-initialization=true
-spring.jpa.open-in-view=false
-
-spring.flyway.enabled=true
-spring.flyway.baseline-on-migrate=true
-spring.flyway.baseline-version=0
-spring.flyway.locations=classpath:db/migration
-
-spring.sql.init.mode=${SQL_INIT_MODE:never}
-
-# Never enable request-body or SQL parameter logging in shared environments.
-logging.level.root=INFO
-logging.level.org.springframework.web=INFO
-logging.level.org.hibernate.SQL=INFO
-logging.level.org.springframework.core.env=INFO
-spring.mvc.log-request-details=false
-
-jwt.secret=${JWT_SECRET:}
-jwt.expiration=86400000
+# Runtime values belong in backend/.env.local for local development or in the
+# deployment platform's environment. See backend/.env.example for every key.
+# This file intentionally contains no fallback URLs, models, credentials,
+# origins, timeouts, or database policy.

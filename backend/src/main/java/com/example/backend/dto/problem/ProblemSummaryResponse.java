@@ -3,8 +3,8 @@ package com.example.backend.dto.problem;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.example.backend.enums.SourceMode;
-import com.example.backend.enums.SubmissionStatus;
+import com.example.backend.entity.enums.SourceMode;
+import com.example.backend.entity.enums.SubmissionStatus;
 
 public record ProblemSummaryResponse(
         UUID id,

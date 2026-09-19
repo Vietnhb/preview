@@ -20,7 +20,6 @@
 *.userosscache
 
 # Local secrets and config
-backend/src/main/resources/application.properties
 **/.env
 **/.env.*
 !**/.env.example

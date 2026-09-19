@@ -1,0 +1,4 @@
+Read every visible part of the physics problem from the supplied image exactly.
+Preserve numbers, mathematical symbols, units, punctuation, subscripts, and line order.
+Do not solve, summarize, translate, correct, or infer missing text.
+Return only one valid JSON object with this shape: {"text":"exact extracted text"}.

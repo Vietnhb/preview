@@ -1,6 +1,6 @@
 package com.example.backend.dto.library;
 
-import com.example.backend.enums.Visibility;
+import com.example.backend.entity.enums.Visibility;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

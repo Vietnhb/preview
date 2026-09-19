@@ -1,13 +1,13 @@
 package com.example.backend.dto.assignment;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.example.backend.enums.AssignmentStatus;
+import com.example.backend.entity.enums.AssignmentStatus;
 
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 import java.math.BigDecimal;
-import com.example.backend.enums.GradingStatus;
+import com.example.backend.entity.enums.GradingStatus;
 
 public record AssignmentResponse(
         UUID id,
