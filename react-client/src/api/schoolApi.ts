@@ -18,6 +18,8 @@ export const removeClassTeacher = (schoolId: string, classId: string, teacherId:
 export const enrollClassStudent = (schoolId: string, classId: string, studentId: number) => axiosClient.post(`${classesPath(schoolId)}/${classId}/students`, { studentId }).then(r => r.data);
 export const transferClassStudent = (schoolId: string, classId: string, studentId: number) => axiosClient.put(`${classesPath(schoolId)}/${classId}/students/${studentId}/transfer`).then(r => r.data);
 export const removeClassStudent = (schoolId: string, classId: string, studentId: number) => axiosClient.delete(`${classesPath(schoolId)}/${classId}/students/${studentId}`).then(r => r.data);
+export type StudentClassSummary = { id: string; name: string; gradeLevel: number; schoolYear: string; subject?: string | null; schoolId: string; schoolName: string; teachers: { id: number; fullName: string }[]; classmateCount: number };
+export const studentClasses = () => axiosClient.get<StudentClassSummary[]>("/student/classes").then(r => r.data);
 export type SchoolReportSummary = { schoolId: string; schoolName: string; students: number; teachers: number; managers: number; activeClasses: number; enrolledStudents: number; usedTokens: number; tokenQuota: number | null; licenseEnd: string | null };
 export type SchoolReportClass = { id: string; name: string; gradeLevel: number; schoolYear: string; teachers: number; students: number };
 export type SchoolImportResult = { total: number; imported: number; failed: number; rows: { row: number; email: string; status: string; message: string }[] };

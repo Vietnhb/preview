@@ -1,0 +1,7 @@
+/* Global compatibility styles: load once, in a fixed order.
+ * New page styles use CSS Modules.
+ */
+@import './app.css';
+@import './app-refresh.css';
+@import './modern-roles.css';
+@import './admin-console.css';

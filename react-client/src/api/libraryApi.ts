@@ -27,6 +27,9 @@ export const cloneSharedLibrary = (id: string, folderId: string, title?: string)
 export const library = (topic?: string) => 
   axiosClient.get<LibraryItem[]>("/library", { params: { topic } }).then(r => r.data);
 
+export const communityLibrary = (topic?: string) =>
+  axiosClient.get<LibraryItem[]>("/library/community", { params: { topic } }).then(r => r.data);
+
 export const personalLibrary = () => 
   axiosClient.get<LibraryItem[]>("/library/mine").then(r => r.data);
 

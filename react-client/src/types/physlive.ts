@@ -1,4 +1,4 @@
-export type User = { id: number; email: string; fullName: string; role: string; active?: boolean; institutionId?: string | null; schoolId?: string | null; dateOfBirth?: string | null; lastLogin?: string | null; avatarUrl?: string | null };
+export type User = { id: number; email: string; fullName: string; role: string; active?: boolean; institutionId?: string | null; schoolId?: string | null; schoolName?: string | null; dateOfBirth?: string | null; lastLogin?: string | null; avatarUrl?: string | null };
 
 export type Quantity = {
   name: string; symbol?: string; value: number; originalValue?: number; originalUnit?: string;
@@ -100,7 +100,7 @@ export type Simulation = { simulationId: string; runId: string; specificationId:
 export type SimulationSummary = { simulationId: string; specificationId: string; schemaId: string; status: string; createdAt: string };
 export type Curriculum = { topics: { id: string; name: string; slug: string; enabled: boolean; modules: { id: string; name: string; slug: string; levels: { id: string; name: string; lessons: { id: string; name: string; slug: string }[] }[] }[] }[] };
 export type LibraryFolder = { id: string; name: string; itemCount: number; createdAt: string; updatedAt: string };
-export type LibraryItem = { id: string; simulationId: string; folderId?: string; lessonId: string; specificationId: string; title: string; topic?: string; validationStatus: string; visibility: "PERSONAL" | "SHARED"; createdAt: string };
+export type LibraryItem = { id: string; simulationId: string; folderId?: string; lessonId: string; specificationId: string; title: string; topic?: string; validationStatus: string; visibility: "PERSONAL" | "SHARED" | "PUBLIC"; createdAt: string; moderationStatus?: "PENDING" | "APPROVED" | "REJECTED" | "FEATURED"; moderationComment?: string | null; sharedById?: number | null; sharedByName?: string | null; schoolId?: string | null; schoolName?: string | null };
 export type StudentOption = { id: number; fullName: string };
 export type Assignment = { id: string; libraryItemId: string; specificationId: string; title: string; description?: string; questions: unknown; studentIds: number[]; status: string; assignedAt: string; dueAt?: string; predictionSubmitted?: boolean; predictions?: { answerText?: string; reasoning?: string; estimatedValue?: number } | null; gradingCriteria?: unknown; maxScore?: number; autoGrade?: boolean; score?: number | null; feedback?: string | null; gradingStatus?: "PENDING" | "AI_GRADED" | "TEACHER_CONFIRMED" | "RETURNED" | null; retryAllowed?: boolean };
 export type CreateAssignment = { libraryItemId: string; title: string; description?: string; questions: { prompt: string }; studentIds: number[]; dueAt?: string; gradingCriteria?: { expectedValue?: number; tolerance?: number }; maxScore?: number; autoGrade?: boolean };

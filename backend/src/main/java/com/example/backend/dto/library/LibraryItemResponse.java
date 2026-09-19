@@ -18,5 +18,9 @@ public record LibraryItemResponse(
         Visibility visibility,
         Instant createdAt,
         LibraryModerationStatus moderationStatus,
-        String moderationComment) {
+        String moderationComment,
+        Integer sharedById,
+        String sharedByName,
+        UUID schoolId,
+        String schoolName) {
 }

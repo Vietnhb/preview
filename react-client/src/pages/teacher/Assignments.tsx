@@ -9,8 +9,10 @@ import {
   reopenAssignmentSubmission,
 } from "../../api/assignmentApi";
 import {
+  createLibraryFolder,
   personalLibrary,
 } from "../../api/libraryApi";
+import TeacherLibraryPane from "../../components/workspace/TeacherLibraryPane";
 import type {
   Assignment,
   AssignmentSubmission,
@@ -19,10 +21,10 @@ import type {
 } from "../../types/physlive";
 import { isStudentRole } from "../../types/roles";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
+import { useTeacherLibrary } from "../../store/useTeacherLibrary";
 import { TeacherAssignmentForm } from "../../components/roles/teacher/TeacherAssignmentForm";
 import { TeacherAssignmentHistory } from "../../components/roles/teacher/TeacherAssignmentHistory";
 import { TeacherSubmissionViewer } from "../../components/roles/teacher/TeacherSubmissionViewer";
-import "../../styles/modern-roles.css";
 import "../../styles/assignment-flow.css";
 
 const StudentAssignments = lazy(() => import("../student/StudentAssignments"));
@@ -38,6 +40,7 @@ export default function Assignments({
   workspaceLayout = false,
 }: Readonly<Props>) {
   const user = usePhysliveStore((state) => state.user);
+  const { folders, libraryItems, libraryLoading, libraryError, retryLibrary, setFolders } = useTeacherLibrary();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryLibraryItemId = searchParams.get("libraryItemId") ?? "";
 
@@ -46,7 +49,7 @@ export default function Assignments({
   // TEACHER ASSIGNMENT STUDIO & SUBMISSIONS MANAGEMENT
   const [items, setItems] = useState<Assignment[]>([]);
   const [saved, setSaved] = useState<LibraryItem[]>([]);
-  const [view, setView] = useState<"create" | "history">(queryLibraryItemId ? "create" : "history");
+  const [view, setView] = useState<"create" | "history">(() => workspaceLayout ? "create" : "history");
   const [formVersion, setFormVersion] = useState(0);
   const inspectorRequest = useRef(0);
   const [students, setStudents] = useState<StudentOption[]>([]);
@@ -112,6 +115,21 @@ export default function Assignments({
     setSearchParams(next, { replace: true });
   };
 
+  const handleCreateLibraryFolder = async (name: string) => {
+    try {
+      const folder = await createLibraryFolder(name);
+      setFolders(current => [...current, folder]);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleOpenLibraryItem = async (item: LibraryItem) => {
+    updateLibrarySelection(item.id);
+    setView("create");
+  };
+
   useEffect(() => {
     const selected = saved.find((item) => item.id === libraryItemId);
     if (selected) setTitle(current => current || selected.title);
@@ -166,7 +184,9 @@ export default function Assignments({
         gradingCriteria: autoGrade ? { expectedValue: Number(expectedValue), tolerance: Number(tolerance) || 0 } : undefined,
       });
       setFormVersion(version => version + 1);
-      setView("history");
+      // The workspace keeps assignment history in the right rail, so switch
+      // back to a fresh composer after sending instead of leaving the center empty.
+      setView(workspaceLayout ? "create" : "history");
       setTitle("");
       setDescription("");
       setPrompt("");
@@ -241,6 +261,17 @@ export default function Assignments({
         workspaceLayout ? "learn-workspace assignment-workspace-main" : "main"
       }
     >
+      {workspaceLayout && <TeacherLibraryPane
+        folders={folders}
+        items={libraryItems}
+        currentSimulationId=""
+        loading={libraryLoading}
+        error={libraryError}
+        openingId={null}
+        onCreateFolder={handleCreateLibraryFolder}
+        onOpen={handleOpenLibraryItem}
+        onRetry={retryLibrary}
+      />}
       <div
         className={
           workspaceLayout
@@ -248,6 +279,7 @@ export default function Assignments({
             : "modern-container"
         }
       >
+        <div className={workspaceLayout ? "assignment-workspace-content" : "assignment-workspace-content-standard"}>
         {notice && (
           <div
             className="status-pill pass"
@@ -273,13 +305,13 @@ export default function Assignments({
           </div>
         )}
 
-        <header className="assignment-flow-header"><div><span className="assignment-eyebrow">KHÔNG GIAN GIÁO VIÊN</span><h1>Bài tập mô phỏng</h1><p>Soạn bài, giao cho học sinh và theo dõi bài nộp tại một nơi.</p></div><button type="button" className="prediction-submit-btn" onClick={() => setView("create")}>+ Giao bài mới</button></header>
-        <div className="modern-tabs"><button className={`modern-tab-btn ${view === "history" ? "active" : ""}`} onClick={() => setView("history")}>Bài đã giao · {items.length}</button><button className={`modern-tab-btn ${view === "create" ? "active" : ""}`} onClick={() => setView("create")}>Soạn bài tập</button></div>
+        {!workspaceLayout && <header className="assignment-flow-header"><div><span className="assignment-eyebrow">KHÔNG GIAN GIÁO VIÊN</span><h1>Bài tập mô phỏng</h1><p>Soạn bài, giao cho học sinh và theo dõi bài nộp tại một nơi.</p></div><button type="button" className="prediction-submit-btn" onClick={() => setView("create")}>+ Giao bài mới</button></header>}
+        {!workspaceLayout && <div className="modern-tabs"><button className={`modern-tab-btn ${view === "history" ? "active" : ""}`} onClick={() => setView("history")}>Bài đã giao · {items.length}</button><button className={`modern-tab-btn ${view === "create" ? "active" : ""}`} onClick={() => setView("create")}>Soạn bài tập</button></div>}
         {loading && <p role="status">Đang tải dữ liệu bài tập…</p>}
         <div
           className="assignment-flow-body"
         >
-          {view === "create" && !loading && <TeacherAssignmentForm
+          {view === "create" && (!loading || (workspaceLayout && saved.length > 0)) && <TeacherAssignmentForm
             key={formVersion}
             workspaceLayout={workspaceLayout}
             saved={saved}
@@ -310,10 +342,11 @@ export default function Assignments({
             onSelectAll={handleSelectAllStudents}
           />}
 
-          {view === "history" && <TeacherAssignmentHistory
+          {!workspaceLayout && view === "history" && <TeacherAssignmentHistory
             workspaceLayout={workspaceLayout}
             items={items}
             loading={loading}
+            selectedAssignmentId={inspectingAssignment?.id}
             onRefresh={loadData}
             onOpenSubmissions={(assignment) =>
               void handleOpenSubmissions(assignment)
@@ -321,18 +354,30 @@ export default function Assignments({
           />}
         </div>
 
-        {inspectingAssignment && (
-          <TeacherSubmissionViewer
-            assignment={inspectingAssignment}
-            submissions={submissions}
-            loading={submissionsLoading}
-            error={submissionsError}
-            onClose={() => { inspectorRequest.current += 1; setInspectingAssignment(null); }}
-            onGrade={gradeSubmission}
-            onReopen={reopenSubmission}
-          />
-        )}
+        </div>
       </div>
+      {workspaceLayout && <aside className="assignment-history-rail" aria-label="Danh sách bài đã giao">
+        <TeacherAssignmentHistory
+          workspaceLayout
+          items={items}
+          loading={loading}
+          selectedAssignmentId={inspectingAssignment?.id}
+          onRefresh={loadData}
+          onOpenSubmissions={assignment => void handleOpenSubmissions(assignment)}
+        />
+      </aside>}
+      {inspectingAssignment && (
+        <TeacherSubmissionViewer
+          assignment={inspectingAssignment}
+          submissions={submissions}
+          loading={submissionsLoading}
+          error={submissionsError}
+          inline={false}
+          onClose={() => { inspectorRequest.current += 1; setInspectingAssignment(null); }}
+          onGrade={gradeSubmission}
+          onReopen={reopenSubmission}
+        />
+      )}
     </div>
   );
 }

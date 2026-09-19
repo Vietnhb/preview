@@ -2,15 +2,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Icon from "../components/common/LearningIcon";
 import LearningHeader from "../components/common/LearningHeader";
-import { assignmentSubmissions, studentOptions, teacherAssignments } from "../api/assignmentApi";
+import {
+  assignmentSubmissions,
+  studentOptions,
+  teacherAssignments,
+} from "../api/assignmentApi";
 import type { AssignmentSubmission, StudentOption } from "../types/physlive";
 import { TeacherAssignmentList } from "../components/roles/teacher/submissions/TeacherAssignmentList";
 import { TeacherSubmissionTable } from "../components/roles/teacher/submissions/TeacherSubmissionTable";
 import { TeacherSubmissionTableLoading } from "../components/roles/teacher/submissions/TeacherSubmissionTableLoading";
-import type { AssignmentRecord, SubmissionFilter } from "../components/roles/teacher/submissions/teacherSubmissionTypes";
+import type {
+  AssignmentRecord,
+  SubmissionFilter,
+} from "../components/roles/teacher/submissions/teacherSubmissionTypes";
 import { formatDate } from "../components/roles/teacher/submissions/teacherSubmissionUtils";
 import "../styles/learning.css";
-import "../styles/modern-roles.css";
 import "../styles/lab.css";
 
 export default function Lab() {
@@ -47,20 +53,25 @@ export default function Lab() {
       const [studentItems, submissionResults] = await Promise.all([
         studentOptions(),
         Promise.all(
-          assignments.map(async (assignment) => [
-            assignment.id,
-            await assignmentSubmissions(assignment.id),
-          ] as const),
+          assignments.map(
+            async (assignment) =>
+              [
+                assignment.id,
+                await assignmentSubmissions(assignment.id),
+              ] as const,
+          ),
         ),
       ]);
       const submissionsByAssignment = new Map(submissionResults);
       setStudents(
         new Map(studentItems.map((student) => [student.id, student])),
       );
-      setRecords((current) => current.map((item) => ({
-        ...item,
-        submissions: submissionsByAssignment.get(item.assignment.id) ?? [],
-      })));
+      setRecords((current) =>
+        current.map((item) => ({
+          ...item,
+          submissions: submissionsByAssignment.get(item.assignment.id) ?? [],
+        })),
+      );
     } catch {
       setError("Không thể tải danh sách bài nộp. Vui lòng thử lại.");
     } finally {
@@ -106,11 +117,15 @@ export default function Lab() {
                 <span>Bài đã giao</span>
               </div>
               <div className="lab-summary-item">
-                <strong className="lab-summary-success">{submissionsLoading ? "—" : totals.submitted}</strong>
+                <strong className="lab-summary-success">
+                  {submissionsLoading ? "—" : totals.submitted}
+                </strong>
                 <span>Đã nộp</span>
               </div>
               <div className="lab-summary-item">
-                <strong className="lab-summary-warning">{submissionsLoading ? "—" : totals.pending}</strong>
+                <strong className="lab-summary-warning">
+                  {submissionsLoading ? "—" : totals.pending}
+                </strong>
                 <span>Chưa nộp</span>
               </div>
             </div>

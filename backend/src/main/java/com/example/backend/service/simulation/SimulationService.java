@@ -211,7 +211,9 @@ public class SimulationService {
     public SimulationResponse getShared(UUID id) {
         User user = currentUserService.requireCurrentUser();
         Simulation simulation = libraryItemRepository
-                .findVisibleSharedSimulation(id, Visibility.SHARED, user.getInstitutionId())
+                .findVisiblePublishedSimulation(id, java.util.Set.of(Visibility.SHARED, Visibility.PUBLIC), Visibility.PUBLIC,
+                        java.util.Set.of(com.example.backend.entity.enums.LibraryModerationStatus.APPROVED,
+                                com.example.backend.entity.enums.LibraryModerationStatus.FEATURED), user.getInstitutionId())
                 .map(item -> item.getSimulation())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shared simulation not found"));
         return latestResponse(simulation, true);

@@ -6,6 +6,7 @@ type SubmissionViewerProps = {
   submissions: AssignmentSubmission[];
   loading: boolean;
   error: string;
+  inline?: boolean;
   onClose: () => void;
   onGrade: (submissionId: string, score: number, feedback: string) => Promise<void>;
   onReopen: (submissionId: string) => Promise<void>;
@@ -16,19 +17,13 @@ export function TeacherSubmissionViewer({
   submissions,
   loading,
   error,
+  inline = false,
   onClose,
   onGrade,
   onReopen,
 }: Readonly<SubmissionViewerProps>) {
-  return (
-    <dialog
-      open
-      className="modern-modal-overlay"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div className="modern-modal-content" style={{ maxWidth: "760px" }}>
+  const content = (
+      <div className={inline ? "assignment-inspector-content" : "modern-modal-content"} style={inline ? undefined : { maxWidth: "760px" }}>
         <div className="modern-modal-header">
           <div>
             <span className="status-pill info" style={{ marginBottom: "4px" }}>
@@ -146,6 +141,8 @@ export function TeacherSubmissionViewer({
           </button>
         </div>
       </div>
-    </dialog>
   );
+  return inline
+    ? <aside className="assignment-inspector-pane" aria-label="Chi tiết bài đã giao">{content}</aside>
+    : <dialog open className="modern-modal-overlay" onPointerDown={event => { if (event.target === event.currentTarget) onClose(); }}>{content}</dialog>;
 }

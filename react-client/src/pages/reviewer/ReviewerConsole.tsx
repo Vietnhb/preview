@@ -5,7 +5,6 @@ import { ModuleApprovalTab } from "../../components/roles/reviewer/ModuleApprova
 import { QueueTab } from "../../components/roles/reviewer/QueueTab";
 import { VersionsTab } from "../../components/roles/reviewer/VersionsTab";
 import { SharedLibraryTab } from "../../components/roles/reviewer/SharedLibraryTab";
-import "../../styles/modern-roles.css";
 
 const TABS = [
   { id: "queue", label: "Hàng đợi Phân xử Extraction (Queue)" },

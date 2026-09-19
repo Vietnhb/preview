@@ -30,7 +30,7 @@ public class LibraryModerationService {
 
     @Transactional(readOnly = true)
     public List<LibraryItemResponse> queue(LibraryModerationStatus status) {
-        return items.findByVisibilityAndModerationStatusOrderByCreatedAtAsc(Visibility.SHARED,
+        return items.findByVisibilityInAndModerationStatusOrderByCreatedAtAsc(java.util.Set.of(Visibility.SHARED, Visibility.PUBLIC),
                         status == null ? LibraryModerationStatus.PENDING : status)
                 .stream().map(this::response).toList();
     }
@@ -40,8 +40,8 @@ public class LibraryModerationService {
         var actor = currentUser.requireCurrentUser();
         LibraryItem item = items.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shared library item not found"));
-        if (item.getVisibility() != Visibility.SHARED)
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Only shared library items can be moderated");
+        if (item.getVisibility() == Visibility.PERSONAL)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only published library items can be moderated");
         if (status == null || status == LibraryModerationStatus.PENDING)
             throw new ApiException(HttpStatus.BAD_REQUEST, "A final moderation status is required");
         LibraryModerationAudit audit = new LibraryModerationAudit(); audit.setLibraryItem(item); audit.setReviewer(actor);
@@ -60,6 +60,10 @@ public class LibraryModerationService {
         return new LibraryItemResponse(item.getId(), item.getSimulation() == null ? null : item.getSimulation().getId(),
                 item.getFolder() == null ? null : item.getFolder().getId(), item.getLesson() == null ? null : item.getLesson().getId(),
                 item.getSpecification().getId(), item.getTitle(), item.getSpecification().getTopic(), item.getSpecification().getValidationStatus(),
-                item.getVisibility(), item.getCreatedAt(), item.getModerationStatus(), item.getModerationComment());
+                item.getVisibility(), item.getCreatedAt(), item.getModerationStatus(), item.getModerationComment(),
+                item.getOwner() == null ? null : item.getOwner().getId(),
+                item.getOwner() == null ? null : item.getOwner().getFullName(),
+                item.getOwner() == null || item.getOwner().getSchool() == null ? null : item.getOwner().getSchool().getId(),
+                item.getOwner() == null || item.getOwner().getSchool() == null ? null : item.getOwner().getSchool().getName());
     }
 }

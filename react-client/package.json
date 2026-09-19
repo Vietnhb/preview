@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "check:architecture": "node scripts/check-architecture.mjs",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "check": "npm run check:architecture && npm run lint && npm test && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {

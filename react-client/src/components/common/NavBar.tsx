@@ -87,6 +87,7 @@ export default function NavBar() {
     visibleItems.push({ to: "/workspace", label: "Workspace", icon: "grid" });
   }
   if (isStudentRole(user?.role)) visibleItems.push(studentNavItem);
+  if (user) visibleItems.push({ to: "/community", label: "Cộng đồng", icon: "play" });
   if (user?.role === ROLE_NAMES.SCHOOL_MANAGER) {
     visibleItems.push({ to: "/school", label: "Quản lý trường", icon: "settings" });
   }

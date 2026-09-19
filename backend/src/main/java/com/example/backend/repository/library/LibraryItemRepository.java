@@ -20,13 +20,17 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> 
             select i from LibraryItem i
             where i.simulation.id = :simulationId
               and i.active = true
-              and i.visibility = :visibility
-              and (i.sharedInstitutionId is null or i.sharedInstitutionId = ''
+              and i.visibility in :visibilities
+              and i.moderationStatus in :moderationStatuses
+              and (i.visibility = :publicVisibility
+                   or i.sharedInstitutionId is null or i.sharedInstitutionId = ''
                    or i.sharedInstitutionId = :institutionId)
             """)
-    Optional<LibraryItem> findVisibleSharedSimulation(@Param("simulationId") UUID simulationId,
-                                                       @Param("visibility") Visibility visibility,
-                                                       @Param("institutionId") String institutionId);
+    Optional<LibraryItem> findVisiblePublishedSimulation(@Param("simulationId") UUID simulationId,
+                                                          @Param("visibilities") java.util.Set<Visibility> visibilities,
+                                                          @Param("publicVisibility") Visibility publicVisibility,
+                                                          @Param("moderationStatuses") java.util.Set<LibraryModerationStatus> moderationStatuses,
+                                                          @Param("institutionId") String institutionId);
 
     List<LibraryItem> findByOwnerIdAndActiveTrueOrderByCreatedAtDesc(Integer ownerId);
 
@@ -35,4 +39,5 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> 
     long countByFolderIdAndActiveTrue(UUID folderId);
 
     List<LibraryItem> findByVisibilityAndModerationStatusOrderByCreatedAtAsc(Visibility visibility, LibraryModerationStatus status);
+    List<LibraryItem> findByVisibilityInAndModerationStatusOrderByCreatedAtAsc(java.util.Set<Visibility> visibilities, LibraryModerationStatus status);
 }

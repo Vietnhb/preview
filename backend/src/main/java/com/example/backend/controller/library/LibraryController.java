@@ -57,6 +57,11 @@ public class LibraryController {
         return libraryService.search(topic);
     }
 
+    @GetMapping("/community")
+    public List<LibraryItemResponse> community(@RequestParam(required = false) String topic) {
+        return libraryService.community(topic);
+    }
+
     @GetMapping("/mine")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public List<LibraryItemResponse> mine() {

@@ -54,6 +54,28 @@ public class SchoolClassService {
                               boolean active, List<Person> teachers, List<Person> students) { }
     public record TeacherAssignment(UUID id, Integer teacherId, String teacherName, boolean active) { }
     public record Enrollment(UUID id, Integer studentId, String studentName, String schoolYear, String status) { }
+    public record StudentClassTeacher(Integer id, String fullName) { }
+    public record StudentClassSummary(UUID id, String name, Integer gradeLevel, String schoolYear, String subject,
+                                      UUID schoolId, String schoolName, List<StudentClassTeacher> teachers, long classmateCount) { }
+
+    @Transactional(readOnly = true)
+    public List<StudentClassSummary> mineForStudent() {
+        User student = currentUser.requireCurrentUser();
+        if (student.getRole() == null || !RoleName.STUDENT.matches(student.getRole().getName()))
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only students can view their classes");
+        return enrollments.findActiveEnrollmentsByStudentId(student.getId()).stream()
+                .filter(item -> item.getSchoolClass() != null && Boolean.TRUE.equals(item.getSchoolClass().getIsActive()))
+                .map(item -> {
+                    SchoolClass schoolClass = item.getSchoolClass();
+                    List<StudentClassTeacher> teachers = teacherAssignments.findByClassIdAndIsActiveTrue(schoolClass.getId()).stream()
+                            .map(assignment -> new StudentClassTeacher(assignment.getTeacher().getId(), assignment.getTeacher().getFullName())).toList();
+                    long classmates = Math.max(0, enrollments.findActiveStudentsByClassId(schoolClass.getId()).size() - 1L);
+                    return new StudentClassSummary(schoolClass.getId(), schoolClass.getName(), schoolClass.getGradeLevel(),
+                            schoolClass.getSchoolYear(), schoolClass.getSubject(), schoolClass.getSchool().getId(),
+                            schoolClass.getSchool().getName(), teachers, classmates);
+                })
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public List<ClassSummary> list(UUID schoolId) {

@@ -40,9 +40,9 @@ function Home() {
                   <button
                     type="button"
                     className="home-button home-button-secondary"
-                    onClick={() => navigate("/library")}
+                    onClick={() => navigate("/community")}
                   >
-                    Tài nguyên
+                    Kho cộng đồng
                   </button>
                 )}
                 {!token && (

@@ -1,0 +1,12 @@
+.container {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1600px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 40px clamp(20px, 3vw, 48px) 72px;
+}
+
+@media (max-width: 800px) {
+  .container { padding: 30px 18px 56px; }
+}

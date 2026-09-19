@@ -4,6 +4,7 @@ import { questionPrompt } from "./teacherAssignmentUtils";
 type TeacherAssignmentHistoryProps = {
   workspaceLayout: boolean;
   items: Assignment[];
+  selectedAssignmentId?: string;
   loading: boolean;
   onRefresh: () => void;
   onOpenSubmissions: (assignment: Assignment) => void;
@@ -12,6 +13,7 @@ type TeacherAssignmentHistoryProps = {
 export function TeacherAssignmentHistory({
   workspaceLayout,
   items,
+  selectedAssignmentId,
   loading,
   onRefresh,
   onOpenSubmissions,
@@ -46,7 +48,7 @@ export function TeacherAssignmentHistory({
       {!loading && items.length > 0 && (
         <div className="assignment-history-list">
           {items.map((item) => (
-            <article className="assignment-history-card" key={item.id}>
+            <article className={`assignment-history-card${selectedAssignmentId === item.id ? " selected" : ""}`} key={item.id} aria-current={selectedAssignmentId === item.id ? "true" : undefined}>
               <div className="assignment-history-card-heading">
                 <h3>{item.title}</h3>
                 <span className={`status-pill ${item.status.toLowerCase()}`}>

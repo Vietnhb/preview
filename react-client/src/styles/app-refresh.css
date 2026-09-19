@@ -124,12 +124,6 @@ button.secondary:hover:not(:disabled),
 .sidebar-footer span:last-child {
   color: var(--app-text-tertiary);
 }
-.main {
-  width: min(1360px, calc(100vw - 224px));
-  max-width: 1360px;
-  margin-left: max(224px, calc(224px + (100vw - 224px - 1360px) / 2));
-  padding: 48px 32px 80px;
-}
 .studio-main {
   padding-top: 60px;
 }
@@ -409,11 +403,6 @@ button.secondary:hover:not(:disabled),
   border-radius: 20px;
   box-shadow: var(--app-shadow-1);
 }
-.auth-page {
-  width: min(1360px, calc(100vw - 224px));
-  max-width: 1360px;
-  margin-left: max(224px, calc(224px + (100vw - 224px - 1360px) / 2));
-}
 .auth-card {
   box-shadow: var(--app-shadow-2);
 }
@@ -422,11 +411,6 @@ button.secondary:hover:not(:disabled),
   .navbar {
     margin-left: 0;
     padding: 12px 18px;
-  }
-  .main,
-  .auth-page {
-    margin-left: 72px !important;
-    width: calc(100vw - 72px) !important;
   }
 }
 @media (max-width: 640px) {

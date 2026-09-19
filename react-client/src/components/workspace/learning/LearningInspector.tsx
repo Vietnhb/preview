@@ -92,7 +92,7 @@ function LearningSavePanel({ folders, topics, modules, levels, lessons, folderId
     <label><span>Grade / Level</span><select value={levelId} disabled={!moduleId} onChange={event => onLevelChange(event.target.value)} required><option value="">Chọn lớp</option>{levels.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
     <label><span>Lesson</span><select value={lessonId} disabled={!levelId} onChange={event => onLessonChange(event.target.value)} required><option value="">Chọn lesson</option>{lessons.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
     <label><span>Tên trong thư viện</span><input value={saveTitle} maxLength={160} onChange={event => onSaveTitleChange(event.target.value)} required /></label>
-    <label><span>Phạm vi</span><select value={visibility} onChange={event => onVisibilityChange(event.target.value as LibraryItem["visibility"])}><option value="PERSONAL">Cá nhân</option><option value="SHARED">Chia sẻ</option></select></label>
+    <label><span>Phạm vi</span><select value={visibility} onChange={event => onVisibilityChange(event.target.value as LibraryItem["visibility"])}><option value="PERSONAL">Chỉ mình tôi</option><option value="SHARED">Trong trường</option><option value="PUBLIC">Công khai toàn cộng đồng</option></select></label>
     <div className="learn-save-actions"><button type="submit" className="learn-save-submit" disabled={saving || !saveTitle.trim() || !folderId || !lessonId}>{saving ? "Đang lưu…" : "Xác nhận lưu"}</button><button type="button" className="learn-save-cancel secondary" onClick={onCancelSave} disabled={saving}>Hủy</button></div>
     {saveError && <p className="learn-save-error" role="alert">{saveError}</p>}
   </form>;

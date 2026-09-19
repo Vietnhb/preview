@@ -9,12 +9,14 @@ import {
 import { createSimulationAdjustment } from "../../utils/simulationAdjustment";
 import { getSharedSimulation } from "../../api/simulationApi";
 import { library } from "../../api/libraryApi";
+import { studentClasses, type StudentClassSummary } from "../../api/schoolApi";
 import type { Assignment, LibraryItem, Simulation } from "../../types/physlive";
 import { controlValue, indexAtTime, isWithinControlBounds, type LearningControl } from "../../utils/learningModel";
 import { AssignmentList } from "../../components/roles/student/StudentAssignmentList";
-import { SharedLibrary } from "../../components/roles/student/StudentSharedLibrary";
+import { StudentClassOverview } from "../../components/roles/student/StudentClassOverview";
+import { ResourceDiscovery as StudentDiscovery } from "../../features/library/components/ResourceDiscovery";
 import { AssignmentWorkbench } from "../../components/roles/student/StudentAssignmentWorkbench";
-import "../../styles/modern-roles.css";
+import { usePhysliveStore } from "../../store/usePhysliveStore";
 import "../../styles/assignment-flow.css";
 
 interface PredictionPayload {
@@ -34,6 +36,7 @@ export default function StudentAssignments({
   const [activeTab, setActiveTab] = useState<"assigned" | "library">(
     initialTab,
   );
+  const user = usePhysliveStore(state => state.user);
 
   // Assigned items
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -82,8 +85,9 @@ export default function StudentAssignments({
 
   // Class / Shared Library state
   const [sharedItems, setSharedItems] = useState<LibraryItem[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState("");
   const [sharedLoading, setSharedLoading] = useState(false);
+  const [classes, setClasses] = useState<StudentClassSummary[]>([]);
+  const [classesLoading, setClassesLoading] = useState(true);
   const [selectedSharedItem, setSelectedSharedItem] =
     useState<LibraryItem | null>(null);
   const [sharedSimulation, setSharedSimulation] = useState<Simulation | null>(
@@ -109,11 +113,11 @@ export default function StudentAssignments({
     }
   }, []);
 
-  const loadSharedLibrary = useCallback(async (topic?: string) => {
+  const loadSharedLibrary = useCallback(async () => {
     setSharedLoading(true);
     try {
-      const data = await library(topic || undefined);
-      setSharedItems(data.filter((item) => item.visibility === "SHARED"));
+      const data = await library();
+      setSharedItems(data.filter((item) => item.visibility === "SHARED" || item.visibility === "PUBLIC"));
     } catch {
       // ignore
     } finally {
@@ -159,10 +163,9 @@ export default function StudentAssignments({
   }, [loadAssignments]);
 
   useEffect(() => {
-    if (activeTab === "library") {
-      void loadSharedLibrary(selectedTopic);
-    }
-  }, [activeTab, selectedTopic, loadSharedLibrary]);
+    void loadSharedLibrary();
+    void studentClasses().then(setClasses).catch(() => setClasses([])).finally(() => setClassesLoading(false));
+  }, [loadSharedLibrary]);
 
   const loadAssignedSimulation = useCallback(async (assignmentId: string, requestId: number) => {
     if (requestId !== assignmentRequestRef.current || selectedAssignmentIdRef.current !== assignmentId) return;
@@ -398,25 +401,16 @@ export default function StudentAssignments({
   return (
     <div className={`main student-main student-layout-${activeTab}`}>
       <div className="modern-container">
-        {/* Header */}
-        <header className="modern-header">
-          <div className="modern-header-title">
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "6px",
-              }}
-            >
-              <h1>Bài tập của tôi</h1>
-            </div>
-            <p>
-              Xem bài được giao, gửi dự đoán trước khi chạy mô phỏng và học từ
-              tài nguyên được chia sẻ.
-            </p>
-          </div>
-        </header>
+        {selectedAssignment === null && activeTab === "assigned" && <StudentClassOverview
+          studentName={user?.fullName || "bạn"}
+          schoolName={classes[0]?.schoolName ?? user?.schoolName}
+          classes={classes}
+          loading={classesLoading}
+          pendingAssignments={assignments.filter(item => !item.predictionSubmitted || item.retryAllowed).length}
+          completedAssignments={assignments.filter(item => item.predictionSubmitted && !item.retryAllowed).length}
+          sharedResources={sharedItems.length}
+          onExplore={() => setActiveTab("library")}
+        />}
 
         {/* Tabs */}
         <div className="modern-tabs">
@@ -438,7 +432,8 @@ export default function StudentAssignments({
               closeAssignment();
             }}
           >
-            <span>Tài nguyên lớp học</span>
+            <span>Khám phá mô phỏng</span>
+            <span className="modern-tab-badge">{sharedItems.length}</span>
           </button>
         </div>
 
@@ -539,9 +534,8 @@ export default function StudentAssignments({
 
         {/* TAB 2: CLASS & SHARED LIBRARY (FR-STU-04) */}
         {activeTab === "library" && (
-          <SharedLibrary
+          <StudentDiscovery
             items={sharedItems}
-            selectedTopic={selectedTopic}
             loading={sharedLoading}
             selectedItem={selectedSharedItem}
             simulation={sharedSimulation}
@@ -551,7 +545,6 @@ export default function StudentAssignments({
             frame={sharedFrame}
             playing={sharedPlaying}
             vectors={vectors}
-            onTopicChange={setSelectedTopic}
             onOpen={(item) => {
               void handleOpenShared(item);
             }}

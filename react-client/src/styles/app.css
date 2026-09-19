@@ -78,10 +78,10 @@ a:focus-visible {
   min-height: 100vh;
 }
 .main {
-  width: min(1240px, calc(100vw - 248px));
-  max-width: 1240px;
-  margin: 0 0 0 max(248px, calc(248px + (100vw - 248px - 1240px) / 2));
-  padding: 40px 28px 72px;
+  width: min(100%, 1600px);
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 48px 32px 80px;
 }
 .hero {
   display: flex;
@@ -2061,10 +2061,10 @@ th {
   color: #137333;
 }
 .auth-page {
-  width: min(1240px, calc(100vw - 248px));
+  width: min(100%, 1240px);
   max-width: 1240px;
   min-height: calc(100vh - 72px);
-  margin-left: max(248px, calc(248px + (100vw - 248px - 1240px) / 2));
+  margin: 0 auto;
   display: grid;
   place-items: center;
   padding: 48px 24px 72px;
@@ -2133,12 +2133,12 @@ th {
 }
 @media (max-width: 900px) and (min-width: 641px) {
   .main {
-    width: calc(100vw - 72px);
-    margin-left: 72px;
+    width: 100%;
+    margin: 0 auto;
   }
   .auth-page {
-    width: calc(100vw - 72px);
-    margin-left: 72px;
+    width: 100%;
+    margin: 0 auto;
   }
 }
 @media (max-width: 640px) {
