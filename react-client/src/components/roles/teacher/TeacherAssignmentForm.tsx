@@ -1,5 +1,6 @@
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import type { LibraryItem, StudentOption } from "../../../types/physlive";
+import { useAssignmentClock } from "../../../utils/useAssignmentClock";
 
 type TeacherAssignmentFormProps = {
   workspaceLayout: boolean;
@@ -60,13 +61,19 @@ export function TeacherAssignmentForm({
   onToggleStudent,
   onSelectAll,
 }: Readonly<TeacherAssignmentFormProps>) {
+  const [step, setStep] = useState(0);
+  const [search, setSearch] = useState("");
+  const now = useAssignmentClock();
+  const steps = ["Nội dung bài tập", "Học sinh & hạn nộp", "Kiểm tra & giao bài"];
+  const contentValid = Boolean(selectedLibrary && title.trim() && title.trim().length <= 160 && prompt.trim()) && Number(maxScore) >= 0.001 && Number(maxScore) <= 99999.999 && Number.isFinite(Number(maxScore)) && (!autoGrade || (expectedValue.trim() !== "" && Number.isFinite(Number(expectedValue)) && tolerance.trim() !== "" && Number.isFinite(Number(tolerance)) && Number(tolerance) >= 0));
+  const recipientsValid = selectedStudents.length > 0 && (!dueAt || new Date(dueAt).getTime() > now);
   return (
     <div
       className={`modern-card${workspaceLayout ? " assignment-workspace-panel" : ""}`}
     >
       <div className="modern-card-header">
         <div>
-          <h2>Giao bài mới</h2>
+          <h2>Thiết kế bài tập</h2>
           <p>Chọn mô phỏng từ thư viện của bạn và chỉ định học sinh.</p>
         </div>
       </div>
@@ -79,7 +86,7 @@ export function TeacherAssignmentForm({
           }}
         >
           <p style={{ margin: "0 0 10px 0" }}>
-            Bạn chưa có mô phỏng nào trong thư viện cá nhân.
+            Chưa có mô phỏng đã kiểm định để giao bài.
           </p>
           <small>
             Hãy hoàn thành một mô phỏng tại Workspace và chọn &quot;Lưu vào thư
@@ -87,7 +94,9 @@ export function TeacherAssignmentForm({
           </small>
         </div>
       ) : (
-        <form onSubmit={onSubmit}>
+        <form noValidate onSubmit={event => { if (step < 2) { event.preventDefault(); if (step === 0 ? contentValid : recipientsValid) setStep(step + 1); } else if (contentValid && recipientsValid) onSubmit(event); else { event.preventDefault(); setStep(contentValid ? 1 : 0); } }}>
+          <ol className="assignment-steps">{steps.map((label, index) => <li key={label} aria-current={index === step ? "step" : undefined} className={index <= step ? "is-current" : ""}><span>{index + 1}</span>{label}</li>)}</ol>
+          <fieldset className="assignment-step-fields" disabled={submitting} hidden={step !== 0}>
           <div className="form-group" style={{ marginBottom: "14px" }}>
             <label htmlFor="assignment-library-item">
               Mô phỏng trong thư viện cá nhân *
@@ -119,13 +128,14 @@ export function TeacherAssignmentForm({
             >
               Đang giao: <strong>{selectedLibrary.title}</strong> · Chủ đề:{" "}
               {selectedLibrary.topic || "Chung"} · Trạng thái:{" "}
-              <span className="status-pill pass">Dual Validation Passed</span>
+              <span className="status-pill pass">Sẵn sàng giao bài</span>
             </div>
           )}
           <div className="form-group" style={{ marginBottom: "14px" }}>
             <label htmlFor="assignment-title">Tiêu đề bài giao *</label>
             <input
               id="assignment-title"
+              maxLength={160}
               required
               placeholder="Ví dụ: Bài tập Ném ngang - Dự đoán vận tốc chạm đất"
               value={title}
@@ -134,7 +144,7 @@ export function TeacherAssignmentForm({
           </div>
           <div className="form-group" style={{ marginBottom: "14px" }}>
             <label htmlFor="assignment-prompt">
-              Câu hỏi dự đoán cho học sinh (Prediction Gate) *
+              Câu hỏi dành cho học sinh *
             </label>
             <textarea
               id="assignment-prompt"
@@ -149,6 +159,13 @@ export function TeacherAssignmentForm({
               mô phỏng mở khóa kết quả.
             </small>
           </div>
+          <div className="form-row" style={{ marginBottom: "14px" }}>
+            <div className="form-group"><label htmlFor="assignment-max-score">Điểm tối đa</label><input id="assignment-max-score" type="number" min="0.001" step="0.001" value={maxScore} onChange={event => onMaxScoreChange(event.target.value)} /></div>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "24px" }}><input type="checkbox" checked={autoGrade} onChange={event => onAutoGradeChange(event.target.checked)} /> Chấm tự động theo đáp án số</label>
+          </div>
+          {autoGrade && <div className="form-row" style={{ marginBottom: "14px" }}><div className="form-group"><label htmlFor="assignment-expected-value">Đáp án số</label><input id="assignment-expected-value" type="number" step="any" required={autoGrade} value={expectedValue} onChange={event => onExpectedValueChange(event.target.value)} /></div><div className="form-group"><label htmlFor="assignment-tolerance">Sai số cho phép</label><input id="assignment-tolerance" type="number" min="0" step="any" required={autoGrade} value={tolerance} onChange={event => onToleranceChange(event.target.value)} /></div></div>}
+          </fieldset>
+          <fieldset className="assignment-step-fields" disabled={submitting} hidden={step !== 1}>
           <div className="form-row" style={{ marginBottom: "14px" }}>
             <div className="form-group">
               <label htmlFor="assignment-due-at">Hạn hoàn thành</label>
@@ -171,11 +188,7 @@ export function TeacherAssignmentForm({
               />
             </div>
           </div>
-          <div className="form-row" style={{ marginBottom: "14px" }}>
-            <div className="form-group"><label htmlFor="assignment-max-score">Điểm tối đa</label><input id="assignment-max-score" type="number" min="0.001" step="0.001" value={maxScore} onChange={event => onMaxScoreChange(event.target.value)} /></div>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "24px" }}><input type="checkbox" checked={autoGrade} onChange={event => onAutoGradeChange(event.target.checked)} /> Bật chấm AI theo đáp án số</label>
-          </div>
-          {autoGrade && <div className="form-row" style={{ marginBottom: "14px" }}><div className="form-group"><label htmlFor="assignment-expected-value">Đáp án số</label><input id="assignment-expected-value" type="number" step="any" required={autoGrade} value={expectedValue} onChange={event => onExpectedValueChange(event.target.value)} /></div><div className="form-group"><label htmlFor="assignment-tolerance">Sai số cho phép</label><input id="assignment-tolerance" type="number" min="0" step="any" required={autoGrade} value={tolerance} onChange={event => onToleranceChange(event.target.value)} /></div></div>}
+          <div className="form-group"><label htmlFor="student-search">Tìm học sinh</label><input id="student-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Nhập tên học sinh…" /></div>
           <div className="form-group" style={{ marginBottom: "18px" }}>
             <div
               style={{
@@ -217,7 +230,7 @@ export function TeacherAssignmentForm({
                   Chưa có tài khoản học sinh hoạt động.
                 </small>
               ) : (
-                students.map((student) => (
+                students.filter(student => student.fullName.toLocaleLowerCase("vi").includes(search.toLocaleLowerCase("vi"))).map((student) => (
                   <label
                     key={student.id}
                     style={{
@@ -240,11 +253,27 @@ export function TeacherAssignmentForm({
               )}
             </div>
           </div>
-          <button
+          </fieldset>
+          {step === 2 && <section className="assignment-review">
+            <span className="assignment-eyebrow">BẢN XEM TRƯỚC</span><h3>{title}</h3>
+            <p className="assignment-review-prompt">{prompt}</p>{description && <p>{description}</p>}
+            <dl><div><dt>Mô phỏng</dt><dd>{selectedLibrary?.title}</dd></div><div><dt>Người nhận</dt><dd>{selectedStudents.length} học sinh</dd></div><div><dt>Hạn nộp</dt><dd>{dueAt ? new Date(dueAt).toLocaleString("vi-VN") : "Không giới hạn"}</dd></div><div><dt>Chấm điểm</dt><dd>{autoGrade ? "Tự động theo đáp án số" : "Giáo viên chấm"} · Thang {maxScore}</dd></div></dl>
+            <p><strong>Học sinh nhận bài:</strong> {students.filter(student => selectedStudents.includes(student.id)).map(student => student.fullName).join(", ")}</p>
+            {autoGrade && <p><strong>Đáp án chấm:</strong> {expectedValue} · Sai số cho phép: {tolerance}. Đáp án này chỉ hiển thị cho giáo viên.</p>}
+            <p>Học sinh đọc đề, gửi dự đoán và lập luận, sau đó chạy mô phỏng để đối chiếu kết quả.</p>
+          </section>}
+          {step === 1 && dueAt && new Date(dueAt).getTime() <= now && <p role="alert">Hãy chọn hạn nộp trong tương lai.</p>}
+          {step === 0 && !contentValid && <p className="assignment-field-hint">Chọn mô phỏng, nhập tiêu đề, câu hỏi và thang điểm từ 0.001 đến 99999.999. Nếu chấm tự động, cần có đáp án số và sai số không âm.</p>}
+          {step === 1 && selectedStudents.length === 0 && <p className="assignment-field-hint">Chọn ít nhất một học sinh để tiếp tục.</p>}
+          <div className="assignment-form-actions">
+          {step > 0 && <button type="button" className="modern-tab-btn" disabled={submitting} onClick={() => setStep(step - 1)}>← Quay lại</button>}
+          {step < 2 && <button type="button" className="prediction-submit-btn" disabled={step === 0 ? !contentValid : !recipientsValid} onClick={() => setStep(step + 1)}>Tiếp tục →</button>}
+          <button hidden={step !== 2}
             type="submit"
             className="prediction-submit-btn"
             disabled={
               submitting ||
+              !contentValid || !recipientsValid ||
               !libraryItemId ||
               !title.trim() ||
               !prompt.trim() ||
@@ -256,6 +285,7 @@ export function TeacherAssignmentForm({
               ? "Đang giao bài…"
               : `Giao bài cho ${selectedStudents.length} học sinh`}
           </button>
+          </div>
         </form>
       )}
     </div>

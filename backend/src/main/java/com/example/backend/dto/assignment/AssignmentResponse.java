@@ -28,5 +28,6 @@ public record AssignmentResponse(
         BigDecimal score,
         String feedback,
         GradingStatus gradingStatus,
-        boolean retryAllowed) {
+        boolean retryAllowed,
+        JsonNode predictions) {
 }

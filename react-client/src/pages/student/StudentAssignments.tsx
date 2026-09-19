@@ -6,6 +6,7 @@ import {
   submitAssignmentPrediction,
   logStudentAction,
 } from "../../api/assignmentApi";
+import { createSimulationAdjustment } from "../../utils/simulationAdjustment";
 import { getSharedSimulation } from "../../api/simulationApi";
 import { library } from "../../api/libraryApi";
 import type { Assignment, LibraryItem, Simulation } from "../../types/physlive";
@@ -14,6 +15,7 @@ import { AssignmentList } from "../../components/roles/student/StudentAssignment
 import { SharedLibrary } from "../../components/roles/student/StudentSharedLibrary";
 import { AssignmentWorkbench } from "../../components/roles/student/StudentAssignmentWorkbench";
 import "../../styles/modern-roles.css";
+import "../../styles/assignment-flow.css";
 
 interface PredictionPayload {
   answerText: string;
@@ -49,6 +51,7 @@ export default function StudentAssignments({
   const [predictionSubmitted, setPredictionSubmitted] = useState(false);
   const [submittedPredictionText, setSubmittedPredictionText] = useState("");
   const [predictionInput, setPredictionInput] = useState("");
+  const [estimatedValue, setEstimatedValue] = useState("");
   const [reasoningInput, setReasoningInput] = useState("");
   const [isSubmittingPrediction, setIsSubmittingPrediction] = useState(false);
   const [predictionError, setPredictionError] = useState("");
@@ -56,6 +59,7 @@ export default function StudentAssignments({
   // Playback state
   const [frame, setFrame] = useState(0);
   const [assignedTime, setAssignedTime] = useState(0);
+  const [seekRevision, setSeekRevision] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [vectors, setVectors] = useState({
     grid: true,
@@ -69,13 +73,12 @@ export default function StudentAssignments({
   const [parameterDraft, setParameterDraft] = useState<Record<string, string>>(
     {},
   );
-  const [parameterAdjusting, setParameterAdjusting] = useState(false);
   const [parameterError, setParameterError] = useState("");
-  const parameterTimerRef = useRef<number | null>(null);
-  const parameterRequestRef = useRef(0);
+  const [parameterAdjustment] = useState(createSimulationAdjustment);
   const baseSimulationRef = useRef<Simulation | null>(null);
   const assignmentRequestRef = useRef(0);
   const selectedAssignmentIdRef = useRef<string | null>(null);
+  const answerDrafts = useRef(new Map<string, { answer: string; reasoning: string; estimate: string }>());
 
   // Class / Shared Library state
   const [sharedItems, setSharedItems] = useState<LibraryItem[]>([]);
@@ -118,18 +121,13 @@ export default function StudentAssignments({
     }
   }, []);
 
-  const clearParameterState = () => {
-    parameterRequestRef.current += 1;
-    if (parameterTimerRef.current !== null) {
-      globalThis.clearTimeout(parameterTimerRef.current);
-      parameterTimerRef.current = null;
-    }
+  const clearParameterState = useCallback(() => {
+    parameterAdjustment.cancel();
     baseSimulationRef.current = null;
     setParameterInitialValues({});
     setParameterDraft({});
-    setParameterAdjusting(false);
     setParameterError("");
-  };
+  }, [parameterAdjustment]);
 
   const closeAssignment = () => {
     selectedAssignmentIdRef.current = null;
@@ -202,7 +200,7 @@ export default function StudentAssignments({
         setSimLoading(false);
       }
     }
-  }, []);
+  }, [clearParameterState]);
 
   // The simulation is deliberately requested only after the prediction gate is open.
   const handleSelectAssignment = async (item: Assignment) => {
@@ -211,13 +209,15 @@ export default function StudentAssignments({
     void logStudentAction(item.id, "ASSIGNMENT_OPENED").catch(() => undefined);
     clearParameterState();
     setSelectedAssignment(item);
-    const alreadySubmitted = Boolean(item.predictionSubmitted);
+    const alreadySubmitted = Boolean(item.predictionSubmitted && !item.retryAllowed);
     setPredictionSubmitted(alreadySubmitted);
     setSubmittedPredictionText(
-      alreadySubmitted ? "Dự đoán đã được gửi trước đó." : "",
+      item.predictions?.answerText ?? (alreadySubmitted ? "Dự đoán đã được ghi nhận." : ""),
     );
-    setPredictionInput("");
-    setReasoningInput("");
+    const draft = answerDrafts.current.get(item.id);
+    setPredictionInput(draft?.answer ?? (item.retryAllowed ? item.predictions?.answerText ?? "" : ""));
+    setReasoningInput(draft?.reasoning ?? (item.retryAllowed ? item.predictions?.reasoning ?? "" : ""));
+    setEstimatedValue(draft?.estimate ?? (item.retryAllowed && item.predictions?.estimatedValue != null ? String(item.predictions.estimatedValue) : ""));
     setPredictionError("");
     setSimulation(null);
     setSimLoading(false);
@@ -233,86 +233,53 @@ export default function StudentAssignments({
     () => () => {
       assignmentRequestRef.current += 1;
       sharedSimulationRequestRef.current += 1;
-      if (parameterTimerRef.current !== null)
-        globalThis.clearTimeout(parameterTimerRef.current);
+      parameterAdjustment.cancel();
     },
-    [],
+    [parameterAdjustment],
   );
 
-  useEffect(() => {
-    const controls = (simulation?.visualization?.controls ??
-      []) as LearningControl[];
-    if (
-      !selectedAssignment ||
-      !predictionSubmitted ||
-      !simulation ||
-      controls.length === 0
-    )
-      return;
-
-    const numericValues: Record<string, number> = {};
-    const hasInvalidValue = controls.some((control) => {
-      const rawValue = parameterDraft[control.key] ?? "";
-      const value = Number(rawValue);
-      const invalid = rawValue.trim() === "" || !isWithinControlBounds(control, value);
-      if (!invalid) numericValues[control.key] = value;
-      return invalid;
-    });
-
-    const requestId = ++parameterRequestRef.current;
-    if (parameterTimerRef.current !== null)
-      globalThis.clearTimeout(parameterTimerRef.current);
-    if (hasInvalidValue) {
-      setParameterAdjusting(false);
-      return;
-    }
-
-    const changed = controls.some(
-      (control) =>
-        simulation.parameters?.[control.key] !== numericValues[control.key],
-    );
-    if (!changed) {
-      setParameterAdjusting(false);
-      return;
-    }
-
-    setParameterAdjusting(true);
+  const handleParameterChange = (key: string, value: string) => {
+    if (!selectedAssignment || !predictionSubmitted || !simulation) return;
+    parameterAdjustment.cancel();
+    setPlaying(false);
+    setFrame(0);
+    setAssignedTime(simulation.time[0] ?? 0);
+    setSeekRevision(current => current + 1);
     setParameterError("");
-    const simulationId = simulation.simulationId;
+    const nextDraft = { ...parameterDraft, [key]: value };
+    setParameterDraft(nextDraft);
+    const controls = (simulation.visualization?.controls ?? []) as LearningControl[];
+    if (!controls.some(control => control.key === key)) return;
+    const numericValues: Record<string, number> = {};
+    for (const control of controls) {
+      const raw = nextDraft[control.key] ?? "";
+      const numeric = Number(raw);
+      if (!raw.trim() || !isWithinControlBounds(control, numeric)) return;
+      numericValues[control.key] = numeric;
+    }
     const assignmentId = selectedAssignment.id;
-    parameterTimerRef.current = globalThis.setTimeout(() => {
-      void adjustAssignedSimulation(assignmentId, simulationId, numericValues)
-        .then((updated) => {
-          if (requestId !== parameterRequestRef.current) return;
+    const simulationId = simulation.simulationId;
+    parameterAdjustment.schedule(
+      () => adjustAssignedSimulation(assignmentId, simulationId, numericValues),
+      {
+        success: updated => {
           setSimulation(updated);
           setFrame(0);
           setAssignedTime(updated.time[0] ?? 0);
+          setSeekRevision(current => current + 1);
           setPlaying(false);
-        })
-        .catch(() => {
-          if (requestId === parameterRequestRef.current)
-            setParameterError("Không thể cập nhật mô phỏng với giá trị này.");
-        })
-        .finally(() => {
-          if (requestId === parameterRequestRef.current)
-            setParameterAdjusting(false);
-        });
-    }, 180);
-
-    return () => {
-      if (parameterTimerRef.current !== null) {
-        globalThis.clearTimeout(parameterTimerRef.current);
-        parameterTimerRef.current = null;
-      }
-    };
-  }, [parameterDraft, predictionSubmitted, selectedAssignment, simulation]);
+        },
+        error: () => setParameterError("Không thể cập nhật mô phỏng. Hãy thử điều chỉnh lại hoặc hoàn tác thông số."),
+        settled: () => undefined,
+      },
+    );
+  };
 
   const handleParameterReset = () => {
     const base = baseSimulationRef.current;
     if (!base) return;
-    parameterRequestRef.current += 1;
-    if (parameterTimerRef.current !== null)
-      globalThis.clearTimeout(parameterTimerRef.current);
+    parameterAdjustment.cancel();
+    setSeekRevision(current => current + 1);
     const controls = (base.visualization?.controls ?? []) as LearningControl[];
     const values = Object.fromEntries(
       controls.map((control) => [control.key, controlValue(control, base)]),
@@ -327,7 +294,6 @@ export default function StudentAssignments({
       ),
     );
     setParameterError("");
-    setParameterAdjusting(false);
     setSimulation(base);
     setFrame(0);
     setAssignedTime(base.time[0] ?? 0);
@@ -360,7 +326,8 @@ export default function StudentAssignments({
   // Submit Prediction Gate (FR-STU-02)
   const handleSubmitPrediction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAssignment || !predictionInput.trim()) return;
+    if (!selectedAssignment || !predictionInput.trim() || isSubmittingPrediction) return;
+    if (selectedAssignment.autoGrade && (!estimatedValue.trim() || !Number.isFinite(Number(estimatedValue)))) { setPredictionError("Vui lòng nhập kết quả dự đoán bằng số."); return; }
     const assignmentId = selectedAssignment.id;
     const requestId = ++assignmentRequestRef.current;
 
@@ -369,13 +336,18 @@ export default function StudentAssignments({
 
     const payload: PredictionPayload = {
       answerText: predictionInput.trim(),
+      estimatedValue: selectedAssignment.autoGrade ? Number(estimatedValue) : undefined,
       reasoning: reasoningInput.trim() || undefined,
     };
 
     try {
-      await submitAssignmentPrediction(assignmentId, payload);
+      const submission = await submitAssignmentPrediction(assignmentId, payload);
+      answerDrafts.current.delete(assignmentId);
+      const updated = { ...selectedAssignment, predictionSubmitted: true, retryAllowed: false, predictions: payload, score: submission.score, feedback: submission.feedback, gradingStatus: submission.gradingStatus };
+      setAssignments(current => current.map(item => item.id === assignmentId ? updated : item));
       if (requestId !== assignmentRequestRef.current || selectedAssignmentIdRef.current !== assignmentId) return;
       void logStudentAction(assignmentId, "PREDICTION_SUBMITTED", payload).catch(() => undefined);
+      setSelectedAssignment(updated);
       setPredictionSubmitted(true);
       setSubmittedPredictionText(predictionInput.trim());
       await loadAssignedSimulation(assignmentId, requestId);
@@ -385,11 +357,16 @@ export default function StudentAssignments({
       if (typeof err === "object" && err !== null && "response" in err) {
         const axiosErr = err as { response?: { status?: number } };
         if (axiosErr.response?.status === 409) {
-          setPredictionSubmitted(true);
-          setSubmittedPredictionText(
-            predictionInput.trim() || "Dự đoán đã ghi nhận trước đó",
-          );
-          await loadAssignedSimulation(assignmentId, requestId);
+          try {
+            const latest = await studentAssignments();
+            if (requestId !== assignmentRequestRef.current) return;
+            setAssignments(latest);
+            const current = latest.find(item => item.id === assignmentId);
+            if (current) await handleSelectAssignment(current);
+            else setPredictionError("Bài tập không còn khả dụng. Hãy quay lại danh sách.");
+          } catch {
+            if (requestId === assignmentRequestRef.current) setPredictionError("Bài đã được gửi nhưng chưa tải được trạng thái mới. Vui lòng thử lại.");
+          }
           return;
         }
       }
@@ -481,6 +458,12 @@ export default function StudentAssignments({
             ) : (
               <AssignmentWorkbench
                 assignment={selectedAssignment}
+                estimatedValue={estimatedValue}
+                onEstimatedValueChange={value => {
+                  setEstimatedValue(value);
+                  answerDrafts.current.set(selectedAssignment.id, { answer: predictionInput, reasoning: reasoningInput, estimate: value });
+                }}
+                onRetrySimulation={() => void loadAssignedSimulation(selectedAssignment.id, assignmentRequestRef.current)}
                 predictionSubmitted={predictionSubmitted}
                 submittedPredictionText={submittedPredictionText}
                 predictionInput={predictionInput}
@@ -489,6 +472,7 @@ export default function StudentAssignments({
                 predictionError={predictionError}
                 simulation={simulation}
                 time={assignedTime}
+                seekRevision={seekRevision}
                 simLoading={simLoading}
                 simError={simError}
                 frame={frame}
@@ -500,29 +484,44 @@ export default function StudentAssignments({
                 }
                 parameterInitialValues={parameterInitialValues}
                 parameterDraft={parameterDraft}
-                parameterAdjusting={parameterAdjusting}
                 parameterError={parameterError}
                 teacherPrompt={teacherPrompt}
                 onBack={closeAssignment}
                 onSubmitPrediction={handleSubmitPrediction}
-                onPredictionChange={setPredictionInput}
-                onReasoningChange={setReasoningInput}
+                onPredictionChange={value => {
+                  setPredictionInput(value);
+                  answerDrafts.current.set(selectedAssignment.id, { answer: value, reasoning: reasoningInput, estimate: estimatedValue });
+                }}
+                onReasoningChange={value => {
+                  setReasoningInput(value);
+                  answerDrafts.current.set(selectedAssignment.id, { answer: predictionInput, reasoning: value, estimate: estimatedValue });
+                }}
                 onToggleVector={(key) =>
                   setVectors((current) => ({
                     ...current,
                     [key]: !current[key],
                   }))
                 }
-                onTogglePlaying={() => setPlaying((current) => !current)}
+                onTogglePlaying={() => {
+                  if (!simulation) return;
+                  if (assignedTime >= (simulation.time.at(-1) ?? 0)) {
+                    setFrame(0);
+                    setAssignedTime(simulation.time[0] ?? 0);
+                    setSeekRevision(current => current + 1);
+                  }
+                  setPlaying(current => !current);
+                }}
                 onReset={() => {
                   setPlaying(false);
                   setFrame(0);
                   setAssignedTime(simulation?.time[0] ?? 0);
+                  setSeekRevision(current => current + 1);
                 }}
                 onFrameChange={(frameValue) => {
                   setPlaying(false);
                   setFrame(frameValue);
                   setAssignedTime(simulation?.time[frameValue] ?? 0);
+                  setSeekRevision(current => current + 1);
                 }}
                 onTimeChange={(nextTime) => {
                   if (simulation) {
@@ -531,9 +530,7 @@ export default function StudentAssignments({
                   }
                 }}
                 onPlaybackEnd={() => setPlaying(false)}
-                onParameterChange={(key, value) =>
-                  setParameterDraft((current) => ({ ...current, [key]: value }))
-                }
+                onParameterChange={handleParameterChange}
                 onParameterReset={handleParameterReset}
               />
             )}

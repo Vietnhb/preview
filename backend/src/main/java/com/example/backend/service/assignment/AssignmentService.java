@@ -71,6 +71,19 @@ public class AssignmentService {
     @Transactional
     public AssignmentResponse create(CreateAssignmentRequest request) {
         User teacher = currentUserService.requireCurrentUser();
+        if (request.questions() == null || !request.questions().path("prompt").isTextual()
+                || request.questions().path("prompt").asText().isBlank())
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Assignment question is required");
+        if (request.dueAt() != null && !request.dueAt().isAfter(Instant.now()))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Due date must be in the future");
+        if (request.maxScore() != null && request.maxScore().signum() <= 0)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Maximum score must be positive");
+        if (Boolean.TRUE.equals(request.autoGrade())) {
+            JsonNode criteria = request.gradingCriteria();
+            if (criteria == null || !finiteNumber(criteria.path("expectedValue"))
+                    || !finiteNumber(criteria.path("tolerance")) || criteria.path("tolerance").asDouble() < 0)
+                throw new ApiException(HttpStatus.BAD_REQUEST, "A numeric answer and non-negative tolerance are required");
+        }
         LibraryItem libraryItem = libraryItemRepository.findByIdAndOwnerIdAndActiveTrue(request.libraryItemId(), teacher.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Personal library item not found"));
         Specification specification = libraryItem.getSpecification();
@@ -196,6 +209,15 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Assignment is not assigned to this student");
         }
         AssignmentSubmission submission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId()).orElse(null);
+        if (assignment.getStatus() != com.example.backend.entity.enums.AssignmentStatus.ACTIVE)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Assignment is closed");
+        // Late work remains accepted and is identifiable from dueAt/submittedAt.
+        JsonNode prediction = request.predictions();
+        if (prediction == null || !prediction.path("answerText").isTextual()
+                || prediction.path("answerText").asText().isBlank())
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Prediction answer is required");
+        if (assignment.isAutoGrade() && !finiteNumber(prediction.path("estimatedValue")))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A numeric prediction is required for this assignment");
         if (submission != null && !submission.isRetryAllowed())
             throw new ApiException(HttpStatus.CONFLICT, "Prediction already submitted");
         if (submission == null) submission = new AssignmentSubmission();
@@ -210,10 +232,15 @@ public class AssignmentService {
         return toSubmission(submissionRepository.save(submission));
     }
 
+    private static boolean finiteNumber(JsonNode value) {
+        return value.isNumber() && Double.isFinite(value.asDouble());
+    }
+
     private void autoGrade(Assignment assignment, AssignmentSubmission submission) {
         JsonNode criteria = assignment.getGradingCriteria();
         JsonNode prediction = submission.getPredictions();
-        if (criteria == null || prediction == null || !criteria.has("expectedValue") || !prediction.has("estimatedValue")) return;
+        if (criteria == null || prediction == null || !finiteNumber(criteria.path("expectedValue"))
+                || !finiteNumber(prediction.path("estimatedValue"))) return;
         double expected = criteria.get("expectedValue").asDouble();
         double actual = prediction.get("estimatedValue").asDouble();
         double tolerance = criteria.has("tolerance") ? Math.max(0d, criteria.get("tolerance").asDouble()) : 0d;
@@ -295,9 +322,11 @@ public class AssignmentService {
                 item.getSpecification().getId(), item.getAssignedSimulationRunId(), item.getTitle(), item.getDescription(),
                 item.getQuestions(), item.getAssignedStudentIds() == null ? Set.of() : Set.copyOf(item.getAssignedStudentIds()),
                 item.getStatus(), item.getAssignedAt(), item.getDueAt(),
-                predictionSubmitted, item.getGradingCriteria(), item.getMaxScore(), item.isAutoGrade(),
+                predictionSubmitted, RoleName.STUDENT.matches(current.getRole() == null ? null : current.getRole().getName())
+                        ? null : item.getGradingCriteria(), item.getMaxScore(), item.isAutoGrade(),
                 ownSubmission == null ? null : ownSubmission.getScore(), ownSubmission == null ? null : ownSubmission.getFeedback(),
-                ownSubmission == null ? null : ownSubmission.getGradingStatus(), ownSubmission != null && ownSubmission.isRetryAllowed());
+                ownSubmission == null ? null : ownSubmission.getGradingStatus(), ownSubmission != null && ownSubmission.isRetryAllowed(),
+                ownSubmission == null ? null : ownSubmission.getPredictions());
     }
 
     private AssignmentSubmissionResponse toSubmission(AssignmentSubmission item) {

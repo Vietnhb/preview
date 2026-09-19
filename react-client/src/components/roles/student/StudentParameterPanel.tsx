@@ -5,7 +5,6 @@ type StudentParameterPanelProps = {
   controls: LearningControl[];
   initialValues: Record<string, number>;
   draft: Record<string, string>;
-  adjusting: boolean;
   error: string;
   onChange: (key: string, value: string) => void;
   onReset: () => void;
@@ -15,7 +14,6 @@ export function StudentParameterPanel({
   controls,
   initialValues,
   draft,
-  adjusting,
   error,
   onChange,
   onReset,
@@ -24,8 +22,8 @@ export function StudentParameterPanel({
   const dirty = controls.some(
     (control) =>
       draft[control.key] !== undefined &&
-      draft[control.key].trim() !== "" &&
-      Number(draft[control.key]) !== initialValues[control.key],
+      (draft[control.key].trim() === "" ||
+      Number(draft[control.key]) !== initialValues[control.key]),
   );
 
   return (
@@ -43,7 +41,7 @@ export function StudentParameterPanel({
           className="student-parameter-reset"
           aria-label="Hoàn tác thông số"
           title="Đặt lại thông số ban đầu"
-          disabled={!dirty || adjusting}
+          disabled={!dirty}
           onClick={onReset}
         >
           <LearningIcon name="reset" />
@@ -105,15 +103,11 @@ export function StudentParameterPanel({
                   {control.max} {control.unit}
                 </span>
               </div>
+              {invalid && <p className="student-parameter-error">Nhập giá trị từ {control.min} đến {control.max} {control.unit}.</p>}
             </div>
           );
         })}
       </div>
-      {adjusting && (
-        <p className="student-parameter-status" aria-live="polite">
-          Đang cập nhật mô phỏng…
-        </p>
-      )}
       {error && (
         <p className="student-parameter-error" role="alert">
           {error}

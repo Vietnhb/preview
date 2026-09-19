@@ -1,12 +1,15 @@
 import PhysicsScene from "../../simulation/PhysicsScene";
 import LearningIcon from "../../common/LearningIcon";
 import type { Assignment, Simulation } from "../../../types/physlive";
-import { interpolateAtTime, learningSeries, type LearningControl } from "../../../utils/learningModel";
+import { interpolateAtTime, learningSeries, lessonKind, numberLabel, type LearningControl } from "../../../utils/learningModel";
 import { StudentParameterPanel } from "./StudentParameterPanel";
 import type { VectorVisibility } from "./studentTypes";
 
 type AssignmentWorkbenchProps = {
   assignment: Assignment;
+  estimatedValue: string;
+  onEstimatedValueChange: (value: string) => void;
+  onRetrySimulation: () => void;
   predictionSubmitted: boolean;
   submittedPredictionText: string;
   predictionInput: string;
@@ -15,6 +18,7 @@ type AssignmentWorkbenchProps = {
   predictionError: string;
   simulation: Simulation | null;
   time: number;
+  seekRevision: number;
   simLoading: boolean;
   simError: string;
   frame: number;
@@ -23,7 +27,6 @@ type AssignmentWorkbenchProps = {
   parameterControls: LearningControl[];
   parameterInitialValues: Record<string, number>;
   parameterDraft: Record<string, string>;
-  parameterAdjusting: boolean;
   parameterError: string;
   teacherPrompt: string;
   onBack: () => void;
@@ -42,6 +45,9 @@ type AssignmentWorkbenchProps = {
 
 export function AssignmentWorkbench({
   assignment,
+  estimatedValue,
+  onEstimatedValueChange,
+  onRetrySimulation,
   predictionSubmitted,
   submittedPredictionText,
   predictionInput,
@@ -50,6 +56,7 @@ export function AssignmentWorkbench({
   predictionError,
   simulation,
   time,
+  seekRevision,
   simLoading,
   simError,
   frame,
@@ -58,7 +65,6 @@ export function AssignmentWorkbench({
   parameterControls,
   parameterInitialValues,
   parameterDraft,
-  parameterAdjusting,
   parameterError,
   teacherPrompt,
   onBack,
@@ -74,6 +80,7 @@ export function AssignmentWorkbench({
   onParameterChange,
   onParameterReset,
 }: Readonly<AssignmentWorkbenchProps>) {
+  const kind = lessonKind(simulation?.schemaId ?? "");
   const displayedSeries = simulation
     ? learningSeries(simulation).map((series) => ({
         series,
@@ -120,10 +127,14 @@ export function AssignmentWorkbench({
             </div>
           )}
         </div>
+        <ol className="assignment-steps"><li className="is-current"><span>1</span>Đọc đề & dự đoán</li><li className={predictionSubmitted ? "is-current" : ""}><span>2</span>Thí nghiệm & đối chiếu</li><li className={assignment.gradingStatus === "TEACHER_CONFIRMED" ? "is-current" : ""}><span>3</span>Nhận phản hồi</li></ol>
+        {assignment.retryAllowed && <p className="assignment-notice">Giáo viên đã trả bài. Hãy xem góp ý và gửi lại dự đoán của bạn.</p>}
+        {assignment.feedback && <p className="assignment-notice"><strong>Nhận xét của giáo viên:</strong> {assignment.feedback}</p>}
+        {assignment.score != null && !assignment.retryAllowed && <p className="assignment-notice">Điểm: <strong>{assignment.score}/{assignment.maxScore ?? 10}</strong> · {assignment.gradingStatus === "TEACHER_CONFIRMED" ? "Giáo viên đã xác nhận" : "Điểm tự động, chờ giáo viên xác nhận"}</p>}
         {predictionSubmitted === false ? (
           <div className="prediction-gate-card">
             <span className="prediction-gate-badge">
-              <LearningIcon name="shield" /> Cổng dự đoán bắt buộc
+              <LearningIcon name="shield" /> Bước 1 · Dự đoán của bạn
             </span>
             <h3 className="prediction-gate-title">
               Câu hỏi dự đoán trước khi xem mô phỏng
@@ -177,6 +188,8 @@ export function AssignmentWorkbench({
                 onChange={(event) => onReasoningChange(event.target.value)}
                 disabled={isSubmittingPrediction}
               />
+              {assignment.autoGrade && <div className="form-group"><label htmlFor="student-estimate">Kết quả dự đoán bằng số *</label><input id="student-estimate" type="number" step="any" required value={estimatedValue} disabled={isSubmittingPrediction} onChange={event => onEstimatedValueChange(event.target.value)} /><small>Nhập số theo đơn vị trong đề bài. Phần này được dùng để chấm tự động.</small></div>}
+              <small>Bài gửi sẽ được lưu để chấm điểm. Bạn chỉ sửa và gửi lại khi giáo viên trả bài.</small>
               {predictionError && (
                 <p style={{ color: "#b91c1c", fontSize: "13px", margin: 0 }}>
                   {predictionError}
@@ -189,7 +202,7 @@ export function AssignmentWorkbench({
               >
                 {isSubmittingPrediction
                   ? "Đang ghi nhận dự đoán…"
-                  : "Xác nhận dự đoán & mở khóa"}
+                  : "Gửi bài & bắt đầu thí nghiệm"}
               </button>
             </form>
           </div>
@@ -202,14 +215,8 @@ export function AssignmentWorkbench({
               </div>
               <span className="status-pill pass">Đã mở khóa mô phỏng</span>
             </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 340px",
-                gap: "20px",
-                alignItems: "start",
-              }}
-            >
+            <p className="assignment-review-prompt">{teacherPrompt}</p>
+            <div className="assignment-experiment-grid">
               <div
                 className="modern-card"
                 style={{ padding: "16px", margin: 0 }}
@@ -225,32 +232,18 @@ export function AssignmentWorkbench({
                   <h3 style={{ margin: 0, fontSize: "15px" }}>
                     Chạy mô phỏng trực quan
                   </h3>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      type="button"
-                      className="role-switch-pill"
-                      style={{ border: "1px solid var(--border-subtle)" }}
-                      onClick={() => onToggleVector("trajectory")}
-                    >
-                      {vectors.trajectory ? "Quỹ đạo ✓" : "Quỹ đạo"}
+                </div>
+                <div className="student-overlay-controls" role="group" aria-label="Thành phần hiển thị">
+                  {([
+                    ["grid", "Lưới"],
+                    ["trajectory", kind === "circuit" ? "Tín hiệu" : "Quỹ đạo"],
+                    ["velocity", kind === "circuit" ? "Dòng điện" : "Vận tốc"],
+                    ...(["circuit", "collision"].includes(kind) ? [] : [["acceleration", "Gia tốc"]]),
+                  ] as [keyof VectorVisibility, string][]).map(([key, label]) => (
+                    <button key={key} type="button" aria-pressed={vectors[key]} onClick={() => onToggleVector(key)}>
+                      <span className={`student-overlay-dot ${key}`} aria-hidden="true" />{label}
                     </button>
-                    <button
-                      type="button"
-                      className="role-switch-pill"
-                      style={{ border: "1px solid var(--border-subtle)" }}
-                      onClick={() => onToggleVector("velocity")}
-                    >
-                      {vectors.velocity ? "Vận tốc v⃗ ✓" : "Vận tốc v⃗"}
-                    </button>
-                    <button
-                      type="button"
-                      className="role-switch-pill"
-                      style={{ border: "1px solid var(--border-subtle)" }}
-                      onClick={() => onToggleVector("acceleration")}
-                    >
-                      {vectors.acceleration ? "Gia tốc a⃗ ✓" : "Gia tốc a⃗"}
-                    </button>
-                  </div>
+                  ))}
                 </div>
                 {simLoading && (
                   <div
@@ -275,7 +268,7 @@ export function AssignmentWorkbench({
                       color: "#b91c1c",
                     }}
                   >
-                    {simError}
+                    {simError}<button type="button" className="modern-tab-btn" onClick={onRetrySimulation}>Thử lại</button>
                   </div>
                 )}
                 {!simLoading && simError === "" && simulation && (
@@ -293,6 +286,7 @@ export function AssignmentWorkbench({
                         index={frame}
                         overlays={vectors}
                         time={time}
+                        seekRevision={seekRevision}
                         playing={playing}
                         onTimeChange={onTimeChange}
                         onPlaybackEnd={onPlaybackEnd}
@@ -329,6 +323,7 @@ export function AssignmentWorkbench({
                         Tua về đầu
                       </button>
                       <input
+                        aria-label="Thời điểm mô phỏng"
                         type="range"
                         min={0}
                         max={Math.max(0, simulation.time.length - 1)}
@@ -370,7 +365,6 @@ export function AssignmentWorkbench({
                   controls={parameterControls}
                   initialValues={parameterInitialValues}
                   draft={parameterDraft}
-                  adjusting={parameterAdjusting}
                   error={parameterError}
                   onChange={onParameterChange}
                   onReset={onParameterReset}
@@ -408,58 +402,17 @@ export function AssignmentWorkbench({
                   </p>
                 </div>
                 {simulation && (
-                  <div
-                    style={{
-                      background: "#eff6ff",
-                      padding: "12px",
-                      borderRadius: "8px",
-                      border: "1px solid #bfdbfe",
-                    }}
-                  >
-                    <small
-                      style={{
-                        color: "#1d4ed8",
-                        display: "block",
-                        marginBottom: "6px",
-                        fontWeight: "700",
-                      }}
-                    >
-                      Thông số mô phỏng thực tế:
-                    </small>
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "4px",
-                      }}
-                    >
-                      {Object.entries(simulation.parameters ?? {}).map(
-                        ([key, value]) => (
-                          <div key={key}>
-                            <strong>{key}:</strong> {value}
-                          </div>
-                        ),
-                      )}
-                      <div>
-                        <strong>Thời điểm t:</strong>{" "}
-                        {time.toFixed(2)} s
+                  <section className="student-simulation-readouts" aria-label="Đại lượng tại thời điểm đang xem">
+                    <h4>Đại lượng tức thời</h4>
+                    <p>Tại thời điểm {numberLabel(time, 2)} s</p>
+                    <dl>{displayedSeries.map(({ series, value }) => (
+                      <div key={series.key}>
+                        <dt><span style={{ background: series.color }} aria-hidden="true" />{series.label}</dt>
+                        <dd>{numberLabel(value, kind === "circuit" ? 4 : 2)} <small>{series.unit}</small></dd>
                       </div>
-                      {displayedSeries.map(({ series, value }) => (
-                        <div key={series.key}>
-                          <strong>
-                            {series.label}
-                            {series.symbol ? ` (${series.symbol})` : ""}:
-                          </strong>{" "}
-                          {value.toFixed(2)}
-                          {series.unit ? ` ${series.unit}` : ""}
-                        </div>
-                      ))}
-                      {displayedSeries.length === 0 && (
-                        <div>Không có đại lượng hiển thị tại thời điểm này.</div>
-                      )}
-                    </div>
-                  </div>
+                    ))}</dl>
+                    {displayedSeries.length === 0 && <p>Chưa có dữ liệu tại thời điểm này.</p>}
+                  </section>
                 )}
                 <div style={{ marginTop: "18px" }}>
                   <small

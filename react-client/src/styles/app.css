@@ -2184,18 +2184,29 @@ th {
 }
 .license-notice p { margin: 0; font-size: 13px; line-height: 1.5; }
 .license-notice button {
-  display: inline-grid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
+  min-width: 32px;
   height: 32px;
+  min-height: 32px;
   flex: 0 0 auto;
-  place-items: center;
+  padding: 0;
   border: 1px solid #ead89f;
   border-radius: 8px;
   background: rgb(255 255 255 / 65%);
   color: inherit;
-  font-size: 22px;
-  line-height: 1;
   cursor: pointer;
+}
+.license-notice button svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 .license-notice button:hover { background: #fff; }
 .license-notice button:focus-visible { outline: 3px solid #b68b18; outline-offset: 2px; }

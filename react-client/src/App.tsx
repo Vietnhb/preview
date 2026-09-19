@@ -148,7 +148,9 @@ function App() {
             title="Đóng thông báo"
             onClick={() => setDismissedLicenseNoticeKey(licenseNoticeKey)}
           >
-            <span aria-hidden="true">×</span>
+            <svg aria-hidden="true" viewBox="0 0 16 16" focusable="false">
+              <path d="M3.5 3.5l9 9m0-9-9 9" />
+            </svg>
           </button>
         </div>}
       <Suspense fallback={<main className="route-loading" aria-busy="true" />}>

@@ -74,7 +74,7 @@ export function TeacherAssignmentHistory({
                   onClick={() => onOpenSubmissions(item)}
                 >
                   <span>Xem bài nộp</span>
-                  <span className="assignment-history-count">{item.studentIds.length}</span>
+
                   <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                     <path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
