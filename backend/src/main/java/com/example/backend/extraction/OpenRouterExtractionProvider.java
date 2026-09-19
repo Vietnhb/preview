@@ -34,9 +34,16 @@ public class OpenRouterExtractionProvider implements ExtractionProvider {
             "confidence":0.0,
             "ambiguities":[{"code":"stable.machine.code","fieldPath":"concrete.path","question":"one concise Vietnamese teacher-facing question","options":["explicit answer with unit"]}]}.
             Select schemaId from the supplied approved schema catalog. Use canonical quantity keys and execution relation types from that schema.
+            Use explicitly stated optional quantities from the schema when present, including gravitational_acceleration,
+            and do not replace a stated value with a default. For a schema with an optional default, use that value only
+            when the problem does not state one.
             Choose exactly one declarative endCondition from time_limit, threshold, event, cycle_count or manual.
             threshold requires quantity/operator/value; event requires event.type (contact or collision) and
-            event.entities; cycle_count requires quantity/count; manual may have maxTime.
+            event.entities. For contact, also provide event.quantity/operator/value for the signed separation
+            coordinate and contact boundary; use the schema's output series and the boundary stated or implied
+            by the problem. For collision, provide event.firstQuantity/secondQuantity when the schema exposes
+            both position series. Never infer an event from unrelated output series. cycle_count requires
+            quantity/count; manual may have maxTime.
             Map explicit context such as a fixed observation duration, a target position, contact/collision,
             or a number of cycles to that generic type. Never invent a physics-specific type and never compute
             the resolved end time; Java resolves it from solver output. Dynamic conditions must include maxTime
@@ -201,10 +208,10 @@ public class OpenRouterExtractionProvider implements ExtractionProvider {
         }
 
         JsonNode endCondition = document.endCondition() == null
-                ? EndConditionResolver.normalize(null, schema.getDefinition().path("execution").path("durationSeconds").asDouble(10))
+                ? EndConditionResolver.normalize(null, schema.getDefinition().path("execution").path("durationSeconds").asDouble())
                 : document.endCondition();
         List<String> endConditionErrors = EndConditionResolver.validateNode(endCondition,
-                schema.getDefinition().path("execution").path("durationSeconds").asDouble(10));
+                schema.getDefinition().path("execution").path("durationSeconds").asDouble());
         if (!endConditionErrors.isEmpty()) {
             throw new IllegalStateException("OpenRouter returned an invalid endCondition: "
                     + String.join("; ", endConditionErrors));

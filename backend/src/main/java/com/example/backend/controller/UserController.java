@@ -66,9 +66,9 @@ public class UserController {
     }
 
     @GetMapping("students")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public List<StudentOptionResponse> getStudents() {
-        return userService.getActiveStudents();
+        return userService.getAssignableStudents();
     }
 
 }

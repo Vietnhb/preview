@@ -1,4 +1,4 @@
-import type { LearningControl } from "../../../utils/learningModel";
+import { clampControlValue, hasValidControlBounds, isWithinControlBounds, type LearningControl } from "../../../utils/learningModel";
 import LearningIcon from "../../common/LearningIcon";
 
 type StudentParameterPanelProps = {
@@ -56,24 +56,13 @@ export function StudentParameterPanel({
         {controls.map((control) => {
           const draftValue = draft[control.key] ?? "";
           const numericValue = Number(draftValue);
+          const validBounds = hasValidControlBounds(control);
           const initialValue = Number.isFinite(initialValues[control.key])
             ? initialValues[control.key]
             : control.min;
-          const validValue = Number.isFinite(numericValue);
-          const min = Math.min(
-            control.min,
-            initialValue,
-            validValue ? numericValue : control.min,
-          );
-          const max = Math.max(
-            control.max,
-            initialValue,
-            validValue ? numericValue : control.max,
-          );
-          const invalid =
-            draftValue.trim() === "" ||
-            !validValue ||
-            (control.min >= 0 && numericValue < control.min);
+          const validValue = isWithinControlBounds(control, numericValue);
+          const rangeValue = clampControlValue(control, validValue ? numericValue : initialValue);
+          const invalid = draftValue.trim() === "" || !validValue;
           return (
             <div className="student-parameter" key={control.key}>
               <div className="student-parameter-label">
@@ -89,11 +78,13 @@ export function StudentParameterPanel({
                   type="number"
                   inputMode="decimal"
                   step="any"
-                  min={control.min >= 0 ? control.min : undefined}
+                  min={control.min}
+                  max={control.max}
                   value={draftValue}
                   onChange={(event) =>
                     onChange(control.key, event.target.value)
                   }
+                  disabled={!validBounds}
                 />
                 <span>{control.unit}</span>
               </div>
@@ -101,16 +92,17 @@ export function StudentParameterPanel({
                 className="student-parameter-range"
                 aria-label={`Điều chỉnh ${control.label.toLowerCase()}`}
                 type="range"
-                min={min}
-                max={max}
+                min={control.min}
+                max={control.max}
                 step={control.step}
-                value={validValue ? numericValue : initialValue}
+                value={rangeValue}
+                disabled={!validBounds}
                 onChange={(event) => onChange(control.key, event.target.value)}
               />
               <div className="student-parameter-range-labels">
-                <span>{min}</span>
+                <span>{control.min}</span>
                 <span>
-                  {max} {control.unit}
+                  {control.max} {control.unit}
                 </span>
               </div>
             </div>
@@ -130,4 +122,3 @@ export function StudentParameterPanel({
     </section>
   );
 }
-

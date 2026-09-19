@@ -1,7 +1,7 @@
 import PhysicsScene from "../../simulation/PhysicsScene";
 import LearningIcon from "../../common/LearningIcon";
 import type { Assignment, Simulation } from "../../../types/physlive";
-import type { LearningControl } from "../../../utils/learningModel";
+import { interpolateAtTime, learningSeries, type LearningControl } from "../../../utils/learningModel";
 import { StudentParameterPanel } from "./StudentParameterPanel";
 import type { VectorVisibility } from "./studentTypes";
 
@@ -14,6 +14,7 @@ type AssignmentWorkbenchProps = {
   isSubmittingPrediction: boolean;
   predictionError: string;
   simulation: Simulation | null;
+  time: number;
   simLoading: boolean;
   simError: string;
   frame: number;
@@ -48,6 +49,7 @@ export function AssignmentWorkbench({
   isSubmittingPrediction,
   predictionError,
   simulation,
+  time,
   simLoading,
   simError,
   frame,
@@ -72,6 +74,13 @@ export function AssignmentWorkbench({
   onParameterChange,
   onParameterReset,
 }: Readonly<AssignmentWorkbenchProps>) {
+  const displayedSeries = simulation
+    ? learningSeries(simulation).map((series) => ({
+        series,
+        value: interpolateAtTime(simulation.time, series.data, time),
+      }))
+    : [];
+
   return (
     <div>
       <div style={{ marginBottom: "16px" }}>
@@ -283,7 +292,7 @@ export function AssignmentWorkbench({
                         simulation={simulation}
                         index={frame}
                         overlays={vectors}
-                        time={simulation.time[frame] ?? 0}
+                        time={time}
                         playing={playing}
                         onTimeChange={onTimeChange}
                         onPlaybackEnd={onPlaybackEnd}
@@ -336,7 +345,7 @@ export function AssignmentWorkbench({
                           minWidth: "55px",
                         }}
                       >
-                        {(simulation.time[frame] ?? 0).toFixed(2)}s
+                        {time.toFixed(2)}s
                       </span>
                     </div>
                   </>
@@ -434,28 +443,21 @@ export function AssignmentWorkbench({
                       )}
                       <div>
                         <strong>Thời điểm t:</strong>{" "}
-                        {(simulation.time[frame] ?? 0).toFixed(2)} s
+                        {time.toFixed(2)} s
                       </div>
-                      {simulation.positions &&
-                        Object.keys(simulation.positions).map((key) => (
-                          <div key={key}>
-                            <strong>Vị trí ({key}):</strong>{" "}
-                            {(simulation.positions[key]?.[frame] ?? 0).toFixed(
-                              2,
-                            )}{" "}
-                            m
-                          </div>
-                        ))}
-                      {simulation.velocities &&
-                        Object.keys(simulation.velocities).map((key) => (
-                          <div key={key}>
-                            <strong>Vận tốc ({key}):</strong>{" "}
-                            {(simulation.velocities[key]?.[frame] ?? 0).toFixed(
-                              2,
-                            )}{" "}
-                            m/s
-                          </div>
-                        ))}
+                      {displayedSeries.map(({ series, value }) => (
+                        <div key={series.key}>
+                          <strong>
+                            {series.label}
+                            {series.symbol ? ` (${series.symbol})` : ""}:
+                          </strong>{" "}
+                          {value.toFixed(2)}
+                          {series.unit ? ` ${series.unit}` : ""}
+                        </div>
+                      ))}
+                      {displayedSeries.length === 0 && (
+                        <div>Không có đại lượng hiển thị tại thời điểm này.</div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -468,8 +470,8 @@ export function AssignmentWorkbench({
                     }}
                   >
                     <strong>Gợi ý học tập:</strong> Di chuyển thanh trượt thời
-                    gian để quan sát sự biến thiên của vận tốc và gia tốc so với
-                    dự đoán ban đầu của bạn.
+                    gian để quan sát các đại lượng mô phỏng và đối chiếu với dự
+                    đoán ban đầu của bạn.
                   </small>
                 </div>
               </div>

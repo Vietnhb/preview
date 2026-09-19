@@ -2,6 +2,7 @@ package com.example.backend.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -33,4 +34,27 @@ public class AssignmentSubmission extends AuditedEntity {
 
     @Column(nullable = false)
     private Instant submittedAt;
+
+    @Column(precision = 8, scale = 3)
+    private java.math.BigDecimal score;
+
+    @Column(precision = 8, scale = 3)
+    private java.math.BigDecimal maxScore;
+
+    @Column(columnDefinition = "text")
+    private String feedback;
+
+    @Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(nullable = false, length = 24)
+    private GradingStatus gradingStatus = GradingStatus.PENDING;
+
+    @Column
+    private Instant gradedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "graded_by")
+    private User gradedBy;
+
+    @Column(nullable = false)
+    private boolean retryAllowed;
 }

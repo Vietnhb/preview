@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { paymentNotifications, type PaymentNotification } from "../../api/adminApi";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import LearningIcon from "../../components/common/LearningIcon";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
@@ -12,6 +14,8 @@ const navigation: AdminNavItem[] = [
   { label: "Feedback", path: "/admin/feedback", icon: "message" },
   { label: "Messages", path: "/admin/messages", icon: "message" },
   { label: "Schools", path: "/admin/schools", icon: "book" },
+  { label: "Plans", path: "/admin/plans", icon: "book" },
+  { label: "Payments", path: "/admin/payments", icon: "activity" },
   { label: "Curriculum", path: "/admin/curriculum", icon: "book" },
   { label: "Validation", path: "/admin/validation", icon: "activity" },
 ];
@@ -22,6 +26,8 @@ const pageMeta: Record<string, { title: string; description: string }> = {
   "/admin/feedback": { title: "Feedback", description: "Review feedback from PhysLive users" },
   "/admin/messages": { title: "Messages", description: "Manage conversations with users" },
   "/admin/schools": { title: "Schools", description: "Manage schools and their accounts" },
+  "/admin/plans": { title: "Subscription Plans", description: "Manage published prices and school quotas" },
+  "/admin/payments": { title: "Payments", description: "Review and reconcile school payments" },
   "/admin/curriculum": { title: "Curriculum", description: "Manage the PhysLive curriculum" },
   "/admin/validation": { title: "Validation", description: "Review solver validation runs" },
 };
@@ -31,6 +37,14 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notifications, setNotifications] = useState<PaymentNotification[]>([]);
+  const [notificationError, setNotificationError] = useState(false);
+  useEffect(() => {
+    let active = true;
+    const load = () => void paymentNotifications().then(items => { if (active) { setNotifications(items); setNotificationError(false); } }).catch(() => { if (active) setNotificationError(true); });
+    load(); const timer = window.setInterval(load, 30000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
   const meta = pageMeta[pathname] ?? pageMeta["/admin"];
   const initials = user?.fullName?.trim().slice(0, 1).toUpperCase() || "A";
 
@@ -63,7 +77,10 @@ export default function AdminLayout() {
           <span>{meta.description}</span>
         </div>
         <div className="admin-topbar-actions">
-          <button type="button" className="admin-notification-button" aria-label="Notifications"><LearningIcon name="bell" /></button>
+          <DropdownMenu.Root><DropdownMenu.Trigger asChild><button type="button" className="admin-notification-button" aria-label="Thông báo trường đăng ký gói"><LearningIcon name="bell" /></button></DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content align="end" sideOffset={8} className="admin-payment-notifications">
+            <DropdownMenu.Label>Đăng ký & thanh toán của trường</DropdownMenu.Label><DropdownMenu.Separator />
+            {notificationError ? <p>Không thể tải thông báo.</p> : notifications.length === 0 ? <p>Chưa có đăng ký đã thanh toán.</p> : notifications.map(item => <DropdownMenu.Item key={item.id} onSelect={() => navigate("/admin/schools")}><strong>{item.schoolName}</strong><span>{item.planCode} · {item.amountVnd.toLocaleString("vi-VN")} ₫{item.status === "REQUIRES_REVIEW" ? " · Cần đối soát" : ""}</span><small>{new Date(item.paidAt).toLocaleString("vi-VN")}</small></DropdownMenu.Item>)}
+          </DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root>
           <div className="admin-profile-wrap">
             <button type="button" className="admin-topbar-user" aria-expanded={profileOpen} onClick={() => setProfileOpen(value => !value)}>
               <span className="admin-user-avatar">{initials}</span><span>{user?.email || "admin@physlive.local"}</span><span className="admin-user-chevron">⌄</span>
@@ -77,6 +94,11 @@ export default function AdminLayout() {
           </div>
         </div>
       </header>
+      <nav className="admin-mobile-nav" aria-label="Admin navigation mobile">
+        {navigation.map(item => <NavLink key={item.path} to={item.path} end={item.path === "/admin"} className={({ isActive }) => `admin-nav-item ${isActive ? "active" : ""}`}>
+          <LearningIcon name={item.icon} /><span>{item.label}</span>
+        </NavLink>)}
+      </nav>
       <Outlet />
     </main>
   </div>;

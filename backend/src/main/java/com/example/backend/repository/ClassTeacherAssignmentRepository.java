@@ -24,4 +24,8 @@ public interface ClassTeacherAssignmentRepository extends JpaRepository<ClassTea
      */
     @Query("SELECT a FROM ClassTeacherAssignment a WHERE a.schoolClass.id = :classId AND a.isActive = true")
     List<ClassTeacherAssignment> findByClassIdAndIsActiveTrue(@Param("classId") UUID classId);
+
+    boolean existsBySchoolClassIdAndTeacherIdAndIsActiveTrue(UUID classId, Integer teacherId);
+
+    java.util.Optional<ClassTeacherAssignment> findBySchoolClassIdAndTeacherId(UUID classId, Integer teacherId);
 }

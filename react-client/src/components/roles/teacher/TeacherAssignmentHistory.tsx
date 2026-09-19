@@ -17,115 +17,73 @@ export function TeacherAssignmentHistory({
   onOpenSubmissions,
 }: Readonly<TeacherAssignmentHistoryProps>) {
   return (
-    <div
-      className={`modern-card${workspaceLayout ? " assignment-workspace-panel" : ""}`}
+    <section
+      className={`modern-card assignment-history-panel${workspaceLayout ? " assignment-workspace-panel" : ""}`}
+      aria-labelledby="assigned-work-title"
     >
-      <div className="modern-card-header">
+      <div className="modern-card-header assignment-history-header">
         <div>
-          <h2>Bài đã giao &amp; Theo dõi nộp bài</h2>
-          <p>Danh sách các bài tập đã phát hành cho học sinh.</p>
+          <h2 id="assigned-work-title">Bài đã giao</h2>
+          <p>Theo dõi hạn nộp và bài học sinh đã gửi.</p>
         </div>
         <button
           type="button"
           className="modern-tab-btn"
-          style={{
-            background: "#ffffff",
-            border: "1px solid var(--border-subtle)",
-          }}
           onClick={onRefresh}
           disabled={loading}
         >
-          {loading ? "…" : "Làm mới"}
+          {loading ? "Đang tải…" : "Làm mới"}
         </button>
       </div>
       {loading && (
-        <p style={{ color: "var(--text-muted)", padding: "20px" }}>
-          Đang tải danh sách bài đã giao…
-        </p>
+        <p className="assignment-history-message" role="status">Đang tải danh sách bài đã giao…</p>
       )}
       {!loading && items.length === 0 && (
-        <div
-          style={{
-            padding: "40px 10px",
-            textAlign: "center",
-            color: "var(--text-muted)",
-          }}
-        >
+        <div className="assignment-history-empty">
           Chưa có bài tập nào được giao.
         </div>
       )}
       {!loading && items.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="assignment-history-list">
           {items.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "10px",
-                padding: "16px",
-                background: "#ffffff",
-                boxShadow: "var(--shadow-sm)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  marginBottom: "6px",
-                }}
-              >
-                <strong
-                  style={{ fontSize: "15px", color: "var(--text-primary)" }}
-                >
-                  {item.title}
-                </strong>
-                <span className="status-pill pass">{item.status}</span>
+            <article className="assignment-history-card" key={item.id}>
+              <div className="assignment-history-card-heading">
+                <h3>{item.title}</h3>
+                <span className={`status-pill ${item.status.toLowerCase()}`}>
+                  {item.status === "ACTIVE" ? "Đang mở" : item.status === "CLOSED" ? "Đã đóng" : item.status}
+                </span>
               </div>
-              <p
-                style={{
-                  margin: "0 0 10px 0",
-                  fontSize: "13px",
-                  color: "var(--text-secondary)",
-                }}
-              >
+              <p className="assignment-history-prompt">
                 {questionPrompt(item.questions) ||
                   item.description ||
                   "Bài tập mô phỏng"}
               </p>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "12px",
-                  color: "var(--text-muted)",
-                }}
-              >
-                <span>
-                  👥 {item.studentIds.length} học sinh nhận bài
+              <div className="assignment-history-card-footer">
+                <div className="assignment-history-meta">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20m16 0v-1.5a3.5 3.5 0 0 0-2.7-3.4M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7-6.8a3.5 3.5 0 0 1 0 6.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span>{item.studentIds.length} học sinh nhận bài</span>
                   {item.dueAt
-                    ? ` · Hạn ${new Date(item.dueAt).toLocaleDateString("vi-VN")}`
+                    ? <span>Hạn nộp {new Date(item.dueAt).toLocaleDateString("vi-VN")}</span>
                     : ""}
-                </span>
+                </div>
                 <button
                   type="button"
-                  className="prediction-submit-btn"
-                  style={{
-                    padding: "5px 12px",
-                    fontSize: "12px",
-                    background: "var(--role-teacher)",
-                  }}
+                  className="assignment-history-open-btn"
                   onClick={() => onOpenSubmissions(item)}
                 >
-                  Xem bài nộp ({item.studentIds.length}) →
+                  <span>Xem bài nộp</span>
+                  <span className="assignment-history-count">{item.studentIds.length}</span>
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
-

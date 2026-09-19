@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 @Component
 public class DynamicsReferenceSolver implements ReferenceSolver {
-    private static final double GRAVITY = 9.81;
+    private static final double VELOCITY_EPSILON = 1e-10;
     public String solverId() { return "dynamics_reference"; }
     public AnalyticalPoint solve(JsonNode spec, Map<String, Double> overrides, double seconds) {
         String model = PhysicsValues.model(spec);
@@ -15,13 +15,33 @@ public class DynamicsReferenceSolver implements ReferenceSolver {
         if (!model.equals("forces_1d")) throw new IllegalArgumentException("Unsupported dynamics reference model: " + model);
         double mass = positive(PhysicsValues.require(spec, overrides, "mass", "m"));
         double force = PhysicsValues.require(spec, overrides, "net_force", "force", "f");
-        double friction = PhysicsValues.require(spec, overrides, "friction_coefficient", "mu", "friction");
+        double friction = nonNegative(PhysicsValues.require(spec, overrides, "friction_coefficient", "mu", "friction"));
+        double gravity = PhysicsValues.gravitationalAcceleration(spec, overrides);
+        double frictionForce = friction * mass * gravity;
         double v0 = PhysicsValues.require(spec, overrides, "initial_velocity", "v0", "velocity");
         double x0 = PhysicsValues.require(spec, overrides, "initial_position", "x0", "position");
-        double acceleration = force / mass - friction * GRAVITY;
         double t = Math.max(0, seconds);
-        return new AnalyticalPoint(Map.of("x", x0 + v0 * t + .5 * acceleration * t * t,
-                "vx", v0 + acceleration * t, "ax", acceleration, "force", force - friction * mass * GRAVITY));
+        double acceleration = acceleration(force, frictionForce, mass, v0);
+        double position;
+        double velocity;
+        if (Math.abs(v0) > VELOCITY_EPSILON && v0 * acceleration < 0) {
+            double stoppingTime = -v0 / acceleration;
+            if (t >= stoppingTime) {
+                double stoppedPosition = x0 + v0 * stoppingTime + 0.5 * acceleration * stoppingTime * stoppingTime;
+                double remaining = t - stoppingTime;
+                acceleration = acceleration(force, frictionForce, mass, 0);
+                position = stoppedPosition + 0.5 * acceleration * remaining * remaining;
+                velocity = acceleration * remaining;
+            } else {
+                position = x0 + v0 * t + 0.5 * acceleration * t * t;
+                velocity = v0 + acceleration * t;
+            }
+        } else {
+            position = x0 + v0 * t + 0.5 * acceleration * t * t;
+            velocity = v0 + acceleration * t;
+        }
+        return new AnalyticalPoint(Map.of("x", position, "vx", velocity, "ax", acceleration,
+                "force", mass * acceleration));
     }
     private AnalyticalPoint collision(JsonNode spec, Map<String, Double> overrides, double seconds) {
         double m1 = positive(PhysicsValues.require(spec, overrides, "mass_1", "m1"));
@@ -62,5 +82,18 @@ public class DynamicsReferenceSolver implements ReferenceSolver {
             throw new IllegalArgumentException("Positive quantity required");
         }
         return value;
+    }
+
+    private double nonNegative(double value) {
+        if (value < 0) throw new IllegalArgumentException("Non-negative quantity required");
+        return value;
+    }
+
+    private double acceleration(double appliedForce, double frictionForce, double mass, double velocity) {
+        if (Math.abs(velocity) <= VELOCITY_EPSILON) {
+            if (Math.abs(appliedForce) <= frictionForce) return 0;
+            return Math.copySign((Math.abs(appliedForce) - frictionForce) / mass, appliedForce);
+        }
+        return (appliedForce - Math.copySign(frictionForce, velocity)) / mass;
     }
 }

@@ -114,6 +114,8 @@ export function AssignmentList({
                     >
                       {item.predictionSubmitted ? "Đã dự đoán" : "Chưa làm"}
                     </span>
+                    {item.score !== null && item.score !== undefined && <small style={{ display: "block", marginTop: "5px", color: "var(--text-secondary)" }}>Điểm: {item.score}{item.maxScore ? `/${item.maxScore}` : ""}</small>}
+                    {item.feedback && <small style={{ display: "block", marginTop: "3px", color: "var(--text-muted)" }}>{item.feedback}</small>}
                   </td>
                   <td>
                     <button
@@ -136,4 +138,3 @@ export function AssignmentList({
     </div>
   );
 }
-

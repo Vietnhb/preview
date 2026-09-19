@@ -4,11 +4,12 @@ import {
   assignedSimulation,
   studentAssignments,
   submitAssignmentPrediction,
+  logStudentAction,
 } from "../../api/assignmentApi";
 import { getSharedSimulation } from "../../api/simulationApi";
 import { library } from "../../api/libraryApi";
 import type { Assignment, LibraryItem, Simulation } from "../../types/physlive";
-import { controlValue, indexAtTime, type LearningControl } from "../../utils/learningModel";
+import { controlValue, indexAtTime, isWithinControlBounds, type LearningControl } from "../../utils/learningModel";
 import { AssignmentList } from "../../components/roles/student/StudentAssignmentList";
 import { SharedLibrary } from "../../components/roles/student/StudentSharedLibrary";
 import { AssignmentWorkbench } from "../../components/roles/student/StudentAssignmentWorkbench";
@@ -54,6 +55,7 @@ export default function StudentAssignments({
 
   // Playback state
   const [frame, setFrame] = useState(0);
+  const [assignedTime, setAssignedTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [vectors, setVectors] = useState({
     grid: true,
@@ -72,6 +74,8 @@ export default function StudentAssignments({
   const parameterTimerRef = useRef<number | null>(null);
   const parameterRequestRef = useRef(0);
   const baseSimulationRef = useRef<Simulation | null>(null);
+  const assignmentRequestRef = useRef(0);
+  const selectedAssignmentIdRef = useRef<string | null>(null);
 
   // Class / Shared Library state
   const [sharedItems, setSharedItems] = useState<LibraryItem[]>([]);
@@ -85,7 +89,9 @@ export default function StudentAssignments({
   const [sharedSimLoading, setSharedSimLoading] = useState(false);
   const [sharedSimError, setSharedSimError] = useState("");
   const [sharedFrame, setSharedFrame] = useState(0);
+  const [sharedTime, setSharedTime] = useState(0);
   const [sharedPlaying, setSharedPlaying] = useState(false);
+  const sharedSimulationRequestRef = useRef(0);
 
   const loadAssignments = useCallback(async () => {
     setLoading(true);
@@ -125,6 +131,31 @@ export default function StudentAssignments({
     setParameterError("");
   };
 
+  const closeAssignment = () => {
+    selectedAssignmentIdRef.current = null;
+    assignmentRequestRef.current += 1;
+    clearParameterState();
+    setSelectedAssignment(null);
+    setSimulation(null);
+    setFrame(0);
+    setAssignedTime(0);
+    setSimLoading(false);
+    setSimError("");
+    setPlaying(false);
+    setIsSubmittingPrediction(false);
+  };
+
+  const closeSharedSimulation = () => {
+    sharedSimulationRequestRef.current += 1;
+    setSelectedSharedItem(null);
+    setSharedSimulation(null);
+    setSharedFrame(0);
+    setSharedTime(0);
+    setSharedSimLoading(false);
+    setSharedSimError("");
+    setSharedPlaying(false);
+  };
+
   useEffect(() => {
     void loadAssignments();
   }, [loadAssignments]);
@@ -135,11 +166,13 @@ export default function StudentAssignments({
     }
   }, [activeTab, selectedTopic, loadSharedLibrary]);
 
-  const loadAssignedSimulation = useCallback(async (assignmentId: string) => {
+  const loadAssignedSimulation = useCallback(async (assignmentId: string, requestId: number) => {
+    if (requestId !== assignmentRequestRef.current || selectedAssignmentIdRef.current !== assignmentId) return;
     setSimLoading(true);
     setSimError("");
     try {
       const loaded = await assignedSimulation(assignmentId);
+      if (requestId !== assignmentRequestRef.current || selectedAssignmentIdRef.current !== assignmentId) return;
       baseSimulationRef.current = loaded;
       const controls = (loaded.visualization?.controls ??
         []) as LearningControl[];
@@ -157,17 +190,25 @@ export default function StudentAssignments({
       );
       setParameterError("");
       setSimulation(loaded);
+      setFrame(0);
+      setAssignedTime(loaded.time[0] ?? 0);
     } catch {
+      if (requestId !== assignmentRequestRef.current || selectedAssignmentIdRef.current !== assignmentId) return;
       clearParameterState();
       setSimulation(null);
       setSimError("Chưa tải được mô hình mô phỏng của bài tập này.");
     } finally {
-      setSimLoading(false);
+      if (requestId === assignmentRequestRef.current && selectedAssignmentIdRef.current === assignmentId) {
+        setSimLoading(false);
+      }
     }
   }, []);
 
   // The simulation is deliberately requested only after the prediction gate is open.
   const handleSelectAssignment = async (item: Assignment) => {
+    selectedAssignmentIdRef.current = item.id;
+    const requestId = ++assignmentRequestRef.current;
+    void logStudentAction(item.id, "ASSIGNMENT_OPENED").catch(() => undefined);
     clearParameterState();
     setSelectedAssignment(item);
     const alreadySubmitted = Boolean(item.predictionSubmitted);
@@ -179,14 +220,19 @@ export default function StudentAssignments({
     setReasoningInput("");
     setPredictionError("");
     setSimulation(null);
+    setSimLoading(false);
     setFrame(0);
+    setAssignedTime(0);
     setPlaying(false);
+    setIsSubmittingPrediction(false);
     setSimError("");
-    if (alreadySubmitted) await loadAssignedSimulation(item.id);
+    if (alreadySubmitted) await loadAssignedSimulation(item.id, requestId);
   };
 
   useEffect(
     () => () => {
+      assignmentRequestRef.current += 1;
+      sharedSimulationRequestRef.current += 1;
       if (parameterTimerRef.current !== null)
         globalThis.clearTimeout(parameterTimerRef.current);
     },
@@ -208,10 +254,7 @@ export default function StudentAssignments({
     const hasInvalidValue = controls.some((control) => {
       const rawValue = parameterDraft[control.key] ?? "";
       const value = Number(rawValue);
-      const invalid =
-        rawValue.trim() === "" ||
-        !Number.isFinite(value) ||
-        (control.min >= 0 && value < control.min);
+      const invalid = rawValue.trim() === "" || !isWithinControlBounds(control, value);
       if (!invalid) numericValues[control.key] = value;
       return invalid;
     });
@@ -243,6 +286,7 @@ export default function StudentAssignments({
           if (requestId !== parameterRequestRef.current) return;
           setSimulation(updated);
           setFrame(0);
+          setAssignedTime(updated.time[0] ?? 0);
           setPlaying(false);
         })
         .catch(() => {
@@ -286,22 +330,30 @@ export default function StudentAssignments({
     setParameterAdjusting(false);
     setSimulation(base);
     setFrame(0);
+    setAssignedTime(base.time[0] ?? 0);
     setPlaying(false);
   };
 
   const handleOpenShared = async (item: LibraryItem) => {
+    const requestId = ++sharedSimulationRequestRef.current;
     setSelectedSharedItem(item);
     setSharedSimulation(null);
     setSharedFrame(0);
+    setSharedTime(0);
     setSharedPlaying(false);
     setSharedSimLoading(true);
     setSharedSimError("");
     try {
-      setSharedSimulation(await getSharedSimulation(item.simulationId));
+      const loaded = await getSharedSimulation(item.simulationId);
+      if (requestId !== sharedSimulationRequestRef.current) return;
+      setSharedSimulation(loaded);
+      setSharedFrame(0);
+      setSharedTime(loaded.time[0] ?? 0);
     } catch {
+      if (requestId !== sharedSimulationRequestRef.current) return;
       setSharedSimError("Chưa tải được mô phỏng trong tài nguyên này.");
     } finally {
-      setSharedSimLoading(false);
+      if (requestId === sharedSimulationRequestRef.current) setSharedSimLoading(false);
     }
   };
 
@@ -309,6 +361,8 @@ export default function StudentAssignments({
   const handleSubmitPrediction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAssignment || !predictionInput.trim()) return;
+    const assignmentId = selectedAssignment.id;
+    const requestId = ++assignmentRequestRef.current;
 
     setIsSubmittingPrediction(true);
     setPredictionError("");
@@ -319,11 +373,14 @@ export default function StudentAssignments({
     };
 
     try {
-      await submitAssignmentPrediction(selectedAssignment.id, payload);
+      await submitAssignmentPrediction(assignmentId, payload);
+      if (requestId !== assignmentRequestRef.current || selectedAssignmentIdRef.current !== assignmentId) return;
+      void logStudentAction(assignmentId, "PREDICTION_SUBMITTED", payload).catch(() => undefined);
       setPredictionSubmitted(true);
       setSubmittedPredictionText(predictionInput.trim());
-      await loadAssignedSimulation(selectedAssignment.id);
+      await loadAssignedSimulation(assignmentId, requestId);
     } catch (err: unknown) {
+      if (requestId !== assignmentRequestRef.current || selectedAssignmentIdRef.current !== assignmentId) return;
       // If student has already submitted prediction previously, unlock simulation
       if (typeof err === "object" && err !== null && "response" in err) {
         const axiosErr = err as { response?: { status?: number } };
@@ -332,7 +389,7 @@ export default function StudentAssignments({
           setSubmittedPredictionText(
             predictionInput.trim() || "Dự đoán đã ghi nhận trước đó",
           );
-          await loadAssignedSimulation(selectedAssignment.id);
+          await loadAssignedSimulation(assignmentId, requestId);
           return;
         }
       }
@@ -340,7 +397,7 @@ export default function StudentAssignments({
         "Không thể ghi nhận câu trả lời dự đoán. Vui lòng thử lại.",
       );
     } finally {
-      setIsSubmittingPrediction(false);
+      if (requestId === assignmentRequestRef.current) setIsSubmittingPrediction(false);
     }
   };
 
@@ -390,8 +447,8 @@ export default function StudentAssignments({
             className={`modern-tab-btn ${activeTab === "assigned" ? "active" : ""}`}
             onClick={() => {
               setActiveTab("assigned");
-              setSelectedAssignment(null);
-              setSelectedSharedItem(null);
+              closeAssignment();
+              closeSharedSimulation();
             }}
           >
             <span>Bài tập được giao</span>
@@ -401,7 +458,7 @@ export default function StudentAssignments({
             className={`modern-tab-btn ${activeTab === "library" ? "active" : ""}`}
             onClick={() => {
               setActiveTab("library");
-              setSelectedAssignment(null);
+              closeAssignment();
             }}
           >
             <span>Tài nguyên lớp học</span>
@@ -431,6 +488,7 @@ export default function StudentAssignments({
                 isSubmittingPrediction={isSubmittingPrediction}
                 predictionError={predictionError}
                 simulation={simulation}
+                time={assignedTime}
                 simLoading={simLoading}
                 simError={simError}
                 frame={frame}
@@ -445,10 +503,7 @@ export default function StudentAssignments({
                 parameterAdjusting={parameterAdjusting}
                 parameterError={parameterError}
                 teacherPrompt={teacherPrompt}
-                onBack={() => {
-                  clearParameterState();
-                  setSelectedAssignment(null);
-                }}
+                onBack={closeAssignment}
                 onSubmitPrediction={handleSubmitPrediction}
                 onPredictionChange={setPredictionInput}
                 onReasoningChange={setReasoningInput}
@@ -462,13 +517,18 @@ export default function StudentAssignments({
                 onReset={() => {
                   setPlaying(false);
                   setFrame(0);
+                  setAssignedTime(simulation?.time[0] ?? 0);
                 }}
                 onFrameChange={(frameValue) => {
                   setPlaying(false);
                   setFrame(frameValue);
+                  setAssignedTime(simulation?.time[frameValue] ?? 0);
                 }}
                 onTimeChange={(nextTime) => {
-                  if (simulation) setFrame(indexAtTime(simulation.time, nextTime));
+                  if (simulation) {
+                    setFrame(indexAtTime(simulation.time, nextTime));
+                    setAssignedTime(nextTime);
+                  }
                 }}
                 onPlaybackEnd={() => setPlaying(false)}
                 onParameterChange={(key, value) =>
@@ -488,6 +548,7 @@ export default function StudentAssignments({
             loading={sharedLoading}
             selectedItem={selectedSharedItem}
             simulation={sharedSimulation}
+            time={sharedTime}
             simulationLoading={sharedSimLoading}
             simulationError={sharedSimError}
             frame={sharedFrame}
@@ -497,18 +558,23 @@ export default function StudentAssignments({
             onOpen={(item) => {
               void handleOpenShared(item);
             }}
-            onClose={() => setSelectedSharedItem(null)}
+            onClose={closeSharedSimulation}
             onTogglePlaying={() => setSharedPlaying((value) => !value)}
             onReset={() => {
               setSharedPlaying(false);
               setSharedFrame(0);
+              setSharedTime(sharedSimulation?.time[0] ?? 0);
             }}
             onFrameChange={(frameValue) => {
               setSharedPlaying(false);
               setSharedFrame(frameValue);
+              setSharedTime(sharedSimulation?.time[frameValue] ?? 0);
             }}
             onTimeChange={(nextTime) => {
-              if (sharedSimulation) setSharedFrame(indexAtTime(sharedSimulation.time, nextTime));
+              if (sharedSimulation) {
+                setSharedFrame(indexAtTime(sharedSimulation.time, nextTime));
+                setSharedTime(nextTime);
+              }
             }}
             onPlaybackEnd={() => setSharedPlaying(false)}
           />

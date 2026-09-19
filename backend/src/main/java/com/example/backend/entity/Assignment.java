@@ -52,6 +52,16 @@ public class Assignment extends AuditedEntity {
     @Column(nullable = false, columnDefinition = "jsonb")
     private JsonNode questions;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "grading_criteria", columnDefinition = "jsonb")
+    private JsonNode gradingCriteria;
+
+    @Column(name = "max_score", precision = 8, scale = 3, nullable = false)
+    private java.math.BigDecimal maxScore = java.math.BigDecimal.TEN;
+
+    @Column(name = "auto_grade", nullable = false)
+    private boolean autoGrade;
+
     @ElementCollection
     @CollectionTable(name = "assignment_students", joinColumns = @JoinColumn(name = "assignment_id"))
     @Column(name = "student_id", nullable = false)

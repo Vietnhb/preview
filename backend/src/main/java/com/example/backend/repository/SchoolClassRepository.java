@@ -24,4 +24,6 @@ public interface SchoolClassRepository extends JpaRepository<SchoolClass, UUID> 
      */
     @Query("SELECT c FROM SchoolClass c WHERE c.school.id = :schoolId AND c.schoolYear = :schoolYear AND c.isActive = true")
     List<SchoolClass> findBySchoolIdAndSchoolYear(@Param("schoolId") UUID schoolId, @Param("schoolYear") String schoolYear);
+
+    boolean existsBySchoolIdAndNameIgnoreCaseAndSchoolYear(UUID schoolId, String name, String schoolYear);
 }

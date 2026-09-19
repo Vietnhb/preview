@@ -6,8 +6,8 @@ export type Quantity = {
 };
 
 export type EventCondition =
-  | { type: "contact"; entities: string[] }
-  | { type: "collision"; entities: string[] };
+  | { type: "contact"; entities: string[]; quantity?: string; operator?: ">=" | "<=" | ">" | "<" | "=="; value?: number }
+  | { type: "collision"; entities: string[]; firstQuantity?: string; secondQuantity?: string };
 
 export type EndCondition =
   | { type: "time_limit"; duration: number }
@@ -18,7 +18,7 @@ export type EndCondition =
 
 export type ResolvedEnd = {
   time: number;
-  reason: "time_limit" | "threshold" | "event" | "cycle_count" | "manual" | "max_time";
+  reason: "time_limit" | "threshold" | "event" | "cycle_count" | "manual" | "max_time" | "unknown";
   conditionReached: boolean;
 };
 
@@ -102,8 +102,8 @@ export type Curriculum = { topics: { id: string; name: string; slug: string; ena
 export type LibraryFolder = { id: string; name: string; itemCount: number; createdAt: string; updatedAt: string };
 export type LibraryItem = { id: string; simulationId: string; folderId?: string; lessonId: string; specificationId: string; title: string; topic?: string; validationStatus: string; visibility: "PERSONAL" | "SHARED"; createdAt: string };
 export type StudentOption = { id: number; fullName: string };
-export type Assignment = { id: string; libraryItemId: string; specificationId: string; title: string; description?: string; questions: unknown; studentIds: number[]; status: string; assignedAt: string; dueAt?: string; predictionSubmitted?: boolean };
-export type CreateAssignment = { libraryItemId: string; title: string; description?: string; questions: { prompt: string }; studentIds: number[]; dueAt?: string };
-export type AssignmentSubmission = { id: string; assignmentId: string; studentId: number; studentName: string; predictions: unknown; submittedAt: string };
+export type Assignment = { id: string; libraryItemId: string; specificationId: string; title: string; description?: string; questions: unknown; studentIds: number[]; status: string; assignedAt: string; dueAt?: string; predictionSubmitted?: boolean; gradingCriteria?: unknown; maxScore?: number; autoGrade?: boolean; score?: number | null; feedback?: string | null; gradingStatus?: "PENDING" | "AI_GRADED" | "TEACHER_CONFIRMED" | "RETURNED" | null; retryAllowed?: boolean };
+export type CreateAssignment = { libraryItemId: string; title: string; description?: string; questions: { prompt: string }; studentIds: number[]; dueAt?: string; gradingCriteria?: { expectedValue?: number; tolerance?: number }; maxScore?: number; autoGrade?: boolean };
+export type AssignmentSubmission = { id: string; assignmentId: string; studentId: number; studentName: string; predictions: unknown; submittedAt: string; score?: number | null; maxScore?: number | null; feedback?: string | null; gradingStatus?: "PENDING" | "AI_GRADED" | "TEACHER_CONFIRMED" | "RETURNED"; gradedAt?: string | null; retryAllowed?: boolean };
 export type ProblemSummary = { id: string; editableText?: string | null; previewText?: string | null; status: string; sourceMode: string; createdAt: string; updatedAt?: string; currentSpecificationId?: string | null; lessonId?: string | null };
 export type EvaluationResult = { benchmarkCount: number; precision: number; recall: number; f1: number; kappa: number; incorrectRate: number };

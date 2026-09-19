@@ -18,6 +18,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class UserService {
     UserRepository userRepository;
+    CurrentUserService currentUserService;
 
     public UserResponse getCurrentUser(String email) {
         User user = userRepository.findByEmail(normalizeEmail(email))
@@ -79,6 +80,19 @@ public class UserService {
     public List<StudentOptionResponse> getActiveStudents() {
         return userRepository.findActiveByRoleName("STUDENT").stream()
                 .map(user -> new StudentOptionResponse(user.getId(), user.getFullName()))
+                .toList();
+    }
+
+    public List<StudentOptionResponse> getAssignableStudents() {
+        User requester = currentUserService.requireCurrentUser();
+        if (requester.getRole() != null && "ADMIN".equalsIgnoreCase(requester.getRole().getName())) {
+            return getActiveStudents();
+        }
+        return userRepository.findActiveStudentsAssignableByTeacher(requester.getId()).stream()
+                .filter(student -> requester.getSchool() != null
+                        && student.getSchool() != null
+                        && requester.getSchool().getId().equals(student.getSchool().getId()))
+                .map(student -> new StudentOptionResponse(student.getId(), student.getFullName()))
                 .toList();
     }
 }

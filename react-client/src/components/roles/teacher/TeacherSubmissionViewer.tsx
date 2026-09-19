@@ -7,6 +7,8 @@ type SubmissionViewerProps = {
   loading: boolean;
   error: string;
   onClose: () => void;
+  onGrade: (submissionId: string, score: number, feedback: string) => Promise<void>;
+  onReopen: (submissionId: string) => Promise<void>;
 };
 
 export function TeacherSubmissionViewer({
@@ -15,6 +17,8 @@ export function TeacherSubmissionViewer({
   loading,
   error,
   onClose,
+  onGrade,
+  onReopen,
 }: Readonly<SubmissionViewerProps>) {
   return (
     <dialog
@@ -111,7 +115,15 @@ export function TeacherSubmissionViewer({
                       </small>
                     </td>
                     <td>
-                      <span className="status-pill pass">Đã nộp</span>
+                      <div style={{ display: "grid", gap: "6px", minWidth: "170px" }}>
+                        <span className={`status-pill ${sub.gradingStatus === "TEACHER_CONFIRMED" ? "pass" : "info"}`}>{sub.gradingStatus === "TEACHER_CONFIRMED" ? "Đã xác nhận" : sub.gradingStatus === "RETURNED" ? "Cho làm lại" : "Chờ chấm"}</span>
+                        <div style={{ display: "flex", gap: "4px" }}>
+                          <input aria-label={`Điểm ${sub.studentName}`} type="number" min="0" max={assignment.maxScore ?? 10} step="0.1" defaultValue={sub.score ?? ""} id={`score-${sub.id}`} style={{ width: "62px" }} />
+                          <input aria-label={`Nhận xét ${sub.studentName}`} defaultValue={sub.feedback ?? ""} id={`feedback-${sub.id}`} placeholder="Nhận xét" style={{ minWidth: "90px" }} />
+                          <button type="button" className="role-switch-pill" onClick={() => { const score = Number((document.getElementById(`score-${sub.id}`) as HTMLInputElement)?.value); const feedback = (document.getElementById(`feedback-${sub.id}`) as HTMLInputElement)?.value ?? ""; if (Number.isFinite(score)) void onGrade(sub.id, score, feedback); }}>Lưu</button>
+                        </div>
+                        <button type="button" className="role-switch-pill" onClick={() => void onReopen(sub.id)}>Cho làm lại</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -137,4 +149,3 @@ export function TeacherSubmissionViewer({
     </dialog>
   );
 }
-

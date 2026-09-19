@@ -10,6 +10,7 @@ import com.example.backend.entity.SimulationStatus;
 import com.example.backend.entity.Lesson;
 import com.example.backend.entity.User;
 import com.example.backend.entity.Visibility;
+import com.example.backend.entity.LibraryModerationStatus;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.LibraryItemRepository;
 import com.example.backend.repository.LibraryFolderRepository;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -59,8 +61,32 @@ public class LibraryService {
         item.setTitle(request.title().trim());
         item.setVisibility(request.visibility() == null ? Visibility.PERSONAL : request.visibility());
         item.setSharedInstitutionId(item.getVisibility() == Visibility.SHARED ? user.getInstitutionId() : null);
+        if (item.getVisibility() == Visibility.SHARED && item.getId() == null)
+            item.setModerationStatus(LibraryModerationStatus.PENDING);
+        if (item.getVisibility() == Visibility.PERSONAL) item.setModerationStatus(LibraryModerationStatus.APPROVED);
+        if (item.getVisibility() == Visibility.SHARED && item.getModerationStatus() == LibraryModerationStatus.REJECTED)
+            item.setModerationStatus(LibraryModerationStatus.PENDING);
         item.setActive(true);
         return toResponse(libraryRepository.save(item));
+    }
+
+    @Transactional
+    public LibraryItemResponse cloneShared(UUID id, UUID folderId, String title) {
+        User user = currentUserService.requireCurrentUser();
+        LibraryItem source = libraryRepository.findById(id)
+                .filter(item -> item.isActive() && item.getVisibility() == Visibility.SHARED
+                        && (item.getModerationStatus() == LibraryModerationStatus.APPROVED || item.getModerationStatus() == LibraryModerationStatus.FEATURED)
+                        && visibleTo(user, item))
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shared library item not found"));
+        LibraryFolder folder = folderRepository.findByIdAndOwnerIdAndActiveTrue(folderId, user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Library folder not found"));
+        LibraryItem copy = new LibraryItem();
+        copy.setSimulation(source.getSimulation()); copy.setFolder(folder); copy.setLesson(source.getLesson());
+        copy.setSpecification(source.getSpecification()); copy.setOwner(user);
+        copy.setTitle(title == null || title.isBlank() ? source.getTitle() + " (bản sao)" : title.trim());
+        copy.setVisibility(Visibility.PERSONAL); copy.setSharedInstitutionId(null);
+        copy.setModerationStatus(LibraryModerationStatus.APPROVED); copy.setActive(true);
+        return toResponse(libraryRepository.save(copy));
     }
 
     @Transactional(readOnly = true)
@@ -68,7 +94,8 @@ public class LibraryService {
         User user = currentUserService.requireCurrentUser();
         return libraryRepository.findAll().stream()
                 .filter(item -> item.isActive() && (item.getOwner().getId().equals(user.getId())
-                        || (item.getVisibility() == Visibility.SHARED && visibleTo(user, item))))
+                        || (item.getVisibility() == Visibility.SHARED && visibleTo(user, item)
+                        && (item.getModerationStatus() == LibraryModerationStatus.APPROVED || item.getModerationStatus() == LibraryModerationStatus.FEATURED))))
                 .filter(item -> topic == null || topic.isBlank() || (item.getSpecification().getTopic() != null
                         && item.getSpecification().getTopic().equalsIgnoreCase(topic)))
                 .map(this::toResponse)
@@ -123,7 +150,7 @@ public class LibraryService {
                 item.getLesson() == null ? null : item.getLesson().getId(),
                 item.getSpecification().getId(), item.getTitle(),
                 item.getSpecification().getTopic(), item.getSpecification().getValidationStatus(),
-                item.getVisibility(), item.getCreatedAt());
+                item.getVisibility(), item.getCreatedAt(), item.getModerationStatus(), item.getModerationComment());
     }
 
     private boolean visibleTo(User user, LibraryItem item) {

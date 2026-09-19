@@ -30,7 +30,7 @@ public class SchoolManagementController {
         requireSchool(schoolId);
         return users.findBySchoolId(schoolId).stream().map(user -> new UserStatusResponse(
                 user.getId(), user.getEmail(), user.getFullName(), user.getRole().getName(),
-                Boolean.TRUE.equals(user.getActive()), schoolId.toString(), user.getLastLogin(), user.getDateOfBirth())).toList();
+                !Boolean.FALSE.equals(user.getActive()), schoolId.toString(), user.getLastLogin(), user.getDateOfBirth())).toList();
     }
 
     @PostMapping

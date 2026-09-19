@@ -42,3 +42,4 @@
 @media (min-width: 640px) { .learning-nav-container { padding-left: 24px; padding-right: 24px; } }
 @media (min-width: 768px) { .learning-nav-container { padding-left: 32px; padding-right: 32px; } .learning-desktop-nav { display: flex; } .learning-mobile-nav { display: none; } }
 @media (min-width: 1024px) { .learning-brand { font-size: 24px; } .learning-desktop-nav { gap: 12px; } }
+@media (min-width: 768px) and (max-width: 1100px) { .learning-desktop-nav { display: none; } .learning-mobile-nav { display: flex; } }

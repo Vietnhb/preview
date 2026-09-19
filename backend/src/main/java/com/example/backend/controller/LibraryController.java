@@ -26,6 +26,7 @@ public class LibraryController {
 
     public record MoveRequest(@jakarta.validation.constraints.NotNull UUID folderId) {}
     public record RenameRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 160) String title) {}
+    public record CloneRequest(@jakarta.validation.constraints.NotNull UUID folderId, @jakarta.validation.constraints.Size(max = 160) String title) {}
 
     @org.springframework.web.bind.annotation.PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
@@ -43,6 +44,12 @@ public class LibraryController {
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public LibraryItemResponse save(@Valid @RequestBody LibrarySaveRequest request) {
         return libraryService.save(request);
+    }
+
+    @PostMapping("/{id}/clone")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public LibraryItemResponse clone(@PathVariable UUID id, @Valid @RequestBody CloneRequest request) {
+        return libraryService.cloneShared(id, request.folderId(), request.title());
     }
 
     @GetMapping

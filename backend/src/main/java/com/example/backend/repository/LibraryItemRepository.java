@@ -2,6 +2,7 @@ package com.example.backend.repository;
 
 import com.example.backend.entity.LibraryItem;
 import com.example.backend.entity.Visibility;
+import com.example.backend.entity.LibraryModerationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
@@ -39,4 +40,6 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> 
     boolean existsByFolderIdAndActiveTrue(UUID folderId);
 
     long countByFolderIdAndActiveTrue(UUID folderId);
+
+    List<LibraryItem> findByVisibilityAndModerationStatusOrderByCreatedAtAsc(Visibility visibility, LibraryModerationStatus status);
 }

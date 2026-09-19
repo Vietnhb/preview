@@ -32,6 +32,7 @@ public class AdminService {
     private final RoleValidationService roleValidationService;
     private final LicenseCheckService licenseCheckService;
     private final com.example.backend.repository.SchoolRepository schoolRepository;
+    private final jakarta.persistence.EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public List<UserStatusResponse> users() {
@@ -48,6 +49,7 @@ public class AdminService {
         var school = resolveSchool(request.institutionId());
         roleValidationService.validateRoleSchoolConsistency(role.getName(), school);
         requireManage(role.getName(), school);
+        requireStudentSeat(role.getName(), school);
         if (request.password().length() < 8) throw new ApiException(HttpStatus.BAD_REQUEST, "Password must have at least 8 characters");
         User user = new User();
         user.setEmail(request.email().trim().toLowerCase());
@@ -69,6 +71,7 @@ public class AdminService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
         requireManage(user.getRole().getName(), user.getSchool());
+        if (active && Boolean.FALSE.equals(user.getActive())) requireStudentSeat(user.getRole().getName(), user.getSchool());
         if (active && "SCHOOL_MANAGER".equals(user.getRole().getName()))
             roleValidationService.validateSingleSchoolManager(user.getSchool().getId(), user.getId());
         user.setActive(active);
@@ -113,6 +116,9 @@ public class AdminService {
         var school = resolveSchool(request.institutionId());
         roleValidationService.validateRoleSchoolConsistency(role.getName(), school);
         requireManage(role.getName(), school);
+        boolean alreadyOccupiesSeat = "STUDENT".equals(user.getRole().getName()) && !Boolean.FALSE.equals(user.getActive())
+                && user.getSchool() != null && school != null && user.getSchool().getId().equals(school.getId());
+        if (!Boolean.FALSE.equals(user.getActive()) && !alreadyOccupiesSeat) requireStudentSeat(role.getName(), school);
         if (Boolean.TRUE.equals(user.getActive()) && "SCHOOL_MANAGER".equals(role.getName()))
             roleValidationService.validateSingleSchoolManager(school.getId(), user.getId());
         user.setFullName(request.fullName().trim()); user.setRole(role); user.setSchool(school);
@@ -126,6 +132,15 @@ public class AdminService {
                 || !("TEACHER".equals(targetRole) || "STUDENT".equals(targetRole)))
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only manage teachers and students in your school");
         licenseCheckService.requireWriteAccess(actor);
+    }
+
+    private void requireStudentSeat(String role, com.example.backend.entity.School school) {
+        if (!"STUDENT".equals(role) || school == null) return;
+        var locked = schoolRepository.findByIdForUpdate(school.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "School not found"));
+        entityManager.refresh(locked, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        if (locked.getStudentQuota() != null && userRepository.countActiveStudents(locked.getId()) >= locked.getStudentQuota())
+            throw new ApiException(HttpStatus.CONFLICT, "Trường đã hết quota học sinh. Vui lòng nâng gói hoặc tạm khóa tài khoản không còn sử dụng.");
     }
 
     private com.example.backend.entity.School resolveSchool(String id) {

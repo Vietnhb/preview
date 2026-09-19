@@ -10,12 +10,14 @@ import Icon from "../common/LearningIcon";
 import LearningHeader from "../common/LearningHeader";
 import TeacherLibraryPane from "./TeacherLibraryPane";
 import type { Curriculum, Problem, Simulation, LibraryItem } from "../../types/physlive";
-import { controlValue, indexAtTime, learningSeries, lessonCopy, lessonKind, numberLabel } from "../../utils/learningModel";
+import { controlValue, indexAtTime, interpolateAtTime, isWithinControlBounds, learningSeries, lessonCopy, lessonKind, numberLabel } from "../../utils/learningModel";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import { LearningInspector } from "./learning/LearningInspector";
+import { canManageLearning } from "../../types/roles";
 
 export default function LearningWorkspace({ simulation, problem, onUpdate, onNewSimulation, onSelectSimulation, simulationLoading = false, loadingSimulationId = null }: Readonly<{ simulation: Simulation; problem: Problem | null; onUpdate: (simulation: Simulation) => void; onNewSimulation?: () => void; onSelectSimulation?: (simulationId: string) => boolean | void; simulationLoading?: boolean; loadingSimulationId?: string | null }>) {
   const user = usePhysliveStore(state => state.user);
+  const canManageLearningContent = canManageLearning(user?.role);
   const kind = lessonKind(simulation.schemaId), copy = lessonCopy[kind];
   const times = simulation.time;
   const allSeries = useMemo(() => learningSeries(simulation), [simulation]);
@@ -106,7 +108,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   useEffect(() => () => {
     if (adjustmentTimerRef.current !== null) globalThis.clearTimeout(adjustmentTimerRef.current);
   }, []);
-  useEffect(() => { if (user?.role === "TEACHER" && simulation.valid) void curriculum().then(setCurriculumTree).catch(() => setCurriculumTree(null)); }, [user?.role, simulation.valid]);
+  useEffect(() => { if (canManageLearningContent && simulation.valid) void curriculum().then(setCurriculumTree).catch(() => setCurriculumTree(null)); }, [canManageLearningContent, simulation.valid]);
   useEffect(() => {
     // Reset time when simulation changes (e.g., after parameter adjustment)
     setTime(times[0] ?? 0);
@@ -153,14 +155,16 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
 
     const val = Number(valueStr);
     const ctrl = controls.find(c => c.key === key);
-    if (!valueStr.trim() || !Number.isFinite(val) || (ctrl && ctrl.min >= 0 && val < ctrl.min)) {
+    if (!valueStr.trim() || !ctrl || !isWithinControlBounds(ctrl, val)) {
       return;
     }
 
     const numericOverrides: Record<string, number> = {};
     for (const c of controls) {
-      const v = Number(nextDraft[c.key]);
-      if (Number.isFinite(v)) numericOverrides[c.key] = v;
+      const raw = nextDraft[c.key] ?? "";
+      const v = Number(raw);
+      if (!raw.trim() || !isWithinControlBounds(c, v)) return;
+      numericOverrides[c.key] = v;
     }
 
     if (adjustmentTimerRef.current !== null) globalThis.clearTimeout(adjustmentTimerRef.current);
@@ -276,8 +280,8 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
     <main className="learn-workspace" id="learning-workspace">
       <div className="learn-top-area" />
       <nav className="learn-mobile-nav" aria-label="Chuyển vùng học tập"><button type="button" aria-pressed={mobilePanel === "observe"} onClick={() => setMobilePanel("observe")}><Icon name="play" />Quan sát</button><button type="button" aria-pressed={mobilePanel === "inspect" && inspector === "experiment"} onClick={() => { setMobilePanel("inspect"); setInspector("experiment"); }}><Icon name="sliders" />Thử nghiệm</button><button type="button" aria-pressed={mobilePanel === "inspect" && inspector !== "experiment"} onClick={() => { setMobilePanel("inspect"); setInspector("understand"); }}><Icon name="book" />Giải thích</button></nav>
-      <div className="learn-layout" data-mobile-panel={mobilePanel} data-library-pane={user?.role === "TEACHER"} data-library-collapsed={libraryCollapsed}>
-        {user?.role === "TEACHER" && <TeacherLibraryPane folders={folders} items={libraryItems}
+      <div className="learn-layout" data-mobile-panel={mobilePanel} data-library-pane={canManageLearningContent} data-library-collapsed={libraryCollapsed}>
+        {canManageLearningContent && <TeacherLibraryPane folders={folders} items={libraryItems}
           onRetry={retryLibrary}
           currentSimulationId={simulation.simulationId} loading={libraryLoading} error={libraryError}
           openingId={openingLibraryId} onCreateFolder={createFolder} onOpen={openLibraryItem} onNewSimulation={onNewSimulation} />}
@@ -304,7 +308,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
                 {simulationLoading && <div className="learn-simulation-loading" role="status" aria-live="polite"><span className="learn-loading-spinner" aria-hidden="true" />Đang mở simulation…</div>}
                 <div className="learn-canvas">
                   {canPlay ? <PhysicsScene simulation={simulation} index={index} overlays={overlays} time={time} seekRevision={seekRevision} playing={playing} speed={speed} onTimeChange={handleCanvasTimeChange} onPlaybackEnd={handlePlaybackEnd} />
-                    : <div className="learn-blocked" role="alert"><Icon name="book" /><h2>{validData ? "Mô hình cần được kiểm tra lại" : "Chưa có đủ dữ liệu để quan sát"}</h2><p>Trở về đề bài, kiểm tra thông tin và chạy lại mô phỏng.</p><Link to="/" className="learn-primary-link">Về đề bài <Icon name="arrow" /></Link></div>}
+                    : <div className="learn-blocked" role="alert"><Icon name="book" /><h2>{validData ? "Mô hình cần được kiểm tra lại" : "Chưa có đủ dữ liệu để quan sát"}</h2><p>Trở về đề bài, kiểm tra thông tin và chạy lại mô phỏng.</p><Link to="/workspace" className="learn-primary-link">Về đề bài <Icon name="arrow" /></Link></div>}
                 </div>
                 <fieldset className="learn-overlay-controls"><legend className="learn-sr-only">Thành phần hiển thị</legend>{([
                   ["grid", "Lưới"], ["trajectory", kind === "circuit" ? "Tín hiệu" : "Quỹ đạo"], ["velocity", kind === "circuit" ? "Dòng điện" : "Vận tốc"], ...(["circuit", "collision"].includes(kind) ? [] : [["acceleration", "Gia tốc"]]),
@@ -312,7 +316,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
               </div>
 
               {/* Metrics Dock */}
-              <div className="learn-readouts" aria-label="Đại lượng tại thời điểm đang xem">{allSeries.slice(0, kind === "collision" ? 4 : 3).map(item => <button type="button" key={item.key} className={selectedSeries === item.key ? "selected" : ""} aria-pressed={selectedSeries === item.key} onClick={() => { setSelectedSeries(item.key); setBottomTab("graph"); }}><span><i style={{ background: item.color }} />{item.label}</span><strong>{numberLabel(item.data[index], kind === "circuit" ? 4 : 2)} <small>{item.unit}</small></strong></button>)}</div>
+              <div className="learn-readouts" aria-label="Đại lượng tại thời điểm đang xem">{allSeries.slice(0, kind === "collision" ? 4 : 3).map(item => <button type="button" key={item.key} className={selectedSeries === item.key ? "selected" : ""} aria-pressed={selectedSeries === item.key} onClick={() => { setSelectedSeries(item.key); setBottomTab("graph"); }}><span><i style={{ background: item.color }} />{item.label}</span><strong>{numberLabel(interpolateAtTime(times, item.data, time), kind === "circuit" ? 4 : 2)} <small>{item.unit}</small></strong></button>)}</div>
 
               {/* Floating Playback Dock */}
               {canPlay && <div className="floating-playback-dock" aria-label="Điều khiển phát">
@@ -367,6 +371,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
           problem={problem}
           copy={copy}
           times={times}
+          time={time}
           lastTime={lastTime}
           allSeries={allSeries}
           controls={controls}

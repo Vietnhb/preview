@@ -153,7 +153,9 @@ public class SchemaDefinitionService {
                 continue;
             }
             double value = matched.path(NORMALIZED_VALUE).asDouble();
-            if (!Double.isFinite(value) || (field.path("positive").asBoolean(false) && value <= 0)) {
+            if (!Double.isFinite(value)
+                    || (field.path("positive").asBoolean(false) && value <= 0)
+                    || (field.path("nonNegative").asBoolean(false) && value < 0)) {
                 blockers.add("Invalid value for required quantity: " + key);
             }
             Set<String> units = textSet(field.path(ALLOWED_UNITS));
@@ -161,7 +163,22 @@ public class SchemaDefinitionService {
                 blockers.add("Invalid unit for " + key + ": " + matched.path(NORMALIZED_UNIT).asText());
             }
         }
-        double fallbackDuration = definition.path("execution").path(DURATION_SECONDS).asDouble(10);
+        for (JsonNode field : definition.path("optionalQuantities")) {
+            JsonNode matched = findQuantity(quantities, names(field));
+            if (matched == null) continue;
+            String key = field.path("key").asText();
+            double value = matched.path(NORMALIZED_VALUE).asDouble(Double.NaN);
+            if (!Double.isFinite(value)
+                    || (field.path("positive").asBoolean(false) && value <= 0)
+                    || (field.path("nonNegative").asBoolean(false) && value < 0)) {
+                blockers.add("Invalid value for optional quantity: " + key);
+            }
+            Set<String> units = textSet(field.path(ALLOWED_UNITS));
+            if (!units.isEmpty() && !units.contains(matched.path(NORMALIZED_UNIT).asText())) {
+                blockers.add("Invalid unit for " + key + ": " + matched.path(NORMALIZED_UNIT).asText());
+            }
+        }
+        double fallbackDuration = definition.path("execution").path(DURATION_SECONDS).asDouble();
         blockers.addAll(EndConditionResolver.validate(specification, fallbackDuration));
         return List.copyOf(blockers);
     }
@@ -174,6 +191,7 @@ public class SchemaDefinitionService {
             boolean invalid = matched == null || !matched.path(NORMALIZED_VALUE).isNumber()
                     || !Double.isFinite(matched.path(NORMALIZED_VALUE).asDouble())
                     || (field.path("positive").asBoolean(false) && matched.path(NORMALIZED_VALUE).asDouble() <= 0)
+                    || (field.path("nonNegative").asBoolean(false) && matched.path(NORMALIZED_VALUE).asDouble() < 0)
                     || (!textSet(field.path(ALLOWED_UNITS)).isEmpty()
                         && !textSet(field.path(ALLOWED_UNITS)).contains(matched.path(NORMALIZED_UNIT).asText()));
             if (invalid) gaps.add(new RequiredGap(field.path("key").asText(),
@@ -216,6 +234,12 @@ public class SchemaDefinitionService {
                 JsonNode quantity = findQuantityForControl(specification, definition, control.key());
                 if (quantity != null && quantity.path(NORMALIZED_VALUE).isNumber()) {
                     value = quantity.path(NORMALIZED_VALUE).asDouble();
+                }
+            }
+            if (value == null) {
+                JsonNode parameterDefinition = findQuantityDefinition(definition, control.key());
+                if (parameterDefinition != null && parameterDefinition.path("defaultValue").isNumber()) {
+                    value = parameterDefinition.path("defaultValue").asDouble();
                 }
             }
             if (value == null || !Double.isFinite(value)) {
@@ -272,12 +296,18 @@ public class SchemaDefinitionService {
     }
 
     private JsonNode findQuantityForControl(JsonNode specification, JsonNode definition, String key) {
-        for (JsonNode field : definition.path(REQUIRED_QUANTITIES)) {
-            if (key.equalsIgnoreCase(field.path("key").asText())) {
-                return findQuantity(specification == null ? null : specification.path(QUANTITIES), names(field));
+        JsonNode field = findQuantityDefinition(definition, key);
+        Set<String> acceptedNames = field == null ? Set.of(key.toLowerCase()) : names(field);
+        return findQuantity(specification == null ? null : specification.path(QUANTITIES), acceptedNames);
+    }
+
+    private JsonNode findQuantityDefinition(JsonNode definition, String key) {
+        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path("optionalQuantities"))) {
+            for (JsonNode field : fields) {
+                if (key.equalsIgnoreCase(field.path("key").asText())) return field;
             }
         }
-        return findQuantity(specification == null ? null : specification.path(QUANTITIES), Set.of(key.toLowerCase()));
+        return null;
     }
 
     private Set<String> names(JsonNode field) {

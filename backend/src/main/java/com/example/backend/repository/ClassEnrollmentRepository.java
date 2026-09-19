@@ -20,6 +20,9 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
      */
     @Query("SELECT e FROM ClassEnrollment e WHERE e.student.id = :studentId AND e.schoolYear = :schoolYear AND e.status = 'ACTIVE'")
     Optional<ClassEnrollment> findActiveEnrollment(@Param("studentId") Integer studentId, @Param("schoolYear") String schoolYear);
+
+    @Query("SELECT e FROM ClassEnrollment e WHERE e.student.id = :studentId AND e.status = 'ACTIVE'")
+    List<ClassEnrollment> findActiveEnrollmentsByStudentId(@Param("studentId") Integer studentId);
     
     /**
      * Find all enrollments for a class.
@@ -38,4 +41,9 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
      */
     @Query("SELECT COUNT(e) FROM ClassEnrollment e WHERE e.schoolClass.id = :classId AND e.status = 'ACTIVE'")
     Long countActiveStudentsByClassId(@Param("classId") UUID classId);
+
+    @Query("SELECT COUNT(DISTINCT e.student.id) FROM ClassEnrollment e WHERE e.schoolClass.school.id = :schoolId AND e.status = 'ACTIVE'")
+    Long countActiveStudentsBySchoolId(@Param("schoolId") UUID schoolId);
+
+    java.util.Optional<ClassEnrollment> findBySchoolClassIdAndStudentIdAndStatus(UUID classId, Integer studentId, EnrollmentStatus status);
 }

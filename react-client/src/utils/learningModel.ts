@@ -4,6 +4,19 @@ export type LessonKind = "motion" | "projectile" | "forces" | "spring" | "collis
 export type LearningSeries = { key: string; label: string; symbol: string; unit: string; color: string; data: number[] };
 export type LearningControl = { key: string; label: string; symbol: string; unit: string; min: number; max: number; step: number };
 
+export function hasValidControlBounds(control: LearningControl): boolean {
+  return Number.isFinite(control.min) && Number.isFinite(control.max) && control.min <= control.max;
+}
+
+export function isWithinControlBounds(control: LearningControl, value: number): boolean {
+  return hasValidControlBounds(control) && Number.isFinite(value) && value >= control.min && value <= control.max;
+}
+
+export function clampControlValue(control: LearningControl, value: number): number {
+  if (!hasValidControlBounds(control)) return 0;
+  return Math.max(control.min, Math.min(control.max, Number.isFinite(value) ? value : control.min));
+}
+
 export function lessonKind(schemaId: string): LessonKind {
   const schema = schemaId.toLowerCase();
   if (/circuit|rc_|rl_/.test(schema)) return "circuit";
@@ -35,7 +48,7 @@ export const lessonCopy: Record<LessonKind, { title: string; topic: string; goal
     title: "Lực làm thay đổi chuyển động", topic: "Động lực học",
     goal: "Thay đổi lực hoặc khối lượng để quan sát gia tốc.",
     formula: "ΣF = ma",
-    explanation: "Gia tốc cùng hướng với hợp lực. Với cùng hợp lực, khối lượng càng lớn thì gia tốc càng nhỏ. Mô hình này dùng ma sát theo chiều quy ước cố định; cần thận trọng khi vận tốc đổi dấu.",
+    explanation: "Ma sát chuyển động ngược chiều vận tốc. Khi vật đứng yên, lực ma sát giữ vật đứng nếu hợp lực chưa vượt ngưỡng ma sát.",
     prompt: "Giữ nguyên hợp lực và tăng gấp đôi khối lượng, gia tốc thay đổi thế nào?",
     answer: "Gia tốc giảm còn một nửa vì a = ΣF/m. Điều này đúng khi hợp lực thực sự giữ nguyên, bao gồm cả lực ma sát nếu có.",
   },

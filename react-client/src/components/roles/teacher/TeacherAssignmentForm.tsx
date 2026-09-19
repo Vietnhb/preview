@@ -9,6 +9,10 @@ type TeacherAssignmentFormProps = {
   title: string;
   description: string;
   prompt: string;
+  maxScore: string;
+  autoGrade: boolean;
+  expectedValue: string;
+  tolerance: string;
   dueAt: string;
   students: StudentOption[];
   selectedStudents: number[];
@@ -17,6 +21,10 @@ type TeacherAssignmentFormProps = {
   onLibraryChange: (id: string) => void;
   onTitleChange: (value: string) => void;
   onPromptChange: (value: string) => void;
+  onMaxScoreChange: (value: string) => void;
+  onAutoGradeChange: (value: boolean) => void;
+  onExpectedValueChange: (value: string) => void;
+  onToleranceChange: (value: string) => void;
   onDueAtChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onToggleStudent: (id: number) => void;
@@ -31,6 +39,10 @@ export function TeacherAssignmentForm({
   title,
   description,
   prompt,
+  maxScore,
+  autoGrade,
+  expectedValue,
+  tolerance,
   dueAt,
   students,
   selectedStudents,
@@ -39,6 +51,10 @@ export function TeacherAssignmentForm({
   onLibraryChange,
   onTitleChange,
   onPromptChange,
+  onMaxScoreChange,
+  onAutoGradeChange,
+  onExpectedValueChange,
+  onToleranceChange,
   onDueAtChange,
   onDescriptionChange,
   onToggleStudent,
@@ -155,6 +171,11 @@ export function TeacherAssignmentForm({
               />
             </div>
           </div>
+          <div className="form-row" style={{ marginBottom: "14px" }}>
+            <div className="form-group"><label htmlFor="assignment-max-score">Điểm tối đa</label><input id="assignment-max-score" type="number" min="0.001" step="0.001" value={maxScore} onChange={event => onMaxScoreChange(event.target.value)} /></div>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "24px" }}><input type="checkbox" checked={autoGrade} onChange={event => onAutoGradeChange(event.target.checked)} /> Bật chấm AI theo đáp án số</label>
+          </div>
+          {autoGrade && <div className="form-row" style={{ marginBottom: "14px" }}><div className="form-group"><label htmlFor="assignment-expected-value">Đáp án số</label><input id="assignment-expected-value" type="number" step="any" required={autoGrade} value={expectedValue} onChange={event => onExpectedValueChange(event.target.value)} /></div><div className="form-group"><label htmlFor="assignment-tolerance">Sai số cho phép</label><input id="assignment-tolerance" type="number" min="0" step="any" required={autoGrade} value={tolerance} onChange={event => onToleranceChange(event.target.value)} /></div></div>}
           <div className="form-group" style={{ marginBottom: "18px" }}>
             <div
               style={{
@@ -240,4 +261,3 @@ export function TeacherAssignmentForm({
     </div>
   );
 }
-

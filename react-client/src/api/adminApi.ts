@@ -1,5 +1,14 @@
 import axiosClient from "./axios";
 import type { User } from "../types/physlive";
+import type { LicensePlan } from "./authApi";
+
+export type ManagedPlan = LicensePlan & { active: boolean };
+export const adminPlans = () => axiosClient.get<ManagedPlan[]>("/admin/plans").then(r => r.data);
+export const saveManagedPlan = (payload: ManagedPlan, editing: boolean) =>
+  (editing ? axiosClient.put<ManagedPlan>(`/admin/plans/${payload.code}`, payload) : axiosClient.post<ManagedPlan>("/admin/plans", payload)).then(r => r.data);
+
+export type PaymentNotification = { id: string; schoolName: string; planCode: string; amountVnd: number; paidAt: string; status: string };
+export const paymentNotifications = () => axiosClient.get<PaymentNotification[]>("/admin/payment-notifications").then(r => r.data);
 
 /**
  * API endpoints for admin operations

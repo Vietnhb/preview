@@ -35,7 +35,7 @@ class EndConditionResolverTest {
 
     @Test
     void resolvesContactWithoutTreatingZeroXAsGroundContact() throws Exception {
-        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"contact\",\"entities\":[\"ball\",\"ground\"]}}");
+        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"contact\",\"entities\":[\"ball\",\"ground\"],\"quantity\":\"positions.y\",\"operator\":\"<=\",\"value\":0}}");
         var output = new SolverOutput(List.of(0d, 1d, 2d),
                 Map.of("x", List.of(0d, 2d, 4d), "y", List.of(4d, 1d, -1d)), Map.of(), Map.of(), Map.of());
         var end = EndConditionResolver.resolve(condition, output);
@@ -47,9 +47,21 @@ class EndConditionResolverTest {
     void resolvesProjectileContactFromSolverOutput() throws Exception {
         var specification = mapper.readTree("{\"model\":\"projectile_2d\",\"initial_position\":0,\"initial_height\":10,\"initial_velocity\":4,\"launch_angle\":0}");
         var output = new KinematicsSolver().solve(specification, Map.of(), 10, 0.05);
-        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"contact\",\"entities\":[\"ball\",\"ground\"]}}");
+        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"contact\",\"entities\":[\"ball\",\"ground\"],\"quantity\":\"positions.y\",\"operator\":\"<=\",\"value\":0}}");
         var end = EndConditionResolver.resolve(condition, output);
         assertEquals(Math.sqrt(20 / 9.81), end.time(), 0.05);
+        assertTrue(end.conditionReached());
+    }
+
+    @Test
+    void contactAtLaunchSurfaceWaitsForTheObjectToReturn() throws Exception {
+        var specification = mapper.readTree("{\"model\":\"projectile_2d\",\"initial_position\":0,\"initial_height\":0,\"initial_velocity\":10,\"launch_angle\":1.5707963267948966}");
+        var output = new KinematicsSolver().solve(specification, Map.of(), 4, 0.05);
+        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"contact\",\"entities\":[\"ball\",\"ground\"],\"quantity\":\"positions.y\",\"operator\":\"<=\",\"value\":0}}");
+
+        var end = EndConditionResolver.resolve(condition, output);
+
+        assertEquals(20 / 9.81, end.time(), 0.05);
         assertTrue(end.conditionReached());
     }
 
@@ -65,12 +77,46 @@ class EndConditionResolverTest {
 
     @Test
     void resolvesCollisionFromGenericPositionPair() throws Exception {
-        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"collision\",\"entities\":[\"left\",\"right\"]}}");
+        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"collision\",\"entities\":[\"x1\",\"x2\"]}}");
         var output = new SolverOutput(List.of(0d, 1d, 2d),
                 Map.of("x1", List.of(0d, 1d, 2d), "x2", List.of(3d, 2d, 1d)), Map.of(), Map.of(), Map.of());
         var end = EndConditionResolver.resolve(condition, output);
         assertEquals(1.5, end.time(), 1e-9);
         assertTrue(end.conditionReached());
+    }
+
+    @Test
+    void doesNotGuessCollisionFromUnrelatedPositionSeries() throws Exception {
+        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"collision\",\"entities\":[\"left\",\"right\"]}}");
+        var output = new SolverOutput(List.of(0d, 1d, 2d),
+                Map.of("x1", List.of(0d, 1d, 2d), "x2", List.of(3d, 2d, 1d)), Map.of(), Map.of(), Map.of());
+
+        var end = EndConditionResolver.resolve(condition, output);
+
+        assertEquals(2, end.time(), 1e-9);
+        assertEquals("max_time", end.reason());
+        assertFalse(end.conditionReached());
+    }
+
+    @Test
+    void doesNotInterpretCollisionPositionAsAnEventTime() throws Exception {
+        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"collision\",\"entities\":[\"left\",\"right\"],\"firstQuantity\":\"positions.x1\",\"secondQuantity\":\"positions.x2\"}}");
+        var output = new SolverOutput(List.of(0d, 1d, 2d),
+                Map.of("x1", List.of(0d, 1d, 2d), "x2", List.of(10d, 11d, 12d)), Map.of(), Map.of(),
+                Map.of("collisionTime", List.of(10d), "collisionX", List.of(1d)));
+
+        var end = EndConditionResolver.resolve(condition, output);
+
+        assertEquals(2, end.time(), 1e-9);
+        assertFalse(end.conditionReached());
+    }
+
+    @Test
+    void rejectsContactConditionsWithoutAnObservableThreshold() throws Exception {
+        var condition = mapper.readTree("{\"type\":\"event\",\"event\":{\"type\":\"contact\",\"entities\":[\"ball\",\"ground\"]}}");
+
+        assertTrue(EndConditionResolver.validateNode(condition, 10).stream()
+                .anyMatch(error -> error.contains("requires quantity, operator and value")));
     }
 
     @Test

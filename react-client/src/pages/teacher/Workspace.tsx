@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 import CreateSimulationModal from "../../components/workspace/CreateSimulationModal";
 import EmptySimulationFrame from "../../components/workspace/EmptySimulationFrame";
 import LearningWorkspace from "../../components/workspace/LearningWorkspace";
@@ -10,6 +11,7 @@ import { useTeacherLibrary } from "../../store/useTeacherLibrary";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import { getToken } from "../../utils/token";
 import type { Ambiguity, ConversationMessage, LibraryItem, Problem, Simulation, SimulationSummary, Specification } from "../../types/physlive";
+import { canManageLearning } from "../../types/roles";
 import "../../styles/learning.css";
 
 const simulationCache = new Map<string, Simulation>();
@@ -85,6 +87,8 @@ export default function Workspace() {
   const user = usePhysliveStore(state => state.user);
   const problem = usePhysliveStore(state => state.problem);
   const simulation = usePhysliveStore(state => state.simulation);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const querySimulationId = searchParams.get("simulationId") ?? "";
   const setProblem = usePhysliveStore(state => state.setProblem);
   const setSimulation = usePhysliveStore(state => state.setSimulation);
   const [description, setDescription] = useState("");
@@ -108,16 +112,23 @@ export default function Workspace() {
   const { folders, setFolders, libraryItems, libraryLoading, libraryError, setLibraryError, retryLibrary } = useTeacherLibrary();
   const [openingLibraryId, setOpeningLibraryId] = useState<string | null>(null);
   const [openingRecentId, setOpeningRecentId] = useState<string | null>(null);
-  const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(() => simulation?.simulationId ?? null);
+  const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(() => querySimulationId || simulation?.simulationId || null);
   const [simulationLoadingId, setSimulationLoadingId] = useState<string | null>(null);
   const selectionSourceRef = useRef<"library" | "recent">("library");
   const [composerOrigin, setComposerOrigin] = useState<{ simulation: Simulation; problem: Problem | null } | null>(null);
   /** Create/clarify composer — open by default when no simulation is loaded. */
   const [composerOpen, setComposerOpen] = useState(() => !simulation);
   const current = simulation;
-  const showTeacherLibrary = Boolean(token) && user?.role === "TEACHER";
+  const showTeacherLibrary = Boolean(token) && canManageLearning(user?.role);
   const ambiguities = openAmbiguities(pendingProblem);
   const activeAmbiguity = ambiguities[Math.min(ambiguityStep, Math.max(ambiguities.length - 1, 0))];
+
+  const updateSimulationUrl = (simulationId: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (simulationId) next.set("simulationId", simulationId);
+    else next.delete("simulationId");
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     if (simulation) rememberSimulation(simulation);
@@ -250,6 +261,7 @@ export default function Workspace() {
     setOpeningLibraryId(null);
     setOpeningRecentId(null);
     setComposerOrigin(current ? { simulation: current, problem } : null);
+    updateSimulationUrl(null);
     setSelectedSimulationId(null);
     setSimulation(null);
     setProblem(null);
@@ -270,10 +282,12 @@ export default function Workspace() {
   const closeComposer = () => {
     if (loading) return;
     if (composerOrigin) {
+      updateSimulationUrl(composerOrigin.simulation.simulationId);
       setSelectedSimulationId(composerOrigin.simulation.simulationId);
       setSimulation(composerOrigin.simulation);
       setProblem(composerOrigin.problem);
     } else {
+      updateSimulationUrl(null);
       setSelectedSimulationId(null);
     }
     setComposerOrigin(null);
@@ -318,6 +332,7 @@ export default function Workspace() {
   };
 
   const selectSimulation = (simulationId: string, source: "library" | "recent"): boolean => {
+    updateSimulationUrl(simulationId);
     if (simulationLoadingId || selectedSimulationId === simulationId) return false;
     selectionSourceRef.current = source;
     setSelectedSimulationId(simulationId);
@@ -347,6 +362,7 @@ export default function Workspace() {
     appendConversationMessage("assistant", "Các dữ kiện đã đủ. Mình bắt đầu chạy mô phỏng để kiểm tra kết quả.");
     const result = await runSimulation(specification.id, specification.schemaId, {});
     rememberSimulation(result);
+    updateSimulationUrl(result.simulationId);
     setSelectedSimulationId(result.simulationId);
     setProblem(resolvedProblem);
     setSimulation(result);

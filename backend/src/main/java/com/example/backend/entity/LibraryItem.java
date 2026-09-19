@@ -49,4 +49,18 @@ public class LibraryItem extends AuditedEntity {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "moderation_status", nullable = false, length = 16)
+    private LibraryModerationStatus moderationStatus = LibraryModerationStatus.APPROVED;
+
+    @Column(name = "moderation_comment", columnDefinition = "text")
+    private String moderationComment;
+
+    @Column(name = "moderated_at")
+    private java.time.Instant moderatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "moderated_by")
+    private User moderatedBy;
 }

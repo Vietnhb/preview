@@ -7,6 +7,8 @@ import java.util.Locale;
 import java.util.Map;
 
 final class PhysicsValues {
+    private static final double STANDARD_GRAVITY = 9.81;
+
     private PhysicsValues() {
     }
 
@@ -70,6 +72,23 @@ final class PhysicsValues {
         Double value = find(specification, overrides, names);
         if (value == null || !Double.isFinite(value)) {
             throw new IllegalArgumentException("Missing required physical quantity: " + String.join("/", names));
+        }
+        return value;
+    }
+
+    static double gravitationalAcceleration(JsonNode specification, Map<String, Double> overrides) {
+        double gravity = optional(specification, overrides, STANDARD_GRAVITY,
+                "gravitational_acceleration", "gravity", "g");
+        if (gravity < 0) throw new IllegalArgumentException("Gravitational acceleration cannot be negative");
+        return gravity;
+    }
+
+    private static double optional(JsonNode specification, Map<String, Double> overrides,
+                                   double fallback, String... names) {
+        Double value = find(specification, overrides, names);
+        if (value == null) return fallback;
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Optional physical quantity must be finite: " + String.join("/", names));
         }
         return value;
     }

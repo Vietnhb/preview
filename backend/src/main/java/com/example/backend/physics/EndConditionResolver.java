@@ -99,6 +99,23 @@ public final class EndConditionResolver {
                         || !allText(event.path("entities"))) {
                     errors.add("event.entities must contain at least one entity id");
                 }
+                if ("contact".equals(eventType)) {
+                    if (!event.has("quantity") && !event.has("operator") && !event.has("value")) {
+                        errors.add("contact.event requires quantity, operator and value");
+                    }
+                    if (event.path("quantity").asText("").isBlank()) errors.add("contact.event.quantity is required when a contact threshold is provided");
+                    if (!List.of(">=", "<=", ">", "<", "==").contains(event.path("operator").asText())) {
+                        errors.add("contact.event.operator is unsupported");
+                    }
+                    if (!finite(event.get("value"))) errors.add("contact.event.value must be finite");
+                }
+                if ("collision".equals(eventType)
+                        && (event.has("firstQuantity") || event.has("secondQuantity"))) {
+                    if (event.path("firstQuantity").asText("").isBlank()
+                            || event.path("secondQuantity").asText("").isBlank()) {
+                        errors.add("collision.event.firstQuantity and secondQuantity must both be provided");
+                    }
+                }
                 validateMaxTime(condition, errors);
             }
             case "cycle_count" -> {
@@ -211,60 +228,64 @@ public final class EndConditionResolver {
         Double marker = eventMarker(output, type, limit);
         if (marker != null) return marker;
         if ("contact".equals(type)) {
-            if (output.positions() != null) {
-                boolean hasNonZeroInitial = output.positions().values().stream()
-                        .anyMatch(values -> values != null && !values.isEmpty() && Math.abs(values.get(0)) > EPSILON);
-                Double earliest = null;
-                for (List<Double> values : output.positions().values()) {
-                    // Coordinate systems often contain an x series that starts
-                    // at zero. Prefer a non-zero coordinate so that it cannot
-                    // masquerade as immediate ground contact.
-                    if (hasNonZeroInitial && (values == null || values.isEmpty()
-                            || Math.abs(values.get(0)) <= EPSILON)) continue;
-                    Double contact = contactCrossing(values, output.time(), limit);
-                    if (contact != null && (earliest == null || contact < earliest)) earliest = contact;
-                }
-                if (earliest != null) return earliest;
-            }
-            return null;
+            Series quantity = findSeries(output, event.path("quantity").asText());
+            if (quantity == null || !finite(event.get("value"))) return null;
+            String operator = event.path("operator").asText();
+            if (!List.of(">=", "<=", ">", "<", "==").contains(operator)) return null;
+            return contactCrossing(quantity.values(), output.time(), limit,
+                    operator, event.path("value").asDouble());
         }
 
-        List<Series> candidates = new ArrayList<>();
-        if (output.positions() != null) {
-            output.positions().entrySet().stream().sorted(Map.Entry.comparingByKey())
-                    .forEach(entry -> candidates.add(new Series(entry.getKey(), entry.getValue())));
+        String firstQuantity = event.path("firstQuantity").asText("");
+        String secondQuantity = event.path("secondQuantity").asText("");
+        if (!firstQuantity.isBlank() && !secondQuantity.isBlank()) {
+            Series first = findSeries(output, firstQuantity);
+            Series second = findSeries(output, secondQuantity);
+            return first == null || second == null ? null
+                    : differenceCrossing(first.values(), second.values(), output.time(), limit);
         }
+
         List<String> entities = new ArrayList<>();
         event.path("entities").forEach(entity -> {
             if (entity.isTextual() && !entity.asText().isBlank()) entities.add(entity.asText());
         });
         if (entities.size() >= 2) {
-            Series first = findNamedSeries(candidates, entities.get(0));
-            Series second = findNamedSeries(candidates, entities.get(1));
+            Series first = findNamedSeries(output.positions(), entities.get(0));
+            Series second = findNamedSeries(output.positions(), entities.get(1));
             if (first != null && second != null) {
                 return differenceCrossing(first.values(), second.values(), output.time(), limit);
             }
         }
-        // If the declarative entity ids are not represented in a legacy output,
-        // use the first pair in output order.  The event type still controls
-        // the capability; no model-specific branch is needed.
-        Double earliest = null;
-        for (int i = 0; i < candidates.size(); i++) {
-            for (int j = i + 1; j < candidates.size(); j++) {
-                Double collision = differenceCrossing(candidates.get(i).values(), candidates.get(j).values(), output.time(), limit);
-                if (collision != null && (earliest == null || collision < earliest)) earliest = collision;
-            }
-        }
-        return earliest;
+        return null;
     }
 
-    private static Double contactCrossing(List<Double> values, List<Double> times, double limit) {
+    private static Double contactCrossing(List<Double> values, List<Double> times, double limit,
+                                          String operator, double target) {
         if (values == null || times == null || values.isEmpty() || values.size() != times.size()) return null;
-        if (Math.abs(values.get(0)) <= EPSILON && times.get(0) <= limit + EPSILON) return times.get(0);
-        for (int i = 1; i < values.size() && i < times.size(); i++) {
+        String boundaryOperator = switch (operator) {
+            case "<" -> "<=";
+            case ">" -> ">=";
+            default -> operator;
+        };
+        int start = 0;
+        if (times.get(0) <= limit + EPSILON && matches(values.get(0), boundaryOperator, target)) {
+            // A body may launch from the contact surface. Ignore that initial
+            // equality if the next sample moves away; detect its later return.
+            if (Math.abs(values.get(0) - target) <= EPSILON && values.size() > 1
+                    && !matches(values.get(1), boundaryOperator, target)) {
+                start = 1;
+            } else {
+                return times.get(0);
+            }
+        }
+        for (int i = Math.max(1, start + 1); i < values.size() && i < times.size(); i++) {
             if (times.get(i) > limit + EPSILON) break;
-            if (values.get(i) <= 0 && values.get(i - 1) > 0) {
-                return interpolate(values.get(i - 1), values.get(i), times.get(i - 1), times.get(i), 0);
+            double previous = values.get(i - 1);
+            double current = values.get(i);
+            boolean enteredContact = !matches(previous, boundaryOperator, target)
+                    && matches(current, boundaryOperator, target);
+            if (enteredContact || crosses(previous, current, target, boundaryOperator)) {
+                return interpolate(previous, current, times.get(i - 1), times.get(i), target);
             }
         }
         return null;
@@ -277,7 +298,8 @@ public final class EndConditionResolver {
             if (!key.contains(type)) continue;
             List<Double> values = entry.getValue();
             if (values == null || values.isEmpty()) continue;
-            if (values.size() == 1 && values.get(0) > 0 && values.get(0) <= limit) return values.get(0);
+            if (values.size() == 1 && key.endsWith("time")
+                    && values.get(0) > 0 && values.get(0) <= limit) return values.get(0);
             Double found = crossing(values, output.time(), limit, value -> value > 0.5, 0.5, ">");
             if (found != null) return found;
         }
@@ -408,9 +430,11 @@ public final class EndConditionResolver {
                 .map(entry -> new Series(entry.getKey(), entry.getValue())).findFirst().orElse(null);
     }
 
-    private static Series findNamedSeries(List<Series> values, String requested) {
-        return values.stream().filter(value -> value.name().equalsIgnoreCase(requested)
-                || compact(value.name()).equals(compact(requested))).findFirst().orElse(null);
+    private static Series findNamedSeries(Map<String, List<Double>> values, String requested) {
+        if (values == null) return null;
+        return values.entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase(requested)
+                        || compact(entry.getKey()).equals(compact(requested)))
+                .map(entry -> new Series(entry.getKey(), entry.getValue())).findFirst().orElse(null);
     }
 
     private static boolean matches(double value, String operator, double target) {

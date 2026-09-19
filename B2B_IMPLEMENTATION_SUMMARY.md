@@ -1,13 +1,13 @@
 # B2B Role System - Implementation Summary
 
-**Status**: B2B account/license integration implemented; full school/class and reporting scope remains in progress.
+**Status**: B2B account/license, school class management, reporting, payment reconciliation, assignment grading and shared-library moderation are implemented in code. External Supabase/VNPAY credentials and production QA remain environment-dependent.
 
 ## Integration update — 19/09/2026
 
 Confirmed product decisions:
 - AI quota uses actual provider `usage.total_tokens`, not simulation counts.
 - Let an in-flight call finish and record all tokens; block the next AI call once quota is exhausted.
-- Public signup is disabled. ADMIN provisions school managers; managers create TEACHER/STUDENT accounts in their own school.
+- Public personal signup is disabled. A school can self-register a `SCHOOL_MANAGER`, choose a plan and activate after verified VNPAY payment; managers create TEACHER/STUDENT accounts in their own school.
 
 Implemented in this increment:
 - Restored compatibility of the existing school/admin APIs with the new school relationship.
@@ -18,13 +18,21 @@ Implemented in this increment:
 - AI calls record actual usage in an independent transaction, serialize quota checks per school, and reset the usage bucket at the calendar month boundary (server date). Retries with a provider response are charged individually; local rule-based work is not charged.
 - New token columns avoid interpreting the old simulation counters as tokens. Schools with no configured license stay read-only.
 - Corrected PostgreSQL role enforcement, manager uniqueness, legacy school mapping, and the partial active-enrollment index. SQL initialization uses `;;` so function bodies remain intact.
+- Added school-scoped class management at `/api/schools/{schoolId}/classes` and `/school/classes`: create/update/archive classes, assign teachers, enroll/remove students, transfer students within an academic year, and enforce one active class per student/year.
+- Assignment creation now verifies that the teacher and students share a school, each student has an active enrollment, and the teacher is assigned to that student's class.
+- Added Supabase SQL for `school_classes`, `class_teacher_assignments` and `class_enrollments`, including active-enrollment and class-name constraints.
+- Added assignment grading criteria (`maxScore`, expected numeric value and tolerance), optional auto-grade, teacher confirmation/feedback/reopen, pending-submission blocking and assignment aggregate reports.
+- Added student action-log storage for assignment open/prediction actions and exposes score, feedback, grading status and retry state in student assignment data.
+- Added Shared Library moderation status/audit fields, reviewer queue actions and a teacher clone endpoint for approved shared simulations.
+- Added school CSV import with row-level results, school/class/token reports and class CSV export.
+- Added token usage audit rows per AI call, admin payment reconciliation scheduler/UI/revenue summary, and real admin Feedback/Messages data routes with response modal.
 
 Validation:
 - Backend unit tests and frontend production build pass; B2B policy and HTTP authorization regression tests added.
 - Deployment target is Supabase PostgreSQL. The application already supports Supabase transaction pooler (`6543`) and direct/session connections (`5432`); run `data.sql` once through Supabase SQL Editor or the direct connection, then deploy with `JPA_DDL_AUTO=validate` and `SQL_INIT_MODE=never`. A live Supabase migration was not executed from this workspace.
 - No live provider request was made. Missing/invalid provider usage returns an error rather than an invented token count. Network failures without usage cannot yet be reconciled against provider billing.
 
-Still outstanding (not claimed complete): class management/transfer UI and services, teacher-to-class enforcement in assignment creation, pending-submission deactivation rules, shared-library moderation workflow, token audit history, bulk import and aggregate reporting. Legacy users without a known school need explicit administrator assignment; no school is guessed.
+Still outstanding (not claimed complete): solver-specific multi-step grading formulas, realtime action-log streaming, VNPAY refund/auto-renew/email integrations, production migration and live provider/browser QA. Legacy users without a known school need explicit administrator assignment; no school is guessed.
 
 The sections below describe the earlier implementation snapshot; this update takes precedence where behavior differs.
 
@@ -34,7 +42,7 @@ The sections below describe the earlier implementation snapshot; this update tak
 ## 🐛 Bug Fixed: CONTENT_REVIEWER Permissions
 
 ### Issue Discovered
-**File**: `UserManagementService.java` - `canCreateSimulation()` method
+**File**: `AdminService.java` and role-aware teaching services - `canCreateSimulation()` policy
 
 **Problem**: CONTENT_REVIEWER was incorrectly allowed to create simulations
 ```java
@@ -146,8 +154,8 @@ All repositories created with custom queries:
 - ✅ Renewal banner: < 30 days warning
 - ✅ Write operations blocked when expired
 
-#### `UserManagementService`
-- ✅ Soft delete: `deactivateUser()` / `reactivateUser()`
+#### `AdminService` (school-scoped account management)
+- ✅ Soft delete: `setActive(userId, false/true)`
 - ✅ Tracks: who, when, why
 - ✅ Combines license + quota checks
 
@@ -177,7 +185,7 @@ Method-level security: `@PreAuthorize("hasRole('...')")` on all services
 - ✅ `school.ts`: School, Class, Enrollment types
 - ✅ `index.ts`: Barrel export
 
-**No UI components** - intentionally minimal, implement when needed.
+The current frontend includes role-aware admin, school, teacher, reviewer and student screens; this section records the original type-layer snapshot only.
 
 ---
 
@@ -232,7 +240,7 @@ Method-level security: `@PreAuthorize("hasRole('...')")` on all services
 **Services** (4 new + 1 updated):
 - `SchoolService.java`
 - `LicenseCheckService.java`
-- `UserManagementService.java`
+- `AdminService.java`
 - `RoleValidationService.java`
 - `AuthService.java` (updated)
 
@@ -321,13 +329,9 @@ if (!canWrite) {
 ### Deactivate User (Soft Delete)
 ```java
 @Autowired
-private UserManagementService userManagement;
+private AdminService adminService;
 
-userManagement.deactivateUser(
-    userId, 
-    currentUser.getId(), 
-    "Graduated / Left school"
-);
+adminService.setActive(userId, false);
 ```
 
 ### Validate Role-School Consistency

@@ -5,13 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.example.backend.service.SchemaDefinitionService;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -41,16 +44,27 @@ public class RuleBasedExtractionProvider implements ExtractionProvider {
     private static final String AMPLITUDE = "amplitude";
     private static final String SPRING_CONSTANT = "spring_constant";
     private static final String PHASE = "phase";
+    private static final double STANDALONE_DEFAULT_DURATION_SECONDS = 10.0;
 
     private static final Pattern NUMBER_WITH_UNIT = Pattern.compile(
             "(?<!\\w)([-+]?\\d+(?:[.,]\\d+)?)\\s*([\\p{L}Ω°]+(?:/[\\p{L}0-9²^]+)?)(?!\\p{L})",
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern NUMBER_ONLY = Pattern.compile(
             "(?<![\\p{L}\\w.])([-+]?\\d+(?:[.,]\\d+)?)(?!\\s*[\\p{L}\\w])");
+    private static final Pattern EXPLICIT_GRAVITY = Pattern.compile(
+            "(?i)(?:\\bgravitational\\s+acceleration\\b|\\bgravity\\b|(?<![\\p{L}\\w])g(?![\\p{L}\\w])|trọng\\s+trường|gia\\s+tốc\\s+trọng\\s+trường)\\s*(?:=|:|is|là|bằng)?\\s*([-+]?\\d+(?:[.,]\\d+)?)\\s*(m/s(?:\\^?2|²))");
     private final UnitNormalizer unitNormalizer;
+    private final SchemaDefinitionService schemaDefinitions;
 
-    public RuleBasedExtractionProvider(UnitNormalizer unitNormalizer) {
+    @Autowired
+    public RuleBasedExtractionProvider(UnitNormalizer unitNormalizer, SchemaDefinitionService schemaDefinitions) {
         this.unitNormalizer = unitNormalizer;
+        this.schemaDefinitions = schemaDefinitions;
+    }
+
+    /** Constructor for focused standalone extraction tests. */
+    public RuleBasedExtractionProvider(UnitNormalizer unitNormalizer) {
+        this(unitNormalizer, null);
     }
 
     @Override
@@ -104,8 +118,9 @@ public class RuleBasedExtractionProvider implements ExtractionProvider {
         List<PhysicalQuantity> quantities = quantities(source, schemaId, lower);
         List<AmbiguityItem> ambiguities = missing(schemaId, quantities);
         String topic = topicFor(schemaId);
-        JsonNode endCondition = endCondition(source, lower);
-        if (endCondition == null) endCondition = com.example.backend.physics.EndConditionResolver.normalize(null, 10);
+        double defaultDuration = configuredDuration(schemaId);
+        JsonNode endCondition = endCondition(source, lower, schemaId);
+        if (endCondition == null) endCondition = com.example.backend.physics.EndConditionResolver.normalize(null, defaultDuration);
         SpecificationDocument document = new SpecificationDocument(
                 SpecificationDocument.CURRENT_SCHEMA_VERSION,
                 topic,
@@ -119,18 +134,34 @@ public class RuleBasedExtractionProvider implements ExtractionProvider {
         return new ProviderExtractionResult(document, null);
     }
 
+    private double configuredDuration(String schemaId) {
+        if (schemaDefinitions == null) return STANDALONE_DEFAULT_DURATION_SECONDS;
+        JsonNode duration = schemaDefinitions.requireApproved(schemaId).getDefinition()
+                .path("execution").path("durationSeconds");
+        if (!duration.isNumber() || !Double.isFinite(duration.asDouble()) || duration.asDouble() <= 0) {
+            throw new IllegalStateException("Approved schema has an invalid default simulation duration: " + schemaId);
+        }
+        return duration.asDouble();
+    }
+
     /** Fallback extraction keeps termination declarative; it never calculates a time. */
-    private JsonNode endCondition(String source, String lower) {
+    private JsonNode endCondition(String source, String lower, String schemaId) {
         if (containsAny(lower, "collision", "va cháº¡m")) {
             ObjectNode event = JsonNodeFactory.instance.objectNode();
             event.put("type", "collision");
             event.putArray("entities").add("object_1").add("object_2");
+            event.put("firstQuantity", "positions.x1");
+            event.put("secondQuantity", "positions.x2");
             return JsonNodeFactory.instance.objectNode().put("type", "event").set("event", event);
         }
-        if (containsAny(lower, "ground", "earth", "cháº¡m Ä‘áº¥t")) {
+        if (KINEMATICS_PROJECTILE.equals(schemaId)
+                && containsAny(lower, "ground", "earth", "cháº¡m Ä‘áº¥t")) {
             ObjectNode event = JsonNodeFactory.instance.objectNode();
             event.put("type", "contact");
             event.putArray("entities").add("object_1").add("ground");
+            event.put("quantity", "positions.y");
+            event.put("operator", "<=");
+            event.put("value", 0);
             return JsonNodeFactory.instance.objectNode().put("type", "event").set("event", event);
         }
         Matcher cycles = Pattern.compile("(?i)(\\d+)\\s*(?:cycles?|chu(?:\\s|-)?ky)").matcher(source);
@@ -174,14 +205,29 @@ public class RuleBasedExtractionProvider implements ExtractionProvider {
 
     private List<PhysicalQuantity> quantities(String source, String schemaId, String lower) {
         List<Matched> matches = new ArrayList<>();
+        Integer gravityValueStart = null;
+        Matcher gravityMatcher = EXPLICIT_GRAVITY.matcher(source);
+        if (Set.of(KINEMATICS_PROJECTILE, DYNAMICS_FORCES).contains(schemaId) && gravityMatcher.find()) {
+            gravityValueStart = gravityMatcher.start(1);
+        }
         Matcher matcher = NUMBER_WITH_UNIT.matcher(source);
+        PhysicalQuantity gravity = null;
         while (matcher.find()) {
             String rawValue = matcher.group(1).replace(',', '.');
             String rawUnit = matcher.group(2);
             UnitNormalizer.NormalizedQuantity normalized = unitNormalizer.normalize(new BigDecimal(rawValue), rawUnit);
-            if (normalized.knownUnit()) matches.add(new Matched(matcher.start(), matcher.group(), normalized));
+            if (!normalized.knownUnit()) continue;
+            if (gravityValueStart != null && matcher.start() == gravityValueStart) {
+                gravity = new PhysicalQuantity("gravitational_acceleration", "g", new BigDecimal(rawValue),
+                        rawUnit, normalized.normalizedValue(), normalized.normalizedUnit(), BigDecimal.ONE,
+                        matcher.group());
+                continue;
+            }
+            matches.add(new Matched(matcher.start(), matcher.group(), normalized));
         }
-        return assign(matches, schemaId, lower);
+        List<PhysicalQuantity> result = new ArrayList<>(assign(matches, schemaId, lower));
+        if (gravity != null) result.add(gravity);
+        return List.copyOf(result);
     }
 
     private List<PhysicalQuantity> assign(List<Matched> matches, String schemaId, String text) {
@@ -304,6 +350,7 @@ public class RuleBasedExtractionProvider implements ExtractionProvider {
                 Map.entry("mass", "m"), Map.entry("mass_1", "m1"), Map.entry("mass_2", "m2"),
                 Map.entry("initial_position_1", "x1_0"), Map.entry("initial_position_2", "x2_0"),
                 Map.entry("velocity_1", "v1"), Map.entry(VELOCITY_2, "v2"),
+                Map.entry("gravitational_acceleration", "g"),
                 Map.entry(LAUNCH_ANGLE, "theta"), Map.entry(NET_FORCE, "F"),
                 Map.entry(FRICTION_COEFFICIENT, "mu"), Map.entry(AMPLITUDE, "A"),
                 Map.entry(SPRING_CONSTANT, "k"), Map.entry(PHASE, "phi"),

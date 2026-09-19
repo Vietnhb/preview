@@ -10,8 +10,6 @@ import java.util.Map;
 
 @Component
 public class KinematicsSolver implements PhysicsSolver {
-    private static final double GRAVITY = 9.81;
-
     @Override
     public String solverId() { return "kinematics_solver"; }
 
@@ -28,9 +26,10 @@ public class KinematicsSolver implements PhysicsSolver {
         double acceleration = projectile ? 0 : PhysicsValues.require(specification, overrides, "acceleration", "a");
         double y = projectile ? PhysicsValues.require(specification, overrides, "initial_height", "y0", "height") : 0;
         double angle = projectile ? PhysicsValues.require(specification, overrides, "launch_angle", "angle", "theta") : 0;
+        double gravity = projectile ? PhysicsValues.gravitationalAcceleration(specification, overrides) : 0;
         double vx = projectile ? velocity * Math.cos(angle) : velocity;
         double vy = projectile ? velocity * Math.sin(angle) : 0;
-        return simulate(new SimulationState(projectile, duration, step, x, acceleration, y, vx, vy));
+        return simulate(new SimulationState(projectile, duration, step, x, acceleration, y, vx, vy, gravity));
     }
 
     private SolverOutput simulate(SimulationState state) {
@@ -42,6 +41,7 @@ public class KinematicsSolver implements PhysicsSolver {
         double y = state.y();
         double vx = state.vx();
         double vy = state.vy();
+        double gravity = state.gravity();
         List<Double> time = new ArrayList<>();
         Map<String, List<Double>> positions = new LinkedHashMap<>();
         Map<String, List<Double>> velocities = new LinkedHashMap<>();
@@ -63,13 +63,13 @@ public class KinematicsSolver implements PhysicsSolver {
             vxSeries.add(vx);
             vySeries.add(projectile ? vy : 0d);
             axSeries.add(projectile ? 0d : acceleration);
-            aySeries.add(projectile ? -GRAVITY : 0d);
+            aySeries.add(projectile ? -gravity : 0d);
             if (i == points) break;
             double dt = Math.min(step, duration - currentTime);
             x += vx * dt;
             if (projectile) {
-                y += vy * dt - 0.5 * GRAVITY * dt * dt;
-                vy -= GRAVITY * dt;
+                y += vy * dt - 0.5 * gravity * dt * dt;
+                vy -= gravity * dt;
             } else {
                 x += 0.5 * acceleration * dt * dt;
                 vx += acceleration * dt;
@@ -91,6 +91,7 @@ public class KinematicsSolver implements PhysicsSolver {
     }
 
     private record SimulationState(boolean projectile, double duration, double step,
-                                   double x, double acceleration, double y, double vx, double vy) { }
+                                   double x, double acceleration, double y, double vx, double vy,
+                                   double gravity) { }
 
 }

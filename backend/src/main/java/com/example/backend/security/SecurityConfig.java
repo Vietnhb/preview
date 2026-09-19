@@ -1,7 +1,10 @@
 package com.example.backend.security;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import com.example.backend.dto.ErrorResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -10,6 +13,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -34,12 +38,30 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @AllArgsConstructor
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
+                        (request, response, exception) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                            objectMapper.writeValue(response.getOutputStream(),
+                                    new ErrorResponse(HttpServletResponse.SC_UNAUTHORIZED,
+                                            "Authentication is required"));
+                        })
+                        .accessDeniedHandler((request, response, exception) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+                            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                            objectMapper.writeValue(response.getOutputStream(),
+                                    new ErrorResponse(HttpServletResponse.SC_FORBIDDEN,
+                                            "You do not have permission for this action"));
+                        }))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -72,6 +94,8 @@ public class SecurityConfig {
                         // Student (learning + submissions)
                         .requestMatchers("/api/assignments/*/submit").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers("/api/student/**").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers("/api/support/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/support/**").authenticated()
 
                         // Shared library (view: all auth users, submit: teachers only)
                         .requestMatchers("/api/library/submit").hasAnyRole("TEACHER", "ADMIN")

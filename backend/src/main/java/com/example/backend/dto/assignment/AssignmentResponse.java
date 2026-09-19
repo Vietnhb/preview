@@ -6,6 +6,8 @@ import com.example.backend.entity.AssignmentStatus;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
+import java.math.BigDecimal;
+import com.example.backend.entity.GradingStatus;
 
 public record AssignmentResponse(
         UUID id,
@@ -19,5 +21,12 @@ public record AssignmentResponse(
         AssignmentStatus status,
         Instant assignedAt,
         Instant dueAt,
-        boolean predictionSubmitted) {
+        boolean predictionSubmitted,
+        JsonNode gradingCriteria,
+        BigDecimal maxScore,
+        boolean autoGrade,
+        BigDecimal score,
+        String feedback,
+        GradingStatus gradingStatus,
+        boolean retryAllowed) {
 }

@@ -1,6 +1,6 @@
 # THIẾT KẾ HỆ THỐNG B2B - PHYSLIVE (V2 - UPDATED)
 
-> Confirmed 19/09/2026: school accounts are provisioned by managers (no public signup). AI quota is actual provider tokens; finish and charge an in-flight call fully, then block subsequent calls when exhausted. See B2B_IMPLEMENTATION_SUMMARY.md for implemented scope and verification limits.
+> Updated 19/09/2026: schools may self-register a SCHOOL_MANAGER account and choose a plan. Activate only after verified VNPAY Sandbox payment, then notify platform admins. Teachers/students are still provisioned by school managers. AI quota is actual provider tokens; finish and charge an in-flight call fully, then block subsequent calls when exhausted. See B2B_IMPLEMENTATION_SUMMARY.md for implemented scope and verification limits.
 
 
 **Phiên bản:** 2.0 (Cập nhật dựa trên requirements thực tế)  

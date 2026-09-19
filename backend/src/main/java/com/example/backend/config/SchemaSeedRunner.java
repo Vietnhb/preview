@@ -55,7 +55,8 @@ public class SchemaSeedRunner implements CommandLineRunner {
             binding.put("referenceSolverId", entry.path("referenceSolverId").asText());
             solver.setOutputDefinition(binding); solverRepository.save(solver);
         }
-        if (releaseRepository.findAll().stream().noneMatch(item -> item.getSchemaId().equals(id))) {
+        if (releaseRepository.findAll().stream().noneMatch(item -> item.getSchemaId().equals(id)
+                && version.equals(item.getSchemaVersion()))) {
             TopicModuleRelease release = new TopicModuleRelease(); release.setTopic(entry.path("topic").asText());
             release.setModuleName("MVP Core"); release.setSchemaId(id); release.setSchemaVersion(version);
             release.setLifecycleStatus(LifecycleStatus.APPROVED); releaseRepository.save(release);

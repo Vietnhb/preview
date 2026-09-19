@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { numberLabel, type LearningSeries } from "../../utils/learningModel";
+import { interpolateAtTime, numberLabel, type LearningSeries } from "../../utils/learningModel";
 
-export default function LearningChart({ series, times, index, onSeek }: Readonly<{ series: LearningSeries; times: number[]; index: number; onSeek: (time: number) => void }>) {
+export default function LearningChart({ series, times, time, onSeek }: Readonly<{ series: LearningSeries; times: number[]; time: number; onSeek: (time: number) => void }>) {
   const host = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(720);
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function LearningChart({ series, times, index, onSeek }: Readonly
     return { x, y, left, right, top, bottom, min, max, points, start, duration };
   }, [series, times, width]);
   return <div className="learn-chart" ref={host}>
-    <svg viewBox={`0 0 ${width} 160`} aria-label={`Đồ thị ${series.label.toLowerCase()} theo thời gian. ${numberLabel(series.data[index], 4)} ${series.unit} tại ${numberLabel(times[index])} giây.`}
+    <svg viewBox={`0 0 ${width} 160`} aria-label={`Đồ thị ${series.label.toLowerCase()} theo thời gian. ${numberLabel(interpolateAtTime(times, series.data, time), 4)} ${series.unit} tại ${numberLabel(time)} giây.`}
       onPointerDown={event => {
         const rect = event.currentTarget.getBoundingClientRect();
         const x = (event.clientX - rect.left) / rect.width * width;
@@ -37,8 +37,8 @@ export default function LearningChart({ series, times, index, onSeek }: Readonly
       })}
       {[0, 0.25, 0.5, 0.75, 1].map(ratio => <text key={ratio} x={plot.x(plot.start + ratio * plot.duration)} y="148" textAnchor="middle">{numberLabel(plot.start + ratio * plot.duration, 1)} s</text>)}
       <polyline points={plot.points} fill="none" stroke={series.color} strokeWidth="2.5" strokeLinejoin="round" />
-      <line className="learn-chart-cursor" x1={plot.x(times[index])} x2={plot.x(times[index])} y1={plot.top} y2={plot.bottom} />
-      <circle cx={plot.x(times[index])} cy={plot.y(series.data[index])} r="5" fill={series.color} stroke="white" strokeWidth="2" />
+      <line className="learn-chart-cursor" x1={plot.x(time)} x2={plot.x(time)} y1={plot.top} y2={plot.bottom} />
+      <circle cx={plot.x(time)} cy={plot.y(interpolateAtTime(times, series.data, time))} r="5" fill={series.color} stroke="white" strokeWidth="2" />
     </svg>
   </div>;
 }

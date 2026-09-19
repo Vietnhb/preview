@@ -15,6 +15,9 @@ import com.example.backend.entity.AmbiguityStatus;
 import com.example.backend.entity.ConfirmationState;
 import com.example.backend.entity.SchemaVersion;
 import com.example.backend.entity.Specification;
+import com.example.backend.repository.SchemaVersionRepository;
+import com.example.backend.repository.SolverVersionRepository;
+import com.example.backend.repository.TopicRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 class SpecificationReadinessServiceTest {
@@ -64,6 +67,30 @@ class SpecificationReadinessServiceTest {
         List<String> quantityNames = new java.util.ArrayList<>();
         specification.getQuantities().forEach(item -> quantityNames.add(item.path("name").asText()));
         assertThat(quantityNames).containsExactly("mass_1");
+    }
+
+    @Test
+    void appliesSchemaDefaultsToOptionalAdjustableQuantitiesAndValidatesExplicitValues() throws Exception {
+        SchemaDefinitionService schemas = new SchemaDefinitionService(
+                mock(SchemaVersionRepository.class), mock(SolverVersionRepository.class), mock(TopicRepository.class));
+        var definition = objectMapper.readTree("""
+                {"requiredQuantities":[],"optionalQuantities":[
+                  {"key":"gravitational_acceleration","aliases":["gravity","g"],
+                   "allowedUnits":["m/s2"],"nonNegative":true,"defaultValue":9.81}],
+                 "adjustableParameters":[
+                  {"key":"gravitational_acceleration","min":0,"max":30}]}
+                """);
+        var absentQuantity = objectMapper.readTree("{\"quantities\":[]}");
+
+        assertThat(schemas.effectiveAdjustments(absentQuantity, definition, java.util.Map.of(), java.util.Map.of()))
+                .containsEntry("gravitational_acceleration", 9.81);
+
+        var negativeQuantity = objectMapper.readTree("""
+                {"quantities":[{"name":"gravitational_acceleration","normalizedValue":-1,
+                  "normalizedUnit":"m/s2"}]}
+                """);
+        assertThat(schemas.validateSpecification(negativeQuantity, definition))
+                .contains("Invalid value for optional quantity: gravitational_acceleration");
     }
 
     private AmbiguityCase ambiguity(String code, String fieldPath, String question) {

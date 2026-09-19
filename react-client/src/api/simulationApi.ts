@@ -17,8 +17,8 @@ export type BackendSimulation = Omit<Simulation, "runId" | "valid" | "elapsedMil
 export const normalizeSimulation = (value: BackendSimulation): Simulation => {
   const resolvedEnd: ResolvedEnd = value.resolvedEnd ?? {
     time: value.time.at(-1) ?? 0,
-    reason: "time_limit",
-    conditionReached: value.time.length > 0,
+    reason: "unknown",
+    conditionReached: false,
   };
   return {
     ...value,

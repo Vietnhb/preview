@@ -22,6 +22,30 @@ public class AdminOperationsController {
     private final SchoolRepository schools;
     private final ValidationRunRepository validations;
     private final CurriculumService curriculum;
+    private final com.example.backend.repository.LicensePlanRepository plans;
+    public record PlanRequest(@NotBlank @Size(max=40) @Pattern(regexp="[A-Z0-9_-]+") String code,
+        @NotBlank @Size(max=255) String name, @NotBlank @Size(max=255) String description,
+        @NotNull @Positive Long annualPriceVnd, @NotNull @Positive Integer studentQuota,
+        @PositiveOrZero Integer monthlyTokenQuota, boolean active) { }
+
+    @GetMapping("/plans") public List<com.example.backend.entity.LicensePlan> plans() {
+        return plans.findAll(org.springframework.data.domain.Sort.by("annualPriceVnd"));
+    }
+    @PostMapping("/plans") @Transactional
+    public com.example.backend.entity.LicensePlan createPlan(@Valid @RequestBody PlanRequest request) {
+        if (plans.existsById(request.code())) throw new ApiException(HttpStatus.CONFLICT, "Mã gói đã tồn tại.");
+        var plan = new com.example.backend.entity.LicensePlan(); plan.setCode(request.code()); return savePlan(plan, request);
+    }
+    @PutMapping("/plans/{code}") @Transactional
+    public com.example.backend.entity.LicensePlan updatePlan(@PathVariable String code, @Valid @RequestBody PlanRequest request) {
+        if (!code.equals(request.code())) throw new ApiException(HttpStatus.CONFLICT, "Không thể thay đổi mã gói.");
+        return savePlan(plans.findById(code).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy gói.")), request);
+    }
+    private com.example.backend.entity.LicensePlan savePlan(com.example.backend.entity.LicensePlan plan, PlanRequest request) {
+        plan.setName(request.name().trim()); plan.setDescription(request.description().trim());
+        plan.setAnnualPriceVnd(request.annualPriceVnd()); plan.setStudentQuota(request.studentQuota());
+        plan.setMonthlyTokenQuota(request.monthlyTokenQuota()); plan.setActive(request.active()); return plans.save(plan);
+    }
     public record SchoolRequest(@NotBlank @Size(max=80) String code, @NotBlank @Size(max=200) String name,
                                 @Size(max=300) String address, boolean active,
                                 java.time.LocalDate licenseStart, java.time.LocalDate licenseEnd,

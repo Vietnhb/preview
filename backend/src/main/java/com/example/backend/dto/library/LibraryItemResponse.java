@@ -1,6 +1,7 @@
 package com.example.backend.dto.library;
 
 import com.example.backend.entity.Visibility;
+import com.example.backend.entity.LibraryModerationStatus;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -15,5 +16,7 @@ public record LibraryItemResponse(
         String topic,
         String validationStatus,
         Visibility visibility,
-        Instant createdAt) {
+        Instant createdAt,
+        LibraryModerationStatus moderationStatus,
+        String moderationComment) {
 }

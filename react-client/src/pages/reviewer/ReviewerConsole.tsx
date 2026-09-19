@@ -4,6 +4,7 @@ import { BenchmarksTab } from "../../components/roles/reviewer/BenchmarksTab";
 import { ModuleApprovalTab } from "../../components/roles/reviewer/ModuleApprovalTab";
 import { QueueTab } from "../../components/roles/reviewer/QueueTab";
 import { VersionsTab } from "../../components/roles/reviewer/VersionsTab";
+import { SharedLibraryTab } from "../../components/roles/reviewer/SharedLibraryTab";
 import "../../styles/modern-roles.css";
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
   { id: "solvers", label: "Reference Solvers" },
   { id: "modules", label: "Module Approval" },
   { id: "benchmarks", label: "Benchmark & Đánh giá Nghiên cứu" },
+  { id: "library", label: "Shared Library" },
 ];
 
 export default function ReviewerConsole() {
@@ -52,6 +54,7 @@ function ReviewerPage() {
         {tab === "solvers" && <VersionsTab solver={true} />}
         {tab === "modules" && <ModuleApprovalTab />}
         {tab === "benchmarks" && <BenchmarksTab />}
+        {tab === "library" && <SharedLibraryTab />}
       </section>
     </div>
   );

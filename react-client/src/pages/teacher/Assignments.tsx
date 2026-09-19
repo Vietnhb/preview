@@ -5,6 +5,8 @@ import {
   studentOptions,
   teacherAssignments,
   assignmentSubmissions,
+  gradeAssignmentSubmission,
+  reopenAssignmentSubmission,
 } from "../../api/assignmentApi";
 import {
   createLibraryFolder,
@@ -18,6 +20,7 @@ import type {
   LibraryItem,
   StudentOption,
 } from "../../types/physlive";
+import { isStudentRole } from "../../types/roles";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import TeacherLibraryPane from "../../components/workspace/TeacherLibraryPane";
 import { TeacherAssignmentForm } from "../../components/roles/teacher/TeacherAssignmentForm";
@@ -38,9 +41,10 @@ export default function Assignments({
   workspaceLayout = false,
 }: Readonly<Props>) {
   const user = usePhysliveStore((state) => state.user);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryLibraryItemId = searchParams.get("libraryItemId") ?? "";
 
-  const isStudent = user?.role === "STUDENT";
+  const isStudent = isStudentRole(user?.role);
 
   // TEACHER ASSIGNMENT STUDIO & SUBMISSIONS MANAGEMENT
   const [items, setItems] = useState<Assignment[]>([]);
@@ -48,11 +52,15 @@ export default function Assignments({
   const [folders, setFolders] = useState<LibraryFolder[]>([]);
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [libraryItemId, setLibraryItemId] = useState(
-    searchParams.get("libraryItemId") ?? "",
+    queryLibraryItemId,
   );
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [maxScore, setMaxScore] = useState("10");
+  const [autoGrade, setAutoGrade] = useState(false);
+  const [expectedValue, setExpectedValue] = useState("");
+  const [tolerance, setTolerance] = useState("0");
   const [dueAt, setDueAt] = useState("");
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -95,6 +103,19 @@ export default function Assignments({
   }, [loadData]);
 
   useEffect(() => {
+    setLibraryItemId(queryLibraryItemId);
+  }, [queryLibraryItemId]);
+
+  const updateLibrarySelection = (id: string) => {
+    setLibraryItemId(id);
+    if (!workspaceLayout) return;
+    const next = new URLSearchParams(searchParams);
+    if (id) next.set("libraryItemId", id);
+    else next.delete("libraryItemId");
+    setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
     const selected = saved.find((item) => item.id === libraryItemId);
     if (selected && !title) setTitle(selected.title);
   }, [saved, libraryItemId, title]);
@@ -120,7 +141,7 @@ export default function Assignments({
   };
 
   const selectLibraryItem = async (item: LibraryItem) => {
-    setLibraryItemId(item.id);
+    updateLibrarySelection(item.id);
     setTitle((current) => (current.trim() ? current : item.title));
   };
 
@@ -160,13 +181,17 @@ export default function Assignments({
         questions: { prompt: prompt.trim() },
         studentIds: selectedStudents,
         dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
+        maxScore: Number(maxScore) || 10,
+        autoGrade,
+        gradingCriteria: autoGrade ? { expectedValue: Number(expectedValue), tolerance: Number(tolerance) || 0 } : undefined,
       });
       setTitle("");
       setDescription("");
       setPrompt("");
       setDueAt("");
+      setMaxScore("10"); setAutoGrade(false); setExpectedValue(""); setTolerance("0");
       setSelectedStudents([]);
-      setLibraryItemId("");
+      updateLibrarySelection("");
       setNotice("Đã giao bài tập cho học sinh thành công.");
       await loadData();
     } catch {
@@ -191,6 +216,18 @@ export default function Assignments({
     } finally {
       setSubmissionsLoading(false);
     }
+  };
+
+  const gradeSubmission = async (submissionId: string, score: number, feedback: string) => {
+    if (!inspectingAssignment) return;
+    const updated = await gradeAssignmentSubmission(inspectingAssignment.id, submissionId, score, inspectingAssignment.maxScore ?? 10, feedback, true);
+    setSubmissions(current => current.map(item => item.id === updated.id ? updated : item));
+  };
+
+  const reopenSubmission = async (submissionId: string) => {
+    if (!inspectingAssignment) return;
+    const updated = await reopenAssignmentSubmission(inspectingAssignment.id, submissionId);
+    setSubmissions(current => current.map(item => item.id === updated.id ? updated : item));
   };
 
   if (isStudent) {
@@ -254,17 +291,7 @@ export default function Assignments({
 
         {/* Grid: Create Assignment & Assigned List */}
         <div
-          className={workspaceLayout ? "assignment-workspace-grid" : undefined}
-          style={
-            workspaceLayout
-              ? undefined
-              : {
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "24px",
-                  alignItems: "start",
-                }
-          }
+          className={workspaceLayout ? "assignment-workspace-grid" : "assignment-standard-grid"}
         >
           {workspaceLayout && (
             <TeacherLibraryPane
@@ -286,14 +313,22 @@ export default function Assignments({
             title={title}
             description={description}
             prompt={prompt}
+            maxScore={maxScore}
+            autoGrade={autoGrade}
+            expectedValue={expectedValue}
+            tolerance={tolerance}
             dueAt={dueAt}
             students={students}
             selectedStudents={selectedStudents}
             submitting={submitting}
             onSubmit={handleSubmit}
-            onLibraryChange={setLibraryItemId}
+            onLibraryChange={updateLibrarySelection}
             onTitleChange={setTitle}
             onPromptChange={setPrompt}
+            onMaxScoreChange={setMaxScore}
+            onAutoGradeChange={setAutoGrade}
+            onExpectedValueChange={setExpectedValue}
+            onToleranceChange={setTolerance}
             onDueAtChange={setDueAt}
             onDescriptionChange={setDescription}
             onToggleStudent={toggleStudent}
@@ -318,6 +353,8 @@ export default function Assignments({
             loading={submissionsLoading}
             error={submissionsError}
             onClose={() => setInspectingAssignment(null)}
+            onGrade={gradeSubmission}
+            onReopen={reopenSubmission}
           />
         )}
       </div>

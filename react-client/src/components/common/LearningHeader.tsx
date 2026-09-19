@@ -109,13 +109,13 @@ export default function LearningHeader({
           <Link className="learn-back" to="/"><Icon name="back" />Trang chủ</Link>
         </> : <>
           {onNewSimulation && <button type="button" className="learn-header-action" onClick={onNewSimulation}>Nhập đề</button>}
-          <fieldset className="learn-view-switch"><legend className="learn-sr-only">Chế độ hiển thị</legend>
-            <button type="button" className={viewMode === "2d" ? "active" : ""} aria-pressed={viewMode === "2d"} onClick={() => onViewModeChange?.("2d")} title="Hiển thị mặt phẳng 2D"><Icon name="view2d" />2D</button>
-            <button type="button" className={viewMode === "3d" ? "active" : ""} aria-pressed={viewMode === "3d"} disabled={!threeDEnabled} onClick={() => onViewModeChange?.("3d")} title={threeDEnabled ? "Hiển thị không gian 3D" : "3D chưa được cung cấp cho schema này"}><Icon name="view3d" />3D</button>
-          </fieldset>
+          {onViewModeChange && <fieldset className="learn-view-switch"><legend className="learn-sr-only">Chế độ hiển thị</legend>
+            <button type="button" className={viewMode === "2d" ? "active" : ""} aria-pressed={viewMode === "2d"} onClick={() => onViewModeChange("2d")} title="Hiển thị mặt phẳng 2D"><Icon name="view2d" />2D</button>
+            <button type="button" className={viewMode === "3d" ? "active" : ""} aria-pressed={viewMode === "3d"} disabled={!threeDEnabled} onClick={() => onViewModeChange("3d")} title={threeDEnabled ? "Hiển thị không gian 3D" : "3D chưa được cung cấp cho schema này"}><Icon name="view3d" />3D</button>
+          </fieldset>}
           <button type="button" className="learn-header-icon" aria-label="Toàn màn hình" title="Toàn màn hình" onClick={() => void toggleFullscreen()}><Icon name="fullscreen" /></button>
-          <Link className="learn-header-action" to="/assignments/workspace">Giao bài</Link>
-          <Link className="learn-back" to="/"><Icon name="back" />Về đề bài</Link>
+          {onNewSimulation && <Link className="learn-header-action" to="/assignments/workspace">Giao bài</Link>}
+          <Link className="learn-back" to="/workspace"><Icon name="back" />Về đề bài</Link>
         </>}
       </div>
     </header>

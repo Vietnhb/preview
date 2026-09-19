@@ -62,6 +62,8 @@ export type ActorFrame = {
   label?: string;
 };
 
+// Kept for historical simulations whose saved schema response predates
+// presentation metadata. Current schema releases define these visuals in the catalog.
 const DEFAULT_PRESENTATIONS: Record<string, VisualizationPresentation> = {
   motion_1d: {
     theme: "lab-night",
@@ -74,7 +76,7 @@ const DEFAULT_PRESENTATIONS: Record<string, VisualizationPresentation> = {
     environment: "range.projectile",
     actors: [{ id: "projectile", asset: "projectile.energy", x: "positions.x", y: "positions.y", vx: "velocities.x", vy: "velocities.y" }],
     props: ["structure.launch-tower", "launcher.cannon"],
-    effects: ["projectile.glow"],
+    effects: ["motion.trail", "projectile.glow"],
   },
   collision_1d: {
     theme: "lab-night",

@@ -77,6 +77,13 @@ public class School {
     @Column(name = "monthly_token_quota")
     private Integer monthlyTokenQuota = 0;
 
+    /** Active student seats; null preserves administrator-managed legacy schools. */
+    @Column(name = "student_quota")
+    private Integer studentQuota;
+    private String planCode;
+    private Long annualPriceVnd;
+    private String nextPlanCode;
+
     @Column(name = "used_tokens")
     private Long usedTokens = 0L;
 

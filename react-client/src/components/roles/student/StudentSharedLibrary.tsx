@@ -7,6 +7,7 @@ type SharedLibraryProps = {
   loading: boolean;
   selectedItem: LibraryItem | null;
   simulation: Simulation | null;
+  time: number;
   simulationLoading: boolean;
   simulationError: string;
   frame: number;
@@ -33,6 +34,7 @@ export function SharedLibrary({
   loading,
   selectedItem,
   simulation,
+  time,
   simulationLoading,
   simulationError,
   frame,
@@ -153,7 +155,7 @@ export function SharedLibrary({
                   simulation={simulation}
                   index={frame}
                   overlays={vectors}
-                  time={simulation.time[frame] ?? 0}
+                  time={time}
                   playing={playing}
                   onTimeChange={onTimeChange}
                   onPlaybackEnd={onPlaybackEnd}
@@ -183,7 +185,7 @@ export function SharedLibrary({
                     onFrameChange(Number(event.target.value))
                   }
                 />
-                <span>{(simulation.time[frame] ?? 0).toFixed(2)} s</span>
+                <span>{time.toFixed(2)} s</span>
               </div>
             </>
           )}

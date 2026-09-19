@@ -4,6 +4,7 @@ import "../../styles/NavBar.css";
 import { clearToken } from "../../utils/token";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import LearningIcon from "./LearningIcon";
+import { canManageLearning, canReviewContent, isAdminRole, isStudentRole, ROLE_NAMES } from "../../types/roles";
 
 type NavItem = {
   to: string;
@@ -27,7 +28,6 @@ const publicNavItems: NavItem[] = [
   { to: "/terms", label: "Điều khoản", icon: "book" },
 ];
 
-const workspaceRoles = new Set(["TEACHER", "ADMIN"]);
 const studentNavItem: NavItem = { to: "/assignments", label: "Học tập", icon: "book" };
 
 function NavItemLink({
@@ -83,11 +83,11 @@ export default function NavBar() {
     navigate("/login");
   };
   const visibleItems = [...publicNavItems];
-  if (workspaceRoles.has(user?.role ?? "")) {
+  if (canManageLearning(user?.role)) {
     visibleItems.push({ to: "/workspace", label: "Workspace", icon: "grid" });
   }
-  if (user?.role === "STUDENT") visibleItems.push(studentNavItem);
-  if (user?.role === "SCHOOL_MANAGER") {
+  if (isStudentRole(user?.role)) visibleItems.push(studentNavItem);
+  if (user?.role === ROLE_NAMES.SCHOOL_MANAGER) {
     visibleItems.push({ to: "/school", label: "Quản lý trường", icon: "settings" });
   }
 
@@ -107,12 +107,12 @@ export default function NavBar() {
             {visibleItems.map((item) => (
               <NavItemLink key={item.to} item={item} />
             ))}
-            {(user?.role === "CONTENT_REVIEWER" || user?.role === "ADMIN") && (
+            {canReviewContent(user?.role) && (
               <NavItemLink
                 item={{ to: "/reviewer", label: "Kiểm duyệt", icon: "settings" }}
               />
             )}
-            {user?.role === "ADMIN" && (
+            {isAdminRole(user?.role) && (
               <NavItemLink
                 item={{ to: "/admin", label: "Quản trị", icon: "settings" }}
               />
@@ -205,13 +205,13 @@ export default function NavBar() {
               onClick={() => setMobileOpen(false)}
             />
           ))}
-          {user?.role === "CONTENT_REVIEWER" || user?.role === "ADMIN" ? (
+          {canReviewContent(user?.role) ? (
             <NavItemLink
               item={{ to: "/reviewer", label: "Kiểm duyệt", icon: "settings" }}
               onClick={() => setMobileOpen(false)}
             />
           ) : null}
-          {user?.role === "ADMIN" ? (
+          {isAdminRole(user?.role) ? (
             <NavItemLink
               item={{ to: "/admin", label: "Quản trị", icon: "settings" }}
               onClick={() => setMobileOpen(false)}

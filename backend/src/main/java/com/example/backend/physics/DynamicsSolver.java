@@ -10,8 +10,8 @@ import java.util.Map;
 
 @Component
 public class DynamicsSolver implements PhysicsSolver {
-    private static final double GRAVITY = 9.81;
     private static final String COLLISION_TIME = "collision_time";
+    private static final double VELOCITY_EPSILON = 1e-10;
 
     @Override
     public String solverId() { return "dynamics_solver"; }
@@ -34,8 +34,9 @@ public class DynamicsSolver implements PhysicsSolver {
                                      double duration, double step) {
         double mass = positive(PhysicsValues.require(specification, overrides, "mass", "m"));
         double force = PhysicsValues.require(specification, overrides, "net_force", "force", "f");
-        double friction = Math.max(0, PhysicsValues.require(specification, overrides, "friction_coefficient", "mu", "friction"));
-        double acceleration = force / mass - friction * GRAVITY;
+        double friction = nonNegative(PhysicsValues.require(specification, overrides, "friction_coefficient", "mu", "friction"));
+        double gravity = PhysicsValues.gravitationalAcceleration(specification, overrides);
+        double frictionForce = friction * mass * gravity;
         double velocity = PhysicsValues.require(specification, overrides, "initial_velocity", "v0", "velocity");
         double position = PhysicsValues.require(specification, overrides, "initial_position", "x0", "position");
         List<Double> times = new ArrayList<>();
@@ -48,15 +49,17 @@ public class DynamicsSolver implements PhysicsSolver {
         int points = Math.max(1, (int) Math.ceil(effectiveDuration / effectiveStep));
         for (int i = 0; i <= points; i++) {
             double t = Math.min(effectiveDuration, i * effectiveStep);
+            double acceleration = acceleration(force, frictionForce, mass, velocity);
             times.add(t);
             x.add(position);
             vx.add(velocity);
             ax.add(acceleration);
-            netForce.add(force - friction * mass * GRAVITY);
+            netForce.add(mass * acceleration);
             if (i == points) break;
             double dt = Math.min(effectiveStep, effectiveDuration - t);
-            position += velocity * dt + 0.5 * acceleration * dt * dt;
-            velocity += acceleration * dt;
+            MotionState next = advance(position, velocity, force, frictionForce, mass, dt);
+            position = next.position();
+            velocity = next.velocity();
         }
         Map<String, List<Double>> positions = new LinkedHashMap<>();
         positions.put("x", x);
@@ -183,4 +186,37 @@ public class DynamicsSolver implements PhysicsSolver {
         if (value <= 0) throw new IllegalArgumentException("Positive quantity required");
         return value;
     }
+
+    private static double nonNegative(double value) {
+        if (value < 0) throw new IllegalArgumentException("Non-negative quantity required");
+        return value;
+    }
+
+    private static double acceleration(double appliedForce, double frictionForce, double mass, double velocity) {
+        if (Math.abs(velocity) <= VELOCITY_EPSILON) {
+            if (Math.abs(appliedForce) <= frictionForce) return 0;
+            return Math.copySign((Math.abs(appliedForce) - frictionForce) / mass, appliedForce);
+        }
+        return (appliedForce - Math.copySign(frictionForce, velocity)) / mass;
+    }
+
+    private static MotionState advance(double position, double velocity, double appliedForce,
+                                       double frictionForce, double mass, double duration) {
+        double acceleration = acceleration(appliedForce, frictionForce, mass, velocity);
+        if (Math.abs(velocity) > VELOCITY_EPSILON && velocity * acceleration < 0) {
+            double stoppingTime = -velocity / acceleration;
+            if (stoppingTime <= duration) {
+                double stoppedPosition = position + velocity * stoppingTime
+                        + 0.5 * acceleration * stoppingTime * stoppingTime;
+                double remaining = duration - stoppingTime;
+                double restartAcceleration = acceleration(appliedForce, frictionForce, mass, 0);
+                return new MotionState(stoppedPosition + 0.5 * restartAcceleration * remaining * remaining,
+                        restartAcceleration * remaining);
+            }
+        }
+        return new MotionState(position + velocity * duration + 0.5 * acceleration * duration * duration,
+                velocity + acceleration * duration);
+    }
+
+    private record MotionState(double position, double velocity) { }
 }

@@ -14,10 +14,16 @@ import com.example.backend.entity.User;
 public interface UserRepository extends JpaRepository<User, Integer> {
     List<User> findBySchoolId(UUID schoolId);
 
+    @Query("select count(u) from User u where u.school.id = :schoolId and u.role.name = 'STUDENT' and (u.active = true or u.active is null)")
+    long countActiveStudents(@Param("schoolId") UUID schoolId);
+
     Optional<User> findByEmail(String email);
 
     @Query("select u from User u join u.role r where lower(r.name) = lower(:roleName) and (u.active = true or u.active is null) order by u.fullName")
     List<User> findActiveByRoleName(@Param("roleName") String roleName);
+
+    @Query("select distinct u from User u join u.role r join ClassEnrollment e on e.student.id = u.id join ClassTeacherAssignment a on a.schoolClass.id = e.schoolClass.id where lower(r.name) = 'student' and a.teacher.id = :teacherId and a.isActive = true and e.status = 'ACTIVE' and (u.active = true or u.active is null) order by u.fullName")
+    List<User> findActiveStudentsAssignableByTeacher(@Param("teacherId") Integer teacherId);
 
     /**
      * Count users by school, role, and active status.

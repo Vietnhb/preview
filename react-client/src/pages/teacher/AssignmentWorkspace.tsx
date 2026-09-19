@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import LearningHeader from "../../components/common/LearningHeader";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
+import { canManageLearning } from "../../types/roles";
 import "../../styles/learning.css";
 
 const Assignments = lazy(() => import("./Assignments"));
@@ -11,7 +12,7 @@ export default function AssignmentWorkspace() {
   return (
     <div className="learning-app">
       <LearningHeader />
-      {user?.role === "TEACHER" ? (
+      {canManageLearning(user?.role) ? (
         <Suspense fallback={<main className="route-loading" aria-busy="true" />}>
           <Assignments workspaceLayout />
         </Suspense>

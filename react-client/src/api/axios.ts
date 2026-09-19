@@ -1,6 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import { API_URL } from "../config/api";
-import { getToken } from "../utils/token";
+import { clearToken, getToken } from "../utils/token";
+import { usePhysliveStore } from "../store/usePhysliveStore";
 
 const axiosClient = axios.create({
     baseURL: API_URL
@@ -19,6 +20,15 @@ axiosClient.interceptors.response.use(response => response, async (error: unknow
     if (!axios.isAxiosError(error) || axios.isCancel(error)) throw error;
     const config = error.config as ReadRetryConfig | undefined;
     const status = error.response?.status;
+    if (status === 401 && config) {
+        const requestAuthorization = config.headers.Authorization;
+        const currentToken = getToken();
+        const currentAuthorization = currentToken ? `Bearer ${currentToken}` : undefined;
+        if (requestAuthorization === currentAuthorization) {
+            clearToken();
+            usePhysliveStore.getState().setUser(null);
+        }
+    }
     const transient = status === undefined || [500, 502, 503, 504].includes(status);
     if (!config) throw error;
     if (config?.method !== "get" || !transient || (config.readRetryCount ?? 0) >= 2) throw error;

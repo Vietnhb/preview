@@ -4,6 +4,7 @@ import { libraryFolders, personalLibrary } from "../api/libraryApi";
 import { getToken } from "../utils/token";
 import { usePhysliveStore } from "./usePhysliveStore";
 import type { LibraryFolder, LibraryItem } from "../types/physlive";
+import { canManageLearning } from "../types/roles";
 
 const FRESH_MS = 60_000;
 const emptyFolders: LibraryFolder[] = [];
@@ -61,7 +62,7 @@ export function useTeacherLibrary() {
   const user = usePhysliveStore(state => state.user);
   const session = getToken();
   const state = teacherLibraryStore();
-  const enabled = Boolean(session) && user?.role === "TEACHER";
+  const enabled = Boolean(session) && canManageLearning(user?.role);
   useEffect(() => {
     if (enabled) void loadTeacherLibrary();
   }, [enabled, session, user?.id]);

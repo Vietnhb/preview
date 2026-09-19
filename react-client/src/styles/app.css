@@ -2172,4 +2172,42 @@ th {
 .site-info-card h1 { margin: 8px 0 12px; color: #111827; font-size: clamp(28px, 4vw, 42px); }
 .site-info-card p { margin: 0; color: #4b5563; font-size: 16px; line-height: 1.8; }
 
-.license-notice { padding: 12px 20px; background: #fff3cd; color: #664d03; border-bottom: 1px solid #ffecb5; }
+.license-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 20px 10px 24px;
+  background: #fff7df;
+  color: #624b12;
+  border-bottom: 1px solid #f1dfaa;
+}
+.license-notice p { margin: 0; font-size: 13px; line-height: 1.5; }
+.license-notice button {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #ead89f;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 65%);
+  color: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.license-notice button:hover { background: #fff; }
+.license-notice button:focus-visible { outline: 3px solid #b68b18; outline-offset: 2px; }
+:root[data-theme-effective="dark"] .license-notice {
+  background: #332c19;
+  color: #f4dfa1;
+  border-color: #5e4e25;
+}
+:root[data-theme-effective="dark"] .license-notice button {
+  background: #463b20;
+  border-color: #75622e;
+}
+@media (max-width: 600px) {
+  .license-notice { padding-inline: 14px; gap: 10px; }
+}

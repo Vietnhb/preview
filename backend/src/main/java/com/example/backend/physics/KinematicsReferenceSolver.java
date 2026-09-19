@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 @Component
 public class KinematicsReferenceSolver implements ReferenceSolver {
-    private static final double GRAVITY = 9.81;
     public String solverId() { return "kinematics_reference"; }
     public AnalyticalPoint solve(JsonNode spec, Map<String, Double> overrides, double seconds) {
         String model = PhysicsValues.model(spec);
@@ -18,10 +17,11 @@ public class KinematicsReferenceSolver implements ReferenceSolver {
         if (projectile) {
             double y0 = PhysicsValues.require(spec, overrides, "initial_height", "y0", "height");
             double angle = PhysicsValues.require(spec, overrides, "launch_angle", "angle", "theta");
+            double gravity = PhysicsValues.gravitationalAcceleration(spec, overrides);
             double vx = speed * Math.cos(angle);
             double vy0 = speed * Math.sin(angle);
-            return new AnalyticalPoint(Map.of("x", x0 + vx * t, "y", y0 + vy0 * t - .5 * GRAVITY * t * t,
-                    "vx", vx, "vy", vy0 - GRAVITY * t, "ax", 0d, "ay", -GRAVITY));
+            return new AnalyticalPoint(Map.of("x", x0 + vx * t, "y", y0 + vy0 * t - .5 * gravity * t * t,
+                    "vx", vx, "vy", vy0 - gravity * t, "ax", 0d, "ay", -gravity));
         }
         double acceleration = PhysicsValues.require(spec, overrides, "acceleration", "a");
         return new AnalyticalPoint(Map.of("x", x0 + speed * t + .5 * acceleration * t * t,

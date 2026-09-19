@@ -21,6 +21,9 @@ export const saveLibrary = (
     visibility 
   }).then(r => r.data);
 
+export const cloneSharedLibrary = (id: string, folderId: string, title?: string) =>
+  axiosClient.post<LibraryItem>(`/library/${id}/clone`, { folderId, title }).then(r => r.data);
+
 export const library = (topic?: string) => 
   axiosClient.get<LibraryItem[]>("/library", { params: { topic } }).then(r => r.data);
 

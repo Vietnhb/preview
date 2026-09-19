@@ -52,6 +52,48 @@ class PhysicsSolverTest {
     }
 
     @Test
+    void projectileUsesGravityFromTheSpecificationWhenProvided() throws Exception {
+        var solver = new KinematicsSolver();
+        var reference = new KinematicsReferenceSolver();
+        var specification = mapper.readTree("{\"model\":\"projectile_2d\",\"gravity\":3}");
+        var inputs = Map.of("position", 0d, "height", 2d, "velocity", 10d, "angle", Math.PI / 2);
+
+        var output = solver.solve(specification, inputs, 2, 0.1);
+        var expected = reference.solve(specification, inputs, 2);
+
+        assertThat(output.values().get("y").getLast()).isCloseTo(16d, org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(output.values().get("y").getLast()).isCloseTo(expected.values().get("y"), org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(output.values().get("ay").getLast()).isEqualTo(-3d);
+    }
+
+    @Test
+    void frictionOpposesMotionAndStopsWithoutReversingVelocity() throws Exception {
+        var solver = new DynamicsSolver();
+        var reference = new DynamicsReferenceSolver();
+        var specification = mapper.readTree("{\"model\":\"forces_1d\",\"gravity\":10}");
+        var inputs = Map.of("mass", 2d, "force", 0d, "friction", 0.5d, "position", 0d, "velocity", -1d);
+
+        var output = solver.solve(specification, inputs, 1, 0.25);
+        var expected = reference.solve(specification, inputs, 1);
+
+        assertThat(output.values().get("vx").getLast()).isCloseTo(expected.values().get("vx"), org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(output.values().get("x").getLast()).isCloseTo(-0.1, org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(output.values().get("vx").getLast()).isEqualTo(0d);
+        assertThat(output.values().get("ax").getLast()).isEqualTo(0d);
+    }
+
+    @Test
+    void negativeFrictionIsRejectedByBothSolvers() throws Exception {
+        var specification = mapper.readTree("{\"model\":\"forces_1d\"}");
+        var inputs = Map.of("mass", 2d, "force", 10d, "friction", -0.2d, "position", 0d, "velocity", 0d);
+
+        assertThatThrownBy(() -> new DynamicsSolver().solve(specification, inputs, 1, 0.1))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Non-negative");
+        assertThatThrownBy(() -> new DynamicsReferenceSolver().solve(specification, inputs, 1))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Non-negative");
+    }
+
+    @Test
     void dynamicsAndCircuitFamiliesProduceValidatedFields() throws Exception {
         var dynamics = new DynamicsSolver();
         var dynamicsSpec = mapper.readTree("{\"schemaId\":\"dynamics_forces\",\"model\":\"forces_1d\"}");
