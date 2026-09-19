@@ -12,5 +12,6 @@ export type SubmissionTableProps = {
   students: Map<number, StudentOption>;
   filter: SubmissionFilter;
   query: string;
+  onGrade: (submissionId: string, score: number, feedback: string) => Promise<void>;
+  onReopen: (submissionId: string) => Promise<void>;
 };
-

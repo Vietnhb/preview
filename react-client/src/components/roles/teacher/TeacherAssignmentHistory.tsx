@@ -1,9 +1,12 @@
-import type { Assignment } from "../../../types/physlive";
+import { useMemo, useState } from "react";
+import type { Assignment, StudentOption, TeacherClassOption } from "../../../types/physlive";
 import { questionPrompt } from "./teacherAssignmentUtils";
 
 type TeacherAssignmentHistoryProps = {
   workspaceLayout: boolean;
   items: Assignment[];
+  classes: TeacherClassOption[];
+  students: StudentOption[];
   selectedAssignmentId?: string;
   loading: boolean;
   onRefresh: () => void;
@@ -13,11 +16,23 @@ type TeacherAssignmentHistoryProps = {
 export function TeacherAssignmentHistory({
   workspaceLayout,
   items,
+  classes,
+  students,
   selectedAssignmentId,
   loading,
   onRefresh,
   onOpenSubmissions,
 }: Readonly<TeacherAssignmentHistoryProps>) {
+  const [classFilter, setClassFilter] = useState("");
+  const [studentFilter, setStudentFilter] = useState("");
+  const visibleStudents = useMemo(() => {
+    if (!classFilter) return students;
+    return classes.find(item => item.id === classFilter)?.students ?? [];
+  }, [classFilter, classes, students]);
+  const filteredItems = useMemo(() => items.filter(item =>
+    (!classFilter || item.classId === classFilter)
+    && (!studentFilter || item.studentIds.includes(Number(studentFilter)))), [classFilter, items, studentFilter]);
+  const studentNames = useMemo(() => new Map(students.map(student => [student.id, student.fullName])), [students]);
   return (
     <section
       className={`modern-card assignment-history-panel${workspaceLayout ? " assignment-workspace-panel" : ""}`}
@@ -25,8 +40,8 @@ export function TeacherAssignmentHistory({
     >
       <div className="modern-card-header assignment-history-header">
         <div>
-          <h2 id="assigned-work-title">Bài đã giao</h2>
-          <p>Theo dõi hạn nộp và bài học sinh đã gửi.</p>
+          <h2 id="assigned-work-title">Mô phỏng đã giao</h2>
+          <p>Xem lịch sử theo lớp, học sinh và thời điểm giao.</p>
         </div>
         <button
           type="button"
@@ -37,23 +52,32 @@ export function TeacherAssignmentHistory({
           {loading ? "Đang tải…" : "Làm mới"}
         </button>
       </div>
+      <div className="assignment-history-filters">
+        <label><span>Lớp</span><select value={classFilter} onChange={event => { setClassFilter(event.target.value); setStudentFilter(""); }}><option value="">Tất cả lớp</option>{classes.map(item => <option key={item.id} value={item.id}>Khối {item.gradeLevel} · {item.name}</option>)}</select></label>
+        <label><span>Học sinh</span><select value={studentFilter} onChange={event => setStudentFilter(event.target.value)}><option value="">Tất cả học sinh</option>{visibleStudents.map(student => <option key={student.id} value={student.id}>{student.fullName}</option>)}</select></label>
+      </div>
       {loading && (
         <p className="assignment-history-message" role="status">Đang tải danh sách bài đã giao…</p>
       )}
-      {!loading && items.length === 0 && (
+      {!loading && filteredItems.length === 0 && (
         <div className="assignment-history-empty">
-          Chưa có bài tập nào được giao.
+          {items.length === 0 ? "Chưa có mô phỏng nào được giao." : "Không có lần giao bài phù hợp với bộ lọc."}
         </div>
       )}
-      {!loading && items.length > 0 && (
+      {!loading && filteredItems.length > 0 && (
         <div className="assignment-history-list">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <article className={`assignment-history-card${selectedAssignmentId === item.id ? " selected" : ""}`} key={item.id} aria-current={selectedAssignmentId === item.id ? "true" : undefined}>
               <div className="assignment-history-card-heading">
                 <h3>{item.title}</h3>
                 <span className={`status-pill ${item.status.toLowerCase()}`}>
                   {item.status === "ACTIVE" ? "Đang mở" : item.status === "CLOSED" ? "Đã đóng" : item.status}
                 </span>
+              </div>
+              <div className="assignment-history-context">
+                <span className="assignment-simulation-chip">◇ {item.libraryItemTitle || "Mô phỏng đã giao"}</span>
+                <span>{item.className ? `Khối ${item.classGradeLevel ?? ""} · ${item.className}` : "Giao cá nhân / bài cũ"}</span>
+                <time dateTime={item.assignedAt}>Giao lúc {new Date(item.assignedAt).toLocaleString("vi-VN")}</time>
               </div>
               <p className="assignment-history-prompt">
                 {questionPrompt(item.questions) ||
@@ -82,6 +106,10 @@ export function TeacherAssignmentHistory({
                   </svg>
                 </button>
               </div>
+              <details className="assignment-recipient-details">
+                <summary>Xem danh sách học sinh</summary>
+                <p>{item.studentIds.map(id => studentNames.get(id) || `Học sinh #${id}`).join(", ")}</p>
+              </details>
             </article>
           ))}
         </div>

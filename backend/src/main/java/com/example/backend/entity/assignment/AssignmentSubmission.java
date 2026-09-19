@@ -41,6 +41,10 @@ public class AssignmentSubmission extends AuditedEntity {
     @Column(nullable = false)
     private Instant submittedAt;
 
+    /** Time the student finished the experiment and explicitly handed in the work. */
+    @Column
+    private Instant completedAt;
+
     @Column(precision = 8, scale = 3)
     private java.math.BigDecimal score;
 

@@ -1,5 +1,6 @@
 import type { Assignment, AssignmentSubmission } from "../../../types/physlive";
 import { questionPrompt } from "./teacherAssignmentUtils";
+import { predictionDetails } from "./submissions/teacherSubmissionUtils";
 
 type SubmissionViewerProps = {
   assignment: Assignment;
@@ -79,8 +80,10 @@ export function TeacherSubmissionViewer({
                 </tr>
               </thead>
               <tbody>
-                {submissions.map((sub) => (
-                  <tr key={sub.id}>
+                {submissions.map((sub) => {
+                  const details = predictionDetails(sub.predictions);
+                  const completed = Boolean(sub.completedAt);
+                  return <tr key={sub.id}>
                     <td>
                       <strong>{sub.studentName}</strong>
                       <small
@@ -98,30 +101,29 @@ export function TeacherSubmissionViewer({
                           fontSize: "13px",
                         }}
                       >
-                        {typeof sub.predictions === "object" &&
-                        sub.predictions !== null
-                          ? JSON.stringify(sub.predictions)
-                          : String(sub.predictions)}
+                        <strong>{details.answer}</strong>
+                        {details.reasoning && <small style={{ display: "block", marginTop: "6px", color: "var(--text-muted)" }}><b>Lập luận:</b> {details.reasoning}</small>}
+                        {details.conclusion && <small style={{ display: "block", marginTop: "6px", color: "var(--text-muted)" }}><b>Kết luận:</b> {details.conclusion}</small>}
                       </div>
                     </td>
                     <td>
                       <small style={{ color: "var(--text-muted)" }}>
-                        {new Date(sub.submittedAt).toLocaleString("vi-VN")}
+                        {sub.completedAt ? new Date(sub.completedAt).toLocaleString("vi-VN") : "Chưa nộp"}
                       </small>
                     </td>
                     <td>
                       <div style={{ display: "grid", gap: "6px", minWidth: "170px" }}>
-                        <span className={`status-pill ${sub.gradingStatus === "TEACHER_CONFIRMED" ? "pass" : "info"}`}>{sub.gradingStatus === "TEACHER_CONFIRMED" ? "Đã xác nhận" : sub.gradingStatus === "RETURNED" ? "Cho làm lại" : "Chờ chấm"}</span>
-                        <div style={{ display: "flex", gap: "4px" }}>
+                        <span className={`status-pill ${completed ? "pass" : "info"}`}>{completed ? (sub.gradingStatus === "TEACHER_CONFIRMED" ? "Đã xác nhận" : "Chờ chấm") : "Đang làm"}</span>
+                        {completed && <div style={{ display: "flex", gap: "4px" }}>
                           <input aria-label={`Điểm ${sub.studentName}`} type="number" min="0" max={assignment.maxScore ?? 10} step="0.1" defaultValue={sub.score ?? ""} id={`score-${sub.id}`} style={{ width: "62px" }} />
                           <input aria-label={`Nhận xét ${sub.studentName}`} defaultValue={sub.feedback ?? ""} id={`feedback-${sub.id}`} placeholder="Nhận xét" style={{ minWidth: "90px" }} />
                           <button type="button" className="role-switch-pill" onClick={() => { const score = Number((document.getElementById(`score-${sub.id}`) as HTMLInputElement)?.value); const feedback = (document.getElementById(`feedback-${sub.id}`) as HTMLInputElement)?.value ?? ""; if (Number.isFinite(score)) void onGrade(sub.id, score, feedback); }}>Lưu</button>
-                        </div>
-                        <button type="button" className="role-switch-pill" onClick={() => void onReopen(sub.id)}>Cho làm lại</button>
+                        </div>}
+                        {completed && <button type="button" className="role-switch-pill" onClick={() => void onReopen(sub.id)}>Cho làm lại</button>}
                       </div>
                     </td>
-                  </tr>
-                ))}
+                  </tr>;
+                })}
               </tbody>
             </table>
           </div>

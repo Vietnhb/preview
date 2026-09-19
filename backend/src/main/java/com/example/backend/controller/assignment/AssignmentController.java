@@ -4,6 +4,7 @@ import com.example.backend.dto.assignment.AssignmentResponse;
 import com.example.backend.dto.assignment.AssignmentSubmissionResponse;
 import com.example.backend.dto.assignment.CreateAssignmentRequest;
 import com.example.backend.dto.assignment.SubmitPredictionRequest;
+import com.example.backend.dto.assignment.CompleteAssignmentRequest;
 import com.example.backend.dto.simulation.ParameterAdjustmentRequest;
 import com.example.backend.dto.simulation.SimulationResponse;
 import com.example.backend.service.assignment.AssignmentService;
@@ -32,7 +33,6 @@ public class AssignmentController {
     private final AssignmentService assignmentService;
 
     public record GradeRequest(@NotNull @DecimalMin("0.0") BigDecimal score,
-                               @NotNull @DecimalMin("0.001") BigDecimal maxScore,
                                @Size(max = 4000) String feedback, boolean confirm) { }
 
     @PostMapping
@@ -47,6 +47,12 @@ public class AssignmentController {
         return assignmentService.forTeacher();
     }
 
+    @GetMapping("/mine/teacher/classes")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public List<AssignmentService.TeacherClassOption> teacherClasses() {
+        return assignmentService.classesForTeacher();
+    }
+
     @GetMapping("/mine/student")
     @PreAuthorize("hasRole('STUDENT')")
     public List<AssignmentResponse> studentAssignments() {
@@ -58,6 +64,13 @@ public class AssignmentController {
     public AssignmentSubmissionResponse submit(@PathVariable UUID id,
                                                @Valid @RequestBody SubmitPredictionRequest request) {
         return assignmentService.submit(id, request);
+    }
+
+    @PostMapping("/{id}/submit")
+    @PreAuthorize("hasRole('STUDENT')")
+    public AssignmentSubmissionResponse complete(@PathVariable UUID id,
+                                                  @Valid @RequestBody CompleteAssignmentRequest request) {
+        return assignmentService.complete(id, request);
     }
 
     @GetMapping("/{id}/simulation")
@@ -90,7 +103,7 @@ public class AssignmentController {
     public AssignmentSubmissionResponse grade(@PathVariable UUID assignmentId,
                                                @PathVariable UUID submissionId,
                                                @Valid @RequestBody GradeRequest request) {
-        return assignmentService.grade(assignmentId, submissionId, request.score(), request.maxScore(), request.feedback(), request.confirm());
+        return assignmentService.grade(assignmentId, submissionId, request.score(), request.feedback(), request.confirm());
     }
 
     @PostMapping("/{assignmentId}/submissions/{submissionId}/reopen")

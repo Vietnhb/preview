@@ -54,7 +54,7 @@ export function TeacherAssignmentList({
             <span className="lab-assignment-item-meta">
               {submissionsLoading
                 ? "Đang tải bài nộp…"
-                : `${submissions.length}/${assignment.studentIds.length} đã nộp`} · Hạn{" "}
+                : `${submissions.filter(item => item.completedAt).length}/${assignment.studentIds.length} đã nộp`} · Hạn{" "}
               {formatShortDate(assignment.dueAt)}
             </span>
           </button>
@@ -68,5 +68,4 @@ export function TeacherAssignmentList({
     </aside>
   );
 }
-
 

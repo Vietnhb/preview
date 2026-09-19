@@ -4,13 +4,14 @@ import {
   assignedSimulation,
   studentAssignments,
   submitAssignmentPrediction,
+  completeAssignment,
   logStudentAction,
 } from "../../api/assignmentApi";
 import { createSimulationAdjustment } from "../../utils/simulationAdjustment";
 import { getSharedSimulation } from "../../api/simulationApi";
 import { library } from "../../api/libraryApi";
 import { studentClasses, type StudentClassSummary } from "../../api/schoolApi";
-import type { Assignment, LibraryItem, Simulation } from "../../types/physlive";
+import type { Assignment, AssignmentActivityType, LibraryItem, Simulation } from "../../types/physlive";
 import { controlValue, indexAtTime, isWithinControlBounds, type LearningControl } from "../../utils/learningModel";
 import { AssignmentList } from "../../components/roles/student/StudentAssignmentList";
 import { StudentClassOverview } from "../../components/roles/student/StudentClassOverview";
@@ -24,6 +25,11 @@ interface PredictionPayload {
   estimatedValue?: number;
   reasoning?: string;
 }
+
+const activityTypeOf = (assignment: Assignment): AssignmentActivityType =>
+  typeof assignment.questions === "object" && assignment.questions?.activityType
+    ? assignment.questions.activityType
+    : "PREDICT_OBSERVE_EXPLAIN";
 
 
 
@@ -58,6 +64,9 @@ export default function StudentAssignments({
   const [reasoningInput, setReasoningInput] = useState("");
   const [isSubmittingPrediction, setIsSubmittingPrediction] = useState(false);
   const [predictionError, setPredictionError] = useState("");
+  const [conclusionInput, setConclusionInput] = useState("");
+  const [isSubmittingAssignment, setIsSubmittingAssignment] = useState(false);
+  const [submissionError, setSubmissionError] = useState("");
 
   // Playback state
   const [frame, setFrame] = useState(0);
@@ -145,6 +154,7 @@ export default function StudentAssignments({
     setSimError("");
     setPlaying(false);
     setIsSubmittingPrediction(false);
+    setIsSubmittingAssignment(false);
   };
 
   const closeSharedSimulation = () => {
@@ -212,16 +222,19 @@ export default function StudentAssignments({
     void logStudentAction(item.id, "ASSIGNMENT_OPENED").catch(() => undefined);
     clearParameterState();
     setSelectedAssignment(item);
-    const alreadySubmitted = Boolean(item.predictionSubmitted && !item.retryAllowed);
-    setPredictionSubmitted(alreadySubmitted);
+    const requiresPrediction = activityTypeOf(item) === "PREDICT_OBSERVE_EXPLAIN";
+    const predictionReady = requiresPrediction ? Boolean(item.predictionSubmitted && !item.retryAllowed) : true;
+    setPredictionSubmitted(predictionReady);
     setSubmittedPredictionText(
-      item.predictions?.answerText ?? (alreadySubmitted ? "Dự đoán đã được ghi nhận." : ""),
+      item.predictions?.answerText ?? (requiresPrediction && predictionReady ? "Dự đoán đã được ghi nhận." : ""),
     );
     const draft = answerDrafts.current.get(item.id);
     setPredictionInput(draft?.answer ?? (item.retryAllowed ? item.predictions?.answerText ?? "" : ""));
     setReasoningInput(draft?.reasoning ?? (item.retryAllowed ? item.predictions?.reasoning ?? "" : ""));
     setEstimatedValue(draft?.estimate ?? (item.retryAllowed && item.predictions?.estimatedValue != null ? String(item.predictions.estimatedValue) : ""));
+    setConclusionInput(item.retryAllowed ? "" : item.predictions?.conclusion ?? "");
     setPredictionError("");
+    setSubmissionError("");
     setSimulation(null);
     setSimLoading(false);
     setFrame(0);
@@ -229,7 +242,7 @@ export default function StudentAssignments({
     setPlaying(false);
     setIsSubmittingPrediction(false);
     setSimError("");
-    if (alreadySubmitted) await loadAssignedSimulation(item.id, requestId);
+    if (predictionReady) await loadAssignedSimulation(item.id, requestId);
   };
 
   useEffect(
@@ -346,7 +359,7 @@ export default function StudentAssignments({
     try {
       const submission = await submitAssignmentPrediction(assignmentId, payload);
       answerDrafts.current.delete(assignmentId);
-      const updated = { ...selectedAssignment, predictionSubmitted: true, retryAllowed: false, predictions: payload, score: submission.score, feedback: submission.feedback, gradingStatus: submission.gradingStatus };
+      const updated = { ...selectedAssignment, predictionSubmitted: true, submissionCompleted: false, completedAt: null, retryAllowed: false, predictions: payload, score: submission.score, feedback: submission.feedback, gradingStatus: submission.gradingStatus };
       setAssignments(current => current.map(item => item.id === assignmentId ? updated : item));
       if (requestId !== assignmentRequestRef.current || selectedAssignmentIdRef.current !== assignmentId) return;
       void logStudentAction(assignmentId, "PREDICTION_SUBMITTED", payload).catch(() => undefined);
@@ -381,6 +394,45 @@ export default function StudentAssignments({
     }
   };
 
+  const handleCompleteAssignment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAssignment || !predictionSubmitted || !conclusionInput.trim() || isSubmittingAssignment) return;
+    const activityType = activityTypeOf(selectedAssignment);
+    if (activityType === "MEASUREMENT" && (!estimatedValue.trim() || !Number.isFinite(Number(estimatedValue)))) {
+      setSubmissionError("Vui lòng nhập kết quả đo bằng số trước khi nộp bài.");
+      return;
+    }
+    const assignmentId = selectedAssignment.id;
+    const requestId = assignmentRequestRef.current;
+    setIsSubmittingAssignment(true);
+    setSubmissionError("");
+    try {
+      const submission = await completeAssignment(assignmentId, {
+        conclusion: conclusionInput.trim(),
+        answerText: activityType === "PREDICT_OBSERVE_EXPLAIN" ? selectedAssignment.predictions?.answerText : conclusionInput.trim(),
+        estimatedValue: activityType === "MEASUREMENT" ? Number(estimatedValue) : undefined,
+      });
+      if (requestId !== assignmentRequestRef.current || selectedAssignmentIdRef.current !== assignmentId) return;
+      const updated: Assignment = {
+        ...selectedAssignment,
+        submissionCompleted: true,
+        completedAt: submission.completedAt,
+        predictions: { ...selectedAssignment.predictions, conclusion: conclusionInput.trim() },
+        score: submission.score,
+        feedback: submission.feedback,
+        gradingStatus: submission.gradingStatus,
+        retryAllowed: false,
+      };
+      setAssignments(current => current.map(item => item.id === assignmentId ? updated : item));
+      setSelectedAssignment(updated);
+      void logStudentAction(assignmentId, "ASSIGNMENT_SUBMITTED", { conclusion: conclusionInput.trim() }).catch(() => undefined);
+    } catch {
+      setSubmissionError("Không thể nộp bài. Vui lòng kiểm tra kết luận và thử lại.");
+    } finally {
+      if (requestId === assignmentRequestRef.current) setIsSubmittingAssignment(false);
+    }
+  };
+
   const teacherPrompt = useMemo(() => {
     if (!selectedAssignment?.questions)
       return "Hãy quan sát hiện tượng và đưa ra dự đoán kết quả trước khi chạy mô phỏng.";
@@ -406,8 +458,8 @@ export default function StudentAssignments({
           schoolName={classes[0]?.schoolName ?? user?.schoolName}
           classes={classes}
           loading={classesLoading}
-          pendingAssignments={assignments.filter(item => !item.predictionSubmitted || item.retryAllowed).length}
-          completedAssignments={assignments.filter(item => item.predictionSubmitted && !item.retryAllowed).length}
+          pendingAssignments={assignments.filter(item => !item.submissionCompleted || item.retryAllowed).length}
+          completedAssignments={assignments.filter(item => item.submissionCompleted && !item.retryAllowed).length}
           sharedResources={sharedItems.length}
           onExplore={() => setActiveTab("library")}
         />}
@@ -453,6 +505,7 @@ export default function StudentAssignments({
             ) : (
               <AssignmentWorkbench
                 assignment={selectedAssignment}
+                activityType={activityTypeOf(selectedAssignment)}
                 estimatedValue={estimatedValue}
                 onEstimatedValueChange={value => {
                   setEstimatedValue(value);
@@ -465,6 +518,10 @@ export default function StudentAssignments({
                 reasoningInput={reasoningInput}
                 isSubmittingPrediction={isSubmittingPrediction}
                 predictionError={predictionError}
+                assignmentSubmitted={Boolean(selectedAssignment.submissionCompleted)}
+                conclusionInput={conclusionInput}
+                isSubmittingAssignment={isSubmittingAssignment}
+                submissionError={submissionError}
                 simulation={simulation}
                 time={assignedTime}
                 seekRevision={seekRevision}
@@ -474,8 +531,10 @@ export default function StudentAssignments({
                 playing={playing}
                 vectors={vectors}
                 parameterControls={
-                  (simulation?.visualization?.controls ??
-                    []) as LearningControl[]
+                  ((simulation?.visualization?.controls ?? []) as LearningControl[]).filter(control => {
+                    const questions = typeof selectedAssignment.questions === "object" ? selectedAssignment.questions : null;
+                    return activityTypeOf(selectedAssignment) !== "PARAMETER_INVESTIGATION" || !questions?.investigation?.parameterKey || control.key === questions.investigation.parameterKey;
+                  })
                 }
                 parameterInitialValues={parameterInitialValues}
                 parameterDraft={parameterDraft}
@@ -483,6 +542,8 @@ export default function StudentAssignments({
                 teacherPrompt={teacherPrompt}
                 onBack={closeAssignment}
                 onSubmitPrediction={handleSubmitPrediction}
+                onSubmitAssignment={handleCompleteAssignment}
+                onConclusionChange={setConclusionInput}
                 onPredictionChange={value => {
                   setPredictionInput(value);
                   answerDrafts.current.set(selectedAssignment.id, { answer: value, reasoning: reasoningInput, estimate: estimatedValue });

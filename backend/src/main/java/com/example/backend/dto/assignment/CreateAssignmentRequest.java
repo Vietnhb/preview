@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 
 public record CreateAssignmentRequest(
         @NotNull UUID libraryItemId,
+        UUID classId,
         @NotBlank @Size(max = 160) String title,
         String description,
         @NotNull JsonNode questions,
@@ -25,6 +26,12 @@ public record CreateAssignmentRequest(
         Boolean autoGrade) {
     public CreateAssignmentRequest(UUID libraryItemId, String title, String description, JsonNode questions,
                                    Set<Integer> studentIds, Instant dueAt) {
-        this(libraryItemId, title, description, questions, studentIds, dueAt, null, null, false);
+        this(libraryItemId, null, title, description, questions, studentIds, dueAt, null, null, false);
+    }
+
+    public CreateAssignmentRequest(UUID libraryItemId, String title, String description, JsonNode questions,
+                                   Set<Integer> studentIds, Instant dueAt, JsonNode gradingCriteria,
+                                   BigDecimal maxScore, Boolean autoGrade) {
+        this(libraryItemId, null, title, description, questions, studentIds, dueAt, gradingCriteria, maxScore, autoGrade);
     }
 }

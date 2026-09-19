@@ -481,6 +481,183 @@
   background: var(--status-warn-bg);
 }
 
+.lab-status.progress {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.lab-answer-cell {
+  display: grid;
+  gap: 5px;
+  min-width: 220px;
+  max-width: 440px;
+}
+
+.lab-answer-cell strong {
+  color: var(--lab-ink);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lab-answer-cell small {
+  color: var(--lab-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lab-answer-cell b {
+  color: var(--lab-secondary);
+  font-weight: 600;
+}
+
+.lab-grade-status {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.lab-grade-status > strong {
+  color: var(--lab-ink);
+  font-size: 13px;
+}
+
+.lab-grade-action {
+  width: 96px;
+  text-align: right;
+}
+
+.lab-grade-button,
+.lab-reopen-button {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--lab-border);
+  border-radius: 8px;
+  color: var(--role-teacher);
+  background: var(--lab-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lab-grade-button:hover {
+  border-color: var(--role-teacher);
+  background: var(--role-teacher-subtle);
+}
+
+.lab-grading-row:hover {
+  background: transparent !important;
+}
+
+.lab-grading-row > td {
+  padding: 0 12px 18px;
+  border-bottom: 1px solid var(--lab-border) !important;
+}
+
+.lab-grading-form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--lab-border);
+  border-radius: 12px;
+  background: var(--lab-surface-subtle);
+}
+
+.lab-grading-heading,
+.lab-grading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lab-grading-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.lab-grading-heading strong {
+  color: var(--lab-ink);
+  font-size: 14px;
+}
+
+.lab-grading-heading small {
+  color: var(--lab-muted);
+}
+
+.lab-grading-heading > button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--lab-secondary);
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.lab-grading-fields {
+  display: grid;
+  grid-template-columns: 120px minmax(240px, 1fr);
+  gap: 14px;
+}
+
+.lab-grading-fields label {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  color: var(--lab-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.lab-grading-fields input,
+.lab-grading-fields textarea {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--lab-border-strong);
+  border-radius: 8px;
+  color: var(--lab-ink);
+  background: var(--lab-surface);
+  font: inherit;
+  font-size: 13px;
+}
+
+.lab-grading-fields textarea {
+  resize: vertical;
+}
+
+.lab-grading-fields :is(input, textarea):focus {
+  border-color: var(--lab-focus);
+  outline: 2px solid color-mix(in srgb, var(--lab-focus) 20%, transparent);
+}
+
+.lab-grading-actions {
+  justify-content: flex-end;
+}
+
+.lab-grading-actions .prediction-submit-btn {
+  width: auto;
+  min-height: 36px;
+  padding: 7px 14px;
+}
+
+.lab-reopen-button {
+  margin-right: auto;
+  color: var(--status-fail-text);
+}
+
+.lab-grading-error {
+  margin: 0;
+  color: var(--status-fail-text);
+  font-size: 12px;
+}
+
 .lab-empty-card {
   display: grid;
   justify-items: center;
@@ -688,6 +865,24 @@
   .lab-submission-table td:last-child {
     padding-bottom: 0;
   }
+
+  .lab-grade-action {
+    width: auto;
+    text-align: left;
+  }
+
+  .lab-grading-row td {
+    display: block;
+    padding: 0 0 16px;
+  }
+
+  .lab-grading-row td::before {
+    content: none;
+  }
+
+  .lab-grading-fields {
+    grid-template-columns: 1fr;
+  }
 }
 
 :root[data-theme-effective="dark"] .lab-page {
@@ -706,4 +901,9 @@
   --status-warn-bg: #44351b;
   --status-warn-text: #f3c66e;
   --status-fail-text: #ff9b9b;
+}
+
+:root[data-theme-effective="dark"] .lab-status.progress {
+  color: #93c5fd;
+  background: #1e3a5f;
 }

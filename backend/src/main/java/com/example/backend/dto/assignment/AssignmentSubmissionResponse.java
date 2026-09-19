@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import com.example.backend.entity.enums.GradingStatus;
 
 public record AssignmentSubmissionResponse(UUID id, UUID assignmentId, Integer studentId,
-                                           String studentName, JsonNode predictions, Instant submittedAt,
+                                           String studentName, JsonNode predictions, Instant submittedAt, Instant completedAt,
                                            BigDecimal score, BigDecimal maxScore, String feedback,
                                            GradingStatus gradingStatus, Instant gradedAt, boolean retryAllowed) {
 }

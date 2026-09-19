@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import type { LibraryItem, StudentOption } from "../../../types/physlive";
+import type { AssignmentActivityType, LibraryItem, Simulation, StudentOption, TeacherClassOption } from "../../../types/physlive";
 import { useAssignmentClock } from "../../../utils/useAssignmentClock";
 
 type TeacherAssignmentFormProps = {
@@ -10,26 +10,37 @@ type TeacherAssignmentFormProps = {
   title: string;
   description: string;
   prompt: string;
+  activityType: AssignmentActivityType;
+  simulation: Simulation | null;
+  simulationOptionsLoading: boolean;
+  targetSeriesSource: string;
+  sampleTime: string;
+  measurementTolerance: string;
+  investigationParameter: string;
+  investigationOutcome: string;
   maxScore: string;
-  autoGrade: boolean;
-  expectedValue: string;
-  tolerance: string;
   dueAt: string;
   students: StudentOption[];
+  classes: TeacherClassOption[];
+  selectedClassId: string;
   selectedStudents: number[];
   submitting: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onLibraryChange: (id: string) => void;
   onTitleChange: (value: string) => void;
   onPromptChange: (value: string) => void;
+  onActivityTypeChange: (value: AssignmentActivityType) => void;
+  onTargetSeriesSourceChange: (value: string) => void;
+  onSampleTimeChange: (value: string) => void;
+  onMeasurementToleranceChange: (value: string) => void;
+  onInvestigationParameterChange: (value: string) => void;
+  onInvestigationOutcomeChange: (value: string) => void;
   onMaxScoreChange: (value: string) => void;
-  onAutoGradeChange: (value: boolean) => void;
-  onExpectedValueChange: (value: string) => void;
-  onToleranceChange: (value: string) => void;
   onDueAtChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onToggleStudent: (id: number) => void;
   onSelectAll: () => void;
+  onClassChange: (id: string) => void;
 };
 
 export function TeacherAssignmentForm({
@@ -40,33 +51,48 @@ export function TeacherAssignmentForm({
   title,
   description,
   prompt,
+  activityType,
+  simulation,
+  simulationOptionsLoading,
+  targetSeriesSource,
+  sampleTime,
+  measurementTolerance,
+  investigationParameter,
+  investigationOutcome,
   maxScore,
-  autoGrade,
-  expectedValue,
-  tolerance,
   dueAt,
   students,
+  classes,
+  selectedClassId,
   selectedStudents,
   submitting,
   onSubmit,
   onLibraryChange,
   onTitleChange,
   onPromptChange,
+  onActivityTypeChange,
+  onTargetSeriesSourceChange,
+  onSampleTimeChange,
+  onMeasurementToleranceChange,
+  onInvestigationParameterChange,
+  onInvestigationOutcomeChange,
   onMaxScoreChange,
-  onAutoGradeChange,
-  onExpectedValueChange,
-  onToleranceChange,
   onDueAtChange,
   onDescriptionChange,
   onToggleStudent,
   onSelectAll,
+  onClassChange,
 }: Readonly<TeacherAssignmentFormProps>) {
   const [step, setStep] = useState(0);
   const [search, setSearch] = useState("");
   const now = useAssignmentClock();
   const steps = ["Nội dung bài tập", "Học sinh & hạn nộp", "Kiểm tra & giao bài"];
-  const contentValid = Boolean(selectedLibrary && title.trim() && title.trim().length <= 160 && prompt.trim()) && Number(maxScore) >= 0.001 && Number(maxScore) <= 99999.999 && Number.isFinite(Number(maxScore)) && (!autoGrade || (expectedValue.trim() !== "" && Number.isFinite(Number(expectedValue)) && tolerance.trim() !== "" && Number.isFinite(Number(tolerance)) && Number(tolerance) >= 0));
-  const recipientsValid = selectedStudents.length > 0 && (!dueAt || new Date(dueAt).getTime() > now);
+  const typeConfigValid = activityType === "MEASUREMENT"
+    ? Boolean(targetSeriesSource && sampleTime.trim() && Number.isFinite(Number(sampleTime)) && measurementTolerance.trim() && Number.isFinite(Number(measurementTolerance)) && Number(measurementTolerance) >= 0)
+    : activityType === "PARAMETER_INVESTIGATION" ? Boolean(investigationParameter) : true;
+  const contentValid = Boolean(selectedLibrary && simulation && title.trim() && title.trim().length <= 160 && prompt.trim()) && Number(maxScore) >= 0.001 && Number(maxScore) <= 99999.999 && Number.isFinite(Number(maxScore)) && typeConfigValid;
+  const recipientsValid = Boolean(selectedClassId) && selectedStudents.length > 0 && (!dueAt || new Date(dueAt).getTime() > now);
+  const selectedClass = classes.find(item => item.id === selectedClassId);
   return (
     <div
       className={`modern-card${workspaceLayout ? " assignment-workspace-panel" : ""}`}
@@ -131,6 +157,18 @@ export function TeacherAssignmentForm({
               <span className="status-pill pass">Sẵn sàng giao bài</span>
             </div>
           )}
+          <div className="form-group assignment-type-field" style={{ marginBottom: "16px" }}>
+            <span className="form-label">Loại hoạt động *</span>
+            <div className="assignment-type-grid">
+              {([
+                ["PREDICT_OBSERVE_EXPLAIN", "Dự đoán – giải thích", "Dự đoán trước, mở mô phỏng rồi đối chiếu kết quả."],
+                ["MEASUREMENT", "Đo đại lượng", "Đọc một đại lượng tại thời điểm do giáo viên chọn."],
+                ["PARAMETER_INVESTIGATION", "Khảo sát tham số", "Thay đổi một tham số và tìm quy luật ảnh hưởng."],
+                ["FREE_EXPLORATION", "Khám phá tự do", "Mô phỏng mở ngay, học sinh quan sát và kết luận."],
+              ] as const).map(([value, label, help]) => <button key={value} type="button" className={activityType === value ? "selected" : ""} aria-pressed={activityType === value} onClick={() => onActivityTypeChange(value)}><strong>{label}</strong><small>{help}</small></button>)}
+            </div>
+          </div>
+          {simulationOptionsLoading && <p className="assignment-field-hint" role="status">Đang đọc đại lượng và tham số từ mô phỏng…</p>}
           <div className="form-group" style={{ marginBottom: "14px" }}>
             <label htmlFor="assignment-title">Tiêu đề bài giao *</label>
             <input
@@ -144,7 +182,7 @@ export function TeacherAssignmentForm({
           </div>
           <div className="form-group" style={{ marginBottom: "14px" }}>
             <label htmlFor="assignment-prompt">
-              Câu hỏi dành cho học sinh *
+              {activityType === "PREDICT_OBSERVE_EXPLAIN" ? "Câu hỏi dự đoán" : activityType === "MEASUREMENT" ? "Yêu cầu đo và giải thích" : activityType === "PARAMETER_INVESTIGATION" ? "Câu hỏi khảo sát" : "Nhiệm vụ khám phá"} *
             </label>
             <textarea
               id="assignment-prompt"
@@ -154,18 +192,32 @@ export function TeacherAssignmentForm({
               value={prompt}
               onChange={(event) => onPromptChange(event.target.value)}
             />
-            <small style={{ color: "var(--text-muted)", fontSize: "11.5px" }}>
-              Học sinh bắt buộc phải gửi câu trả lời cho câu hỏi này trước khi
-              mô phỏng mở khóa kết quả.
-            </small>
+            <small style={{ color: "var(--text-muted)", fontSize: "11.5px" }}>{activityType === "PREDICT_OBSERVE_EXPLAIN" ? "Học sinh gửi dự đoán trước khi mô phỏng mở khóa." : "Mô phỏng mở ngay để học sinh vừa thí nghiệm vừa trả lời."}</small>
           </div>
+          {activityType === "MEASUREMENT" && <div className="assignment-config-box">
+            <strong>Cấu hình phép đo từ dữ liệu mô phỏng</strong>
+            <div className="form-row"><div className="form-group"><label htmlFor="measurement-series">Đại lượng cần đo *</label><select id="measurement-series" value={targetSeriesSource} onChange={event => onTargetSeriesSourceChange(event.target.value)}>{(simulation?.visualization?.series ?? []).map(series => <option key={series.source} value={series.source}>{series.label} ({series.unit || "không đơn vị"})</option>)}</select></div><div className="form-group"><label htmlFor="measurement-time">Thời điểm đo (s) *</label><input id="measurement-time" type="number" min={simulation?.time.at(0) ?? 0} max={simulation?.time.at(-1) ?? 0} step="any" value={sampleTime} onChange={event => onSampleTimeChange(event.target.value)} /></div><div className="form-group"><label htmlFor="measurement-tolerance">Sai số cho phép *</label><input id="measurement-tolerance" type="number" min="0" step="any" value={measurementTolerance} onChange={event => onMeasurementToleranceChange(event.target.value)} /></div></div>
+            <small>Đáp án chuẩn được backend lấy trực tiếp từ phiên mô phỏng đã giao; học sinh không nhìn thấy đáp án này.</small>
+          </div>}
+          {activityType === "PARAMETER_INVESTIGATION" && <div className="assignment-config-box">
+            <strong>Cấu hình khảo sát</strong>
+            <div className="form-row"><div className="form-group"><label htmlFor="investigation-parameter">Tham số được thay đổi *</label><select id="investigation-parameter" value={investigationParameter} onChange={event => onInvestigationParameterChange(event.target.value)}>{(simulation?.visualization?.controls ?? []).map(control => <option key={control.key} value={control.key}>{control.label} ({control.unit || "không đơn vị"})</option>)}</select></div><div className="form-group"><label htmlFor="investigation-outcome">Đại lượng cần quan sát</label><select id="investigation-outcome" value={investigationOutcome} onChange={event => onInvestigationOutcomeChange(event.target.value)}>{(simulation?.visualization?.series ?? []).map(series => <option key={series.source} value={series.source}>{series.label}</option>)}</select></div></div>
+            <small>Học sinh được tự thử nhiều giá trị trong giới hạn an toàn của mô phỏng và giải thích quy luật quan sát được.</small>
+          </div>}
           <div className="form-row" style={{ marginBottom: "14px" }}>
             <div className="form-group"><label htmlFor="assignment-max-score">Điểm tối đa</label><input id="assignment-max-score" type="number" min="0.001" step="0.001" value={maxScore} onChange={event => onMaxScoreChange(event.target.value)} /></div>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "24px" }}><input type="checkbox" checked={autoGrade} onChange={event => onAutoGradeChange(event.target.checked)} /> Chấm tự động theo đáp án số</label>
+            <div className="assignment-grading-summary"><span>Phương thức chấm</span><strong>{activityType === "MEASUREMENT" ? "Tự động phần kết quả đo" : "Giáo viên chấm theo bài làm"}</strong></div>
           </div>
-          {autoGrade && <div className="form-row" style={{ marginBottom: "14px" }}><div className="form-group"><label htmlFor="assignment-expected-value">Đáp án số</label><input id="assignment-expected-value" type="number" step="any" required={autoGrade} value={expectedValue} onChange={event => onExpectedValueChange(event.target.value)} /></div><div className="form-group"><label htmlFor="assignment-tolerance">Sai số cho phép</label><input id="assignment-tolerance" type="number" min="0" step="any" required={autoGrade} value={tolerance} onChange={event => onToleranceChange(event.target.value)} /></div></div>}
           </fieldset>
           <fieldset className="assignment-step-fields" disabled={submitting} hidden={step !== 1}>
+          <div className="form-group" style={{ marginBottom: "14px" }}>
+            <label htmlFor="assignment-class">Lớp nhận bài *</label>
+            <select id="assignment-class" required value={selectedClassId} onChange={event => onClassChange(event.target.value)}>
+              <option value="">-- Chọn lớp đang phụ trách --</option>
+              {classes.map(item => <option key={item.id} value={item.id}>Khối {item.gradeLevel} · {item.name} · {item.schoolYear} ({item.students.length} học sinh)</option>)}
+            </select>
+            {classes.length === 0 && <small className="assignment-field-hint">Bạn chưa được nhà trường phân công vào lớp học nào.</small>}
+          </div>
           <div className="form-row" style={{ marginBottom: "14px" }}>
             <div className="form-group">
               <label htmlFor="assignment-due-at">Hạn hoàn thành</label>
@@ -188,7 +240,7 @@ export function TeacherAssignmentForm({
               />
             </div>
           </div>
-          <div className="form-group"><label htmlFor="student-search">Tìm học sinh</label><input id="student-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Nhập tên học sinh…" /></div>
+          <div className="form-group"><label htmlFor="student-search">Tìm học sinh trong lớp</label><input id="student-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Nhập tên học sinh…" disabled={!selectedClassId} /></div>
           <div className="form-group" style={{ marginBottom: "18px" }}>
             <div
               style={{
@@ -227,7 +279,7 @@ export function TeacherAssignmentForm({
             >
               {students.length === 0 ? (
                 <small style={{ color: "var(--text-muted)" }}>
-                  Chưa có tài khoản học sinh hoạt động.
+                  {selectedClassId ? "Lớp này chưa có học sinh hoạt động." : "Chọn lớp trước khi chọn học sinh."}
                 </small>
               ) : (
                 students.filter(student => student.fullName.toLocaleLowerCase("vi").includes(search.toLocaleLowerCase("vi"))).map((student) => (
@@ -257,14 +309,15 @@ export function TeacherAssignmentForm({
           {step === 2 && <section className="assignment-review">
             <span className="assignment-eyebrow">BẢN XEM TRƯỚC</span><h3>{title}</h3>
             <p className="assignment-review-prompt">{prompt}</p>{description && <p>{description}</p>}
-            <dl><div><dt>Mô phỏng</dt><dd>{selectedLibrary?.title}</dd></div><div><dt>Người nhận</dt><dd>{selectedStudents.length} học sinh</dd></div><div><dt>Hạn nộp</dt><dd>{dueAt ? new Date(dueAt).toLocaleString("vi-VN") : "Không giới hạn"}</dd></div><div><dt>Chấm điểm</dt><dd>{autoGrade ? "Tự động theo đáp án số" : "Giáo viên chấm"} · Thang {maxScore}</dd></div></dl>
+            <dl><div><dt>Mô phỏng</dt><dd>{selectedLibrary?.title}</dd></div><div><dt>Lớp nhận bài</dt><dd>{selectedClass ? `Khối ${selectedClass.gradeLevel} · ${selectedClass.name}` : "Chưa chọn"}</dd></div><div><dt>Loại bài</dt><dd>{{ PREDICT_OBSERVE_EXPLAIN: "Dự đoán – giải thích", MEASUREMENT: "Đo đại lượng", PARAMETER_INVESTIGATION: "Khảo sát tham số", FREE_EXPLORATION: "Khám phá tự do" }[activityType]}</dd></div><div><dt>Người nhận</dt><dd>{selectedStudents.length} học sinh</dd></div><div><dt>Hạn nộp</dt><dd>{dueAt ? new Date(dueAt).toLocaleString("vi-VN") : "Không giới hạn"}</dd></div><div><dt>Chấm điểm</dt><dd>{activityType === "MEASUREMENT" ? "Tự động kết quả đo" : "Giáo viên chấm"} · Thang {maxScore}</dd></div></dl>
             <p><strong>Học sinh nhận bài:</strong> {students.filter(student => selectedStudents.includes(student.id)).map(student => student.fullName).join(", ")}</p>
-            {autoGrade && <p><strong>Đáp án chấm:</strong> {expectedValue} · Sai số cho phép: {tolerance}. Đáp án này chỉ hiển thị cho giáo viên.</p>}
-            <p>Học sinh đọc đề, gửi dự đoán và lập luận, sau đó chạy mô phỏng để đối chiếu kết quả.</p>
+            {activityType === "MEASUREMENT" && <p><strong>Phép đo:</strong> {(simulation?.visualization?.series ?? []).find(series => series.source === targetSeriesSource)?.label} tại {sampleTime} giây · Sai số {measurementTolerance}.</p>}
+            {activityType === "PARAMETER_INVESTIGATION" && <p><strong>Khảo sát:</strong> thay đổi {(simulation?.visualization?.controls ?? []).find(control => control.key === investigationParameter)?.label} và quan sát {(simulation?.visualization?.series ?? []).find(series => series.source === investigationOutcome)?.label}.</p>}
+            <p>{activityType === "PREDICT_OBSERVE_EXPLAIN" ? "Học sinh dự đoán trước, sau đó chạy mô phỏng để đối chiếu và kết luận." : "Học sinh mở mô phỏng ngay, vừa thí nghiệm vừa hoàn thành bài làm trên cùng màn hình."}</p>
           </section>}
           {step === 1 && dueAt && new Date(dueAt).getTime() <= now && <p role="alert">Hãy chọn hạn nộp trong tương lai.</p>}
-          {step === 0 && !contentValid && <p className="assignment-field-hint">Chọn mô phỏng, nhập tiêu đề, câu hỏi và thang điểm từ 0.001 đến 99999.999. Nếu chấm tự động, cần có đáp án số và sai số không âm.</p>}
-          {step === 1 && selectedStudents.length === 0 && <p className="assignment-field-hint">Chọn ít nhất một học sinh để tiếp tục.</p>}
+          {step === 0 && !contentValid && <p className="assignment-field-hint">Chọn mô phỏng, loại hoạt động, nhập tiêu đề, yêu cầu và cấu hình đầy đủ các trường của loại bài.</p>}
+          {step === 1 && (!selectedClassId || selectedStudents.length === 0) && <p className="assignment-field-hint">Chọn lớp và ít nhất một học sinh để tiếp tục.</p>}
           <div className="assignment-form-actions">
           {step > 0 && <button type="button" className="modern-tab-btn" disabled={submitting} onClick={() => setStep(step - 1)}>← Quay lại</button>}
           {step < 2 && <button type="button" className="prediction-submit-btn" disabled={step === 0 ? !contentValid : !recipientsValid} onClick={() => setStep(step + 1)}>Tiếp tục →</button>}

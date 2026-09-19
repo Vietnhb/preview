@@ -5,6 +5,7 @@ import com.example.backend.entity.common.AuditedEntity;
 import com.example.backend.entity.library.LibraryItem;
 import com.example.backend.entity.problem.Specification;
 import com.example.backend.entity.enums.AssignmentStatus;
+import com.example.backend.entity.school.SchoolClass;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.CollectionTable;
@@ -44,6 +45,10 @@ public class Assignment extends AuditedEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_class_id")
+    private SchoolClass schoolClass;
 
     /** The exact validated teacher run visible to students after the prediction gate. */
     @Column(name = "assigned_simulation_run_id")

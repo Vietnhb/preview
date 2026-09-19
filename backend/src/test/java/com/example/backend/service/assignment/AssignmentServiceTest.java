@@ -2,6 +2,7 @@ package com.example.backend.service.assignment;
 
 import com.example.backend.dto.assignment.CreateAssignmentRequest;
 import com.example.backend.dto.assignment.SubmitPredictionRequest;
+import com.example.backend.dto.assignment.CompleteAssignmentRequest;
 import com.example.backend.entity.account.Role;
 import com.example.backend.entity.account.User;
 import com.example.backend.entity.assignment.Assignment;
@@ -12,6 +13,11 @@ import com.example.backend.entity.problem.Specification;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.assignment.AssignmentRepository;
 import com.example.backend.repository.assignment.AssignmentSubmissionRepository;
+import com.example.backend.repository.school.ClassEnrollmentRepository;
+import com.example.backend.repository.school.ClassTeacherAssignmentRepository;
+import com.example.backend.entity.school.ClassEnrollment;
+import com.example.backend.entity.school.ClassTeacherAssignment;
+import com.example.backend.entity.school.SchoolClass;
 import com.example.backend.service.account.CurrentUserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,12 +82,69 @@ class AssignmentServiceTest {
         AssignmentSubmission own = new AssignmentSubmission(); own.setRetryAllowed(true);
         own.setScore(BigDecimal.ZERO); own.setFeedback("Try again");
         when(submissions.findByAssignmentIdAndStudentId(id, 7)).thenReturn(Optional.of(own));
-        var result = service.submit(id, new SubmitPredictionRequest(json.createObjectNode()
+        service.submit(id, new SubmitPredictionRequest(json.createObjectNode()
                 .put("answerText", "Revised answer").put("estimatedValue", 42.25)));
+        var result = service.complete(id, new CompleteAssignmentRequest("The simulation confirms my prediction"));
         assertEquals(BigDecimal.TEN, result.score());
         assertEquals(GradingStatus.AI_GRADED, result.gradingStatus());
         assertFalse(result.retryAllowed());
         assertNull(result.feedback());
+    }
+
+    @Test
+    void predictionDoesNotCountAsCompletedUntilStudentHandsInConclusion() {
+        AssignmentSubmission own = new AssignmentSubmission();
+        own.setRetryAllowed(true);
+        when(submissions.findByAssignmentIdAndStudentId(id, 7)).thenReturn(Optional.of(own));
+
+        var prediction = service.submit(id, new SubmitPredictionRequest(
+                json.createObjectNode().put("answerText", "It speeds up")));
+        assertNull(prediction.completedAt());
+
+        var completed = service.complete(id, new CompleteAssignmentRequest("The velocity increased linearly."));
+        assertNotNull(completed.completedAt());
+        assertEquals("The velocity increased linearly.", completed.predictions().path("conclusion").asText());
+    }
+
+    @Test
+    void freeExplorationCanBeCompletedWithoutAPredictionStep() {
+        assignment.setQuestions(json.createObjectNode()
+                .put("prompt", "Explore the simulation and explain what you observe")
+                .put("activityType", "FREE_EXPLORATION"));
+        when(submissions.findByAssignmentIdAndStudentId(id, 7)).thenReturn(Optional.empty());
+
+        var completed = service.complete(id, new CompleteAssignmentRequest(
+                "Increasing the initial velocity makes the object travel farther.",
+                "Increasing the initial velocity makes the object travel farther.",
+                null));
+
+        assertNotNull(completed.completedAt());
+        assertEquals("Increasing the initial velocity makes the object travel farther.",
+                completed.predictions().path("answerText").asText());
+        verify(submissions).save(any(AssignmentSubmission.class));
+    }
+
+    @Test
+    void teacherClassOptionsContainOnlyStudentsInAssignedClasses() {
+        ClassEnrollmentRepository enrollments = mock(ClassEnrollmentRepository.class);
+        ClassTeacherAssignmentRepository teacherClasses = mock(ClassTeacherAssignmentRepository.class);
+        AssignmentService teacherService = new AssignmentService(assignments, submissions, null, null,
+                currentUser, null, enrollments, teacherClasses);
+        User teacher = new User(); teacher.setId(12); teacher.setFullName("Teacher");
+        Role teacherRole = new Role(); teacherRole.setName("TEACHER"); teacher.setRole(teacherRole);
+        when(currentUser.requireCurrentUser()).thenReturn(teacher);
+        SchoolClass schoolClass = new SchoolClass(); schoolClass.setId(UUID.randomUUID());
+        schoolClass.setName("12A1"); schoolClass.setGradeLevel(12); schoolClass.setSchoolYear("2026-2027");
+        ClassTeacherAssignment teaching = new ClassTeacherAssignment(); teaching.setSchoolClass(schoolClass); teaching.setTeacher(teacher);
+        ClassEnrollment enrollment = new ClassEnrollment(); enrollment.setSchoolClass(schoolClass); enrollment.setStudent(student);
+        when(teacherClasses.findActiveByTeacherId(12)).thenReturn(List.of(teaching));
+        when(enrollments.findActiveStudentsByClassId(schoolClass.getId())).thenReturn(List.of(enrollment));
+
+        var result = teacherService.classesForTeacher();
+
+        assertEquals(1, result.size());
+        assertEquals("12A1", result.getFirst().name());
+        assertEquals("Student", result.getFirst().students().getFirst().fullName());
     }
 
     @Test

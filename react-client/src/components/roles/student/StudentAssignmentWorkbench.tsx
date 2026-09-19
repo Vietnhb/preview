@@ -1,12 +1,13 @@
 import PhysicsScene from "../../simulation/PhysicsScene";
 import LearningIcon from "../../common/LearningIcon";
-import type { Assignment, Simulation } from "../../../types/physlive";
+import type { Assignment, AssignmentActivityType, Simulation } from "../../../types/physlive";
 import { interpolateAtTime, learningSeries, lessonKind, numberLabel, type LearningControl } from "../../../utils/learningModel";
 import { StudentParameterPanel } from "./StudentParameterPanel";
 import type { VectorVisibility } from "./studentTypes";
 
 type AssignmentWorkbenchProps = {
   assignment: Assignment;
+  activityType: AssignmentActivityType;
   estimatedValue: string;
   onEstimatedValueChange: (value: string) => void;
   onRetrySimulation: () => void;
@@ -16,6 +17,10 @@ type AssignmentWorkbenchProps = {
   reasoningInput: string;
   isSubmittingPrediction: boolean;
   predictionError: string;
+  assignmentSubmitted: boolean;
+  conclusionInput: string;
+  isSubmittingAssignment: boolean;
+  submissionError: string;
   simulation: Simulation | null;
   time: number;
   seekRevision: number;
@@ -31,6 +36,8 @@ type AssignmentWorkbenchProps = {
   teacherPrompt: string;
   onBack: () => void;
   onSubmitPrediction: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmitAssignment: (event: React.FormEvent<HTMLFormElement>) => void;
+  onConclusionChange: (value: string) => void;
   onPredictionChange: (value: string) => void;
   onReasoningChange: (value: string) => void;
   onToggleVector: (key: keyof VectorVisibility) => void;
@@ -45,6 +52,7 @@ type AssignmentWorkbenchProps = {
 
 export function AssignmentWorkbench({
   assignment,
+  activityType,
   estimatedValue,
   onEstimatedValueChange,
   onRetrySimulation,
@@ -54,6 +62,10 @@ export function AssignmentWorkbench({
   reasoningInput,
   isSubmittingPrediction,
   predictionError,
+  assignmentSubmitted,
+  conclusionInput,
+  isSubmittingAssignment,
+  submissionError,
   simulation,
   time,
   seekRevision,
@@ -69,6 +81,8 @@ export function AssignmentWorkbench({
   teacherPrompt,
   onBack,
   onSubmitPrediction,
+  onSubmitAssignment,
+  onConclusionChange,
   onPredictionChange,
   onReasoningChange,
   onToggleVector,
@@ -81,6 +95,9 @@ export function AssignmentWorkbench({
   onParameterReset,
 }: Readonly<AssignmentWorkbenchProps>) {
   const kind = lessonKind(simulation?.schemaId ?? "");
+  const questions = typeof assignment.questions === "object" ? assignment.questions : null;
+  const measurement = questions?.measurement;
+  const investigation = questions?.investigation;
   const displayedSeries = simulation
     ? learningSeries(simulation).map((series) => ({
         series,
@@ -127,12 +144,21 @@ export function AssignmentWorkbench({
             </div>
           )}
         </div>
-        <ol className="assignment-steps"><li className="is-current"><span>1</span>Đọc đề & dự đoán</li><li className={predictionSubmitted ? "is-current" : ""}><span>2</span>Thí nghiệm & đối chiếu</li><li className={assignment.gradingStatus === "TEACHER_CONFIRMED" ? "is-current" : ""}><span>3</span>Nhận phản hồi</li></ol>
+        <ol className="assignment-steps"><li className="is-current"><span>1</span>{activityType === "PREDICT_OBSERVE_EXPLAIN" ? "Dự đoán" : "Đọc nhiệm vụ"}</li><li className={predictionSubmitted ? "is-current" : ""}><span>2</span>{activityType === "MEASUREMENT" ? "Đo & giải thích" : activityType === "PARAMETER_INVESTIGATION" ? "Khảo sát & kết luận" : "Thí nghiệm & kết luận"}</li><li className={assignmentSubmitted ? "is-current" : ""}><span>3</span>Nộp bài</li></ol>
         {assignment.retryAllowed && <p className="assignment-notice">Giáo viên đã trả bài. Hãy xem góp ý và gửi lại dự đoán của bạn.</p>}
         {assignment.feedback && <p className="assignment-notice"><strong>Nhận xét của giáo viên:</strong> {assignment.feedback}</p>}
         {assignment.score != null && !assignment.retryAllowed && <p className="assignment-notice">Điểm: <strong>{assignment.score}/{assignment.maxScore ?? 10}</strong> · {assignment.gradingStatus === "TEACHER_CONFIRMED" ? "Giáo viên đã xác nhận" : "Điểm tự động, chờ giáo viên xác nhận"}</p>}
         {predictionSubmitted === false ? (
-          <div className="prediction-gate-card">
+          <div className="assignment-experiment-grid student-live-workspace">
+            <section className="modern-card student-simulation-locked" aria-label="Mô phỏng đang khóa">
+              <header><h3>Mô phỏng trực quan</h3><span className="status-pill info">Đang khóa</span></header>
+              <div className="student-simulation-locked-stage">
+                <LearningIcon name="shield" />
+                <strong>Mô phỏng sẽ mở ngay tại đây</strong>
+                <p>Hoàn thành dự đoán ở bên phải để bắt đầu thí nghiệm. Bạn không cần chuyển sang trang khác.</p>
+              </div>
+            </section>
+            <div className="prediction-gate-card">
             <span className="prediction-gate-badge">
               <LearningIcon name="shield" /> Bước 1 · Dự đoán của bạn
             </span>
@@ -189,7 +215,7 @@ export function AssignmentWorkbench({
                 disabled={isSubmittingPrediction}
               />
               {assignment.autoGrade && <div className="form-group"><label htmlFor="student-estimate">Kết quả dự đoán bằng số *</label><input id="student-estimate" type="number" step="any" required value={estimatedValue} disabled={isSubmittingPrediction} onChange={event => onEstimatedValueChange(event.target.value)} /><small>Nhập số theo đơn vị trong đề bài. Phần này được dùng để chấm tự động.</small></div>}
-              <small>Bài gửi sẽ được lưu để chấm điểm. Bạn chỉ sửa và gửi lại khi giáo viên trả bài.</small>
+              <small>Dự đoán này mở khóa mô phỏng. Bài chỉ được tính là đã nộp sau khi bạn thí nghiệm và gửi kết luận.</small>
               {predictionError && (
                 <p style={{ color: "#b91c1c", fontSize: "13px", margin: 0 }}>
                   {predictionError}
@@ -202,19 +228,20 @@ export function AssignmentWorkbench({
               >
                 {isSubmittingPrediction
                   ? "Đang ghi nhận dự đoán…"
-                  : "Gửi bài & bắt đầu thí nghiệm"}
+                  : "Gửi dự đoán & mở mô phỏng"}
               </button>
             </form>
+            </div>
           </div>
         ) : (
           <div>
-            <div className="simulation-unlocked-banner">
+            {activityType === "PREDICT_OBSERVE_EXPLAIN" && <div className="simulation-unlocked-banner">
               <div>
                 <strong>Dự đoán đã được gửi:</strong> "{submittedPredictionText}
                 "
               </div>
               <span className="status-pill pass">Đã mở khóa mô phỏng</span>
-            </div>
+            </div>}
             <p className="assignment-review-prompt">{teacherPrompt}</p>
             <div className="assignment-experiment-grid">
               <div
@@ -369,10 +396,10 @@ export function AssignmentWorkbench({
                   onChange={onParameterChange}
                   onReset={onParameterReset}
                 />
-                <h3 style={{ margin: "0 0 12px 0", fontSize: "15px" }}>
-                  Đối chiếu Kết quả
-                </h3>
-                <div
+                <h3 style={{ margin: "0 0 12px 0", fontSize: "15px" }}>{activityType === "MEASUREMENT" ? "Bài làm & số liệu đo" : activityType === "PARAMETER_INVESTIGATION" ? "Nhật ký khảo sát" : "Đối chiếu kết quả"}</h3>
+                {activityType === "MEASUREMENT" && measurement && <div className="assignment-live-task"><strong>Nhiệm vụ đo</strong><span>{measurement.seriesLabel} tại t = {measurement.sampleTime} s</span><small>Đơn vị: {measurement.unit || "không đơn vị"} · Sai số cho phép: ±{measurement.tolerance}</small></div>}
+                {activityType === "PARAMETER_INVESTIGATION" && investigation && <div className="assignment-live-task"><strong>Nhiệm vụ khảo sát</strong><span>Thay đổi {investigation.parameterLabel}</span>{investigation.outcomeLabel && <small>Quan sát ảnh hưởng lên {investigation.outcomeLabel}</small>}</div>}
+                {activityType === "PREDICT_OBSERVE_EXPLAIN" && <div
                   style={{
                     background: "#f8fafc",
                     padding: "12px",
@@ -400,7 +427,7 @@ export function AssignmentWorkbench({
                   >
                     &quot;{submittedPredictionText}&quot;
                   </p>
-                </div>
+                </div>}
                 {simulation && (
                   <section className="student-simulation-readouts" aria-label="Đại lượng tại thời điểm đang xem">
                     <h4>Đại lượng tức thời</h4>
@@ -427,6 +454,40 @@ export function AssignmentWorkbench({
                     đoán ban đầu của bạn.
                   </small>
                 </div>
+                {assignmentSubmitted ? (
+                  <section className="assignment-submit-panel is-complete" aria-live="polite">
+                    <div>
+                      <span className="status-pill pass">Đã nộp bài</span>
+                      <h3>Bài làm đã được gửi cho giáo viên</h3>
+                      <p><strong>Kết luận:</strong> {conclusionInput}</p>
+                      {assignment.completedAt && <small>Nộp lúc {new Date(assignment.completedAt).toLocaleString("vi-VN")}</small>}
+                    </div>
+                  </section>
+                ) : (
+                  <form className="assignment-submit-panel" onSubmit={onSubmitAssignment}>
+                    <div>
+                      <span className="assignment-eyebrow">BƯỚC CUỐI</span>
+                      <h3>Kết luận sau khi thí nghiệm</h3>
+                      <p>So sánh kết quả mô phỏng với dự đoán ban đầu, sau đó nộp bài cho giáo viên.</p>
+                    </div>
+                    {activityType === "MEASUREMENT" && <div className="form-group"><label htmlFor="student-final-measurement">Kết quả đo ({measurement?.unit || "giá trị số"}) *</label><input id="student-final-measurement" type="number" step="any" required value={estimatedValue} onChange={event => onEstimatedValueChange(event.target.value)} disabled={isSubmittingAssignment} /></div>}
+                    <label htmlFor="student-conclusion">Điều em rút ra sau mô phỏng *</label>
+                    <textarea
+                      id="student-conclusion"
+                      rows={4}
+                      required
+                      maxLength={4000}
+                      value={conclusionInput}
+                      onChange={event => onConclusionChange(event.target.value)}
+                      disabled={isSubmittingAssignment}
+                      placeholder="Ví dụ: Kết quả mô phỏng cho thấy vận tốc tăng đều theo thời gian và phù hợp với công thức v = v₀ + at..."
+                    />
+                    {submissionError && <p className="assignment-submit-error" role="alert">{submissionError}</p>}
+                    <button type="submit" className="prediction-submit-btn" disabled={isSubmittingAssignment || !conclusionInput.trim() || (activityType === "MEASUREMENT" && !estimatedValue.trim())}>
+                      {isSubmittingAssignment ? "Đang nộp bài…" : "Nộp bài cho giáo viên"}
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           </div>

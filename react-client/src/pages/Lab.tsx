@@ -4,6 +4,8 @@ import Icon from "../components/common/LearningIcon";
 import LearningHeader from "../components/common/LearningHeader";
 import {
   assignmentSubmissions,
+  gradeAssignmentSubmission,
+  reopenAssignmentSubmission,
   studentOptions,
   teacherAssignments,
 } from "../api/assignmentApi";
@@ -91,18 +93,38 @@ export default function Lab() {
       0,
     );
     const submitted = records.reduce(
-      (total, item) => total + item.submissions.length,
+      (total, item) => total + item.submissions.filter(submission => submission.completedAt).length,
       0,
     );
     return { assigned, submitted, pending: Math.max(assigned - submitted, 0) };
   }, [records]);
 
   const selectedTotal = selected?.assignment.studentIds.length ?? 0;
-  const selectedSubmitted = selected?.submissions.length ?? 0;
+  const selectedSubmitted = selected?.submissions.filter(submission => submission.completedAt).length ?? 0;
   const selectedProgress =
     selectedTotal === 0
       ? 0
       : Math.round((selectedSubmitted / selectedTotal) * 100);
+
+  const updateSubmission = useCallback((assignmentId: string, updated: AssignmentSubmission) => {
+    setRecords(current => current.map(record => record.assignment.id === assignmentId
+      ? { ...record, submissions: record.submissions.map(item => item.id === updated.id ? updated : item) }
+      : record));
+  }, []);
+
+  const handleGrade = useCallback(async (submissionId: string, score: number, feedback: string) => {
+    const record = records.find(item => item.assignment.id === selectedId);
+    if (!record) return;
+    const updated = await gradeAssignmentSubmission(record.assignment.id, submissionId, score, feedback, true);
+    updateSubmission(record.assignment.id, updated);
+  }, [records, selectedId, updateSubmission]);
+
+  const handleReopen = useCallback(async (submissionId: string) => {
+    const record = records.find(item => item.assignment.id === selectedId);
+    if (!record) return;
+    const updated = await reopenAssignmentSubmission(record.assignment.id, submissionId);
+    updateSubmission(record.assignment.id, updated);
+  }, [records, selectedId, updateSubmission]);
 
   return (
     <div className="learning-app lab-page">
@@ -250,6 +272,8 @@ export default function Lab() {
                         students={students}
                         filter={submissionFilter}
                         query={studentQuery}
+                        onGrade={handleGrade}
+                        onReopen={handleReopen}
                       />
                     )}
                   </>

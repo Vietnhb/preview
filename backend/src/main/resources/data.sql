@@ -79,6 +79,7 @@ ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS grading_status VARCH
 ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS graded_at TIMESTAMP WITH TIME ZONE;;
 ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS graded_by INTEGER REFERENCES users(id);;
 ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS retry_allowed BOOLEAN NOT NULL DEFAULT false;;
+ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE;;
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS grading_criteria JSONB;;
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS max_score NUMERIC(8,3) NOT NULL DEFAULT 10;;
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS auto_grade BOOLEAN NOT NULL DEFAULT false;;

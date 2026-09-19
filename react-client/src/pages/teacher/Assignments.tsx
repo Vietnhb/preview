@@ -7,17 +7,22 @@ import {
   assignmentSubmissions,
   gradeAssignmentSubmission,
   reopenAssignmentSubmission,
+  teacherAssignmentClasses,
 } from "../../api/assignmentApi";
 import {
   createLibraryFolder,
   personalLibrary,
 } from "../../api/libraryApi";
+import { getSimulation } from "../../api/simulationApi";
 import TeacherLibraryPane from "../../components/workspace/TeacherLibraryPane";
 import type {
   Assignment,
   AssignmentSubmission,
   LibraryItem,
   StudentOption,
+  Simulation,
+  AssignmentActivityType,
+  TeacherClassOption,
 } from "../../types/physlive";
 import { isStudentRole } from "../../types/roles";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
@@ -53,16 +58,23 @@ export default function Assignments({
   const [formVersion, setFormVersion] = useState(0);
   const inspectorRequest = useRef(0);
   const [students, setStudents] = useState<StudentOption[]>([]);
+  const [classes, setClasses] = useState<TeacherClassOption[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState("");
   const [libraryItemId, setLibraryItemId] = useState(
     queryLibraryItemId,
   );
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [activityType, setActivityType] = useState<AssignmentActivityType>("PREDICT_OBSERVE_EXPLAIN");
+  const [assignmentSimulation, setAssignmentSimulation] = useState<Simulation | null>(null);
+  const [simulationOptionsLoading, setSimulationOptionsLoading] = useState(false);
+  const [targetSeriesSource, setTargetSeriesSource] = useState("");
+  const [sampleTime, setSampleTime] = useState("");
+  const [measurementTolerance, setMeasurementTolerance] = useState("0.1");
+  const [investigationParameter, setInvestigationParameter] = useState("");
+  const [investigationOutcome, setInvestigationOutcome] = useState("");
   const [maxScore, setMaxScore] = useState("10");
-  const [autoGrade, setAutoGrade] = useState(false);
-  const [expectedValue, setExpectedValue] = useState("");
-  const [tolerance, setTolerance] = useState("0");
   const [dueAt, setDueAt] = useState("");
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -82,15 +94,17 @@ export default function Assignments({
     setLoading(true);
     setError("");
     try {
-      const [assignments, libraryItems, studentItems] =
+      const [assignments, libraryItems, studentItems, classItems] =
         await Promise.all([
           teacherAssignments(),
           personalLibrary(),
           studentOptions(),
+          teacherAssignmentClasses(),
         ]);
       setItems(assignments);
       setSaved(libraryItems.filter(item => item.validationStatus === "PASSED"));
       setStudents(studentItems);
+      setClasses(classItems);
     } catch {
       setError("Không thể tải dữ liệu bài tập và danh sách học sinh.");
     } finally {
@@ -140,17 +154,51 @@ export default function Assignments({
     [saved, libraryItemId],
   );
 
+  useEffect(() => {
+    let active = true;
+    setAssignmentSimulation(null);
+    setTargetSeriesSource("");
+    setInvestigationParameter("");
+    setInvestigationOutcome("");
+    if (!selectedLibrary?.simulationId) return () => { active = false; };
+    setSimulationOptionsLoading(true);
+    void getSimulation(selectedLibrary.simulationId).then(simulation => {
+      if (!active) return;
+      setAssignmentSimulation(simulation);
+      const firstSeries = simulation.visualization?.series?.[0];
+      setTargetSeriesSource(firstSeries?.source ?? "");
+      setInvestigationOutcome(firstSeries?.source ?? "");
+      setSampleTime(String(simulation.time.at(-1) ?? 0));
+      setInvestigationParameter(Object.keys(simulation.parameters)[0] ?? "");
+    }).catch(() => {
+      if (active) setAssignmentSimulation(null);
+    }).finally(() => {
+      if (active) setSimulationOptionsLoading(false);
+    });
+    return () => { active = false; };
+  }, [selectedLibrary]);
+
   const toggleStudent = (id: number) => {
     setSelectedStudents((curr) =>
       curr.includes(id) ? curr.filter((x) => x !== id) : [...curr, id],
     );
   };
 
+  const classStudents = useMemo(
+    () => classes.find(item => item.id === selectedClassId)?.students ?? [],
+    [classes, selectedClassId],
+  );
+
+  const handleClassChange = (id: string) => {
+    setSelectedClassId(id);
+    setSelectedStudents([]);
+  };
+
   const handleSelectAllStudents = () => {
-    if (selectedStudents.length === students.length) {
+    if (selectedStudents.length === classStudents.length) {
       setSelectedStudents([]);
     } else {
-      setSelectedStudents(students.map((s) => s.id));
+      setSelectedStudents(classStudents.map((s) => s.id));
     }
   };
 
@@ -158,6 +206,7 @@ export default function Assignments({
     e.preventDefault();
     if (
       !libraryItemId ||
+      !selectedClassId ||
       !title.trim() ||
       !prompt.trim() ||
       !selectedStudents.length ||
@@ -165,23 +214,33 @@ export default function Assignments({
     )
       return;
 
-    if (!Number.isFinite(Number(maxScore)) || Number(maxScore) <= 0 || (dueAt && (!Number.isFinite(new Date(dueAt).getTime()) || new Date(dueAt).getTime() <= Date.now())) || (autoGrade && (!expectedValue.trim() || !Number.isFinite(Number(expectedValue)) || !tolerance.trim() || !Number.isFinite(Number(tolerance)) || Number(tolerance) < 0))) {
+    const measurementInvalid = activityType === "MEASUREMENT" && (!targetSeriesSource || !sampleTime.trim() || !Number.isFinite(Number(sampleTime)) || !measurementTolerance.trim() || !Number.isFinite(Number(measurementTolerance)) || Number(measurementTolerance) < 0);
+    const investigationInvalid = activityType === "PARAMETER_INVESTIGATION" && !investigationParameter;
+    if (!Number.isFinite(Number(maxScore)) || Number(maxScore) <= 0 || (dueAt && (!Number.isFinite(new Date(dueAt).getTime()) || new Date(dueAt).getTime() <= Date.now())) || measurementInvalid || investigationInvalid) {
       setError("Kiểm tra lại điểm tối đa, đáp án số, sai số và hạn nộp."); return;
     }
     setSubmitting(true);
     setError("");
     setNotice("");
     try {
+      const selectedSeries = assignmentSimulation?.visualization?.series?.find(series => series.source === targetSeriesSource);
+      const outcomeSeries = assignmentSimulation?.visualization?.series?.find(series => series.source === investigationOutcome);
+      const selectedControl = assignmentSimulation?.visualization?.controls?.find(control => control.key === investigationParameter);
       await createAssignment({
         libraryItemId,
+        classId: selectedClassId,
         title: title.trim(),
         description: description.trim() || undefined,
-        questions: { prompt: prompt.trim() },
+        questions: {
+          prompt: prompt.trim(),
+          activityType,
+          measurement: activityType === "MEASUREMENT" ? { seriesSource: targetSeriesSource, seriesLabel: selectedSeries?.label ?? targetSeriesSource, unit: selectedSeries?.unit ?? "", sampleTime: Number(sampleTime), tolerance: Number(measurementTolerance) } : undefined,
+          investigation: activityType === "PARAMETER_INVESTIGATION" ? { parameterKey: investigationParameter, parameterLabel: selectedControl?.label ?? investigationParameter, outcomeSource: investigationOutcome || undefined, outcomeLabel: outcomeSeries?.label } : undefined,
+        },
         studentIds: selectedStudents,
         dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
         maxScore: Number(maxScore) || 10,
-        autoGrade,
-        gradingCriteria: autoGrade ? { expectedValue: Number(expectedValue), tolerance: Number(tolerance) || 0 } : undefined,
+        autoGrade: activityType === "MEASUREMENT",
       });
       setFormVersion(version => version + 1);
       // The workspace keeps assignment history in the right rail, so switch
@@ -190,15 +249,17 @@ export default function Assignments({
       setTitle("");
       setDescription("");
       setPrompt("");
+      setActivityType("PREDICT_OBSERVE_EXPLAIN");
       setDueAt("");
-      setMaxScore("10"); setAutoGrade(false); setExpectedValue(""); setTolerance("0");
+      setMaxScore("10");
       setSelectedStudents([]);
+      setSelectedClassId("");
       updateLibrarySelection("");
       setNotice("Đã giao bài tập cho học sinh thành công.");
       await loadData();
     } catch {
       setError(
-        "Không thể giao bài. Chỉ giao được các mô phỏng đã lưu trong thư viện cá nhân.",
+        "Không thể giao bài. Hãy kiểm tra mô phỏng, lớp và danh sách học sinh đã chọn.",
       );
     } finally {
       setSubmitting(false);
@@ -224,7 +285,7 @@ export default function Assignments({
 
   const gradeSubmission = async (submissionId: string, score: number, feedback: string) => {
     if (!inspectingAssignment) return;
-    const updated = await gradeAssignmentSubmission(inspectingAssignment.id, submissionId, score, inspectingAssignment.maxScore ?? 10, feedback, true);
+    const updated = await gradeAssignmentSubmission(inspectingAssignment.id, submissionId, score, feedback, true);
     setSubmissions(current => current.map(item => item.id === updated.id ? updated : item));
   };
 
@@ -320,31 +381,44 @@ export default function Assignments({
             title={title}
             description={description}
             prompt={prompt}
+            activityType={activityType}
+            simulation={assignmentSimulation}
+            simulationOptionsLoading={simulationOptionsLoading}
+            targetSeriesSource={targetSeriesSource}
+            sampleTime={sampleTime}
+            measurementTolerance={measurementTolerance}
+            investigationParameter={investigationParameter}
+            investigationOutcome={investigationOutcome}
             maxScore={maxScore}
-            autoGrade={autoGrade}
-            expectedValue={expectedValue}
-            tolerance={tolerance}
             dueAt={dueAt}
-            students={students}
+            students={classStudents}
+            classes={classes}
+            selectedClassId={selectedClassId}
             selectedStudents={selectedStudents}
             submitting={submitting}
             onSubmit={handleSubmit}
             onLibraryChange={updateLibrarySelection}
             onTitleChange={setTitle}
             onPromptChange={setPrompt}
+            onActivityTypeChange={setActivityType}
+            onTargetSeriesSourceChange={setTargetSeriesSource}
+            onSampleTimeChange={setSampleTime}
+            onMeasurementToleranceChange={setMeasurementTolerance}
+            onInvestigationParameterChange={setInvestigationParameter}
+            onInvestigationOutcomeChange={setInvestigationOutcome}
             onMaxScoreChange={setMaxScore}
-            onAutoGradeChange={setAutoGrade}
-            onExpectedValueChange={setExpectedValue}
-            onToleranceChange={setTolerance}
             onDueAtChange={setDueAt}
             onDescriptionChange={setDescription}
             onToggleStudent={toggleStudent}
             onSelectAll={handleSelectAllStudents}
+            onClassChange={handleClassChange}
           />}
 
           {!workspaceLayout && view === "history" && <TeacherAssignmentHistory
             workspaceLayout={workspaceLayout}
             items={items}
+            classes={classes}
+            students={students}
             loading={loading}
             selectedAssignmentId={inspectingAssignment?.id}
             onRefresh={loadData}
@@ -360,6 +434,8 @@ export default function Assignments({
         <TeacherAssignmentHistory
           workspaceLayout
           items={items}
+          classes={classes}
+          students={students}
           loading={loading}
           selectedAssignmentId={inspectingAssignment?.id}
           onRefresh={loadData}

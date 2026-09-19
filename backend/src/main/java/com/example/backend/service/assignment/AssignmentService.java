@@ -7,6 +7,7 @@ import com.example.backend.dto.assignment.AssignmentResponse;
 import com.example.backend.dto.assignment.AssignmentSubmissionResponse;
 import com.example.backend.dto.assignment.CreateAssignmentRequest;
 import com.example.backend.dto.assignment.SubmitPredictionRequest;
+import com.example.backend.dto.assignment.CompleteAssignmentRequest;
 import com.example.backend.dto.simulation.ParameterAdjustmentRequest;
 import com.example.backend.dto.simulation.SimulationResponse;
 import com.example.backend.entity.assignment.Assignment;
@@ -16,6 +17,7 @@ import com.example.backend.entity.library.LibraryItem;
 import com.example.backend.entity.enums.SimulationStatus;
 import com.example.backend.entity.enums.RoleName;
 import com.example.backend.entity.account.User;
+import com.example.backend.entity.school.SchoolClass;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.assignment.AssignmentRepository;
 import com.example.backend.repository.assignment.AssignmentSubmissionRepository;
@@ -31,8 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.math.BigDecimal;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 @Service
 public class AssignmentService {
@@ -48,6 +53,47 @@ public class AssignmentService {
 
     public record AssignmentReport(long assigned, long submitted, long pending, long graded, long confirmed,
                                    long retryAllowed, BigDecimal averageScore, BigDecimal maxScore) { }
+    public record TeacherClassStudent(Integer id, String fullName) { }
+    public record TeacherClassOption(UUID id, String name, Integer gradeLevel, String schoolYear,
+                                     String subject, List<TeacherClassStudent> students) { }
+
+    private static String activityType(JsonNode questions) {
+        String value = questions == null ? "" : questions.path("activityType").asText("");
+        return switch (value) {
+            case "MEASUREMENT", "PARAMETER_INVESTIGATION", "FREE_EXPLORATION" -> value;
+            default -> "PREDICT_OBSERVE_EXPLAIN";
+        };
+    }
+
+    private static boolean requiresPrediction(Assignment assignment) {
+        return "PREDICT_OBSERVE_EXPLAIN".equals(activityType(assignment.getQuestions()));
+    }
+
+    private static double sampleSeries(SimulationResponse simulation, String source, double sampleTime) {
+        String[] path = source.split("\\.", 2);
+        if (path.length != 2) throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid simulation series source");
+        java.util.Map<String, java.util.List<Double>> group = switch (path[0]) {
+            case "positions" -> simulation.positions();
+            case "velocities" -> simulation.velocities();
+            case "accelerations" -> simulation.accelerations();
+            case "values" -> simulation.values();
+            default -> null;
+        };
+        java.util.List<Double> values = group == null ? null : group.get(path[1]);
+        java.util.List<Double> times = simulation.time();
+        if (values == null || values.isEmpty() || times == null || times.size() != values.size()
+                || sampleTime < times.getFirst() || sampleTime > times.getLast())
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Measurement target is not available at the selected time");
+        if (sampleTime <= times.getFirst()) return values.getFirst();
+        for (int i = 1; i < times.size(); i++) {
+            if (times.get(i) >= sampleTime) {
+                double t0 = times.get(i - 1), t1 = times.get(i);
+                double v0 = values.get(i - 1), v1 = values.get(i);
+                return t1 == t0 ? v1 : v0 + (sampleTime - t0) / (t1 - t0) * (v1 - v0);
+            }
+        }
+        return values.getLast();
+    }
 
     @Autowired
     public AssignmentService(AssignmentRepository assignmentRepository,
@@ -78,7 +124,11 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Due date must be in the future");
         if (request.maxScore() != null && request.maxScore().signum() <= 0)
             throw new ApiException(HttpStatus.BAD_REQUEST, "Maximum score must be positive");
-        if (Boolean.TRUE.equals(request.autoGrade())) {
+        if (RoleName.TEACHER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
+                && request.classId() == null)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Select a class before assigning this activity");
+        String activityType = activityType(request.questions());
+        if (Boolean.TRUE.equals(request.autoGrade()) && !"MEASUREMENT".equals(activityType)) {
             JsonNode criteria = request.gradingCriteria();
             if (criteria == null || !finiteNumber(criteria.path("expectedValue"))
                     || !finiteNumber(criteria.path("tolerance")) || criteria.path("tolerance").asDouble() < 0)
@@ -99,19 +149,60 @@ public class AssignmentService {
             }
             validateTeacherClassAccess(teacher, student);
         }
+        SchoolClass targetClass = null;
+        if (request.classId() != null) {
+            if (classTeacherAssignments == null || classEnrollments == null
+                    || (!RoleName.ADMIN.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
+                    && !classTeacherAssignments.existsBySchoolClassIdAndTeacherIdAndIsActiveTrue(request.classId(), teacher.getId())))
+                throw new ApiException(HttpStatus.FORBIDDEN, "Teacher is not assigned to the selected class");
+            targetClass = classTeacherAssignments.findByClassIdAndIsActiveTrue(request.classId()).stream()
+                    .map(item -> item.getSchoolClass()).findFirst()
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Selected class is not active"));
+            Set<Integer> classStudentIds = classEnrollments.findActiveStudentsByClassId(request.classId()).stream()
+                    .map(item -> item.getStudent().getId()).collect(java.util.stream.Collectors.toSet());
+            if (!classStudentIds.containsAll(request.studentIds()))
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Every selected student must belong to the selected class");
+        }
         Assignment assignment = new Assignment();
         assignment.setLibraryItem(libraryItem);
         assignment.setSpecification(specification);
         assignment.setTeacher(teacher);
-        if (simulationService != null) {
-            assignment.setAssignedSimulationRunId(simulationService.latestRunId(libraryItem.getSimulation()));
-        }
+        assignment.setSchoolClass(targetClass);
+        UUID assignedRunId = simulationService == null ? null : simulationService.latestRunId(libraryItem.getSimulation());
+        assignment.setAssignedSimulationRunId(assignedRunId);
         assignment.setTitle(request.title().trim());
         assignment.setDescription(request.description());
         assignment.setQuestions(request.questions());
-        assignment.setGradingCriteria(request.gradingCriteria());
+        JsonNode gradingCriteria = request.gradingCriteria();
+        boolean autoGrade = Boolean.TRUE.equals(request.autoGrade());
+        if ("MEASUREMENT".equals(activityType)) {
+            JsonNode measurement = request.questions().path("measurement");
+            String source = measurement.path("seriesSource").asText("");
+            double sampleTime = measurement.path("sampleTime").asDouble(Double.NaN);
+            double tolerance = measurement.path("tolerance").asDouble(Double.NaN);
+            if (source.isBlank() || !Double.isFinite(sampleTime) || !Double.isFinite(tolerance) || tolerance < 0)
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Measurement assignments require a series, sample time and non-negative tolerance");
+            SimulationResponse snapshot = simulationService.replay(libraryItem.getSimulation(), assignedRunId);
+            double expected = sampleSeries(snapshot, source, sampleTime);
+            ObjectNode derived = JsonNodeFactory.instance.objectNode();
+            derived.put("expectedValue", expected);
+            derived.put("tolerance", tolerance);
+            derived.put("seriesSource", source);
+            derived.put("sampleTime", sampleTime);
+            derived.put("unit", measurement.path("unit").asText(""));
+            gradingCriteria = derived;
+            autoGrade = true;
+        } else if ("PARAMETER_INVESTIGATION".equals(activityType)) {
+            String parameterKey = request.questions().path("investigation").path("parameterKey").asText("");
+            SimulationResponse snapshot = simulationService.replay(libraryItem.getSimulation(), assignedRunId);
+            if (parameterKey.isBlank() || snapshot.adjustableParams() == null || !snapshot.adjustableParams().containsKey(parameterKey))
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Investigation parameter is not adjustable in this simulation");
+            autoGrade = false;
+            gradingCriteria = null;
+        }
+        assignment.setGradingCriteria(gradingCriteria);
         assignment.setMaxScore(request.maxScore() == null || request.maxScore().signum() <= 0 ? BigDecimal.TEN : request.maxScore());
-        assignment.setAutoGrade(Boolean.TRUE.equals(request.autoGrade()));
+        assignment.setAutoGrade(autoGrade);
         assignment.setAssignedStudentIds(request.studentIds());
         assignment.setDueAt(request.dueAt());
         assignment.setAssignedAt(Instant.now());
@@ -141,6 +232,21 @@ public class AssignmentService {
     }
 
     @Transactional(readOnly = true)
+    public List<TeacherClassOption> classesForTeacher() {
+        User teacher = currentUserService.requireCurrentUser();
+        if (classTeacherAssignments == null || classEnrollments == null) return List.of();
+        return classTeacherAssignments.findActiveByTeacherId(teacher.getId()).stream()
+                .map(item -> item.getSchoolClass())
+                .distinct()
+                .map(schoolClass -> new TeacherClassOption(schoolClass.getId(), schoolClass.getName(),
+                        schoolClass.getGradeLevel(), schoolClass.getSchoolYear(), schoolClass.getSubject(),
+                        classEnrollments.findActiveStudentsByClassId(schoolClass.getId()).stream()
+                                .map(enrollment -> new TeacherClassStudent(enrollment.getStudent().getId(), enrollment.getStudent().getFullName()))
+                                .toList()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<AssignmentResponse> forStudent() {
         User student = currentUserService.requireCurrentUser();
         return assignmentRepository.findByAssignedStudentIdsContaining(student.getId()).stream()
@@ -156,7 +262,7 @@ public class AssignmentService {
         if (!assignment.getAssignedStudentIds().contains(student.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Assignment is not assigned to this student");
         }
-        if (!submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, student.getId())) {
+        if (requiresPrediction(assignment) && !submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, student.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Submit a prediction before viewing the simulation");
         }
         if (assignment.getLibraryItem() == null || assignment.getLibraryItem().getSimulation() == null) {
@@ -182,7 +288,7 @@ public class AssignmentService {
         if (!assignment.getAssignedStudentIds().contains(student.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Assignment is not assigned to this student");
         }
-        if (!submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, student.getId())) {
+        if (requiresPrediction(assignment) && !submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, student.getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Submit a prediction before adjusting the simulation");
         }
         if (assignment.getLibraryItem() == null || assignment.getLibraryItem().getSimulation() == null) {
@@ -225,9 +331,47 @@ public class AssignmentService {
         submission.setStudent(student);
         submission.setPredictions(request.predictions());
         submission.setSubmittedAt(Instant.now());
+        submission.setCompletedAt(null);
         submission.setRetryAllowed(false);
         submission.setGradingStatus(com.example.backend.entity.enums.GradingStatus.PENDING);
         submission.setScore(null); submission.setMaxScore(null); submission.setFeedback(null); submission.setGradedAt(null); submission.setGradedBy(null);
+        return toSubmission(submissionRepository.save(submission));
+    }
+
+    @Transactional
+    public AssignmentSubmissionResponse complete(java.util.UUID assignmentId, CompleteAssignmentRequest request) {
+        User student = currentUserService.requireCurrentUser();
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
+        if (!assignment.getAssignedStudentIds().contains(student.getId()))
+            throw new ApiException(HttpStatus.FORBIDDEN, "Assignment is not assigned to this student");
+        if (assignment.getStatus() != com.example.backend.entity.enums.AssignmentStatus.ACTIVE)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Assignment is closed");
+        AssignmentSubmission submission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId()).orElse(null);
+        if (submission == null && requiresPrediction(assignment))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Submit a prediction before completing the assignment");
+        if (submission == null) {
+            submission = new AssignmentSubmission();
+            submission.setAssignment(assignment);
+            submission.setStudent(student);
+            submission.setSubmittedAt(Instant.now());
+            submission.setPredictions(JsonNodeFactory.instance.objectNode());
+        }
+        if (submission.getCompletedAt() != null && !submission.isRetryAllowed())
+            throw new ApiException(HttpStatus.CONFLICT, "Assignment already submitted");
+        if (!(submission.getPredictions() instanceof ObjectNode prediction))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Prediction answer is invalid");
+        String answer = request.answerText() == null || request.answerText().isBlank()
+                ? request.conclusion().trim() : request.answerText().trim();
+        prediction.put("answerText", answer);
+        prediction.put("conclusion", request.conclusion().trim());
+        if (request.estimatedValue() != null && Double.isFinite(request.estimatedValue()))
+            prediction.put("estimatedValue", request.estimatedValue());
+        if (assignment.isAutoGrade() && !finiteNumber(prediction.path("estimatedValue")))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A numeric measurement is required for this assignment");
+        submission.setCompletedAt(Instant.now());
+        submission.setRetryAllowed(false);
+        submission.setGradingStatus(com.example.backend.entity.enums.GradingStatus.PENDING);
         if (assignment.isAutoGrade()) autoGrade(assignment, submission);
         return toSubmission(submissionRepository.save(submission));
     }
@@ -252,7 +396,7 @@ public class AssignmentService {
 
     @Transactional
     public AssignmentSubmissionResponse grade(java.util.UUID assignmentId, java.util.UUID submissionId,
-                                               BigDecimal score, BigDecimal maxScore, String feedback, boolean confirm) {
+                                               BigDecimal score, String feedback, boolean confirm) {
         User teacher = currentUserService.requireCurrentUser();
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
@@ -262,8 +406,11 @@ public class AssignmentService {
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
                 .filter(item -> item.getAssignment().getId().equals(assignmentId))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Submission not found"));
-        if (score.compareTo(maxScore) > 0) throw new ApiException(HttpStatus.BAD_REQUEST, "Score cannot exceed max score");
-        submission.setScore(score); submission.setMaxScore(maxScore); submission.setFeedback(feedback == null ? null : feedback.trim());
+        if (submission.getCompletedAt() == null)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "The student has not submitted this assignment yet");
+        BigDecimal assignmentMaxScore = assignment.getMaxScore();
+        if (score.compareTo(assignmentMaxScore) > 0) throw new ApiException(HttpStatus.BAD_REQUEST, "Score cannot exceed assignment max score");
+        submission.setScore(score); submission.setMaxScore(assignmentMaxScore); submission.setFeedback(feedback == null ? null : feedback.trim());
         submission.setGradingStatus(confirm ? com.example.backend.entity.enums.GradingStatus.TEACHER_CONFIRMED : com.example.backend.entity.enums.GradingStatus.AI_GRADED);
         submission.setGradedAt(Instant.now()); submission.setGradedBy(teacher); submission.setRetryAllowed(false);
         return toSubmission(submissionRepository.save(submission));
@@ -281,6 +428,7 @@ public class AssignmentService {
                 .filter(item -> item.getAssignment().getId().equals(assignmentId))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Submission not found"));
         submission.setRetryAllowed(true); submission.setGradingStatus(com.example.backend.entity.enums.GradingStatus.RETURNED);
+        submission.setCompletedAt(null);
         return toSubmission(submissionRepository.save(submission));
     }
 
@@ -305,10 +453,11 @@ public class AssignmentService {
         if (!admin && !assignment.getTeacher().getId().equals(teacher.getId()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the assignment teacher can view reports");
         List<AssignmentSubmission> rows = submissionRepository.findByAssignmentIdOrderBySubmittedAtDesc(assignmentId);
-        BigDecimal total = rows.stream().map(AssignmentSubmission::getScore).filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
-        long graded = rows.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.AI_GRADED || row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.TEACHER_CONFIRMED).count();
-        long confirmed = rows.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.TEACHER_CONFIRMED).count();
-        return new AssignmentReport(assignment.getAssignedStudentIds().size(), rows.size(), rows.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.PENDING).count(), graded, confirmed, rows.stream().filter(AssignmentSubmission::isRetryAllowed).count(), graded == 0 ? null : total.divide(BigDecimal.valueOf(graded), 3, java.math.RoundingMode.HALF_UP), assignment.getMaxScore());
+        List<AssignmentSubmission> completed = rows.stream().filter(row -> row.getCompletedAt() != null).toList();
+        BigDecimal total = completed.stream().map(AssignmentSubmission::getScore).filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+        long graded = completed.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.AI_GRADED || row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.TEACHER_CONFIRMED).count();
+        long confirmed = completed.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.TEACHER_CONFIRMED).count();
+        return new AssignmentReport(assignment.getAssignedStudentIds().size(), completed.size(), assignment.getAssignedStudentIds().size() - completed.size(), graded, confirmed, rows.stream().filter(AssignmentSubmission::isRetryAllowed).count(), graded == 0 ? null : total.divide(BigDecimal.valueOf(graded), 3, java.math.RoundingMode.HALF_UP), assignment.getMaxScore());
     }
 
     private AssignmentResponse toResponse(Assignment item) {
@@ -319,10 +468,16 @@ public class AssignmentService {
         AssignmentSubmission ownSubmission = current.getRole() != null && RoleName.STUDENT.matches(current.getRole().getName())
                 ? submissionRepository.findByAssignmentIdAndStudentId(item.getId(), current.getId()).orElse(null) : null;
         return new AssignmentResponse(item.getId(), item.getLibraryItem() == null ? null : item.getLibraryItem().getId(),
+                item.getLibraryItem() == null ? null : item.getLibraryItem().getTitle(),
+                item.getSchoolClass() == null ? null : item.getSchoolClass().getId(),
+                item.getSchoolClass() == null ? null : item.getSchoolClass().getName(),
+                item.getSchoolClass() == null ? null : item.getSchoolClass().getGradeLevel(),
                 item.getSpecification().getId(), item.getAssignedSimulationRunId(), item.getTitle(), item.getDescription(),
                 item.getQuestions(), item.getAssignedStudentIds() == null ? Set.of() : Set.copyOf(item.getAssignedStudentIds()),
                 item.getStatus(), item.getAssignedAt(), item.getDueAt(),
-                predictionSubmitted, RoleName.STUDENT.matches(current.getRole() == null ? null : current.getRole().getName())
+                predictionSubmitted, ownSubmission != null && ownSubmission.getCompletedAt() != null,
+                ownSubmission == null ? null : ownSubmission.getCompletedAt(),
+                RoleName.STUDENT.matches(current.getRole() == null ? null : current.getRole().getName())
                         ? null : item.getGradingCriteria(), item.getMaxScore(), item.isAutoGrade(),
                 ownSubmission == null ? null : ownSubmission.getScore(), ownSubmission == null ? null : ownSubmission.getFeedback(),
                 ownSubmission == null ? null : ownSubmission.getGradingStatus(), ownSubmission != null && ownSubmission.isRetryAllowed(),
@@ -331,7 +486,7 @@ public class AssignmentService {
 
     private AssignmentSubmissionResponse toSubmission(AssignmentSubmission item) {
         return new AssignmentSubmissionResponse(item.getId(), item.getAssignment().getId(), item.getStudent().getId(),
-                item.getStudent().getFullName(), item.getPredictions(), item.getSubmittedAt(), item.getScore(), item.getMaxScore(),
+                item.getStudent().getFullName(), item.getPredictions(), item.getSubmittedAt(), item.getCompletedAt(), item.getScore(), item.getMaxScore(),
                 item.getFeedback(), item.getGradingStatus(), item.getGradedAt(), item.isRetryAllowed());
     }
 }

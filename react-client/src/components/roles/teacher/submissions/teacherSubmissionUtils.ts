@@ -19,10 +19,21 @@ export function formatDateTime(value: string) {
 }
 
 export function predictionText(predictions: unknown) {
-  if (typeof predictions === "string") return predictions;
-  if (predictions === null || predictions === undefined)
-    return "Chưa có dự đoán";
-  return JSON.stringify(predictions) ?? "Chưa có dự đoán";
+  return predictionDetails(predictions).answer;
+}
+
+export function predictionDetails(predictions: unknown) {
+  if (typeof predictions === "string")
+    return { answer: predictions, reasoning: "", conclusion: "", estimatedValue: undefined as number | undefined };
+  if (predictions === null || typeof predictions !== "object")
+    return { answer: "Chưa có dự đoán", reasoning: "", conclusion: "", estimatedValue: undefined as number | undefined };
+  const value = predictions as Record<string, unknown>;
+  return {
+    answer: typeof value.answerText === "string" ? value.answerText : "Chưa có dự đoán",
+    reasoning: typeof value.reasoning === "string" ? value.reasoning : "",
+    conclusion: typeof value.conclusion === "string" ? value.conclusion : "",
+    estimatedValue: typeof value.estimatedValue === "number" ? value.estimatedValue : undefined,
+  };
 }
 
 export function initials(name: string, studentId: number) {
