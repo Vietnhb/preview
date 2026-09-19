@@ -1,7 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.reviewer.SchemaRequest;
-import com.example.backend.entity.LifecycleStatus;
+import com.example.backend.enums.LifecycleStatus;
 import com.example.backend.entity.SchemaVersion;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.SchemaVersionRepository;
@@ -18,12 +18,11 @@ import java.util.List;
 public class SchemaService {
     private final SchemaVersionRepository schemaRepository;
     private final SchemaDefinitionService schemaDefinitions;
-    private final com.example.backend.repository.TopicModuleReleaseRepository releaseRepository;
 
     @Transactional(readOnly = true)
     public List<SchemaVersion> list(boolean enabledOnly) {
         return schemaRepository.findAll().stream()
-                .filter(schema -> !enabledOnly || schema.isEnabled())
+                .filter(schema -> !enabledOnly || schema.getLifecycleStatus() == LifecycleStatus.APPROVED)
                 .sorted(Comparator.comparing(SchemaVersion::getTopic).thenComparing(SchemaVersion::getSchemaId))
                 .toList();
     }
@@ -31,7 +30,7 @@ public class SchemaService {
     @Transactional(readOnly = true)
     public SchemaVersion get(String schemaId) {
         return schemaRepository.findAll().stream()
-                .filter(schema -> schema.getSchemaId().equalsIgnoreCase(schemaId) && schema.isEnabled()
+                .filter(schema -> schema.getSchemaId().equalsIgnoreCase(schemaId)
                         && schema.getLifecycleStatus() == LifecycleStatus.APPROVED)
                 .max(Comparator.comparing(SchemaVersion::getCreatedAt))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Schema not found"));
@@ -51,7 +50,6 @@ public class SchemaService {
         schema.setVersion(request.version().trim());
         schema.setDefinition(request.definition());
         schema.setLifecycleStatus(LifecycleStatus.DRAFT);
-        schema.setEnabled(false);
         return schemaRepository.save(schema);
     }
 
@@ -80,13 +78,7 @@ public class SchemaService {
             schemaDefinitions.validateDefinition(schema.getDefinition(), schema.getSchemaId());
             schemaDefinitions.requireSolverBinding(schema.getSchemaId(), schema.getVersion());
         }
-        schema.setLifecycleStatus(status); schema.setEnabled(status == LifecycleStatus.APPROVED);
-        var release = releaseRepository.findAll().stream()
-                .filter(r -> r.getSchemaId().equals(schema.getSchemaId()) && r.getSchemaVersion().equals(schema.getVersion()))
-                .findFirst().orElseGet(com.example.backend.entity.TopicModuleRelease::new);
-        release.setSchemaId(schema.getSchemaId()); release.setSchemaVersion(schema.getVersion());
-        release.setTopic(schema.getTopic()); release.setModuleName(schema.getName()); release.setLifecycleStatus(status);
-        releaseRepository.save(release);
+        schema.setLifecycleStatus(status);
     }
 
     @Transactional

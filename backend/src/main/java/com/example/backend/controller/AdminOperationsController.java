@@ -2,7 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.entity.School;
 import com.example.backend.repository.SchoolRepository;
-import com.example.backend.repository.ValidationRunRepository;
+import com.example.backend.repository.SimulationRunRepository;
 import com.example.backend.service.CurriculumService;
 import com.example.backend.dto.curriculum.CurriculumTreeResponse;
 import com.example.backend.exception.ApiException;
@@ -20,7 +20,7 @@ import java.time.Instant;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminOperationsController {
     private final SchoolRepository schools;
-    private final ValidationRunRepository validations;
+    private final SimulationRunRepository simulationRuns;
     private final CurriculumService curriculum;
     private final com.example.backend.repository.LicensePlanRepository plans;
     public record PlanRequest(@NotBlank @Size(max=40) @Pattern(regexp="[A-Z0-9_-]+") String code,
@@ -84,11 +84,12 @@ public class AdminOperationsController {
     @GetMapping("/curriculum") public CurriculumTreeResponse curriculum() { return curriculum.getTree(true); }
     @GetMapping("/validation-runs") @Transactional(readOnly=true)
     public List<ValidationRow> validationRuns() {
-        return validations.findAll(org.springframework.data.domain.Sort.by("createdAt").descending()).stream().map(v -> {
+        return simulationRuns.findAll(org.springframework.data.domain.Sort.by("createdAt").descending()).stream().map(v -> {
             var sim = v.getSimulation();
             var spec = sim.getSpecification();
             return new ValidationRow(v.getId(), spec.getSubmission().getId(), spec.getTopic(), sim.getSchemaId(),
-                    spec.getSchemaVersion(), sim.getSolverVersion(), v.isPassed(), v.getStatus(), v.getErrorMessage(), v.getCreatedAt());
+                    spec.getSchemaVersion(), sim.getSolverVersion(), v.isValidationPassed(),
+                    v.isValidationPassed() ? "PASS" : "FAIL", v.getValidationError(), v.getCreatedAt());
         }).toList();
     }
 }

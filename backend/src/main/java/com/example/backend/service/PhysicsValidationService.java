@@ -1,37 +1,28 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.physics.SimulationResponse;
 import com.example.backend.dto.physics.ValidationCheckpointResponse;
 import com.example.backend.dto.physics.ValidationResponse;
-import com.example.backend.entity.Simulation;
 import com.example.backend.entity.SchemaVersion;
-import com.example.backend.entity.ValidationRun;
 import com.example.backend.physics.AnalyticalPoint;
 import com.example.backend.physics.ReferenceSolver;
 import com.example.backend.physics.ReferenceSolverRegistry;
 import com.example.backend.physics.SolverOutput;
-import com.example.backend.repository.ValidationRunRepository;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class PhysicsValidationService {
     private final ReferenceSolverRegistry referenceSolvers;
-    private final ValidationRunRepository validationRunRepository;
-    private final ObjectMapper objectMapper;
     private final SchemaDefinitionService schemaDefinitions;
 
     public ValidationResponse validate(JsonNode specification, String schemaId, String schemaVersion,
-                                      SolverOutput numerical, Map<String, Double> overrides,
-                                      Simulation simulation) {
+                                       SolverOutput numerical, Map<String, Double> overrides) {
         long started = System.nanoTime();
         ReferenceSolver solver = referenceSolvers.get(
                 schemaDefinitions.requireSolverBinding(schemaId, schemaVersion).referenceSolverId());
@@ -56,17 +47,7 @@ public class PhysicsValidationService {
             }
         }
         boolean passed = errors.isEmpty();
-        UUID validationRunId = null;
-        if (simulation != null) {
-            ValidationRun run = new ValidationRun();
-            run.setSimulation(simulation);
-            run.setStatus(passed ? "PASS" : "FAIL");
-            run.setPassed(passed);
-            run.setCheckpoints(objectMapper.valueToTree(checkpoints));
-            run.setErrorMessage(errors.isEmpty() ? null : String.join("; ", errors));
-            validationRunId = validationRunRepository.save(run).getId();
-        }
-        return new ValidationResponse(validationRunId, passed, schemaId, tolerance, List.copyOf(checkpoints),
+        return new ValidationResponse(null, passed, schemaId, tolerance, List.copyOf(checkpoints),
                 List.copyOf(errors), elapsedMillis(started));
     }
 
@@ -74,7 +55,7 @@ public class PhysicsValidationService {
                                                           SolverOutput numerical,
                                                           Map<String, Double> overrides) {
         SchemaVersion schema = schemaDefinitions.requireApproved(schemaId);
-        return validate(specification, schemaId, schema.getVersion(), numerical, overrides, null);
+        return validate(specification, schemaId, schema.getVersion(), numerical, overrides);
     }
 
     private double interpolate(List<Double> values, List<Double> times, double target) {

@@ -3,9 +3,9 @@ package com.example.backend.dto.problem;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.example.backend.entity.ExtractionOutcome;
-import com.example.backend.entity.ExtractionPath;
-import com.example.backend.entity.ExtractionRunStatus;
+import com.example.backend.enums.ExtractionOutcome;
+import com.example.backend.enums.ExtractionPath;
+import com.example.backend.enums.ExtractionRunStatus;
 
 public record ExtractionRunResponse(
         UUID id,

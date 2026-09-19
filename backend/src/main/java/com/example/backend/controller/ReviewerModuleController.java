@@ -1,14 +1,10 @@
 package com.example.backend.controller;
 
-import com.example.backend.entity.LifecycleStatus;
+import com.example.backend.enums.LifecycleStatus;
 import com.example.backend.entity.SchemaVersion;
-import com.example.backend.entity.TopicModuleRelease;
-import com.example.backend.exception.ApiException;
 import com.example.backend.repository.SchemaVersionRepository;
-import com.example.backend.repository.TopicModuleReleaseRepository;
 import com.example.backend.service.SchemaService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,22 +21,24 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
 public class ReviewerModuleController {
-    private final TopicModuleReleaseRepository releases;
     private final SchemaVersionRepository schemas;
     private final SchemaService schemaService;
 
+    public record ModuleReleaseView(UUID id, String topic, String moduleName, String schemaId,
+                                    String schemaVersion, LifecycleStatus lifecycleStatus) {
+        static ModuleReleaseView from(SchemaVersion schema) {
+            return new ModuleReleaseView(schema.getId(), schema.getTopic(), schema.getName(), schema.getSchemaId(),
+                    schema.getVersion(), schema.getLifecycleStatus());
+        }
+    }
+
     @GetMapping
-    public List<TopicModuleRelease> list() {
-        return releases.findAllByOrderByTopicAscModuleNameAscSchemaVersionAsc();
+    public List<ModuleReleaseView> list() {
+        return schemas.findAllByOrderByTopicAscNameAscVersionAsc().stream().map(ModuleReleaseView::from).toList();
     }
 
     @PutMapping("/{id}/lifecycle")
-    public TopicModuleRelease lifecycle(@PathVariable UUID id, @RequestParam LifecycleStatus status) {
-        TopicModuleRelease release = releases.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Module release not found"));
-        SchemaVersion schema = schemas.findFirstBySchemaIdAndVersion(release.getSchemaId(), release.getSchemaVersion())
-                .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "Module schema version is missing"));
-        schemaService.changeVersionLifecycle(schema.getId(), status);
-        return releases.findById(id).orElse(release);
+    public ModuleReleaseView lifecycle(@PathVariable UUID id, @RequestParam LifecycleStatus status) {
+        return ModuleReleaseView.from(schemaService.changeVersionLifecycle(id, status));
     }
 }

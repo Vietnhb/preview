@@ -1,8 +1,8 @@
 package com.example.backend.repository;
 
 import com.example.backend.entity.SupportItem;
-import com.example.backend.entity.SupportKind;
-import com.example.backend.entity.SupportStatus;
+import com.example.backend.enums.SupportKind;
+import com.example.backend.enums.SupportStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

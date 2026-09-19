@@ -11,8 +11,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.example.backend.entity.AmbiguityCase;
-import com.example.backend.entity.AmbiguityStatus;
-import com.example.backend.entity.ConfirmationState;
+import com.example.backend.enums.AmbiguityStatus;
+import com.example.backend.enums.ConfirmationState;
 import com.example.backend.entity.SchemaVersion;
 import com.example.backend.entity.Specification;
 import com.example.backend.repository.SchemaVersionRepository;

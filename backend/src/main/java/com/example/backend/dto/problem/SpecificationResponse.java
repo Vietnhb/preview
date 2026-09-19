@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import com.example.backend.entity.ConfirmationState;
+import com.example.backend.enums.ConfirmationState;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public record SpecificationResponse(

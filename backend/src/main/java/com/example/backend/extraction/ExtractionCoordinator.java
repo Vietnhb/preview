@@ -2,8 +2,8 @@ package com.example.backend.extraction;
 
 import org.springframework.stereotype.Service;
 
-import com.example.backend.entity.ExtractionOutcome;
-import com.example.backend.entity.ExtractionPath;
+import com.example.backend.enums.ExtractionOutcome;
+import com.example.backend.enums.ExtractionPath;
 
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -1,6 +1,6 @@
 package com.example.backend.dto.reviewer;
 
-import com.example.backend.entity.AmbiguityStatus;
+import com.example.backend.enums.AmbiguityStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.UUID;

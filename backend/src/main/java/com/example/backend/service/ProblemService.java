@@ -21,19 +21,19 @@ import com.example.backend.dto.problem.ProblemResponse;
 import com.example.backend.dto.problem.ProblemSummaryResponse;
 import com.example.backend.dto.problem.UpdateSpecificationRequest;
 import com.example.backend.entity.AmbiguityCase;
-import com.example.backend.entity.AmbiguityStatus;
-import com.example.backend.entity.AssetType;
-import com.example.backend.entity.ConfirmationState;
-import com.example.backend.entity.ExtractionOutcome;
+import com.example.backend.enums.AmbiguityStatus;
+import com.example.backend.enums.AssetType;
+import com.example.backend.enums.ConfirmationState;
+import com.example.backend.enums.ExtractionOutcome;
 import com.example.backend.entity.ExtractionRun;
-import com.example.backend.entity.ExtractionRunStatus;
+import com.example.backend.enums.ExtractionRunStatus;
 import com.example.backend.entity.Lesson;
-import com.example.backend.entity.OcrStatus;
+import com.example.backend.enums.OcrStatus;
 import com.example.backend.entity.ProblemSubmission;
 import com.example.backend.entity.SourceAsset;
-import com.example.backend.entity.SourceMode;
+import com.example.backend.enums.SourceMode;
 import com.example.backend.entity.Specification;
-import com.example.backend.entity.SubmissionStatus;
+import com.example.backend.enums.SubmissionStatus;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.extraction.AmbiguityItem;
@@ -161,7 +161,7 @@ public class ProblemService {
 
         ExtractionRun run = new ExtractionRun();
         run.setSubmission(problem);
-        run.setExtractionPath(com.example.backend.entity.ExtractionPath.OPENROUTER);
+        run.setExtractionPath(com.example.backend.enums.ExtractionPath.OPENROUTER);
         run.setProviderName("pending");
         run.setStatus(ExtractionRunStatus.RUNNING);
         extractionRunRepository.save(run);
@@ -178,6 +178,12 @@ public class ProblemService {
                     : SubmissionStatus.READY_FOR_VALIDATION);
             return mapper.toResponse(problem);
         } catch (ApiException exception) {
+            // Keep a failed extraction from looking active when a precondition such as
+            // the school's AI quota rejects the request after the run was created.
+            run.setStatus(ExtractionRunStatus.FAILED);
+            run.setOutcome(ExtractionOutcome.FAILED);
+            run.setErrorMessage("AI extraction failed");
+            problem.setStatus(SubmissionStatus.FAILED);
             throw exception;
         } catch (RuntimeException exception) {
             run.setStatus(ExtractionRunStatus.FAILED);

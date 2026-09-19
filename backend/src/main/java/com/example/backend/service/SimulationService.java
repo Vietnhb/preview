@@ -5,13 +5,13 @@ import com.example.backend.dto.physics.SimulationRequest;
 import com.example.backend.dto.physics.SimulationResponse;
 import com.example.backend.dto.physics.SimulationSummaryResponse;
 import com.example.backend.dto.physics.ValidationResponse;
-import com.example.backend.entity.ConfirmationState;
+import com.example.backend.enums.ConfirmationState;
 import com.example.backend.entity.Simulation;
 import com.example.backend.entity.SimulationRun;
-import com.example.backend.entity.SimulationStatus;
+import com.example.backend.enums.SimulationStatus;
 import com.example.backend.entity.Specification;
 import com.example.backend.entity.User;
-import com.example.backend.entity.Visibility;
+import com.example.backend.enums.Visibility;
 import com.example.backend.exception.ApiException;
 import com.example.backend.physics.PhysicsSolver;
 import com.example.backend.physics.PhysicsSolverRegistry;
@@ -106,9 +106,9 @@ public class SimulationService {
         Map<String, Double> requestedParams = request.adjustableParams() == null
                 ? Map.of() : new LinkedHashMap<>(request.adjustableParams());
         assertAllowedAdjustments(schema, requestedParams);
-        Map<String, Double> previousParams = mapNumbers(simulation.getLatestResult(), PARAMETERS);
+        Map<String, Double> previousParams = mapNumbers(latestResult(simulation), PARAMETERS);
         Map<String, Double> params = schemaDefinitions.effectiveAdjustments(input, schema.getDefinition(), requestedParams, previousParams);
-        List<Double> previousTime = list(simulation.getLatestResult(), "time");
+        List<Double> previousTime = list(latestResult(simulation), "time");
         if (previousTime.size() < 2) throw new ApiException(HttpStatus.CONFLICT, "Previous simulation timeline is unavailable");
         // Re-read the persisted execution contract. The previous resolved
         // duration is an output, not the next run's input horizon.
@@ -138,7 +138,7 @@ public class SimulationService {
                 ? Map.of() : new LinkedHashMap<>(requestedParams);
         assertAllowedAdjustments(schema, requested);
 
-        JsonNode baseResult = simulation.getLatestResult();
+        JsonNode baseResult = latestResult(simulation);
         if (baseRunId != null) {
             SimulationRun baseRun = simulationRunRepository.findById(baseRunId)
                     .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Assigned simulation run not found"));
@@ -166,7 +166,7 @@ public class SimulationService {
         SolverOutput output = calculation.output();
         ResolvedEnd resolvedEnd = calculation.resolvedEnd();
         ValidationResponse validation = validationService.validate(
-                input, simulation.getSchemaId(), schemaVersion, output, params, null);
+                input, simulation.getSchemaId(), schemaVersion, output, params);
         JsonNode result = resultJson(output, params, validation, resolvedEnd);
         double elapsed = (System.nanoTime() - started) / 1_000_000.0;
         return new SimulationResponse(simulation.getId(), baseRunId, simulation.getSpecification().getId(),
@@ -257,16 +257,22 @@ public class SimulationService {
         SolverOutput output = calculation.output();
         ResolvedEnd resolvedEnd = calculation.resolvedEnd();
         ValidationResponse validation = validationService.validate(
-                context.input(), context.schemaId(), context.schemaVersion(), output, context.params(), simulation);
+                context.input(), context.schemaId(), context.schemaVersion(), output, context.params());
         JsonNode result = resultJson(output, context.params(), validation, resolvedEnd);
         SimulationRun run = new SimulationRun();
         run.setSimulation(simulation);
         run.setRunType(context.runType());
         run.setValidationPassed(validation.passed());
+        run.setValidationCheckpoints(objectMapper.valueToTree(validation.checkpoints()));
+        run.setValidationError(validation.errors().isEmpty() ? null : String.join("; ", validation.errors()));
         run.setDurationSeconds(output.time().isEmpty() ? 0 : output.time().get(output.time().size() - 1));
         run.setResult(result);
         simulationRunRepository.save(run);
-        simulation.setLatestResult(result);
+        validation = new ValidationResponse(run.getId(), validation.passed(), validation.schemaId(),
+                validation.tolerance(), validation.checkpoints(), validation.errors(), validation.validationTimeMs());
+        result = resultJson(output, context.params(), validation, resolvedEnd);
+        run.setResult(result);
+        simulation.setLatestRun(run);
         simulation.setStatus(validation.passed() ? SimulationStatus.READY : SimulationStatus.BLOCKED);
         simulationRepository.save(simulation);
         specificationStatus(simulation.getSpecification(), validation, result);
@@ -308,7 +314,7 @@ public class SimulationService {
     }
 
     private SimulationResponse latestResponse(Simulation simulation, boolean includeRunId) {
-        JsonNode latest = simulation.getLatestResult();
+        JsonNode latest = latestResult(simulation);
         boolean ready = simulation.getStatus() == SimulationStatus.READY
                 || simulation.getStatus() == SimulationStatus.ARCHIVED;
         String status = simulation.getStatus() == null ? "UNKNOWN" : simulation.getStatus().name();
@@ -320,7 +326,7 @@ public class SimulationService {
     }
 
     private SimulationResponse latestResponse(Simulation simulation, UUID runId) {
-        JsonNode latest = simulation.getLatestResult();
+        JsonNode latest = latestResult(simulation);
         boolean ready = simulation.getStatus() == SimulationStatus.READY
                 || simulation.getStatus() == SimulationStatus.ARCHIVED;
         String status = simulation.getStatus() == null ? "UNKNOWN" : simulation.getStatus().name();
@@ -337,6 +343,10 @@ public class SimulationService {
                 map(result, "accelerations"), map(result, "values"), parameters,
                 safeVisualization(simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion()),
                 validationFromResult(result), result, resolvedEnd, 0, message);
+    }
+
+    private JsonNode latestResult(Simulation simulation) {
+        return simulation.getLatestRun() == null ? null : simulation.getLatestRun().getResult();
     }
 
     private ResolvedEnd resolvedEndFromResult(JsonNode result) {

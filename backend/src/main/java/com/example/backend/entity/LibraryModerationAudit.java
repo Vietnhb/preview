@@ -1,4 +1,5 @@
 package com.example.backend.entity;
+import com.example.backend.enums.LibraryModerationStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

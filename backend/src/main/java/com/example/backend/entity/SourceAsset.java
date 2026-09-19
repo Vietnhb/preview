@@ -1,4 +1,6 @@
 package com.example.backend.entity;
+import com.example.backend.enums.AssetType;
+import com.example.backend.enums.OcrStatus;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;

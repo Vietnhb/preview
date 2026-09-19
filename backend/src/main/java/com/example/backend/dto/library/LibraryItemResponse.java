@@ -1,7 +1,7 @@
 package com.example.backend.dto.library;
 
-import com.example.backend.entity.Visibility;
-import com.example.backend.entity.LibraryModerationStatus;
+import com.example.backend.enums.Visibility;
+import com.example.backend.enums.LibraryModerationStatus;
 
 import java.time.Instant;
 import java.util.UUID;

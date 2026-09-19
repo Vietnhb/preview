@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import com.example.backend.entity.LifecycleStatus;
+import com.example.backend.enums.LifecycleStatus;
 import com.example.backend.entity.SchemaVersion;
 import com.example.backend.entity.SolverVersion;
 import com.example.backend.exception.ApiException;
@@ -45,7 +45,7 @@ public class SchemaDefinitionService {
     @Transactional(readOnly = true)
     public SchemaVersion requireApproved(String schemaId) {
         if (!StringUtils.hasText(schemaId)) throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Schema is missing");
-        SchemaVersion schema = repository.findByEnabledTrueAndLifecycleStatus(LifecycleStatus.APPROVED).stream()
+        SchemaVersion schema = repository.findByLifecycleStatus(LifecycleStatus.APPROVED).stream()
                 .filter(item -> item.getSchemaId().equalsIgnoreCase(schemaId))
                 .max(Comparator.comparing(SchemaVersion::getCreatedAt))
                 .orElseThrow(() -> new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
@@ -61,7 +61,7 @@ public class SchemaDefinitionService {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Persisted schema binding is missing");
         }
         SchemaVersion schema = repository.findFirstBySchemaIdAndVersion(schemaId, version)
-                .filter(item -> item.isEnabled() && item.getLifecycleStatus() == LifecycleStatus.APPROVED)
+                .filter(item -> item.getLifecycleStatus() == LifecycleStatus.APPROVED)
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
                         "Persisted schema binding is not approved: " + schemaId + "@" + version));
         validateDefinition(schema.getDefinition(), schemaId);
@@ -73,7 +73,7 @@ public class SchemaDefinitionService {
     public List<SchemaVersion> approvedSchemas() {
         var enabledTopics = topicRepository.findAll().stream().filter(com.example.backend.entity.Topic::isEnabled)
                 .map(t -> t.getName().toLowerCase(java.util.Locale.ROOT)).collect(java.util.stream.Collectors.toSet());
-        return new java.util.TreeMap<>(repository.findByEnabledTrueAndLifecycleStatus(LifecycleStatus.APPROVED).stream()
+        return new java.util.TreeMap<>(repository.findByLifecycleStatus(LifecycleStatus.APPROVED).stream()
                 .filter(s -> enabledTopics.contains(s.getTopic().toLowerCase(java.util.Locale.ROOT)))
                 .collect(java.util.stream.Collectors.toMap(item -> item.getSchemaId().toLowerCase(), item -> item,
                         (left, right) -> left.getCreatedAt().compareTo(right.getCreatedAt()) >= 0 ? left : right)))

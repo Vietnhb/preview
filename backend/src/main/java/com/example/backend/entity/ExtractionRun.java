@@ -1,4 +1,7 @@
 package com.example.backend.entity;
+import com.example.backend.enums.ExtractionPath;
+import com.example.backend.enums.ExtractionRunStatus;
+import com.example.backend.enums.ExtractionOutcome;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

@@ -11,7 +11,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.TopicRepository;
 import com.example.backend.repository.UserRepository;
-import com.example.backend.repository.ValidationRunRepository;
+import com.example.backend.repository.SimulationRunRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,7 +26,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final TopicRepository topicRepository;
-    private final ValidationRunRepository validationRunRepository;
+    private final SimulationRunRepository simulationRunRepository;
     private final PasswordEncoder passwordEncoder;
     private final CurrentUserService currentUserService;
     private final RoleValidationService roleValidationService;
@@ -91,8 +91,8 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public ValidationMetricsResponse validationMetrics() {
-        long total = validationRunRepository.count();
-        long failed = validationRunRepository.countByPassedFalse();
+        long total = simulationRunRepository.count();
+        long failed = simulationRunRepository.countByValidationPassedFalse();
         return new ValidationMetricsResponse(total, failed, total == 0 ? 0 : (double) failed / total);
     }
 

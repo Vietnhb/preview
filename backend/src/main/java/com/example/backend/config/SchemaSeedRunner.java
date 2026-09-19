@@ -6,13 +6,11 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import com.example.backend.entity.LifecycleStatus;
+import com.example.backend.enums.LifecycleStatus;
 import com.example.backend.entity.SchemaVersion;
 import com.example.backend.entity.SolverVersion;
-import com.example.backend.entity.TopicModuleRelease;
 import com.example.backend.repository.SchemaVersionRepository;
 import com.example.backend.repository.SolverVersionRepository;
-import com.example.backend.repository.TopicModuleReleaseRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 public class SchemaSeedRunner implements CommandLineRunner {
     private final SchemaVersionRepository schemaRepository;
     private final SolverVersionRepository solverRepository;
-    private final TopicModuleReleaseRepository releaseRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -44,7 +41,7 @@ public class SchemaSeedRunner implements CommandLineRunner {
             var definition = entry.path("definition").deepCopy();
             if (definition instanceof com.fasterxml.jackson.databind.node.ObjectNode object) object.put("model", entry.path("model").asText());
             schema.setDefinition(definition);
-            schema.setLifecycleStatus(LifecycleStatus.APPROVED); schema.setEnabled(true); schemaRepository.save(schema);
+            schema.setLifecycleStatus(LifecycleStatus.APPROVED); schemaRepository.save(schema);
         }
         if (solverRepository.findFirstBySchemaIdAndVersion(id, version).isEmpty()) {
             SolverVersion solver = new SolverVersion(); solver.setSchemaId(id);
@@ -54,12 +51,6 @@ public class SchemaSeedRunner implements CommandLineRunner {
             binding.set("output", entry.path("definition").path("output"));
             binding.put("referenceSolverId", entry.path("referenceSolverId").asText());
             solver.setOutputDefinition(binding); solverRepository.save(solver);
-        }
-        if (releaseRepository.findAll().stream().noneMatch(item -> item.getSchemaId().equals(id)
-                && version.equals(item.getSchemaVersion()))) {
-            TopicModuleRelease release = new TopicModuleRelease(); release.setTopic(entry.path("topic").asText());
-            release.setModuleName("MVP Core"); release.setSchemaId(id); release.setSchemaVersion(version);
-            release.setLifecycleStatus(LifecycleStatus.APPROVED); releaseRepository.save(release);
         }
     }
 }

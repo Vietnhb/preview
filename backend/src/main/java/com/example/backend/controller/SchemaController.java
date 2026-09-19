@@ -1,7 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.reviewer.SchemaRequest;
-import com.example.backend.entity.LifecycleStatus;
+import com.example.backend.enums.LifecycleStatus;
 import com.example.backend.entity.SchemaVersion;
 import com.example.backend.service.SchemaService;
 import jakarta.validation.Valid;
@@ -32,7 +32,7 @@ public class SchemaController {
         boolean privileged = authentication.getAuthorities().stream().anyMatch(a ->
                 a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_CONTENT_REVIEWER"));
         return schemaService.list(enabledOnly).stream().filter(s -> privileged
-                || (s.isEnabled() && s.getLifecycleStatus() == LifecycleStatus.APPROVED)).toList();
+                || s.getLifecycleStatus() == LifecycleStatus.APPROVED).toList();
     }
 
     @GetMapping("/{schemaId}")

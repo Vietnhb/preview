@@ -27,6 +27,13 @@ public class SimulationRun extends AuditedEntity {
     @Column(nullable = false)
     private boolean validationPassed;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "validation_checkpoints", nullable = false, columnDefinition = "jsonb")
+    private JsonNode validationCheckpoints;
+
+    @Column(name = "validation_error", columnDefinition = "text")
+    private String validationError;
+
     @Column(nullable = false)
     private double durationSeconds;
 

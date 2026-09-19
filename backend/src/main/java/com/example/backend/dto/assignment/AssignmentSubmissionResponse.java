@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.UUID;
 import java.math.BigDecimal;
-import com.example.backend.entity.GradingStatus;
+import com.example.backend.enums.GradingStatus;
 
 public record AssignmentSubmissionResponse(UUID id, UUID assignmentId, Integer studentId,
                                            String studentName, JsonNode predictions, Instant submittedAt,

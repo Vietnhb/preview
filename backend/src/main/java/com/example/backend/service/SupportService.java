@@ -1,8 +1,8 @@
 package com.example.backend.service;
 
 import com.example.backend.entity.SupportItem;
-import com.example.backend.entity.SupportKind;
-import com.example.backend.entity.SupportStatus;
+import com.example.backend.enums.SupportKind;
+import com.example.backend.enums.SupportStatus;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.SupportItemRepository;

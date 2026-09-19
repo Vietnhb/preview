@@ -1,4 +1,5 @@
 package com.example.backend.entity;
+import com.example.backend.enums.LifecycleStatus;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
@@ -6,13 +7,15 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "solver_versions")
+@Table(name = "solver_versions", uniqueConstraints =
+        @UniqueConstraint(name = "uk_solver_versions_identity", columnNames = {"schema_id", "version"}))
 @Getter
 @Setter
 public class SolverVersion extends AuditedEntity {

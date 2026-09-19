@@ -1,4 +1,6 @@
 package com.example.backend.entity;
+import com.example.backend.enums.SourceMode;
+import com.example.backend.enums.SubmissionStatus;
 
 import java.util.ArrayList;
 import java.util.List;

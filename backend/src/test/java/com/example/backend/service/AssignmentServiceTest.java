@@ -22,7 +22,7 @@ import com.example.backend.entity.Role;
 import com.example.backend.entity.School;
 import com.example.backend.entity.SchoolClass;
 import com.example.backend.entity.Simulation;
-import com.example.backend.entity.SimulationStatus;
+import com.example.backend.enums.SimulationStatus;
 import com.example.backend.entity.Specification;
 import com.example.backend.entity.User;
 import com.example.backend.repository.AssignmentRepository;

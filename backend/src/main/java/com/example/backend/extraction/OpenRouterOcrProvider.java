@@ -6,7 +6,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import com.example.backend.entity.OcrStatus;
+import com.example.backend.enums.OcrStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 
 @Component

@@ -3,7 +3,7 @@ package com.example.backend.dto.problem;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.example.backend.entity.AmbiguityStatus;
+import com.example.backend.enums.AmbiguityStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public record AmbiguityResponse(

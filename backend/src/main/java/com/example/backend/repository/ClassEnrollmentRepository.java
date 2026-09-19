@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.example.backend.entity.ClassEnrollment;
-import com.example.backend.entity.ClassEnrollment.EnrollmentStatus;
 
 @Repository
 public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment, UUID> {
@@ -45,5 +44,5 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
     @Query("SELECT COUNT(DISTINCT e.student.id) FROM ClassEnrollment e WHERE e.schoolClass.school.id = :schoolId AND e.status = 'ACTIVE'")
     Long countActiveStudentsBySchoolId(@Param("schoolId") UUID schoolId);
 
-    java.util.Optional<ClassEnrollment> findBySchoolClassIdAndStudentIdAndStatus(UUID classId, Integer studentId, EnrollmentStatus status);
+    java.util.Optional<ClassEnrollment> findBySchoolClassIdAndStudentIdAndStatus(UUID classId, Integer studentId, ClassEnrollment.EnrollmentStatus status);
 }

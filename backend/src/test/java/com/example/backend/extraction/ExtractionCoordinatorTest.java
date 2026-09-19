@@ -11,8 +11,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.example.backend.entity.ExtractionOutcome;
-import com.example.backend.entity.ExtractionPath;
+import com.example.backend.enums.ExtractionOutcome;
+import com.example.backend.enums.ExtractionPath;
 
 class ExtractionCoordinatorTest {
 

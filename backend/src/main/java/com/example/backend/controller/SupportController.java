@@ -1,6 +1,6 @@
 package com.example.backend.controller;
 
-import com.example.backend.entity.SupportKind;
+import com.example.backend.enums.SupportKind;
 import com.example.backend.service.SupportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

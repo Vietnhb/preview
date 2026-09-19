@@ -10,7 +10,7 @@ import com.example.backend.entity.Assignment;
 import com.example.backend.entity.AssignmentSubmission;
 import com.example.backend.entity.Specification;
 import com.example.backend.entity.LibraryItem;
-import com.example.backend.entity.SimulationStatus;
+import com.example.backend.enums.SimulationStatus;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.AssignmentRepository;
@@ -127,7 +127,7 @@ public class AssignmentService {
     public List<AssignmentResponse> forStudent() {
         User student = currentUserService.requireCurrentUser();
         return assignmentRepository.findByAssignedStudentIdsContaining(student.getId()).stream()
-                .filter(item -> item.getStatus() == com.example.backend.entity.AssignmentStatus.ACTIVE)
+                .filter(item -> item.getStatus() == com.example.backend.enums.AssignmentStatus.ACTIVE)
                 .map(this::toResponse).toList();
     }
 
@@ -200,7 +200,7 @@ public class AssignmentService {
         submission.setPredictions(request.predictions());
         submission.setSubmittedAt(Instant.now());
         submission.setRetryAllowed(false);
-        submission.setGradingStatus(com.example.backend.entity.GradingStatus.PENDING);
+        submission.setGradingStatus(com.example.backend.enums.GradingStatus.PENDING);
         submission.setScore(null); submission.setMaxScore(null); submission.setFeedback(null); submission.setGradedAt(null); submission.setGradedBy(null);
         if (assignment.isAutoGrade()) autoGrade(assignment, submission);
         return toSubmission(submissionRepository.save(submission));
@@ -215,7 +215,7 @@ public class AssignmentService {
         double tolerance = criteria.has("tolerance") ? Math.max(0d, criteria.get("tolerance").asDouble()) : 0d;
         submission.setMaxScore(assignment.getMaxScore());
         submission.setScore(Math.abs(expected - actual) <= tolerance ? assignment.getMaxScore() : BigDecimal.ZERO);
-        submission.setGradingStatus(com.example.backend.entity.GradingStatus.AI_GRADED);
+        submission.setGradingStatus(com.example.backend.enums.GradingStatus.AI_GRADED);
         submission.setGradedAt(Instant.now()); submission.setRetryAllowed(false);
     }
 
@@ -233,7 +233,7 @@ public class AssignmentService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Submission not found"));
         if (score.compareTo(maxScore) > 0) throw new ApiException(HttpStatus.BAD_REQUEST, "Score cannot exceed max score");
         submission.setScore(score); submission.setMaxScore(maxScore); submission.setFeedback(feedback == null ? null : feedback.trim());
-        submission.setGradingStatus(confirm ? com.example.backend.entity.GradingStatus.TEACHER_CONFIRMED : com.example.backend.entity.GradingStatus.AI_GRADED);
+        submission.setGradingStatus(confirm ? com.example.backend.enums.GradingStatus.TEACHER_CONFIRMED : com.example.backend.enums.GradingStatus.AI_GRADED);
         submission.setGradedAt(Instant.now()); submission.setGradedBy(teacher); submission.setRetryAllowed(false);
         return toSubmission(submissionRepository.save(submission));
     }
@@ -249,7 +249,7 @@ public class AssignmentService {
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
                 .filter(item -> item.getAssignment().getId().equals(assignmentId))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Submission not found"));
-        submission.setRetryAllowed(true); submission.setGradingStatus(com.example.backend.entity.GradingStatus.RETURNED);
+        submission.setRetryAllowed(true); submission.setGradingStatus(com.example.backend.enums.GradingStatus.RETURNED);
         return toSubmission(submissionRepository.save(submission));
     }
 
@@ -275,9 +275,9 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the assignment teacher can view reports");
         List<AssignmentSubmission> rows = submissionRepository.findByAssignmentIdOrderBySubmittedAtDesc(assignmentId);
         BigDecimal total = rows.stream().map(AssignmentSubmission::getScore).filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
-        long graded = rows.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.GradingStatus.AI_GRADED || row.getGradingStatus() == com.example.backend.entity.GradingStatus.TEACHER_CONFIRMED).count();
-        long confirmed = rows.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.GradingStatus.TEACHER_CONFIRMED).count();
-        return new AssignmentReport(assignment.getAssignedStudentIds().size(), rows.size(), rows.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.GradingStatus.PENDING).count(), graded, confirmed, rows.stream().filter(AssignmentSubmission::isRetryAllowed).count(), graded == 0 ? null : total.divide(BigDecimal.valueOf(graded), 3, java.math.RoundingMode.HALF_UP), assignment.getMaxScore());
+        long graded = rows.stream().filter(row -> row.getGradingStatus() == com.example.backend.enums.GradingStatus.AI_GRADED || row.getGradingStatus() == com.example.backend.enums.GradingStatus.TEACHER_CONFIRMED).count();
+        long confirmed = rows.stream().filter(row -> row.getGradingStatus() == com.example.backend.enums.GradingStatus.TEACHER_CONFIRMED).count();
+        return new AssignmentReport(assignment.getAssignedStudentIds().size(), rows.size(), rows.stream().filter(row -> row.getGradingStatus() == com.example.backend.enums.GradingStatus.PENDING).count(), graded, confirmed, rows.stream().filter(AssignmentSubmission::isRetryAllowed).count(), graded == 0 ? null : total.divide(BigDecimal.valueOf(graded), 3, java.math.RoundingMode.HALF_UP), assignment.getMaxScore());
     }
 
     private AssignmentResponse toResponse(Assignment item) {

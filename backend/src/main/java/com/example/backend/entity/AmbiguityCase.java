@@ -1,4 +1,5 @@
 package com.example.backend.entity;
+import com.example.backend.enums.AmbiguityStatus;
 
 import java.time.Instant;
 

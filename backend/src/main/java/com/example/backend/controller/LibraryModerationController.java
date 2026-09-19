@@ -1,7 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.library.LibraryItemResponse;
-import com.example.backend.entity.LibraryModerationStatus;
+import com.example.backend.enums.LibraryModerationStatus;
 import com.example.backend.service.LibraryModerationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;

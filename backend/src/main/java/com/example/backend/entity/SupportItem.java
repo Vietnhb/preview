@@ -1,4 +1,6 @@
 package com.example.backend.entity;
+import com.example.backend.enums.SupportKind;
+import com.example.backend.enums.SupportStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

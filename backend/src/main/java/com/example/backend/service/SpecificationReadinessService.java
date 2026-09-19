@@ -9,8 +9,8 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import com.example.backend.entity.AmbiguityStatus;
-import com.example.backend.entity.ConfirmationState;
+import com.example.backend.enums.AmbiguityStatus;
+import com.example.backend.enums.ConfirmationState;
 import com.example.backend.entity.Specification;
 import com.example.backend.entity.AmbiguityCase;
 import com.example.backend.entity.SchemaVersion;

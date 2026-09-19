@@ -1,6 +1,6 @@
 package com.example.backend.entity;
+import com.example.backend.enums.SimulationStatus;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,8 +11,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "simulations")
@@ -37,7 +35,7 @@ public class Simulation extends AuditedEntity {
     @Enumerated(EnumType.STRING)
     private SimulationStatus status = SimulationStatus.VALIDATING;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private JsonNode latestResult;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "latest_run_id")
+    private SimulationRun latestRun;
 }

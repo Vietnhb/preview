@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public interface SimulationRunRepository extends JpaRepository<SimulationRun, UUID> {
     List<SimulationRun> findBySimulationIdOrderByCreatedAtDesc(UUID simulationId);
+    long countByValidationPassedFalse();
 
     interface LatestRunId {
         UUID getSimulationId();

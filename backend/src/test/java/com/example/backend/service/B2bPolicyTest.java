@@ -9,7 +9,7 @@ import com.example.backend.repository.UserRepository;
 import com.example.backend.dto.admin.CreateManagedUserRequest;
 import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.TopicRepository;
-import com.example.backend.repository.ValidationRunRepository;
+import com.example.backend.repository.SimulationRunRepository;
 import com.example.backend.security.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -133,7 +133,7 @@ class B2bPolicyTest {
         Role adminRole = new Role(); adminRole.setName("ADMIN");
         when(roles.findByName("TEACHER")).thenReturn(Optional.of(teacherRole));
         when(roles.findByName("ADMIN")).thenReturn(Optional.of(adminRole));
-        var admin = new AdminService(users, roles, mock(TopicRepository.class), mock(ValidationRunRepository.class),
+        var admin = new AdminService(users, roles, mock(TopicRepository.class), mock(SimulationRunRepository.class),
                 mock(PasswordEncoder.class), current, new RoleValidationService(users), licenses, schools, mock(jakarta.persistence.EntityManager.class));
         assertThrows(ApiException.class, () -> admin.createUser(new CreateManagedUserRequest(
                 "teacher@example.com", "password123", "Teacher", "TEACHER", other.getId().toString())));

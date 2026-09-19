@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.backend.entity.AmbiguityCase;
-import com.example.backend.entity.AmbiguityStatus;
+import com.example.backend.enums.AmbiguityStatus;
 import com.example.backend.entity.Specification;
 
 public interface AmbiguityCaseRepository extends JpaRepository<AmbiguityCase, UUID> {

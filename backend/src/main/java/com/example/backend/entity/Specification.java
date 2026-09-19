@@ -1,4 +1,5 @@
 package com.example.backend.entity;
+import com.example.backend.enums.ConfirmationState;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
