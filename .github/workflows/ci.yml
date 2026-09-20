@@ -14,10 +14,15 @@ jobs:
     defaults: { run: { working-directory: react-client } }
     steps:
       - uses: actions/checkout@v4
+      - run: node scripts/repair-versioned-schema-text.mjs --check
+        working-directory: .
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: react-client/package-lock.json }
       - run: npm ci
+      - run: node ../scripts/generate-schema-catalog.mjs --check
+      - run: node ../scripts/repair-versioned-schema-text.mjs --check
       - run: npm run lint
+      - run: npm test
       - run: npm run build
   curriculum:
     runs-on: ubuntu-latest

@@ -19,6 +19,7 @@ import com.example.backend.repository.account.RoleRepository;
 import com.example.backend.repository.curriculum.TopicRepository;
 import com.example.backend.repository.account.UserRepository;
 import com.example.backend.repository.simulation.SimulationRunRepository;
+import com.example.backend.schema.routing.index.SchemaEmbeddingIndexer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,6 +41,7 @@ public class AdminService {
     private final LicenseCheckService licenseCheckService;
     private final com.example.backend.repository.school.SchoolRepository schoolRepository;
     private final jakarta.persistence.EntityManager entityManager;
+    private final SchemaEmbeddingIndexer schemaEmbeddingIndexer;
 
     @Transactional(readOnly = true)
     public List<UserStatusResponse> users() {
@@ -93,6 +95,7 @@ public class AdminService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Topic not found"));
         topic.setEnabled(!topic.isEnabled());
         topicRepository.save(topic);
+        schemaEmbeddingIndexer.refreshAfterCatalogChange();
         return new TopicStatusResponse(topic.getId(), topic.getName(), topic.isEnabled());
     }
 
@@ -147,7 +150,7 @@ public class AdminService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "School not found"));
         entityManager.refresh(locked, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
         if (locked.getStudentQuota() != null && userRepository.countActiveStudents(locked.getId()) >= locked.getStudentQuota())
-            throw new ApiException(HttpStatus.CONFLICT, "TrÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ hÃƒÂ¡Ã‚ÂºÃ‚Â¿t quota hÃƒÂ¡Ã‚Â»Ã‚Âc sinh. Vui lÃƒÆ’Ã‚Â²ng nÃƒÆ’Ã‚Â¢ng gÃƒÆ’Ã‚Â³i hoÃƒÂ¡Ã‚ÂºÃ‚Â·c tÃƒÂ¡Ã‚ÂºÃ‚Â¡m khÃƒÆ’Ã‚Â³a tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n khÃƒÆ’Ã‚Â´ng cÃƒÆ’Ã‚Â²n sÃƒÂ¡Ã‚Â»Ã‚Â­ dÃƒÂ¡Ã‚Â»Ã‚Â¥ng.");
+            throw new ApiException(HttpStatus.CONFLICT, "Trường đã hết quota học sinh. Vui lòng nâng gói hoặc tạm khóa tài khoản không còn sử dụng.");
     }
 
     private com.example.backend.entity.school.School resolveSchool(String id) {

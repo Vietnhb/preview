@@ -1,6 +1,9 @@
-package com.example.backend.physics.model;
+package com.example.backend.physics.compatibility;
 
+import com.example.backend.physics.model.CanonicalQuantityBag;
+import com.example.backend.physics.model.PhysicsValues;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.micrometer.core.instrument.Metrics;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -20,6 +23,7 @@ public final class LegacySpecificationAdapter {
 
     public static CanonicalQuantityBag adapt(JsonNode specification, Map<String, Double> overrides) {
         INVOCATIONS.incrementAndGet();
+        Metrics.counter("physlive.physics.legacy_adapter.invocations").increment();
         Map<String, BigDecimal> values = new LinkedHashMap<>();
         Map<String, String> units = new LinkedHashMap<>();
         JsonNode quantities = specification == null ? null : specification.get("quantities");

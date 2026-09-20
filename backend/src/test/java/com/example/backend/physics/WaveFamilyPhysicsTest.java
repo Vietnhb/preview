@@ -72,7 +72,7 @@ class WaveFamilyPhysicsTest {
         ScalarField field = output.scalarFields().get("standingDisplacement");
         assertEquals(0, field.values().get(0).get(0), 1e-12);
         assertEquals(0.02, field.values().get(0).get(20), 1e-12);
-        assertEquals(0, output.values().get("displacement").get(5), 1e-12); // cos(ÃƒÂÃ¢â‚¬Â°*.25)=0
+        assertEquals(0, output.values().get("displacement").get(5), 1e-12); // cos(2*pi*0.25)=0
         var expected = standingReference.solve(specification, Map.of(), 0.35);
         assertEquals(expected.values().get("displacement"), output.values().get("displacement").get(7), 1e-12);
         assertTrue(field.boundary().contains("standing"));

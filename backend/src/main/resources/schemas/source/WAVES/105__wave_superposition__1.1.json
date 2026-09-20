@@ -1,0 +1,130 @@
+{
+  "schemaId": "wave_superposition",
+  "model": "wave_superposition",
+  "name": "Superposition of two coherent waves",
+  "topic": "WAVES",
+  "version": "1.1",
+  "solverId": "wave_superposition_solver_v2",
+  "referenceSolverId": "wave_superposition_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "amplitude_1",
+        "aliases": ["a1"],
+        "allowedUnits": ["m"],
+        "nonNegative": true,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "key": "amplitude_2",
+        "aliases": ["a2"],
+        "allowedUnits": ["m"],
+        "nonNegative": true,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "key": "frequency",
+        "aliases": ["f"],
+        "allowedUnits": ["Hz"],
+        "positive": true,
+        "min": 0.1,
+        "max": 10
+      },
+      {
+        "key": "wave_speed",
+        "aliases": ["speed", "c"],
+        "allowedUnits": ["m/s"],
+        "positive": true,
+        "min": 0.5,
+        "max": 100
+      }
+    ],
+    "optionalQuantities": [
+      {
+        "key": "phase_1",
+        "aliases": ["phi1"],
+        "allowedUnits": ["rad"],
+        "defaultValue": 0,
+        "defaultUnit": "rad"
+      },
+      {
+        "key": "phase_2",
+        "aliases": ["phi2"],
+        "allowedUnits": ["rad"],
+        "defaultValue": 0,
+        "defaultUnit": "rad"
+      },
+      {
+        "key": "domain_start",
+        "aliases": ["x_min"],
+        "allowedUnits": ["m"],
+        "defaultValue": -5,
+        "defaultUnit": "m",
+        "min": -5,
+        "max": 5
+      },
+      {
+        "key": "domain_end",
+        "aliases": ["x_max"],
+        "allowedUnits": ["m"],
+        "defaultValue": 5,
+        "defaultUnit": "m",
+        "min": -5,
+        "max": 5
+      },
+      {
+        "key": "probe_position",
+        "aliases": ["x_probe"],
+        "allowedUnits": ["m"],
+        "defaultValue": 0,
+        "defaultUnit": "m",
+        "min": -5,
+        "max": 5
+      },
+      {
+        "key": "spatial_samples",
+        "aliases": ["x_samples"],
+        "allowedUnits": ["1"],
+        "positive": true,
+        "integer": true,
+        "min": 2,
+        "max": 4096,
+        "defaultValue": 801,
+        "defaultUnit": "1"
+      }
+    ],
+    "adjustableParameters": [
+      {"key": "amplitude_1", "label": "Amplitude 1", "symbol": "A1", "unit": "m", "min": 0, "max": 1, "step": 0.001},
+      {"key": "amplitude_2", "label": "Amplitude 2", "symbol": "A2", "unit": "m", "min": 0, "max": 1, "step": 0.001},
+      {"key": "frequency", "label": "Frequency", "symbol": "f", "unit": "Hz", "min": 0.1, "max": 10, "step": 0.1},
+      {"key": "wave_speed", "label": "Wave speed", "symbol": "c", "unit": "m/s", "min": 0.5, "max": 100, "step": 0.1}
+    ],
+    "visualization": {
+      "scene": "wave_superposition",
+      "series": [
+        {"key": "displacement", "source": "values.displacement", "label": "Resultant displacement", "symbol": "u", "unit": "m", "color": "#38bdf8"},
+        {"key": "particleVelocity", "source": "values.particleVelocity", "label": "Particle velocity", "symbol": "u_dot", "unit": "m/s", "color": "#34d399"},
+        {"key": "particleAcceleration", "source": "values.particleAcceleration", "label": "Particle acceleration", "symbol": "u_ddot", "unit": "m/s2", "color": "#fb923c"}
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "track.engineering",
+        "wave": {"fieldId": "superpositionDisplacement", "probeX": {"source": "quantity", "key": "probe_position"}, "displayExaggeration": 1},
+        "sceneGraph": {
+          "nodes": [
+            {"id": "background", "type": "background", "layer": "static"},
+            {"id": "grid", "type": "grid", "layer": "static"},
+            {"id": "environment", "type": "environment", "layer": "static", "properties": {"environment": "track.engineering", "layout": "horizontalTrack"}},
+            {"id": "wave", "type": "waveField", "layer": "dynamic", "properties": {"field": "superpositionDisplacement", "probeX": {"source": "quantity", "key": "probe_position"}, "displayExaggeration": 1}},
+            {"id": "ruler", "type": "ruler", "layer": "static"}
+          ]
+        }
+      }
+    },
+    "execution": {"durationSeconds": 1, "stepSeconds": 0.001, "durationBindings": []},
+    "validation": {"tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1]},
+    "output": {"type": "scalarField", "fieldId": "superpositionDisplacement", "probeSeries": ["displacement", "particleVelocity", "particleAcceleration"]}
+  }
+}

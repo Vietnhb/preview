@@ -86,15 +86,7 @@ public class EvaluationService {
     }
 
     private List<BenchmarkProblem> finalizedBenchmarks() {
-        return benchmarkRepository.findAll().stream()
-                .filter(BenchmarkProblem::isActive)
-                .filter(benchmark -> !benchmark.getAdjudications().isEmpty()
-                        || (benchmark.getAnnotations().size() == 2
-                        && !benchmark.getAnnotations().get(0).getAnnotatorReference()
-                        .equals(benchmark.getAnnotations().get(1).getAnnotatorReference())
-                        && benchmark.getAnnotations().get(0).getGoldSpecification()
-                        .equals(benchmark.getAnnotations().get(1).getGoldSpecification())))
-                .toList();
+        return benchmarkRepository.findFinalizedActive();
     }
 
     private JsonNode goldSpecification(BenchmarkProblem benchmark) {

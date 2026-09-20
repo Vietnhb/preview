@@ -2,7 +2,6 @@ package com.example.backend.physics.model.dynamics;
 
 import com.example.backend.physics.model.PhysicsValues;
 import com.example.backend.physics.model.CanonicalQuantityBag;
-import com.example.backend.physics.model.LegacySpecificationAdapter;
 import com.example.backend.physics.model.PhysicalChecks;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -21,9 +20,13 @@ public record DampedForcedOscillationParameters(
         double initialDisplacement,
         double initialVelocity) {
 
+    private static final double CRITICAL_ROOT_RELATIVE_TOLERANCE = 1.0e-12;
+
+    /** @deprecated Use {@link #from(CanonicalQuantityBag)} after schema-bound ingress. */
+    @Deprecated
     public static DampedForcedOscillationParameters from(JsonNode specification,
             Map<String, Double> overrides) {
-        return from(LegacySpecificationAdapter.adapt(specification, overrides));
+        return from(PhysicsValues.bag(specification, overrides));
     }
 
     public static DampedForcedOscillationParameters from(CanonicalQuantityBag quantities) {
@@ -100,8 +103,13 @@ public record DampedForcedOscillationParameters(
         double h;
         double hVelocity;
         double hAcceleration;
-        double criticalTolerance = 1e-12 * Math.max(1, w0);
-        if (Math.abs(gamma - w0) <= criticalTolerance) {
+        // Compare the two frequencies on their own scale. A floor of 1 rad/s
+        // incorrectly treats every sufficiently slow oscillator as critical.
+        double rootScale = Math.max(Math.abs(gamma), Math.abs(w0));
+        boolean criticallyDamped = rootScale > 0
+                && Math.abs(gamma / rootScale - w0 / rootScale)
+                <= CRITICAL_ROOT_RELATIVE_TOLERANCE;
+        if (criticallyDamped) {
             // Repeated root r=-gamma: h=e^(-gamma t)(C+D t).
             double envelope = Math.exp(-gamma * timeSeconds);
             double d = velocityDifference + gamma * c;

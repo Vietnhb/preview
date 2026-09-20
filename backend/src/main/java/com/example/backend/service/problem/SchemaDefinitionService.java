@@ -20,8 +20,10 @@ import com.example.backend.entity.enums.LifecycleStatus;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.entity.simulation.SolverVersion;
 import com.example.backend.exception.ApiException;
+import com.example.backend.exception.SchemaCompilationException;
+import com.example.backend.exception.SolverBindingException;
 import com.example.backend.physics.validation.EndConditionResolver;
-import com.example.backend.physics.model.PhysicsValues;
+import com.example.backend.physics.compatibility.LegacySchemaIdentityAdapter;
 import com.example.backend.repository.problem.SchemaVersionRepository;
 import com.example.backend.repository.simulation.SolverVersionRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -63,28 +65,81 @@ public class SchemaDefinitionService {
     @Transactional(readOnly = true)
     public SchemaVersion requireApproved(String schemaId) {
         if (!StringUtils.hasText(schemaId)) throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Schema is missing");
-        String canonicalSchemaId = PhysicsValues.canonicalName(schemaId);
-        SchemaVersion schema = repository.findTopBySchemaIdIgnoreCaseAndLifecycleStatusOrderByCreatedAtDesc(
-                canonicalSchemaId, LifecycleStatus.APPROVED)
+        String exactSchemaId = schemaId.trim();
+        SchemaVersion schema = repository.findAllBySchemaIdIgnoreCaseAndLifecycleStatusOrderByCreatedAtDesc(
+                exactSchemaId, LifecycleStatus.APPROVED).stream()
+                .reduce(SchemaVersionOrdering::newer)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "No approved schema definition exists for: " + canonicalSchemaId));
-        validateDefinition(schema.getDefinition(), canonicalSchemaId);
+                        "No approved schema definition exists for: " + exactSchemaId));
+        validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(), schema.getTopic());
         requireEnabledTopic(schema.getTopic());
         compiled(schema);
         return schema;
     }
 
     @Transactional(readOnly = true)
-    public SchemaVersion requireApproved(String schemaId, String version) {
+    public SchemaVersion requireCurrentApproved(String schemaId, String version) {
+        if (!StringUtils.hasText(schemaId) || !StringUtils.hasText(version)) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Routed schema identity is missing");
+        }
+        String exactSchemaId = schemaId.trim();
+        SchemaVersion schema = repository.findFirstBySchemaIdAndVersion(exactSchemaId, version.trim())
+                .filter(item -> item.getLifecycleStatus() == LifecycleStatus.APPROVED)
+                .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
+                        "Routed schema is no longer approved: " + exactSchemaId + "@" + version));
+        List<String> enabledTopics = topicRepository.findByEnabledTrueOrderBySortOrderAsc().stream()
+                .map(Topic::getName).toList();
+        if (enabledTopics.stream().noneMatch(topic -> topic.equalsIgnoreCase(schema.getTopic()))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Routed schema topic is disabled: " + schema.getSchemaId() + "@" + schema.getVersion());
+        }
+        SchemaVersion latest = repository.findAllBySchemaIdIgnoreCaseAndLifecycleStatusAndTopicInOrderByCreatedAtDesc(
+                        schema.getSchemaId(), LifecycleStatus.APPROVED, enabledTopics).stream()
+                .reduce(SchemaVersionOrdering::newer)
+                .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
+                        "No current approved schema version exists for: " + schema.getSchemaId()));
+        if (!latest.getVersion().equals(schema.getVersion())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Routed schema version is stale; current version is " + latest.getSchemaId() + "@" + latest.getVersion());
+        }
+        validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(), schema.getTopic());
+        requireEnabledTopic(schema.getTopic());
+        compiled(schema);
+        return schema;
+    }
+
+    /**
+     * Reports whether a pinned identity is the latest approved version within
+     * enabled curriculum topics. This is lifecycle data, not a model/schema
+     * dispatch rule, and is used to prevent legacy runtime fallback for current
+     * production schemas.
+     */
+    @Transactional(readOnly = true)
+    public boolean isLatestApprovedEnabledVersion(String schemaId, String version) {
+        if (!StringUtils.hasText(schemaId) || !StringUtils.hasText(version)) return false;
+        List<String> enabledTopics = topicRepository.findByEnabledTrueOrderBySortOrderAsc().stream()
+                .map(Topic::getName).toList();
+        if (enabledTopics.isEmpty()) return false;
+        SchemaVersion latest = repository
+                .findAllBySchemaIdIgnoreCaseAndLifecycleStatusAndTopicInOrderByCreatedAtDesc(
+                        schemaId.trim(), LifecycleStatus.APPROVED, enabledTopics).stream()
+                .reduce(SchemaVersionOrdering::newer)
+                .orElse(null);
+        return latest != null && latest.getVersion().equals(version.trim());
+    }
+
+    /** Resolves a version already pinned into persisted work; retired versions remain replayable. */
+    @Transactional(readOnly = true)
+    public SchemaVersion requirePublishedVersion(String schemaId, String version) {
         if (!StringUtils.hasText(schemaId) || !StringUtils.hasText(version)) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Persisted schema binding is missing");
         }
-        String canonicalSchemaId = PhysicsValues.canonicalName(schemaId);
-        SchemaVersion schema = repository.findFirstBySchemaIdAndVersion(canonicalSchemaId, version)
-                .filter(item -> item.getLifecycleStatus() == LifecycleStatus.APPROVED)
+        String exactSchemaId = schemaId.trim();
+        SchemaVersion schema = findPublishedIdentityForReplay(exactSchemaId, version.trim())
+                .filter(item -> item.getLifecycleStatus() != LifecycleStatus.DRAFT)
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
-                        "Persisted schema binding is not approved: " + canonicalSchemaId + "@" + version));
-        validateDefinition(schema.getDefinition(), canonicalSchemaId);
+                        "Persisted schema binding is unavailable for replay: " + exactSchemaId + "@" + version));
+        validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(), schema.getTopic());
         requireEnabledTopic(schema.getTopic());
         compiled(schema);
         return schema;
@@ -92,38 +147,51 @@ public class SchemaDefinitionService {
 
     @Transactional(readOnly = true)
     public List<SchemaVersion> approvedSchemas() {
-        var enabledTopics = topicRepository.findAll().stream().filter(com.example.backend.entity.curriculum.Topic::isEnabled)
-                .map(t -> t.getName().toLowerCase(java.util.Locale.ROOT)).collect(java.util.stream.Collectors.toSet());
-        return new java.util.TreeMap<>(repository.findByLifecycleStatus(LifecycleStatus.APPROVED).stream()
-                .filter(s -> enabledTopics.contains(s.getTopic().toLowerCase(java.util.Locale.ROOT)))
-                .collect(java.util.stream.Collectors.toMap(item -> item.getSchemaId().toLowerCase(), item -> item,
-                        (left, right) -> left.getCreatedAt().compareTo(right.getCreatedAt()) >= 0 ? left : right)))
-                .values().stream().toList();
+        List<String> enabledTopics = topicRepository.findByEnabledTrueOrderBySortOrderAsc().stream()
+                .map(Topic::getName).toList();
+        if (enabledTopics.isEmpty()) return List.of();
+        java.util.Map<String, SchemaVersion> latestBySchemaId = repository
+                .findAllByLifecycleStatusAndTopicInOrderByTopicAscSchemaIdAscCreatedAtDesc(
+                        LifecycleStatus.APPROVED, enabledTopics).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        item -> item.getSchemaId().toLowerCase(), item -> item, SchemaVersionOrdering::newer));
+        return new java.util.TreeMap<>(latestBySchemaId).values().stream().toList();
     }
 
     /** Historical rendering is read-only and must survive retirement of a version. */
     @Transactional(readOnly = true)
     public SchemaVersion requireHistorical(String schemaId, String version) {
-        String canonicalSchemaId = PhysicsValues.canonicalName(schemaId);
-        return repository.findFirstBySchemaIdAndVersion(canonicalSchemaId, version)
+        if (!StringUtils.hasText(schemaId) || !StringUtils.hasText(version)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Historical schema version not found");
+        }
+        return findPublishedIdentityForReplay(schemaId.trim(), version.trim())
                 .filter(item -> item.getLifecycleStatus() != LifecycleStatus.DRAFT)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Historical schema version not found"));
     }
 
+    private java.util.Optional<SchemaVersion> findPublishedIdentityForReplay(String schemaId, String version) {
+        java.util.Optional<SchemaVersion> exact = repository.findFirstBySchemaIdAndVersion(schemaId, version);
+        if (exact.isPresent()) return exact;
+        String adapted = LegacySchemaIdentityAdapter.adaptForReplay(
+                schemaId, LegacySchemaIdentityAdapter.VERSION);
+        return adapted.equals(schemaId) ? java.util.Optional.empty()
+                : repository.findFirstBySchemaIdAndVersion(adapted, version);
+    }
+
     private void requireEnabledTopic(String topic) {
-        if (topicRepository.findAll().stream().noneMatch(t -> t.isEnabled() && t.getName().equalsIgnoreCase(topic)))
+        if (!topicRepository.existsByNameIgnoreCaseAndEnabledTrue(topic))
             throw new ApiException(HttpStatus.CONFLICT, "Curriculum topic is disabled: " + topic);
     }
 
     @Transactional(readOnly = true)
     public SolverBinding requireSolverBinding(String schemaId) {
-        String canonicalSchemaId = PhysicsValues.canonicalName(schemaId);
+        String exactSchemaId = schemaId == null ? "" : schemaId.trim();
         SolverVersion solver = solverRepository.findFirstBySchemaIdAndLifecycleStatusOrderByCreatedAtDesc(
-                canonicalSchemaId, LifecycleStatus.APPROVED).orElseThrow(() -> new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "No approved solver binding exists for: " + canonicalSchemaId));
+                exactSchemaId, LifecycleStatus.APPROVED).orElseThrow(() -> new SolverBindingException(
+                        "No approved solver binding exists for schemaId=" + exactSchemaId));
         String referenceId = solver.getOutputDefinition().path("referenceSolverId").asText();
         if (!StringUtils.hasText(solver.getSolverId()) || !StringUtils.hasText(referenceId)) {
-            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Approved solver binding is incomplete: " + canonicalSchemaId);
+            throw new SolverBindingException("Approved solver binding is incomplete for schemaId=" + exactSchemaId);
         }
         return new SolverBinding(solver.getSolverId(), referenceId, solver.getVersion());
     }
@@ -133,22 +201,31 @@ public class SchemaDefinitionService {
     }
 
     public CompiledSchema compiled(SchemaVersion schema) {
-        String cacheKey = schema.getSchemaId() + "@" + schema.getVersion();
+        if (schema == null || !StringUtils.hasText(schema.getSchemaId()) || !StringUtils.hasText(schema.getVersion())
+                || !StringUtils.hasText(schema.getTopic())) {
+            throw new SchemaCompilationException("Schema compiler requires schemaId, version, and topic identity");
+        }
+        String checksum = schemaCompiler.checksum(schema.getDefinition());
+        if (StringUtils.hasText(schema.getDefinitionChecksum()) && !schema.getDefinitionChecksum().equals(checksum)) {
+            throw new SchemaCompilationException("Stored schema checksum does not match definition for "
+                    + schema.getSchemaId() + "@" + schema.getVersion());
+        }
+        String cacheKey = schema.getSchemaId() + "@" + schema.getVersion() + "@" + checksum;
         return compiledCache.computeIfAbsent(cacheKey,
-                ignored -> schemaCompiler.compile(schema.getDefinition(), schema.getSchemaId()));
+                ignored -> schemaCompiler.compile(schema.getDefinition(), schema.getSchemaId(),
+                        schema.getVersion(), schema.getTopic()));
     }
 
     @Transactional(readOnly = true)
     public SolverBinding requireSolverBinding(String schemaId, String version) {
-        String canonicalSchemaId = PhysicsValues.canonicalName(schemaId);
-        SolverVersion solver = solverRepository.findFirstBySchemaIdAndVersion(canonicalSchemaId, version)
-                .filter(item -> item.getLifecycleStatus() == LifecycleStatus.APPROVED)
-                .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
-                        "Persisted solver binding is not approved: " + canonicalSchemaId + "@" + version));
+        String exactSchemaId = schemaId == null ? "" : schemaId.trim();
+        SolverVersion solver = solverRepository.findFirstBySchemaIdAndVersion(exactSchemaId, version)
+                .filter(item -> item.getLifecycleStatus() != LifecycleStatus.DRAFT)
+                .orElseThrow(() -> new SolverBindingException("Persisted solver binding is unavailable for runtime: "
+                        + exactSchemaId + "@" + version));
         String referenceId = solver.getOutputDefinition().path("referenceSolverId").asText();
         if (!StringUtils.hasText(solver.getSolverId()) || !StringUtils.hasText(referenceId)) {
-            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Persisted solver binding is incomplete: " + canonicalSchemaId + "@" + version);
+            throw new SolverBindingException("Persisted solver binding is incomplete: " + exactSchemaId + "@" + version);
         }
         return new SolverBinding(solver.getSolverId(), referenceId, solver.getVersion());
     }
@@ -224,30 +301,41 @@ public class SchemaDefinitionService {
         JsonNode condition = EndConditionResolver.normalize(specification,
                 definition.path("execution").path(DURATION_SECONDS).asDouble());
         Set<String> declared = new HashSet<>();
+        Set<String> scalarOutputs = new HashSet<>();
         for (JsonNode output : definition.path("output").path("probeSeries")) {
             if (output.isTextual()) declared.add(output.asText());
+        }
+        for (JsonNode output : definition.path("output").path("definitions")) {
+            String key = output.path("key").asText("").trim();
+            if (!key.isBlank()) declared.add(key);
+            if ("scalar".equalsIgnoreCase(output.path("kind").asText("")) && !key.isBlank()) {
+                scalarOutputs.add(key);
+            }
         }
         for (JsonNode series : definition.path("visualization").path("series")) {
             if (series.path("key").isTextual()) declared.add(series.path("key").asText());
         }
         List<String> errors = new ArrayList<>();
         if (!condition.isObject()) return errors;
-        addBindingError(errors, declared, condition.path("quantity").asText(""), "endCondition.quantity");
+        addBindingError(errors, declared, scalarOutputs, condition.path("quantity").asText(""), "endCondition.quantity");
         JsonNode event = condition.path("event");
         if (event.isObject()) {
-            addBindingError(errors, declared, event.path("quantity").asText(""), "endCondition.event.quantity");
-            addBindingError(errors, declared, event.path("firstQuantity").asText(""), "endCondition.event.firstQuantity");
-            addBindingError(errors, declared, event.path("secondQuantity").asText(""), "endCondition.event.secondQuantity");
-            addBindingError(errors, declared, event.path("markerQuantity").asText(""), "endCondition.event.markerQuantity");
+            addBindingError(errors, declared, scalarOutputs, event.path("quantity").asText(""), "endCondition.event.quantity");
+            addBindingError(errors, declared, scalarOutputs, event.path("firstQuantity").asText(""), "endCondition.event.firstQuantity");
+            addBindingError(errors, declared, scalarOutputs, event.path("secondQuantity").asText(""), "endCondition.event.secondQuantity");
+            addBindingError(errors, declared, scalarOutputs, event.path("markerQuantity").asText(""), "endCondition.event.markerQuantity");
         }
         return errors;
     }
 
-    private void addBindingError(List<String> errors, Set<String> declared, String key, String path) {
+    private void addBindingError(List<String> errors, Set<String> declared, Set<String> scalarOutputs,
+            String key, String path) {
         if (key == null || key.isBlank()) return;
         String normalized = key.contains(".") ? key.substring(key.lastIndexOf('.') + 1) : key;
         if (!declared.contains(key) && !declared.contains(normalized)) {
             errors.add(path + " is not declared by the schema output contract: " + key);
+        } else if (scalarOutputs.contains(key) || scalarOutputs.contains(normalized)) {
+            errors.add(path + " cannot reference a scalar output: " + key);
         }
     }
 
@@ -281,6 +369,14 @@ public class SchemaDefinitionService {
                 String key = field.path("key").asText("").trim();
                 if (key.equals(raw)) return key;
                 for (JsonNode alias : field.path("aliases")) if (alias.asText("").trim().equals(raw)) return key;
+                JsonNode symbol = field.get("symbol");
+                if (symbol != null && symbol.isTextual() && symbol.asText().trim().equals(raw)) return key;
+                for (JsonNode item : field.path("symbols")) if (item.isTextual() && item.asText().trim().equals(raw)) return key;
+                for (JsonNode parameter : definition.path(ADJUSTABLE_PARAMETERS)) {
+                    if (key.equals(parameter.path("key").asText())
+                            && parameter.path("symbol").isTextual()
+                            && parameter.path("symbol").asText().trim().equals(raw)) return key;
+                }
             }
         }
         Set<String> caseInsensitiveMatches = new HashSet<>();
@@ -290,6 +386,19 @@ public class SchemaDefinitionService {
                 if (key.equalsIgnoreCase(raw)) caseInsensitiveMatches.add(key);
                 for (JsonNode alias : field.path("aliases")) {
                     if (alias.asText("").trim().equalsIgnoreCase(raw)) caseInsensitiveMatches.add(key);
+                }
+                JsonNode symbol = field.get("symbol");
+                if (symbol != null && symbol.isTextual() && symbol.asText().trim().equalsIgnoreCase(raw)) {
+                    caseInsensitiveMatches.add(key);
+                }
+                for (JsonNode item : field.path("symbols")) {
+                    if (item.isTextual() && item.asText().trim().equalsIgnoreCase(raw)) caseInsensitiveMatches.add(key);
+                }
+                for (JsonNode parameter : definition.path(ADJUSTABLE_PARAMETERS)) {
+                    if (key.equals(parameter.path("key").asText()) && parameter.path("symbol").isTextual()
+                            && parameter.path("symbol").asText().trim().equalsIgnoreCase(raw)) {
+                        caseInsensitiveMatches.add(key);
+                    }
                 }
             }
         }
@@ -406,6 +515,15 @@ public class SchemaDefinitionService {
     }
 
     public void validateDefinition(JsonNode definition, String schemaId) {
+        validateDefinitionInternal(definition, schemaId, null, null, true);
+    }
+
+    public void validateDefinition(JsonNode definition, String schemaId, String version, String topic) {
+        validateDefinitionInternal(definition, schemaId, version, topic, false);
+    }
+
+    private void validateDefinitionInternal(JsonNode definition, String schemaId, String version, String topic,
+                                            boolean legacyInferredIdentity) {
         JsonNode execution = definition == null ? null : definition.path("execution");
         if (definition == null || !definition.isObject()
                 || !definition.path(REQUIRED_QUANTITIES).isArray()
@@ -431,7 +549,8 @@ public class SchemaDefinitionService {
         validateQuantityDefinitions(definition, schemaId);
         validateVisualization(definition.path("visualization"), schemaId);
         try {
-            schemaCompiler.compile(definition, schemaId);
+            if (legacyInferredIdentity) schemaCompiler.compile(definition, schemaId);
+            else schemaCompiler.compile(definition, schemaId, version, topic);
         } catch (IllegalArgumentException exception) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage());
         }

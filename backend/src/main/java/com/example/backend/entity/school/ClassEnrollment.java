@@ -25,7 +25,7 @@ import lombok.Data;
  * 
  * Business Rules:
  * - 1 student can only be in 1 ACTIVE class per school year (UNIQUE constraint)
- * - Student can transfer classes: old enrollment ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ TRANSFERRED, new ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ACTIVE
+ * - Student can transfer classes: old enrollment → TRANSFERRED, new → ACTIVE
  */
 @Entity
 @Table(name = "class_enrollments")

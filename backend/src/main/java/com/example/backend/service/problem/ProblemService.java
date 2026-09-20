@@ -231,7 +231,7 @@ public class ProblemService {
         if (specification == null) {
             throw new ApiException(HttpStatus.CONFLICT, "Extract a specification before editing it");
         }
-        var schema = schemaDefinitions.requireApproved(specification.getSchemaId(), specification.getSchemaVersion());
+        var schema = schemaDefinitions.requirePublishedVersion(specification.getSchemaId(), specification.getSchemaVersion());
         var canonicalQuantities = schemaDefinitions.canonicalizeQuantities(
                 request.quantities(), schema.getDefinition());
         validateQuantities(canonicalQuantities);
@@ -275,7 +275,7 @@ public class ProblemService {
         specification.setSubmission(problem);
         specification.setExtractionRun(run);
         specification.setContractVersion(SpecificationDocument.CURRENT_SCHEMA_VERSION);
-        var schema = schemaDefinitions.requireApproved(document.schemaId());
+        var schema = schemaDefinitions.requireCurrentApproved(document.schemaId(), document.schemaVersion());
         specification.setSchemaVersion(schema.getVersion());
         specification.setTopic(document.topic());
         specification.setSchemaId(document.schemaId());

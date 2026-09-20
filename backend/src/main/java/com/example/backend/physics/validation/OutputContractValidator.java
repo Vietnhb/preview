@@ -1,55 +1,68 @@
 package com.example.backend.physics.validation;
 
-import com.example.backend.physics.model.ScalarField;
+import com.example.backend.physics.compatibility.LegacySolverOutputAdapter;
+import com.example.backend.exception.OutputContractException;
 import com.example.backend.physics.model.SolverOutput;
+import com.example.backend.physics.output.PhysicsOutput;
+import com.example.backend.physics.output.PhysicsOutputFrame;
+import com.example.backend.physics.output.PhysicsOutputValidator;
+import com.example.backend.physics.output.PhysicsOutputContract;
+import com.example.backend.service.problem.CompiledSchema;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-/** Validates solver transport output against the schema before persistence. */
+/** Validates legacy solver transport output through the typed output boundary. */
 public final class OutputContractValidator {
     private static final int MAX_SAMPLES = 1_000_001;
 
-    private OutputContractValidator() {
+    private OutputContractValidator() { }
+
+    /** Validates a compiled per-output contract when the schema version declares one. */
+    public static void validate(CompiledSchema schema, JsonNode definition, SolverOutput output) {
+        if (schema == null) throw new IllegalArgumentException("Compiled schema is required for output validation");
+        PhysicsOutputContract contract = schema.outputContract(MAX_SAMPLES);
+        if (contract == null) {
+            validate(schema.schemaId(), definition, output);
+            return;
+        }
+        if (output == null) fail(schema.schemaId(), "output is null");
+        Map<String, String> units = new LinkedHashMap<>(declaredUnits(definition));
+        schema.outputDefinitions().forEach((key, value) -> units.put(key, value.unit()));
+        try {
+            PhysicsOutputFrame frame = LegacySolverOutputAdapter.adapt(output, units);
+            PhysicsOutputValidator.validate(contract, frame);
+        } catch (OutputContractException failure) {
+            throw failure;
+        } catch (IllegalArgumentException failure) {
+            throw new OutputContractException("Output contract failed for schemaId=" + schema.schemaId()
+                    + " schemaVersion=" + schema.version() + ": " + failure.getMessage(), failure);
+        }
     }
 
+    /**
+     * Compatibility entry point until published catalog versions have typed
+     * output declarations. New module paths should call PhysicsOutputValidator
+     * with a compiled PhysicsOutputContract directly.
+     */
     public static void validate(String schemaId, JsonNode definition, SolverOutput output) {
         if (output == null) fail(schemaId, "output is null");
-        List<Double> time = output.time();
-        if (time == null || time.isEmpty() || time.size() > MAX_SAMPLES) fail(schemaId, "timeline is empty or exceeds limit");
-        for (int i = 0; i < time.size(); i++) {
-            Double value = time.get(i);
-            if (value == null || !Double.isFinite(value) || value < 0) fail(schemaId, "timeline contains invalid value at " + i);
-            if (i > 0 && value <= time.get(i - 1)) fail(schemaId, "timeline must be strictly increasing");
+        PhysicsOutputFrame frame;
+        try {
+            frame = LegacySolverOutputAdapter.adapt(output, declaredUnits(definition));
+            PhysicsOutputValidator.validateStructure(schemaId, MAX_SAMPLES, frame);
+        } catch (IllegalArgumentException exception) {
+            if (exception.getMessage() != null && exception.getMessage().startsWith("Output contract failed")) {
+                throw exception;
+            }
+            throw new OutputContractException("Output contract failed for schemaId=" + schemaId + ": "
+                    + exception.getMessage(), exception);
         }
 
-        List<Map<String, List<Double>>> seriesGroups = List.of(output.positions(), output.velocities(),
-                output.accelerations(), output.values());
-        Set<String> produced = new LinkedHashSet<>();
-        for (Map<String, List<Double>> group : seriesGroups) {
-            if (group == null) continue;
-            for (Map.Entry<String, List<Double>> entry : group.entrySet()) {
-                if (entry.getKey() == null || entry.getKey().isBlank()) fail(schemaId, "blank output key");
-                List<Double> values = entry.getValue();
-                if (values == null || values.size() != time.size()) {
-                    fail(schemaId, "output " + entry.getKey() + " has wrong length");
-                }
-                for (Double value : values) {
-                    if (value == null || !Double.isFinite(value)) fail(schemaId, "output " + entry.getKey() + " is non-finite");
-                }
-                if (!produced.add(entry.getKey())) fail(schemaId, "duplicate output key " + entry.getKey());
-            }
-        }
-        for (Map.Entry<String, ScalarField> entry : output.scalarFields().entrySet()) {
-            if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null) {
-                fail(schemaId, "invalid scalar field key/value");
-            }
-            if (!produced.add(entry.getKey())) fail(schemaId, "duplicate scalar field key " + entry.getKey());
-        }
-
+        Set<String> produced = frame.outputs().stream().map(PhysicsOutput::key).collect(Collectors.toSet());
         JsonNode probeSeries = definition == null ? null : definition.path("output").path("probeSeries");
         if (probeSeries != null && probeSeries.isArray()) {
             for (JsonNode key : probeSeries) {
@@ -60,7 +73,20 @@ public final class OutputContractValidator {
         }
     }
 
+    private static Map<String, String> declaredUnits(JsonNode definition) {
+        if (definition == null || !definition.path("visualization").path("series").isArray()) return Map.of();
+        Map<String, String> units = new LinkedHashMap<>();
+        for (JsonNode series : definition.path("visualization").path("series")) {
+            String source = series.path("source").asText("").trim();
+            String unit = series.path("unit").asText("").trim();
+            int lastSeparator = source.lastIndexOf('.');
+            String key = lastSeparator >= 0 ? source.substring(lastSeparator + 1) : "";
+            if (!key.isBlank() && !unit.isBlank()) units.putIfAbsent(key, unit);
+        }
+        return Map.copyOf(units);
+    }
+
     private static void fail(String schemaId, String detail) {
-        throw new IllegalArgumentException("Output contract failed for schemaId=" + schemaId + ": " + detail);
+        throw new OutputContractException("Output contract failed for schemaId=" + schemaId + ": " + detail);
     }
 }

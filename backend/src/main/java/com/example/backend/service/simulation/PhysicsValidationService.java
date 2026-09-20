@@ -1,6 +1,9 @@
 package com.example.backend.service.simulation;
 
 import com.example.backend.service.problem.SchemaDefinitionService;
+import com.example.backend.service.problem.CompiledSchema;
+import com.example.backend.exception.SolverBindingException;
+import com.example.backend.physics.compatibility.LegacyPhysicsExecutionAdapterV1;
 
 import com.example.backend.dto.simulation.ValidationCheckpointResponse;
 import com.example.backend.dto.simulation.ValidationResponse;
@@ -9,6 +12,7 @@ import com.example.backend.physics.model.AnalyticalPoint;
 import com.example.backend.physics.reference.ReferenceSolver;
 import com.example.backend.physics.reference.ReferenceSolverRegistry;
 import com.example.backend.physics.model.SolverOutput;
+import com.example.backend.physics.module.BoundPhysicsModule;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,28 +20,51 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
 public class PhysicsValidationService {
     private final ReferenceSolverRegistry referenceSolvers;
     private final SchemaDefinitionService schemaDefinitions;
+    private final LegacyPhysicsExecutionAdapterV1 legacyPhysicsExecution;
 
     public ValidationResponse validate(JsonNode specification, String schemaId, String schemaVersion,
                                        SolverOutput numerical, Map<String, Double> overrides) {
+        return validate(specification, schemaId, schemaVersion, numerical, overrides, null);
+    }
+
+    public ValidationResponse validate(JsonNode specification, String schemaId, String schemaVersion,
+                                       SolverOutput numerical, Map<String, Double> overrides,
+                                       BoundPhysicsModule typedModule) {
         long started = System.nanoTime();
-        ReferenceSolver solver = referenceSolvers.get(
-                schemaDefinitions.requireSolverBinding(schemaId, schemaVersion).referenceSolverId());
-        SchemaVersion schema = schemaDefinitions.requireApproved(schemaId, schemaVersion);
-        JsonNode validationDefinition = schema.getDefinition().path("validation");
-        double tolerance = validationDefinition.path("tolerance").asDouble();
-        Map<String, OutputTolerance> outputTolerances = outputTolerances(validationDefinition, tolerance);
+        SchemaVersion schema = schemaDefinitions.requirePublishedVersion(schemaId, schemaVersion);
+        SchemaDefinitionService.SolverBinding binding = schemaDefinitions.requireSolverBinding(schema.getSchemaId(), schemaVersion);
+        if (typedModule != null && (!typedModule.numericalSolverId().equals(binding.numericalSolverId())
+                || !typedModule.referenceSolverId().equals(binding.referenceSolverId()))) {
+            throw new SolverBindingException("Typed physics module does not match pinned solver binding for "
+                    + schemaId + "@" + schemaVersion);
+        }
+        LegacyPhysicsExecutionAdapterV1.AuthorizedReferenceSolver legacySolver = null;
+        if (typedModule == null) {
+            boolean latestApproved = schemaDefinitions.isLatestApprovedEnabledVersion(
+                    schema.getSchemaId(), schema.getVersion());
+            var pinned = new LegacyPhysicsExecutionAdapterV1.PinnedExecution(
+                    schema.getSchemaId(), schema.getVersion(), binding.version(),
+                    binding.numericalSolverId(), binding.referenceSolverId());
+            legacySolver = legacyPhysicsExecution.authorizeReference(
+                    LegacyPhysicsExecutionAdapterV1.VERSION, pinned, latestApproved, referenceSolvers);
+        }
+        CompiledSchema.ValidationDefinition validationDefinition = schemaDefinitions.compiled(schema).validation();
+        double tolerance = validationDefinition.tolerance();
+        Map<String, CompiledSchema.OutputValidationDefinition> outputTolerances =
+                validationDefinition.outputTolerances();
         List<ValidationCheckpointResponse> checkpoints = new ArrayList<>();
         List<String> errors = new ArrayList<>();
         double duration = numerical.time().isEmpty() ? 0 : numerical.time().get(numerical.time().size() - 1);
         for (double checkpoint : checkpointsFor(validationDefinition, duration)) {
-            AnalyticalPoint analytical = solver.solve(specification, overrides, checkpoint);
+            AnalyticalPoint analytical = typedModule == null
+                    ? legacySolver.solve(specification, overrides, checkpoint)
+                    : typedModule.reference(checkpoint);
             if (analytical == null || analytical.values() == null || analytical.values().isEmpty()) {
                 errors.add("t=" + checkpoint + " reference returned no output");
                 continue;
@@ -48,10 +75,12 @@ public class PhysicsValidationService {
                     errors.add("t=" + checkpoint + " reference returned an invalid output key/value");
                     continue;
                 }
-                OutputTolerance contract = outputTolerances.getOrDefault(expected.getKey(),
-                        new OutputTolerance(tolerance, tolerance, "numeric"));
+                CompiledSchema.OutputValidationDefinition contract = outputTolerances.getOrDefault(expected.getKey(),
+                        new CompiledSchema.OutputValidationDefinition(tolerance, tolerance, "numeric"));
+                Double scalarActual = numerical.scalarOutputs().get(expected.getKey());
                 List<Double> numericalSeries = numerical.values().get(expected.getKey());
-                double actual = interpolate(numericalSeries, numerical.time(), checkpoint);
+                double actual = scalarActual != null ? scalarActual
+                        : interpolate(numericalSeries, numerical.time(), checkpoint);
                 double absoluteError = Math.abs(actual - expected.getValue());
                 double relativeError = relativeError(actual, expected.getValue());
                 boolean passed = compare(actual, expected.getValue(), absoluteError, relativeError, contract);
@@ -60,7 +89,7 @@ public class PhysicsValidationService {
                                 contract.relativeTolerance()), contract.absoluteTolerance(), contract.relativeTolerance(), passed));
                 if (!passed) {
                     errors.add("t=" + checkpoint + " " + expected.getKey() + " expected="
-                            + " computed=" + actual + " absoluteError=" + absoluteError
+                            + expected.getValue() + " computed=" + actual + " absoluteError=" + absoluteError
                             + " relativeError=" + relativeError + " absoluteTolerance="
                             + contract.absoluteTolerance() + " relativeTolerance=" + contract.relativeTolerance());
                 }
@@ -91,7 +120,7 @@ public class PhysicsValidationService {
     }
 
     private boolean compare(double actual, double expected, double absoluteError, double relativeError,
-            OutputTolerance tolerance) {
+            CompiledSchema.OutputValidationDefinition tolerance) {
         if (!Double.isFinite(actual) || !Double.isFinite(expected)) return false;
         if ("exact".equals(tolerance.comparison()) || "discrete".equals(tolerance.comparison())) {
             return Double.doubleToLongBits(actual) == Double.doubleToLongBits(expected);
@@ -99,41 +128,10 @@ public class PhysicsValidationService {
         return absoluteError <= tolerance.absoluteTolerance() || relativeError <= tolerance.relativeTolerance();
     }
 
-    private Map<String, OutputTolerance> outputTolerances(JsonNode validation, double fallback) {
-        Map<String, OutputTolerance> result = new HashMap<>();
-        JsonNode definitions = validation.path("outputs");
-        if (definitions.isObject()) {
-            definitions.fields().forEachRemaining(entry -> result.put(entry.getKey(), parseTolerance(entry.getValue(), fallback)));
-        } else if (definitions.isArray()) {
-            for (JsonNode definition : definitions) {
-                String key = definition.path("key").asText("").trim();
-                if (!key.isBlank()) result.put(key, parseTolerance(definition, fallback));
-            }
-        }
-        return Map.copyOf(result);
-    }
-
-    private OutputTolerance parseTolerance(JsonNode node, double fallback) {
-        double absolute = node.path("absoluteTolerance").isNumber()
-                ? node.path("absoluteTolerance").asDouble() : fallback;
-        double relative = node.path("relativeTolerance").isNumber()
-                ? node.path("relativeTolerance").asDouble() : fallback;
-        if (!Double.isFinite(absolute) || absolute < 0 || !Double.isFinite(relative) || relative < 0) {
-            throw new IllegalArgumentException("Output tolerances must be finite and non-negative");
-        }
-        String comparison = node.path("comparison").asText("numeric").trim().toLowerCase();
-        if (!List.of("numeric", "exact", "discrete").contains(comparison)) {
-            throw new IllegalArgumentException("Unsupported output comparison: " + comparison);
-        }
-        return new OutputTolerance(absolute, relative, comparison);
-    }
-
-    private record OutputTolerance(double absoluteTolerance, double relativeTolerance, String comparison) { }
-
-    private List<Double> checkpointsFor(JsonNode definition, double duration) {
+    private List<Double> checkpointsFor(CompiledSchema.ValidationDefinition definition, double duration) {
         double end = Math.max(0.01, duration);
         List<Double> result = new ArrayList<>();
-        for (JsonNode fraction : definition.path("checkpointFractions")) result.add(end * fraction.asDouble());
+        for (double fraction : definition.checkpointFractions()) result.add(end * fraction);
         if (result.isEmpty()) throw new IllegalStateException("Schema validation checkpoints are missing");
         return List.copyOf(result);
     }

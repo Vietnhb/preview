@@ -7,6 +7,23 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 public interface SchoolPaymentRepository extends JpaRepository<SchoolPayment, UUID> {
+    interface RevenueTotals {
+        Long getPaidTransactions();
+        Long getPendingTransactions();
+        Long getReviewTransactions();
+        Long getGrossPaidVnd();
+    }
+
+    @Query("""
+            select
+                coalesce(sum(case when p.status = 'PAID' then 1L else 0L end), 0L) as paidTransactions,
+                coalesce(sum(case when p.status = 'PENDING' then 1L else 0L end), 0L) as pendingTransactions,
+                coalesce(sum(case when p.status = 'REQUIRES_REVIEW' then 1L else 0L end), 0L) as reviewTransactions,
+                coalesce(sum(case when p.status = 'PAID' then p.amountVnd else 0L end), 0L) as grossPaidVnd
+            from SchoolPayment p
+            """)
+    RevenueTotals summarizeRevenue();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from SchoolPayment p where p.id = :id")
     Optional<SchoolPayment> findLockedById(@Param("id") UUID id);

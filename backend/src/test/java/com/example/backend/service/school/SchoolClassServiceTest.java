@@ -34,23 +34,24 @@ class SchoolClassServiceTest {
 
         Role studentRole = new Role(); studentRole.setName("STUDENT");
         User student = new User(); student.setId(7); student.setRole(studentRole);
-        School school = new School(); school.setId(UUID.randomUUID()); school.setName("THPT NguyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¦n TrÃƒÆ’Ã‚Â£i");
+        School school = new School(); school.setId(UUID.randomUUID()); school.setName("High School Nguyen Trai");
         SchoolClass schoolClass = new SchoolClass(); schoolClass.setId(UUID.randomUUID()); schoolClass.setSchool(school);
         schoolClass.setName("12A1"); schoolClass.setGradeLevel(12); schoolClass.setSchoolYear("2026-2027");
-        schoolClass.setSubject("VÃƒÂ¡Ã‚ÂºÃ‚Â­t lÃƒÆ’Ã‚Â½"); schoolClass.setIsActive(true);
+        schoolClass.setSubject("Physics"); schoolClass.setIsActive(true);
         ClassEnrollment own = new ClassEnrollment(); own.setStudent(student); own.setSchoolClass(schoolClass);
-        User teacher = new User(); teacher.setId(9); teacher.setFullName("NguyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¦n Minh An"); teacher.setEmail("an@school.edu");
+        User teacher = new User(); teacher.setId(9); teacher.setFullName("Nguyen Minh An"); teacher.setEmail("an@school.edu");
         ClassTeacherAssignment teacherAssignment = new ClassTeacherAssignment(); teacherAssignment.setTeacher(teacher);
 
         when(currentUser.requireCurrentUser()).thenReturn(student);
         when(enrollments.findActiveEnrollmentsByStudentId(7)).thenReturn(List.of(own));
-        when(enrollments.findActiveStudentsByClassId(schoolClass.getId())).thenReturn(List.of(own, new ClassEnrollment(), new ClassEnrollment()));
+        when(enrollments.findActiveStudentsByClassId(schoolClass.getId()))
+                .thenReturn(List.of(own, new ClassEnrollment(), new ClassEnrollment()));
         when(teachers.findByClassIdAndIsActiveTrue(schoolClass.getId())).thenReturn(List.of(teacherAssignment));
 
         var result = service.mineForStudent().getFirst();
         assertEquals("12A1", result.name());
-        assertEquals("THPT NguyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¦n TrÃƒÆ’Ã‚Â£i", result.schoolName());
-        assertEquals("NguyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¦n Minh An", result.teachers().getFirst().fullName());
+        assertEquals("High School Nguyen Trai", result.schoolName());
+        assertEquals("Nguyen Minh An", result.teachers().getFirst().fullName());
         assertEquals(2, result.classmateCount());
     }
 }

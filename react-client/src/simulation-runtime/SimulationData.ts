@@ -1,6 +1,6 @@
 import type { ScalarFieldDefinition, Simulation } from "../types/physlive";
 
-export type NumericSeries = Float32Array;
+export type NumericSeries = Float32Array | Float64Array;
 export type Timeline = Float64Array;
 export const EMPTY_NUMERIC_SERIES = new Float32Array(0);
 
@@ -75,6 +75,16 @@ function normalizeGroup(group: Record<string, number[]> | undefined, series: Map
     series.set(`${name}.${key}`, values);
   }
   return normalized;
+}
+
+function normalizeScalarOutputs(outputs: Record<string, number> | undefined, series: Map<string, NumericSeries>): void {
+  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return;
+  for (const [rawKey, value] of Object.entries(outputs)) {
+    const key = rawKey.trim();
+    if (!key || !Number.isFinite(value)) continue;
+    const source = `scalarOutputs.${key}`;
+    if (!series.has(source)) series.set(source, new Float64Array([value]));
+  }
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -251,6 +261,7 @@ export function prepareSimulationData(simulation: Simulation): RuntimeData {
     ...fieldData,
     length: simulation.time.length,
   };
+  normalizeScalarOutputs(simulation.scalarOutputs, series);
 
   // A spec may refer to a named series without the storage group prefix. Add
   // aliases only when the name is unambiguous.

@@ -1,0 +1,123 @@
+{
+  "schemaId": "linear_drag_motion",
+  "model": "linear_drag_motion",
+  "name": "Linear air resistance",
+  "topic": "DYNAMICS",
+  "version": "1.1",
+  "solverId": "linear_drag_solver_v2",
+  "referenceSolverId": "linear_drag_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "mass",
+        "aliases": [
+          "m"
+        ],
+        "allowedUnits": [
+          "kg"
+        ],
+        "positive": true
+      },
+      {
+        "key": "initial_position",
+        "aliases": [
+          "x0"
+        ],
+        "allowedUnits": [
+          "m"
+        ]
+      },
+      {
+        "key": "initial_velocity",
+        "aliases": [
+          "v0"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ]
+      },
+      {
+        "key": "constant_force",
+        "aliases": [
+          "F"
+        ],
+        "allowedUnits": [
+          "N"
+        ]
+      },
+      {
+        "key": "drag_coefficient",
+        "aliases": [
+          "b"
+        ],
+        "allowedUnits": [
+          "kg/s"
+        ],
+        "positive": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "drag_coefficient",
+        "label": "Linear drag coefficient",
+        "symbol": "b",
+        "unit": "kg/s",
+        "min": 0.001,
+        "max": 1000,
+        "step": 0.01
+      }
+    ],
+    "visualization": {
+      "scene": "linear_drag_motion",
+      "series": [
+        {
+          "key": "position",
+          "source": "values.position",
+          "label": "Position",
+          "symbol": "x(t)",
+          "unit": "m",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "velocity",
+          "source": "values.velocity",
+          "label": "Velocity",
+          "symbol": "v(t)",
+          "unit": "m/s",
+          "color": "#34d399"
+        },
+        {
+          "key": "dragForce",
+          "source": "values.dragForce",
+          "label": "Drag force",
+          "symbol": "F_d",
+          "unit": "N",
+          "color": "#fb923c"
+        }
+      ]
+    },
+    "execution": {
+      "durationSeconds": 10,
+      "stepSeconds": 0.02,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 0.000001,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "position",
+        "velocity",
+        "acceleration",
+        "dragForce"
+      ]
+    }
+  }
+}

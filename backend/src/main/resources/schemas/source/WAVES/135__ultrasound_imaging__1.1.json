@@ -1,0 +1,117 @@
+{
+  "schemaId": "ultrasound_imaging",
+  "model": "ultrasound_imaging",
+  "name": "Pulse-echo ultrasound imaging",
+  "topic": "WAVES",
+  "version": "1.1",
+  "solverId": "ultrasound_imaging_solver_v2",
+  "referenceSolverId": "ultrasound_imaging_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "sound_speed",
+        "aliases": [
+          "v"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "positive": true
+      },
+      {
+        "key": "frequency",
+        "aliases": [
+          "f"
+        ],
+        "allowedUnits": [
+          "Hz"
+        ],
+        "positive": true
+      },
+      {
+        "key": "echo_time",
+        "aliases": [
+          "t_echo"
+        ],
+        "allowedUnits": [
+          "s"
+        ],
+        "nonNegative": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "echo_time",
+        "label": "Echo time",
+        "symbol": "t_e",
+        "unit": "s",
+        "min": 0,
+        "max": 1,
+        "step": 1e-06
+      }
+    ],
+    "visualization": {
+      "scene": "ultrasound_imaging",
+      "series": [
+        {
+          "key": "depth",
+          "source": "values.depth",
+          "label": "Target depth",
+          "symbol": "d",
+          "unit": "m",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "wavelength",
+          "source": "values.wavelength",
+          "label": "Wavelength",
+          "symbol": "lambda",
+          "unit": "m",
+          "color": "#fb923c"
+        }
+      ]
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "wavelength",
+        "depth",
+        "period"
+      ],
+      "definitions": [
+        {
+          "key": "wavelength",
+          "kind": "time_series",
+          "unit": "m",
+          "required": true
+        },
+        {
+          "key": "depth",
+          "kind": "time_series",
+          "unit": "m",
+          "required": true
+        },
+        {
+          "key": "period",
+          "kind": "time_series",
+          "unit": "s",
+          "required": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "schemaId": "light_interference",
+  "model": "light_interference",
+  "name": "Two-source light interference",
+  "topic": "OPTICS",
+  "version": "1.1",
+  "solverId": "light_interference_solver",
+  "referenceSolverId": "light_interference_reference",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "wavelength",
+        "aliases": [
+          "lambda"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "positive": true
+      },
+      {
+        "key": "path_difference",
+        "aliases": [
+          "delta"
+        ],
+        "allowedUnits": [
+          "m"
+        ]
+      },
+      {
+        "key": "reference_intensity",
+        "aliases": [
+          "I0"
+        ],
+        "allowedUnits": [
+          "W/m2"
+        ],
+        "nonNegative": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "path_difference",
+        "label": "Path difference",
+        "symbol": "Δ",
+        "unit": "m",
+        "min": -1,
+        "max": 1,
+        "step": 0.0001
+      }
+    ],
+    "visualization": {
+      "scene": "light_interference",
+      "series": [
+        {
+          "key": "intensity",
+          "source": "values.intensity",
+          "label": "Intensity",
+          "symbol": "I",
+          "unit": "W/m2",
+          "color": "#38bdf8"
+        }
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "optical.bench",
+        "sceneGraph": {
+          "nodes": [
+            {
+              "id": "background",
+              "type": "background",
+              "layer": "static"
+            },
+            {
+              "id": "graph",
+              "type": "graph",
+              "layer": "dynamic",
+              "properties": {
+                "source": "values.intensity"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 0.000001,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "phaseDifference",
+        "intensity"
+      ]
+    }
+  }
+}

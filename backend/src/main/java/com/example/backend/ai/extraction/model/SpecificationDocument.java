@@ -12,7 +12,8 @@ public record SpecificationDocument(
         List<PhysicalRelation> relations,
         com.fasterxml.jackson.databind.JsonNode endCondition,
         BigDecimal confidence,
-        List<AmbiguityItem> ambiguities) {
+        List<AmbiguityItem> ambiguities,
+        String contractVersion) {
 
     public static final String CURRENT_SCHEMA_VERSION = "1.0";
 
@@ -28,6 +29,16 @@ public record SpecificationDocument(
             List<PhysicalObject> objects, List<PhysicalQuantity> quantities,
             List<PhysicalRelation> relations, BigDecimal confidence,
             List<AmbiguityItem> ambiguities) {
-        this(schemaVersion, topic, schemaId, objects, quantities, relations, null, confidence, ambiguities);
+        this(null, topic, schemaId, objects, quantities, relations, null, confidence, ambiguities,
+                CURRENT_SCHEMA_VERSION);
+    }
+
+    /** Source-compatible overload for callers that already provide an end condition. */
+    public SpecificationDocument(String schemaVersion, String topic, String schemaId,
+            List<PhysicalObject> objects, List<PhysicalQuantity> quantities,
+            List<PhysicalRelation> relations, com.fasterxml.jackson.databind.JsonNode endCondition,
+            BigDecimal confidence, List<AmbiguityItem> ambiguities) {
+        this(schemaVersion, topic, schemaId, objects, quantities, relations, endCondition, confidence,
+                ambiguities, CURRENT_SCHEMA_VERSION);
     }
 }

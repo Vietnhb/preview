@@ -1,18 +1,24 @@
 package com.example.backend.ai.extraction;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
+import com.example.backend.ai.extraction.prompt.CandidateContractProjection.QuantityProjection;
+import com.example.backend.schema.routing.model.SchemaCandidate;
+import com.example.backend.schema.routing.model.SchemaRoutingDecision;
 
 import java.util.Iterator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Validates the provider JSON shape before Jackson binds it to domain records. */
 public final class StrictSpecificationValidator {
-    private static final Set<String> ROOT_FIELDS = Set.of("schemaVersion", "topic", "schemaId", "objects",
+    private static final Set<String> ROOT_FIELDS = Set.of("contractVersion", "schemaVersion", "topic", "schemaId", "objects",
             "quantities", "relations", "endCondition", "confidence", "ambiguities");
     private static final Set<String> OBJECT_FIELDS = Set.of("id", "label", "type");
     private static final Set<String> QUANTITY_FIELDS = Set.of("name", "symbol", "value", "originalUnit",
-            "normalizedValue", "normalizedUnit", "confidence", "sourceText");
+            "confidence", "sourceText");
     private static final Set<String> RELATION_FIELDS = Set.of("type", "subject", "object", "value", "unit", "sourceText");
     private static final Set<String> AMBIGUITY_FIELDS = Set.of("code", "fieldPath", "question", "options");
     private static final Set<String> END_CONDITION_FIELDS = Set.of("type", "duration", "maxTime", "quantity",
@@ -28,8 +34,9 @@ public final class StrictSpecificationValidator {
     public static void validate(JsonNode root) {
         if (root == null || !root.isObject()) fail("root must be an object");
         rejectUnknown(root, ROOT_FIELDS, "root");
+        requiredText(root, "contractVersion");
+        if (!"1.0".equals(root.path("contractVersion").asText())) fail("contractVersion must be 1.0");
         requiredText(root, "schemaVersion");
-        if (!"1.0".equals(root.path("schemaVersion").asText())) fail("schemaVersion must be 1.0");
         requiredText(root, "schemaId");
         optionalTextOrNull(root, "topic");
         array(root, "objects");
@@ -45,6 +52,109 @@ public final class StrictSpecificationValidator {
         validateAmbiguities(root.path("ambiguities"));
         if (!root.path("endCondition").isObject()) fail("endCondition must be an object");
         validateEndCondition(root.path("endCondition"));
+    }
+
+    /** Verify catalog-version membership and quantity vocabulary before Jackson binding. */
+    public static SchemaCandidate validateCandidateMembership(JsonNode root, SchemaRoutingDecision decision) {
+        if (root == null || !root.isObject() || decision == null) fail("candidate routing decision is required");
+        String schemaId = requiredTextValue(root, "schemaId");
+        String schemaVersion = requiredTextValue(root, "schemaVersion");
+        SchemaCandidate candidate = decision.candidates().stream()
+                .filter(item -> item.schemaId().equals(schemaId) && item.schemaVersion().equals(schemaVersion))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                        "Invalid AI specification: schemaId/schemaVersion is outside the routed candidate set"));
+        if (decision.status() == SchemaRoutingDecision.Status.SELECTED) {
+            SchemaCandidate selected = decision.selectedCandidate().orElseThrow(() ->
+                    new IllegalArgumentException("Invalid AI specification: selected route has no pinned candidate"));
+            if (!selected.schemaId().equals(candidate.schemaId())
+                    || !selected.schemaVersion().equals(candidate.schemaVersion())) {
+                fail("schemaId/schemaVersion does not match the backend-selected candidate");
+            }
+        }
+        Set<String> candidateLabels = decision.candidates().stream()
+                .map(item -> item.schemaId() + "@" + item.schemaVersion()).collect(Collectors.toUnmodifiableSet());
+        Set<String> candidateIds = decision.candidates().stream().map(SchemaCandidate::schemaId)
+                .collect(Collectors.toUnmodifiableSet());
+        CandidateContractProjection contract = candidate.contract();
+        JsonNode topic = root.get("topic");
+        if (topic != null && !topic.isNull() && !contract.topic().equals(topic.asText())) {
+            fail("topic does not match the selected candidate");
+        }
+        Set<String> quantityNames = new HashSet<>();
+        for (QuantityProjection quantity : contract.requiredQuantities()) addAcceptedNames(quantity, quantityNames);
+        for (QuantityProjection quantity : contract.optionalQuantities()) addAcceptedNames(quantity, quantityNames);
+        Set<String> canonicalQuantityNames = new HashSet<>();
+        for (JsonNode quantity : root.path("quantities")) {
+            String name = quantity.path("name").asText("");
+            if (!quantityNames.contains(name)) fail("quantity name is outside the selected candidate contract");
+            String canonicalName = canonicalQuantityName(contract, name);
+            if (canonicalName == null) fail("quantity name is ambiguous in the selected candidate contract");
+            if (!canonicalQuantityNames.add(canonicalName)) {
+                fail("duplicate quantity resolves to the same canonical schema key");
+            }
+        }
+        for (JsonNode relation : root.path("relations")) {
+            String type = relation.path("type").asText("");
+            if (!contract.relationTypes().contains(type)) {
+                fail("relation type is outside the selected candidate contract");
+            }
+        }
+        List<String> capabilities = contract.endConditionCapabilities();
+        if (!capabilities.isEmpty()) {
+            String endConditionType = root.path("endCondition").path("type").asText("").trim()
+                    .toLowerCase(java.util.Locale.ROOT);
+            boolean supported = capabilities.stream().map(value -> value.trim().toLowerCase(java.util.Locale.ROOT))
+                    .anyMatch(endConditionType::equals);
+            if (!supported) fail("endCondition type is outside the selected candidate capabilities");
+        }
+        for (JsonNode ambiguity : root.path("ambiguities")) {
+            String fieldPath = ambiguity.path("fieldPath").asText("");
+            if (fieldPath.startsWith("quantities.")) {
+                String key = fieldPath.substring("quantities.".length());
+                boolean declared = contract.requiredQuantities().stream().anyMatch(item -> item.key().equals(key))
+                        || contract.optionalQuantities().stream().anyMatch(item -> item.key().equals(key));
+                if (!declared) fail("quantity ambiguity fieldPath is outside the selected candidate contract");
+            }
+            if ("schemaId".equals(fieldPath) || "schema.schemaId".equals(fieldPath)) {
+                List<String> options = new java.util.ArrayList<>();
+                ambiguity.path("options").forEach(option -> options.add(option.asText()));
+                if (options.isEmpty() || options.stream().anyMatch(option ->
+                        !candidateLabels.contains(option) && !candidateIds.contains(option))) {
+                    fail("schema ambiguity options are outside the routed candidate set");
+                }
+            }
+        }
+        return candidate;
+    }
+
+    private static void addAcceptedNames(QuantityProjection quantity, Set<String> accepted) {
+        accepted.add(quantity.key());
+        accepted.addAll(quantity.aliases());
+        accepted.addAll(quantity.symbols());
+    }
+
+    private static String canonicalQuantityName(CandidateContractProjection contract, String suppliedName) {
+        Set<String> matches = new HashSet<>();
+        for (QuantityProjection quantity : contract.requiredQuantities()) {
+            if (accepts(quantity, suppliedName)) matches.add(quantity.key());
+        }
+        for (QuantityProjection quantity : contract.optionalQuantities()) {
+            if (accepts(quantity, suppliedName)) matches.add(quantity.key());
+        }
+        return matches.size() == 1 ? matches.iterator().next() : null;
+    }
+
+    private static boolean accepts(QuantityProjection quantity, String suppliedName) {
+        return quantity.key().equals(suppliedName) || quantity.aliases().contains(suppliedName)
+                || quantity.symbols().contains(suppliedName);
+    }
+
+    private static String requiredTextValue(JsonNode root, String key) {
+        JsonNode value = root.get(key);
+        if (value == null || !value.isTextual() || value.asText().isBlank() || value.asText().length() > MAX_TEXT) {
+            fail(key + " must be a non-empty text value");
+        }
+        return value.asText();
     }
 
     private static void validateObjects(JsonNode values) {
@@ -66,9 +176,8 @@ public final class StrictSpecificationValidator {
             if (!names.add(item.path("name").asText())) fail("duplicate quantity name");
             requiredNumber(item, "value");
             requiredText(item, "originalUnit");
-            optionalNumber(item, "normalizedValue");
             optionalNumber(item, "confidence");
-            optionalText(item, "symbol"); optionalText(item, "normalizedUnit"); optionalText(item, "sourceText");
+            optionalText(item, "symbol"); optionalText(item, "sourceText");
         }
     }
 
@@ -82,6 +191,9 @@ public final class StrictSpecificationValidator {
             JsonNode value = item.get("value");
             if (value != null && !value.isNull() && !value.isNumber() && !value.isTextual() && !value.isBoolean()) {
                 fail("relation.value must be number, string, boolean or null");
+            }
+            if (value != null && value.isTextual() && value.asText().length() > MAX_TEXT) {
+                fail("relation.value exceeds the text limit");
             }
         }
     }

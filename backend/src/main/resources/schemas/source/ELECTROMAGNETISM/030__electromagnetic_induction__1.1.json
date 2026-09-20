@@ -1,0 +1,154 @@
+{
+  "schemaId": "electromagnetic_induction",
+  "model": "electromagnetic_induction",
+  "name": "Faraday induction",
+  "topic": "ELECTROMAGNETISM",
+  "version": "1.1",
+  "solverId": "induction_solver",
+  "referenceSolverId": "induction_reference",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "turns",
+        "aliases": [
+          "N"
+        ],
+        "allowedUnits": [
+          "1"
+        ],
+        "positive": true,
+        "integer": true
+      },
+      {
+        "key": "magnetic_field",
+        "aliases": [
+          "B"
+        ],
+        "allowedUnits": [
+          "T"
+        ]
+      },
+      {
+        "key": "coil_area",
+        "aliases": [
+          "A"
+        ],
+        "allowedUnits": [
+          "m2"
+        ],
+        "positive": true
+      },
+      {
+        "key": "magnetic_field_rate",
+        "aliases": [
+          "dB_dt"
+        ],
+        "allowedUnits": [
+          "T/s"
+        ]
+      },
+      {
+        "key": "coil_angle",
+        "aliases": [
+          "theta"
+        ],
+        "allowedUnits": [
+          "rad"
+        ],
+        "nonNegative": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "magnetic_field",
+        "label": "Signed normal field component",
+        "symbol": "B_n",
+        "unit": "T",
+        "min": -10,
+        "max": 10,
+        "step": 0.01
+      },
+      {
+        "key": "magnetic_field_rate",
+        "label": "Field rate",
+        "symbol": "dB/dt",
+        "unit": "T/s",
+        "min": -10,
+        "max": 10,
+        "step": 0.01
+      }
+    ],
+    "visualization": {
+      "scene": "electromagnetic_induction",
+      "series": [
+        {
+          "key": "magneticFlux",
+          "source": "values.magneticFlux",
+          "label": "Magnetic flux",
+          "symbol": "Φ",
+          "unit": "Wb",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "inducedEmf",
+          "source": "values.inducedEmf",
+          "label": "Induced emf",
+          "symbol": "ε",
+          "unit": "V",
+          "color": "#fb923c"
+        }
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "board.circuit",
+        "sceneGraph": {
+          "nodes": [
+            {
+              "id": "background",
+              "type": "background",
+              "layer": "static"
+            },
+            {
+              "id": "environment",
+              "type": "environment",
+              "layer": "static",
+              "properties": {
+                "environment": "board.circuit"
+              }
+            },
+            {
+              "id": "graph",
+              "type": "graph",
+              "layer": "dynamic",
+              "properties": {
+                "source": "values.inducedEmf"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.05,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 0.000001,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "magneticField",
+        "magneticFlux",
+        "inducedEmf"
+      ]
+    }
+  }
+}

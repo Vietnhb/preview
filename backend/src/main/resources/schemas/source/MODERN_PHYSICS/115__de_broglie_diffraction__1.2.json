@@ -1,0 +1,142 @@
+{
+  "schemaId": "de_broglie_diffraction",
+  "model": "de_broglie_diffraction",
+  "name": "De Broglie wavelength and electron diffraction",
+  "topic": "MODERN_PHYSICS",
+  "version": "1.2",
+  "solverId": "de_broglie_diffraction_solver_v2",
+  "referenceSolverId": "de_broglie_diffraction_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "particle_mass",
+        "aliases": [
+          "m"
+        ],
+        "allowedUnits": [
+          "kg"
+        ],
+        "positive": true
+      },
+      {
+        "key": "particle_speed",
+        "aliases": [
+          "v"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "positive": true
+      },
+      {
+        "key": "lattice_spacing",
+        "aliases": [
+          "d"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "positive": true
+      },
+      {
+        "key": "diffraction_order",
+        "aliases": [
+          "n"
+        ],
+        "allowedUnits": [
+          "1"
+        ],
+        "positive": true,
+        "integer": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "particle_speed",
+        "label": "Particle speed",
+        "symbol": "v",
+        "unit": "m/s",
+        "min": 1,
+        "max": 100000000,
+        "step": 1000
+      }
+    ],
+    "visualization": {
+      "scene": "de_broglie_diffraction",
+      "series": [
+        {
+          "key": "wavelength",
+          "source": "values.wavelength",
+          "label": "Matter wavelength",
+          "symbol": "lambda",
+          "unit": "m",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "diffractionAngle",
+          "source": "values.diffractionAngle",
+          "label": "Diffraction angle",
+          "symbol": "theta",
+          "unit": "rad",
+          "color": "#fb923c"
+        }
+      ]
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "momentum",
+        "wavelength",
+        "kineticEnergy",
+        "diffractionAngle",
+        "diffractionAllowed"
+      ],
+      "definitions": [
+        {
+          "key": "momentum",
+          "kind": "time_series",
+          "unit": "kg*m/s",
+          "required": true
+        },
+        {
+          "key": "wavelength",
+          "kind": "time_series",
+          "unit": "m",
+          "required": true
+        },
+        {
+          "key": "kineticEnergy",
+          "kind": "time_series",
+          "unit": "J",
+          "required": true
+        },
+        {
+          "key": "diffractionAngle",
+          "kind": "time_series",
+          "unit": "rad",
+          "required": true
+        },
+        {
+          "key": "diffractionAllowed",
+          "kind": "time_series",
+          "unit": "1",
+          "required": true
+        }
+      ]
+    }
+  }
+}

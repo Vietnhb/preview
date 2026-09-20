@@ -1,0 +1,130 @@
+{
+  "schemaId": "energy_band_transition",
+  "model": "energy_band_transition",
+  "name": "Energy-band photon transition",
+  "topic": "MODERN_PHYSICS",
+  "version": "1.1",
+  "solverId": "energy_band_transition_solver_v2",
+  "referenceSolverId": "energy_band_transition_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "valence_band_energy",
+        "aliases": [
+          "Ev"
+        ],
+        "allowedUnits": [
+          "J"
+        ]
+      },
+      {
+        "key": "conduction_band_energy",
+        "aliases": [
+          "Ec"
+        ],
+        "allowedUnits": [
+          "J"
+        ]
+      },
+      {
+        "key": "photon_frequency",
+        "aliases": [
+          "f"
+        ],
+        "allowedUnits": [
+          "Hz"
+        ],
+        "positive": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "photon_frequency",
+        "label": "Photon frequency",
+        "symbol": "f",
+        "unit": "Hz",
+        "min": 1,
+        "max": 1e+16,
+        "step": 1000000000000.0
+      }
+    ],
+    "visualization": {
+      "scene": "energy_band_transition",
+      "series": [
+        {
+          "key": "bandGap",
+          "source": "values.bandGap",
+          "label": "Band gap",
+          "symbol": "Eg",
+          "unit": "J",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "photonEnergy",
+          "source": "values.photonEnergy",
+          "label": "Photon energy",
+          "symbol": "hf",
+          "unit": "J",
+          "color": "#fb923c"
+        },
+        {
+          "key": "transitionAllowed",
+          "source": "values.transitionAllowed",
+          "label": "Transition allowed",
+          "symbol": "transition",
+          "unit": "1",
+          "color": "#34d399"
+        }
+      ]
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "bandGap",
+        "photonEnergy",
+        "thresholdWavelength",
+        "transitionAllowed"
+      ],
+      "definitions": [
+        {
+          "key": "bandGap",
+          "kind": "time_series",
+          "unit": "J",
+          "required": true
+        },
+        {
+          "key": "photonEnergy",
+          "kind": "time_series",
+          "unit": "J",
+          "required": true
+        },
+        {
+          "key": "thresholdWavelength",
+          "kind": "time_series",
+          "unit": "m",
+          "required": true
+        },
+        {
+          "key": "transitionAllowed",
+          "kind": "time_series",
+          "unit": "1",
+          "required": true
+        }
+      ]
+    }
+  }
+}

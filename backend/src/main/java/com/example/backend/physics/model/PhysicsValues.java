@@ -1,5 +1,6 @@
 package com.example.backend.physics.model;
 
+import com.example.backend.physics.compatibility.LegacySpecificationAdapter;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.HashMap;
@@ -23,10 +24,12 @@ public final class PhysicsValues {
     }
 
     /**
-     * Compiles the already-normalized specification quantities once for a
-     * parameter binder. New model code should prefer this boundary over doing
-     * repeated JsonNode scans for every field.
+     * Compatibility bridge for historical JsonNode-based binders. New runtime
+     * code must compile a schema-bound CanonicalQuantityBag at ingress.
+     *
+     * @deprecated Use a schema-bound CanonicalQuantityBag in new code.
      */
+    @Deprecated
     public static CanonicalQuantityBag bag(JsonNode specification, Map<String, Double> overrides) {
         Map<String, java.math.BigDecimal> values = new java.util.LinkedHashMap<>();
         Map<String, String> units = new java.util.LinkedHashMap<>();
@@ -73,6 +76,8 @@ public final class PhysicsValues {
         return quantities.optional(canonicalKey, fallback);
     }
 
+    /** @deprecated Use a schema-bound CanonicalQuantityBag in new code. */
+    @Deprecated
     public static double gravitationalAcceleration(JsonNode specification, Map<String, Double> overrides) {
         double gravity = optional(specification, overrides, PhysicalConstants.STANDARD_GRAVITY,
                 "gravitational_acceleration");
@@ -81,36 +86,32 @@ public final class PhysicsValues {
         return gravity;
     }
 
+    /** @deprecated Use a schema-bound CanonicalQuantityBag in new code. */
+    @Deprecated
     public static double optional(JsonNode specification, Map<String, Double> overrides,
             double fallback, String canonicalKey) {
         CanonicalQuantityBag bag = LegacySpecificationAdapter.adapt(specification, overrides);
         return bag.optional(canonicalKey, fallback);
     }
 
+    /** @deprecated Use compiled schema identity in new code. */
+    @Deprecated
     public static String schema(JsonNode specification) {
         if (specification == null)
             throw new IllegalArgumentException("Specification is required");
         String schemaId = specification.path("schemaId").asText(specification.path("schema_id").asText());
         if (schemaId == null || schemaId.isBlank())
             throw new IllegalArgumentException("Specification schemaId is required");
-        return canonicalName(schemaId);
+        return schemaId.trim();
     }
 
+    /** @deprecated Use typed module binding in new code. */
+    @Deprecated
     public static String model(JsonNode specification) {
         if (specification == null || specification.path("model").asText().isBlank()) {
             throw new IllegalArgumentException("Specification model binding is required");
         }
-        return canonicalName(specification.path("model").asText());
-    }
-
-    /**
-     * Accepts historical dimension-suffixed identifiers without exposing them in
-     * new contracts.
-     */
-    public static String canonicalName(String value) {
-        if (value == null || value.isBlank())
-            return value;
-        return value.replaceFirst("(?i)[_-](?:1d|2d)$", "");
+        return specification.path("model").asText().trim();
     }
 
     public static Map<String, ListBuilder> series(String... names) {

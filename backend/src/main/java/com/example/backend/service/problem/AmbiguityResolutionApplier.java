@@ -3,6 +3,7 @@ package com.example.backend.service.problem;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,9 +48,18 @@ public class AmbiguityResolutionApplier {
 
     private ObjectNode currentDocument(Specification specification) {
         ObjectNode current = objectMapper.createObjectNode();
-        current.put("schemaVersion", specification.getContractVersion()); current.put("topic", specification.getTopic());
+        current.put("contractVersion", specification.getContractVersion());
+        current.put("schemaVersion", specification.getSchemaVersion()); current.put("topic", specification.getTopic());
         current.put("schemaId", specification.getSchemaId()); current.set("objects", specification.getObjects());
-        current.set("quantities", specification.getQuantities()); current.set("relations", specification.getRelations());
+        com.fasterxml.jackson.databind.node.ArrayNode quantities = objectMapper.createArrayNode();
+        if (specification.getQuantities() != null && specification.getQuantities().isArray()) {
+            specification.getQuantities().forEach(source -> {
+                ObjectNode quantity = source.deepCopy();
+                quantity.remove(List.of("normalizedValue", "normalizedUnit"));
+                quantities.add(quantity);
+            });
+        }
+        current.set("quantities", quantities); current.set("relations", specification.getRelations());
         if (specification.getEndCondition() != null) current.set("endCondition", specification.getEndCondition());
         current.put("confidence", specification.getConfidence()); current.set("ambiguities", specification.getAmbiguity());
         return current;
@@ -91,7 +101,7 @@ public class AmbiguityResolutionApplier {
 
     private void applyDocument(Specification specification, SpecificationDocument document) {
         specification.setContractVersion(SpecificationDocument.CURRENT_SCHEMA_VERSION);
-        var schema = schemaDefinitions.requireApproved(document.schemaId());
+        var schema = schemaDefinitions.requireCurrentApproved(document.schemaId(), document.schemaVersion());
         specification.setSchemaVersion(schema.getVersion());
         specification.setTopic(document.topic());
         specification.setSchemaId(document.schemaId()); specification.setObjects(objectMapper.valueToTree(document.objects()));

@@ -1,0 +1,110 @@
+{
+  "schemaId": "wave_pulse",
+  "model": "wave_pulse",
+  "name": "Travelling Gaussian pulse on a string",
+  "topic": "WAVES",
+  "version": "1.2",
+  "solverId": "wave_pulse_solver_v2",
+  "referenceSolverId": "wave_pulse_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "amplitude",
+        "aliases": ["a"],
+        "allowedUnits": ["m"],
+        "nonNegative": true,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "key": "wave_speed",
+        "aliases": ["speed", "c"],
+        "allowedUnits": ["m/s"],
+        "positive": true,
+        "min": 0.01,
+        "max": 100
+      },
+      {
+        "key": "pulse_width",
+        "aliases": ["width", "sigma"],
+        "allowedUnits": ["m"],
+        "positive": true,
+        "min": 0.001,
+        "max": 10
+      },
+      {
+        "key": "probe_position",
+        "aliases": ["x_probe"],
+        "allowedUnits": ["m"]
+      }
+    ],
+    "optionalQuantities": [
+      {
+        "key": "initial_position",
+        "aliases": ["x0", "pulse_center"],
+        "allowedUnits": ["m"],
+        "defaultValue": 0,
+        "defaultUnit": "m"
+      },
+      {
+        "key": "domain_start",
+        "aliases": ["x_min"],
+        "allowedUnits": ["m"],
+        "defaultValue": -2,
+        "defaultUnit": "m"
+      },
+      {
+        "key": "domain_end",
+        "aliases": ["x_max"],
+        "allowedUnits": ["m"],
+        "defaultValue": 6,
+        "defaultUnit": "m"
+      },
+      {
+        "key": "spatial_samples",
+        "aliases": ["x_samples"],
+        "allowedUnits": ["1"],
+        "positive": true,
+        "integer": true,
+        "min": 2,
+        "max": 4096,
+        "defaultValue": 401,
+        "defaultUnit": "1"
+      }
+    ],
+    "adjustableParameters": [
+      {"key": "amplitude", "label": "Pulse amplitude", "symbol": "A", "unit": "m", "min": 0, "max": 1, "step": 0.001},
+      {"key": "wave_speed", "label": "Wave speed", "symbol": "c", "unit": "m/s", "min": 0.01, "max": 100, "step": 0.01},
+      {"key": "pulse_width", "label": "Pulse width", "symbol": "w", "unit": "m", "min": 0.001, "max": 10, "step": 0.001}
+    ],
+    "visualization": {
+      "scene": "wave_pulse",
+      "series": [
+        {"key": "displacement", "source": "values.displacement", "label": "Displacement at probe", "symbol": "u", "unit": "m", "color": "#38bdf8"},
+        {"key": "particleVelocity", "source": "values.particleVelocity", "label": "Particle velocity", "symbol": "u_dot", "unit": "m/s", "color": "#34d399"},
+        {"key": "particleAcceleration", "source": "values.particleAcceleration", "label": "Particle acceleration", "symbol": "u_ddot", "unit": "m/s2", "color": "#fb923c"}
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "track.engineering",
+        "wave": {"fieldId": "pulseDisplacement", "probeX": {"source": "quantity", "key": "probe_position"}, "displayExaggeration": 1},
+        "sceneGraph": {
+          "nodes": [
+            {"id": "background", "type": "background", "layer": "static"},
+            {"id": "grid", "type": "grid", "layer": "static"},
+            {"id": "environment", "type": "environment", "layer": "static", "properties": {"environment": "track.engineering", "layout": "horizontalTrack"}},
+            {"id": "wave", "type": "waveField", "layer": "dynamic", "properties": {"field": "pulseDisplacement", "probeX": {"source": "quantity", "key": "probe_position"}, "displayExaggeration": 1}},
+            {"id": "ruler", "type": "ruler", "layer": "static"}
+          ]
+        }
+      }
+    },
+    "execution": {"durationSeconds": 4, "stepSeconds": 0.01, "durationBindings": []},
+    "validation": {"tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1]},
+    "output": {
+      "type": "scalarField",
+      "fieldId": "pulseDisplacement",
+      "probeSeries": ["displacement", "particleVelocity", "particleAcceleration"]
+    }
+  }
+}

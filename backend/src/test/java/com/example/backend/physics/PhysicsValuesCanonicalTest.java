@@ -1,5 +1,6 @@
 package com.example.backend.physics;
 
+import com.example.backend.physics.compatibility.LegacySpecificationAdapter;
 import com.example.backend.physics.model.PhysicsValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -10,6 +11,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PhysicsValuesCanonicalTest {
     private final ObjectMapper mapper = new ObjectMapper();
@@ -35,6 +37,14 @@ class PhysicsValuesCanonicalTest {
     }
 
     @Test
+    void doesNotStripDimensionalSuffixesFromRuntimeIdentifiers() {
+        ObjectNode specification = mapper.createObjectNode().put("schemaId", "motion_2d").put("model", "motion-1d");
+
+        assertEquals("motion_2d", PhysicsValues.schema(specification));
+        assertEquals("motion-1d", PhysicsValues.model(specification));
+    }
+
+    @Test
     void canonicalBagRejectsDuplicateKeysAndKeepsLegacyAtAdapterBoundary() {
         ObjectNode duplicate = mapper.createObjectNode();
         duplicate.putArray("quantities")
@@ -45,5 +55,14 @@ class PhysicsValuesCanonicalTest {
 
         ObjectNode legacy = mapper.createObjectNode().put("mass", 2.0);
         assertEquals(2.0, PhysicsValues.require(legacy, Map.of(), "mass"));
+    }
+
+    @Test
+    void legacySpecificationAdaptationIsReachedThroughTheDeprecatedPhysicsValuesBridge() {
+        long before = LegacySpecificationAdapter.invocationCount();
+        ObjectNode legacy = mapper.createObjectNode().put("mass", 2.0);
+
+        assertEquals(2.0, PhysicsValues.bag(legacy, Map.of()).require("mass"));
+        assertTrue(LegacySpecificationAdapter.invocationCount() > before);
     }
 }

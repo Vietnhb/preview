@@ -350,7 +350,7 @@ function drawWaveField(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, 
   if (!field) return;
   const exaggeration = Math.max(0.01, propertyNumber(node, "displayExaggeration", 1));
   if (field.physicalDimension === 2 && field.y) {
-    const amplitude = Math.max(1e-9, field.values.reduce((max, value) => Math.max(max, Math.abs(value)), 0));
+    const amplitude = Math.max(1e-9, maxAbsoluteValue(field.values));
     const x0 = field.x[0] ?? 0; const x1 = field.x.at(-1) ?? x0 + 1;
     const y0 = field.y[0] ?? 0; const y1 = field.y.at(-1) ?? y0 + 1;
     const panelTop = layout.top + 22; const panelHeight = Math.max(80, layout.height * .62);
@@ -381,7 +381,7 @@ function drawWaveField(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, 
     if (probe) drawBadge(ctx, `u = ${probe.value.toFixed(4)} ${field.valueUnit}`, layout.left + (layout.right - layout.left) / 2, panelTop + panelHeight + 40, frame.palette.amber);
     return;
   }
-  const amplitude = Math.max(1e-9, field.values.reduce((max, value) => Math.max(max, Math.abs(value)), 0));
+  const amplitude = Math.max(1e-9, maxAbsoluteValue(field.values));
   // Physical amplitudes in school fixtures are often centimetres or smaller;
   // scale the drawing for legibility while keeping the SI value in the readout.
   const scale = Math.min(10000, Math.max(24, (layout.height * 0.22) / amplitude)) * exaggeration;
@@ -421,6 +421,15 @@ function drawWaveField(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, 
   ctx.font = "600 10px ui-monospace, Consolas, monospace";
   ctx.fillText(`biên độ hiển thị ×${exaggeration.toFixed(2)} · đơn vị m`, layout.left, y0 + 42);
   ctx.restore();
+}
+
+function maxAbsoluteValue(values: ArrayLike<number>): number {
+  let maximum = 0;
+  for (let index = 0; index < values.length; index++) {
+    const value = values[index];
+    if (typeof value === "number" && Number.isFinite(value)) maximum = Math.max(maximum, Math.abs(value));
+  }
+  return maximum;
 }
 
 function drawEffect(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node: SceneNode, layout: LayoutContext, resolver: BindingResolver, nodes: SceneNode[]) {

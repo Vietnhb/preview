@@ -1,0 +1,153 @@
+{
+  "schemaId": "eclipse_geometry",
+  "model": "eclipse_geometry",
+  "name": "Eclipse geometry",
+  "topic": "MODERN_PHYSICS",
+  "version": "1.1",
+  "solverId": "eclipse_geometry_solver_v2",
+  "referenceSolverId": "eclipse_geometry_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "star_radius",
+        "aliases": [
+          "Rstar"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "positive": true
+      },
+      {
+        "key": "star_distance",
+        "aliases": [
+          "Dstar"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "positive": true
+      },
+      {
+        "key": "occluder_radius",
+        "aliases": [
+          "Rmoon"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "positive": true
+      },
+      {
+        "key": "occluder_distance",
+        "aliases": [
+          "Dmoon"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "positive": true
+      },
+      {
+        "key": "alignment_angle",
+        "aliases": [
+          "theta"
+        ],
+        "allowedUnits": [
+          "rad"
+        ],
+        "nonNegative": true,
+        "max": 3.141592653589793
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "alignment_angle",
+        "label": "Alignment angle",
+        "symbol": "theta",
+        "unit": "rad",
+        "min": 0,
+        "max": 0.1,
+        "step": 0.0001
+      }
+    ],
+    "visualization": {
+      "scene": "eclipse_geometry",
+      "series": [
+        {
+          "key": "starAngularDiameter",
+          "source": "values.starAngularDiameter",
+          "label": "Star angular diameter",
+          "symbol": "delta_star",
+          "unit": "rad",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "occluderAngularDiameter",
+          "source": "values.occluderAngularDiameter",
+          "label": "Occluder angular diameter",
+          "symbol": "delta_occluder",
+          "unit": "rad",
+          "color": "#fb923c"
+        },
+        {
+          "key": "totality",
+          "source": "values.totality",
+          "label": "Totality condition",
+          "symbol": "totality",
+          "unit": "1",
+          "color": "#34d399"
+        }
+      ]
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "starAngularDiameter",
+        "occluderAngularDiameter",
+        "alignmentMargin",
+        "totality"
+      ],
+      "definitions": [
+        {
+          "key": "starAngularDiameter",
+          "kind": "time_series",
+          "unit": "rad",
+          "required": true
+        },
+        {
+          "key": "occluderAngularDiameter",
+          "kind": "time_series",
+          "unit": "rad",
+          "required": true
+        },
+        {
+          "key": "alignmentMargin",
+          "kind": "time_series",
+          "unit": "rad",
+          "required": true
+        },
+        {
+          "key": "totality",
+          "kind": "time_series",
+          "unit": "1",
+          "required": true
+        }
+      ]
+    }
+  }
+}

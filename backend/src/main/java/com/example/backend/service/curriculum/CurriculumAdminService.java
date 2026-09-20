@@ -11,6 +11,7 @@ import com.example.backend.repository.curriculum.ContentModuleRepository;
 import com.example.backend.repository.curriculum.GradeLevelRepository;
 import com.example.backend.repository.curriculum.LessonRepository;
 import com.example.backend.repository.curriculum.TopicRepository;
+import com.example.backend.schema.routing.index.SchemaEmbeddingIndexer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class CurriculumAdminService {
     private final GradeLevelRepository levelRepository;
     private final LessonRepository lessonRepository;
     private final CurriculumService curriculumService;
+    private final SchemaEmbeddingIndexer schemaEmbeddingIndexer;
 
     @Transactional
     public CurriculumTreeResponse createTopic(CurriculumNodeRequest request) {
@@ -83,6 +85,7 @@ public class CurriculumAdminService {
                 Topic item = topic(id);
                 item.setEnabled(!item.isEnabled());
                 topicRepository.save(item);
+                schemaEmbeddingIndexer.refreshAfterCatalogChange();
             }
             case "module" -> {
                 ContentModule item = module(id);

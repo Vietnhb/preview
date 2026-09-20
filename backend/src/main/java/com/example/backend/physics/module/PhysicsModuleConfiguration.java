@@ -1,0 +1,163 @@
+package com.example.backend.physics.module;
+
+import com.example.backend.physics.module.circuits.AcWaveformModule;
+import com.example.backend.physics.module.circuits.AcRlcCircuitModule;
+import com.example.backend.physics.module.circuits.CapacitorBasicModule;
+import com.example.backend.physics.module.circuits.DiodeCharacteristicModule;
+import com.example.backend.physics.module.circuits.IdealTransformerModule;
+import com.example.backend.physics.module.circuits.OhmsLawModule;
+import com.example.backend.physics.module.circuits.ResistorsParallelModule;
+import com.example.backend.physics.module.circuits.ResistorsSeriesModule;
+import com.example.backend.physics.module.circuits.RcChargingModule;
+import com.example.backend.physics.module.circuits.RcDischargingModule;
+import com.example.backend.physics.module.circuits.SourceInternalResistanceModule;
+import com.example.backend.physics.module.circuits.SensorOpAmpModule;
+import com.example.backend.physics.module.circuits.ThermistorResponseModule;
+import com.example.backend.physics.module.dynamics.DampedForcedOscillationModule;
+import com.example.backend.physics.module.dynamics.CircularMotionModule;
+import com.example.backend.physics.module.dynamics.DynamicsCollisionModule;
+import com.example.backend.physics.module.dynamics.DynamicsForcesModule;
+import com.example.backend.physics.module.dynamics.GravityOrbitModule;
+import com.example.backend.physics.module.dynamics.LinearDragMotionModule;
+import com.example.backend.physics.module.dynamics.MomentEquilibriumModule;
+import com.example.backend.physics.module.dynamics.SpringOscillationModule;
+import com.example.backend.physics.module.dynamics.UniformAccelerationModule;
+import com.example.backend.physics.module.electromagnetism.UniformElectricFieldModule;
+import com.example.backend.physics.module.electromagnetism.MagneticForceModule;
+import com.example.backend.physics.module.electromagnetism.PointChargeFieldModule;
+import com.example.backend.physics.module.electromagnetism.ElectromagneticInductionModule;
+import com.example.backend.physics.module.dynamics.HookeLawModule;
+import com.example.backend.physics.module.dynamics.HydrostaticsModule;
+import com.example.backend.physics.module.dynamics.WorkEnergyPowerModule;
+import com.example.backend.physics.module.kinematics.KinematicsProjectileModule;
+import com.example.backend.physics.module.kinematics.AccelerationTimeGraphModule;
+import com.example.backend.physics.module.kinematics.PositionTimeGraphModule;
+import com.example.backend.physics.module.kinematics.VelocityTimeGraphModule;
+import com.example.backend.physics.module.modern.PhotoelectricEffectModule;
+import com.example.backend.physics.module.modern.RadioactiveDecayModule;
+import com.example.backend.physics.module.modern.NuclearEnergyModule;
+import com.example.backend.physics.module.modern.RadiationSafetyModule;
+import com.example.backend.physics.module.modern.CtReconstructionModule;
+import com.example.backend.physics.module.modern.DeBroglieDiffractionModule;
+import com.example.backend.physics.module.modern.AtomicSpectraModule;
+import com.example.backend.physics.module.modern.EclipseGeometryModule;
+import com.example.backend.physics.module.modern.EnergyBandTransitionModule;
+import com.example.backend.physics.module.modern.MriRelaxationModule;
+import com.example.backend.physics.module.modern.NuclearReactionEnergyModule;
+import com.example.backend.physics.module.modern.XrayImagingModule;
+import com.example.backend.physics.module.optics.SnellRefractionModule;
+import com.example.backend.physics.module.optics.DiffractionPolarizationModule;
+import com.example.backend.physics.module.optics.AstronomicalTelescopeModule;
+import com.example.backend.physics.module.optics.CompoundMicroscopeModule;
+import com.example.backend.physics.module.optics.SimpleMagnifierModule;
+import com.example.backend.physics.module.practical.MeasurementUncertaintyModule;
+import com.example.backend.physics.module.practical.EnergyEnvironmentModule;
+import com.example.backend.physics.module.practical.ExperimentalDataGraphModule;
+import com.example.backend.physics.module.optics.ThinLensModule;
+import com.example.backend.physics.module.optics.LightInterferenceModule;
+import com.example.backend.physics.module.thermal.AdiabaticGasModule;
+import com.example.backend.physics.module.thermal.IdealGasIsochoricModule;
+import com.example.backend.physics.module.thermal.IdealGasIsothermalModule;
+import com.example.backend.physics.module.thermal.FirstLawThermodynamicsModule;
+import com.example.backend.physics.module.thermal.IdealGasIsobaricModule;
+import com.example.backend.physics.module.thermal.ThermalExpansionModule;
+import com.example.backend.physics.module.thermal.CalorimetryMixingModule;
+import com.example.backend.physics.module.thermal.TemperatureScalesModule;
+import com.example.backend.physics.module.thermal.PhaseChangeModule;
+import com.example.backend.physics.module.waves.SoundWaveModule;
+import com.example.backend.physics.module.waves.StringWaveModule;
+import com.example.backend.physics.module.waves.StandingWaveModule;
+import com.example.backend.physics.module.waves.WavePulseModule;
+import com.example.backend.physics.module.waves.WaveReflectionModule;
+import com.example.backend.physics.module.waves.WaveSuperpositionModule;
+import com.example.backend.physics.module.waves.WaterSurfaceInterferenceModule;
+import com.example.backend.physics.module.waves.RadioCommunicationModule;
+import com.example.backend.physics.module.waves.RadioSignalChainModule;
+import com.example.backend.physics.module.waves.UltrasoundImagingModule;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+
+/** Explicit registry assembly prevents duplicate registration through component scanning. */
+@Configuration(proxyBeanMethods = false)
+public class PhysicsModuleConfiguration {
+    @Bean
+    public PhysicsModuleRegistry physicsModuleRegistry() {
+        return new PhysicsModuleRegistry(List.of(
+                new AcWaveformModule(),
+                new DiodeCharacteristicModule(),
+                new DampedForcedOscillationModule(),
+                new OhmsLawModule(),
+                new CapacitorBasicModule(),
+                new IdealTransformerModule(),
+                new SourceInternalResistanceModule(),
+                new ResistorsSeriesModule(),
+                new ResistorsParallelModule(),
+                new RcChargingModule(),
+                new RcDischargingModule(),
+                new AcRlcCircuitModule(),
+                new ThermistorResponseModule(),
+                new SensorOpAmpModule(),
+                new UniformElectricFieldModule(),
+                new MagneticForceModule(),
+                new PointChargeFieldModule(),
+                new ElectromagneticInductionModule(),
+                new ThinLensModule(),
+                new LightInterferenceModule(),
+                new SnellRefractionModule(),
+                new SimpleMagnifierModule(),
+                new CompoundMicroscopeModule(),
+                new AstronomicalTelescopeModule(),
+                new HookeLawModule(),
+                new HydrostaticsModule(),
+                new GravityOrbitModule(),
+                new LinearDragMotionModule(),
+                new UniformAccelerationModule(),
+                new CircularMotionModule(),
+                new AdiabaticGasModule(),
+                new IdealGasIsochoricModule(),
+                new IdealGasIsothermalModule(),
+                new IdealGasIsobaricModule(),
+                new ThermalExpansionModule(),
+                new WorkEnergyPowerModule(),
+                new DynamicsForcesModule(),
+                new DynamicsCollisionModule(),
+                new SpringOscillationModule(),
+                new PositionTimeGraphModule(),
+                new VelocityTimeGraphModule(),
+                new AccelerationTimeGraphModule(),
+                new TemperatureScalesModule(),
+                new PhotoelectricEffectModule(),
+                new FirstLawThermodynamicsModule(),
+                new RadioactiveDecayModule(),
+                new RadiationSafetyModule(),
+                new SoundWaveModule(),
+                new StringWaveModule(),
+                new StandingWaveModule(),
+                new CalorimetryMixingModule(),
+                new MeasurementUncertaintyModule(),
+                new DiffractionPolarizationModule(),
+                new MomentEquilibriumModule(),
+                new NuclearEnergyModule(),
+                new XrayImagingModule(),
+                new CtReconstructionModule(),
+                new MriRelaxationModule(),
+                new DeBroglieDiffractionModule(),
+                new EclipseGeometryModule(),
+                new EnergyBandTransitionModule(),
+                new NuclearReactionEnergyModule(),
+                new AtomicSpectraModule(),
+                new PhaseChangeModule(),
+                new WavePulseModule(),
+                new WaveSuperpositionModule(),
+                new WaveReflectionModule(),
+                new WaterSurfaceInterferenceModule(),
+                new KinematicsProjectileModule(),
+                new RadioSignalChainModule(),
+                new RadioCommunicationModule(),
+                new UltrasoundImagingModule(),
+                new EnergyEnvironmentModule(),
+                new ExperimentalDataGraphModule()));
+    }
+}

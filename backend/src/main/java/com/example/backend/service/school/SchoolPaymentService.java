@@ -73,9 +73,9 @@ public class SchoolPaymentService {
     public Checkout checkout(Registration request, String ip) {
         requireConfigured();
         if (request.password().getBytes(StandardCharsets.UTF_8).length > 72)
-            throw new ApiException(HttpStatus.BAD_REQUEST, "MÃƒÂ¡Ã‚ÂºÃ‚Â­t khÃƒÂ¡Ã‚ÂºÃ‚Â©u khÃƒÆ’Ã‚Â´ng Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c vÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£t quÃƒÆ’Ã‚Â¡ 72 byte UTF-8.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu không được vượt quá 72 byte UTF-8.");
         var plan = plans.findById(request.planCode()).filter(LicensePlan::isActive)
-            .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "GÃƒÆ’Ã‚Â³i Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½ khÃƒÆ’Ã‚Â´ng cÃƒÆ’Ã‚Â²n khÃƒÂ¡Ã‚ÂºÃ‚Â£ dÃƒÂ¡Ã‚Â»Ã‚Â¥ng."));
+            .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Gói đăng ký không còn khả dụng."));
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         String code = request.schoolCode().trim().toUpperCase(Locale.ROOT);
         var existing = users.findByEmail(email);
@@ -83,17 +83,17 @@ public class SchoolPaymentService {
             var user = existing.get();
             if (Boolean.FALSE.equals(user.getActive()) && user.getSchool() != null && code.equals(user.getSchool().getCode())
                 && passwords.matches(request.password(), user.getPassword())) return recover(new Recovery(email, request.password()), ip);
-            throw new ApiException(HttpStatus.CONFLICT, "Email Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c sÃƒÂ¡Ã‚Â»Ã‚Â­ dÃƒÂ¡Ã‚Â»Ã‚Â¥ng. Vui lÃƒÆ’Ã‚Â²ng Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p hoÃƒÂ¡Ã‚ÂºÃ‚Â·c dÃƒÆ’Ã‚Â¹ng email khÃƒÆ’Ã‚Â¡c.");
+            throw new ApiException(HttpStatus.CONFLICT, "Email đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.");
         }
         if (schools.existsByCode(code) || schools.findByName(request.schoolName().trim()).isPresent())
-            throw new ApiException(HttpStatus.CONFLICT, "TrÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½. Vui lÃƒÆ’Ã‚Â²ng liÃƒÆ’Ã‚Âªn hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi quÃƒÂ¡Ã‚ÂºÃ‚Â£n lÃƒÆ’Ã‚Â½ trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng.");
+            throw new ApiException(HttpStatus.CONFLICT, "Trường đã đăng ký. Vui lòng liên hệ người quản lý trường.");
         School school = new School();
         school.setCode(code); school.setName(request.schoolName().trim()); school.setAddress(request.address().trim());
         school.setContactEmail(email); school.setPhoneNumber(request.phoneNumber().trim()); school.setActive(false);
         schools.save(school);
         User manager = new User(); manager.setEmail(email); manager.setFullName(request.fullName().trim());
         manager.setPassword(passwords.encode(request.password())); manager.setSchool(school); manager.setActive(false);
-        manager.setRole(roles.findByName(RoleName.SCHOOL_MANAGER.name()).orElseThrow(() -> new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Role quÃƒÂ¡Ã‚ÂºÃ‚Â£n lÃƒÆ’Ã‚Â½ trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng chÃƒâ€ Ã‚Â°a Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c cÃƒÂ¡Ã‚ÂºÃ‚Â¥u hÃƒÆ’Ã‚Â¬nh.")));
+        manager.setRole(roles.findByName(RoleName.SCHOOL_MANAGER.name()).orElseThrow(() -> new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Role quản lý trường chưa được cấu hình.")));
         users.save(manager);
         SchoolPayment payment = new SchoolPayment(); payment.setSchool(school); payment.setManager(manager);
         payment.setPlanCode(plan.getCode()); payment.setAmountVnd(plan.getAnnualPriceVnd()); payment.setMonthlyTokenQuota(plan.getMonthlyTokenQuota());
@@ -106,7 +106,7 @@ public class SchoolPaymentService {
     private void requireConfigured() {
         if (vnpay.tmnCode().isBlank() || vnpay.hashSecret().isBlank()
                 || vnpay.paymentUrl().isBlank() || vnpay.returnUrl().isBlank()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
-            "VNPAY Sandbox chÃƒâ€ Ã‚Â°a Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c cÃƒÂ¡Ã‚ÂºÃ‚Â¥u hÃƒÆ’Ã‚Â¬nh. Vui lÃƒÆ’Ã‚Â²ng liÃƒÆ’Ã‚Âªn hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ quÃƒÂ¡Ã‚ÂºÃ‚Â£n trÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ viÃƒÆ’Ã‚Âªn.");
+            "VNPAY Sandbox chưa được cấu hình. Vui lòng liên hệ quản trị viên.");
     }
 
     String buildUrl(SchoolPayment payment, String ip) {
@@ -186,21 +186,21 @@ public class SchoolPaymentService {
         requireConfigured();
         var user = users.findByEmail(credentials.email().trim().toLowerCase(Locale.ROOT))
             .filter(u -> passwords.matches(credentials.password(), u.getPassword()))
-            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Email hoÃƒÂ¡Ã‚ÂºÃ‚Â·c mÃƒÂ¡Ã‚ÂºÃ‚Â­t khÃƒÂ¡Ã‚ÂºÃ‚Â©u khÃƒÆ’Ã‚Â´ng Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Âºng."));
+            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không đúng."));
         if (user.getSchool() == null || user.getRole() == null || !RoleName.SCHOOL_MANAGER.matches(user.getRole().getName()))
-            throw new ApiException(HttpStatus.FORBIDDEN, "TÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n khÃƒÆ’Ã‚Â´ng cÃƒÆ’Ã‚Â³ Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½ trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng cÃƒÂ¡Ã‚ÂºÃ‚Â§n thanh toÃƒÆ’Ã‚Â¡n.");
+            throw new ApiException(HttpStatus.FORBIDDEN, "Tài khoản không có đăng ký trường cần thanh toán.");
         lockedSchool(user.getSchool().getId());
         var latest = payments.findFirstByManagerIdOrderByCreatedAtDesc(user.getId())
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½ cÃƒÂ¡Ã‚ÂºÃ‚Â§n thanh toÃƒÆ’Ã‚Â¡n."));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy đăng ký cần thanh toán."));
         var payment = payments.findLockedById(latest.getId()).orElseThrow();
         if ("PAID".equals(payment.getStatus())) return new Checkout(payment.getId(), null);
         if ("PENDING".equals(payment.getStatus()) && !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now())) reconcile(payment);
         if ("PAID".equals(payment.getStatus())) return new Checkout(payment.getId(), null);
-        if ("REQUIRES_REVIEW".equals(payment.getStatus())) throw new ApiException(HttpStatus.CONFLICT, "Giao dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch cÃƒÂ¡Ã‚ÂºÃ‚Â§n admin Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi soÃƒÆ’Ã‚Â¡t. Vui lÃƒÆ’Ã‚Â²ng liÃƒÆ’Ã‚Âªn hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ hÃƒÂ¡Ã‚Â»Ã¢â‚¬â€ trÃƒÂ¡Ã‚Â»Ã‚Â£.");
+        if ("REQUIRES_REVIEW".equals(payment.getStatus())) throw new ApiException(HttpStatus.CONFLICT, "Giao dịch cần admin đối soát. Vui lòng liên hệ hỗ trợ.");
         if (!"REGISTRATION".equals(payment.getPurpose()) && "FAILED".equals(payment.getStatus())) return new Checkout(payment.getId(), null);
         if ("PENDING".equals(payment.getStatus())) {
             if (!payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now()))
-                throw new ApiException(HttpStatus.CONFLICT, "VNPAY Ãƒâ€žÃ¢â‚¬Ëœang xÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÆ’Ã‚Â½ giao dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch. Vui lÃƒÆ’Ã‚Â²ng kiÃƒÂ¡Ã‚Â»Ã†â€™m tra lÃƒÂ¡Ã‚ÂºÃ‚Â¡i trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc khi thanh toÃƒÆ’Ã‚Â¡n lÃƒÂ¡Ã‚ÂºÃ‚Â§n nÃƒÂ¡Ã‚Â»Ã‚Â¯a.");
+                throw new ApiException(HttpStatus.CONFLICT, "VNPAY đang xử lý giao dịch. Vui lòng kiểm tra lại trước khi thanh toán lần nữa.");
             return new Checkout(payment.getId(), buildUrl(payment, ip));
         }
         var retry = new SchoolPayment(); retry.setSchool(payment.getSchool()); retry.setManager(payment.getManager());
@@ -226,8 +226,8 @@ public class SchoolPaymentService {
             if (response.statusCode() != 200) throw new java.io.IOException("Query failed");
             return mapper.readValue(response.body(), new TypeReference<Map<String,String>>() { });
         } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt(); throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Truy vÃƒÂ¡Ã‚ÂºÃ‚Â¥n VNPAY bÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ giÃƒÆ’Ã‚Â¡n Ãƒâ€žÃ¢â‚¬ËœoÃƒÂ¡Ã‚ÂºÃ‚Â¡n.");
-        } catch (java.io.IOException ex) { throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "KhÃƒÆ’Ã‚Â´ng thÃƒÂ¡Ã‚Â»Ã†â€™ xÃƒÆ’Ã‚Â¡c minh giao dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch vÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºi VNPAY. Vui lÃƒÆ’Ã‚Â²ng thÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÂ¡Ã‚ÂºÃ‚Â¡i."); }
+            Thread.currentThread().interrupt(); throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Truy vấn VNPAY bị gián đoạn.");
+        } catch (java.io.IOException ex) { throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Không thể xác minh giao dịch với VNPAY. Vui lòng thử lại."); }
     }
 
     void reconcile(SchoolPayment payment) {
@@ -236,10 +236,10 @@ public class SchoolPaymentService {
             .map(key -> Objects.toString(fields.get(key), "")).collect(Collectors.joining("|"));
         if (!MessageDigest.isEqual(sign(input).getBytes(StandardCharsets.US_ASCII), fields.getOrDefault("vnp_SecureHash", "").toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII))
             || !vnpay.tmnCode().equals(fields.get("vnp_TmnCode")) || !payment.getId().toString().equals(fields.get("vnp_TxnRef")))
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "PhÃƒÂ¡Ã‚ÂºÃ‚Â£n hÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“i VNPAY khÃƒÆ’Ã‚Â´ng hÃƒÂ¡Ã‚Â»Ã‚Â£p lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡.");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Phản hồi VNPAY không hợp lệ.");
         if ("91".equals(fields.get("vnp_ResponseCode"))) { payment.setStatus("FAILED"); return; }
         if (!"00".equals(fields.get("vnp_ResponseCode")) || !Long.toString(payment.getAmountVnd() * 100).equals(fields.get("vnp_Amount")))
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "VNPAY chÃƒâ€ Ã‚Â°a xÃƒÆ’Ã‚Â¡c minh Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c giao dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch.");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "VNPAY chưa xác minh được giao dịch.");
         if ("00".equals(fields.get("vnp_TransactionStatus")) && "01".equals(fields.get("vnp_TransactionType"))) activate(payment, fields.get("vnp_TransactionNo"));
         else if ("02".equals(fields.get("vnp_TransactionStatus"))) payment.setStatus("FAILED");
     }
@@ -257,7 +257,7 @@ public class SchoolPaymentService {
 
     @Transactional
     public String reconcilePayment(UUID id) {
-        SchoolPayment payment = payments.findLockedById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y giao dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch."));
+        SchoolPayment payment = payments.findLockedById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy giao dịch."));
         if ("PENDING".equals(payment.getStatus())) reconcile(payment);
         return payment.getStatus();
     }
@@ -270,13 +270,14 @@ public class SchoolPaymentService {
 
     @Transactional(readOnly = true)
     public RevenueSummary revenueSummary() {
-        var rows = payments.findAll();
-        return new RevenueSummary(rows.stream().filter(p -> "PAID".equals(p.getStatus())).count(), rows.stream().filter(p -> "PENDING".equals(p.getStatus())).count(), rows.stream().filter(p -> "REQUIRES_REVIEW".equals(p.getStatus())).count(), rows.stream().filter(p -> "PAID".equals(p.getStatus())).mapToLong(SchoolPayment::getAmountVnd).sum());
+        var totals = payments.summarizeRevenue();
+        return new RevenueSummary(totals.getPaidTransactions(), totals.getPendingTransactions(),
+                totals.getReviewTransactions(), totals.getGrossPaidVnd());
     }
 
     @Transactional(readOnly=true)
     public String status(UUID id) {
-        var payment = payments.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y giao dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch."));
+        var payment = payments.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy giao dịch."));
         return "PENDING".equals(payment.getStatus()) && !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now()) ? "EXPIRED" : payment.getStatus();
     }
 
@@ -284,7 +285,7 @@ public class SchoolPaymentService {
         var user = currentUser.requireCurrentUser();
         if (user.getSchool() == null || user.getRole() == null
                 || !RoleName.SCHOOL_MANAGER.matches(user.getRole().getName()) || !user.getSchool().isActive())
-            throw new ApiException(HttpStatus.FORBIDDEN, "ChÃƒÂ¡Ã‚Â»Ã¢â‚¬Â° quÃƒÂ¡Ã‚ÂºÃ‚Â£n lÃƒÆ’Ã‚Â½ trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng Ãƒâ€žÃ¢â‚¬Ëœang hoÃƒÂ¡Ã‚ÂºÃ‚Â¡t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c quÃƒÂ¡Ã‚ÂºÃ‚Â£n lÃƒÆ’Ã‚Â½ gÃƒÆ’Ã‚Â³i.");
+            throw new ApiException(HttpStatus.FORBIDDEN, "Chỉ quản lý trường đang hoạt động được quản lý gói.");
         return user;
     }
 
@@ -306,7 +307,7 @@ public class SchoolPaymentService {
     }
 
     private LicensePlan availablePlan(String code) {
-        return plans.findById(code).filter(LicensePlan::isActive).orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "GÃƒÆ’Ã‚Â³i khÃƒÆ’Ã‚Â´ng cÃƒÆ’Ã‚Â²n khÃƒÂ¡Ã‚ÂºÃ‚Â£ dÃƒÂ¡Ã‚Â»Ã‚Â¥ng."));
+        return plans.findById(code).filter(LicensePlan::isActive).orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Gói không còn khả dụng."));
     }
 
     @Transactional(readOnly=true)
@@ -315,15 +316,15 @@ public class SchoolPaymentService {
     private Quote quote(School school, LicensePlan plan) {
         LocalDate today = LocalDate.now(vnpay.zoneId());
         if (plan.getStudentQuota() < users.countActiveStudents(school.getId()))
-            throw new ApiException(HttpStatus.CONFLICT, "SÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ hÃƒÂ¡Ã‚Â»Ã‚Âc sinh Ãƒâ€žÃ¢â‚¬Ëœang hoÃƒÂ¡Ã‚ÂºÃ‚Â¡t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng vÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£t quota gÃƒÆ’Ã‚Â³i nÃƒÆ’Ã‚Â y. Vui lÃƒÆ’Ã‚Â²ng giÃƒÂ¡Ã‚ÂºÃ‚Â£m sÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc khi Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢i gÃƒÆ’Ã‚Â³i.");
+            throw new ApiException(HttpStatus.CONFLICT, "Số học sinh đang hoạt động vượt quota gói này. Vui lòng giảm số tài khoản trước khi đổi gói.");
         if (school.getLicenseEnd() == null || school.getLicenseEnd().isBefore(today))
             return new Quote(plan.getCode(), "RENEWAL", plan.getAnnualPriceVnd(), today, today.plusYears(1).minusDays(1));
         if (school.getLicenseStart() == null || school.getLicenseStart().isAfter(today) || school.getAnnualPriceVnd() == null || school.getPlanCode() == null)
-            throw new ApiException(HttpStatus.CONFLICT, "GÃƒÆ’Ã‚Â³i hiÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i cÃƒÂ¡Ã‚ÂºÃ‚Â§n admin xÃƒÆ’Ã‚Â¡c nhÃƒÂ¡Ã‚ÂºÃ‚Â­n thÃƒÆ’Ã‚Â´ng tin trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc khi Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢i gÃƒÆ’Ã‚Â³i.");
+            throw new ApiException(HttpStatus.CONFLICT, "Gói hiện tại cần admin xác nhận thông tin trước khi đổi gói.");
         if (school.getPlanCode().equals(plan.getCode()))
-            throw new ApiException(HttpStatus.CONFLICT, "TrÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng Ãƒâ€žÃ¢â‚¬Ëœang dÃƒÆ’Ã‚Â¹ng gÃƒÆ’Ã‚Â³i nÃƒÆ’Ã‚Â y. BÃƒÂ¡Ã‚ÂºÃ‚Â¡n cÃƒÆ’Ã‚Â³ thÃƒÂ¡Ã‚Â»Ã†â€™ chÃƒÂ¡Ã‚Â»Ã‚Ân gÃƒÆ’Ã‚Â³i kÃƒÂ¡Ã‚Â»Ã‚Â³ tiÃƒÂ¡Ã‚ÂºÃ‚Â¿p theo hoÃƒÂ¡Ã‚ÂºÃ‚Â·c gia hÃƒÂ¡Ã‚ÂºÃ‚Â¡n khi hÃƒÂ¡Ã‚ÂºÃ‚Â¿t hÃƒÂ¡Ã‚ÂºÃ‚Â¡n.");
+            throw new ApiException(HttpStatus.CONFLICT, "Trường đang dùng gói này. Bạn có thể chọn gói kỳ tiếp theo hoặc gia hạn khi hết hạn.");
         long difference = plan.getAnnualPriceVnd() - school.getAnnualPriceVnd();
-        if (difference <= 0) throw new ApiException(HttpStatus.CONFLICT, "HÃƒÂ¡Ã‚ÂºÃ‚Â¡ gÃƒÆ’Ã‚Â³i chÃƒÂ¡Ã‚Â»Ã¢â‚¬Â° ÃƒÆ’Ã‚Â¡p dÃƒÂ¡Ã‚Â»Ã‚Â¥ng ÃƒÂ¡Ã‚Â»Ã…Â¸ kÃƒÂ¡Ã‚Â»Ã‚Â³ tiÃƒÂ¡Ã‚ÂºÃ‚Â¿p theo. Vui lÃƒÆ’Ã‚Â²ng chÃƒÂ¡Ã‚Â»Ã‚Ân gÃƒÆ’Ã‚Â³i cho kÃƒÂ¡Ã‚Â»Ã‚Â³ sau.");
+        if (difference <= 0) throw new ApiException(HttpStatus.CONFLICT, "Hạ gói chỉ áp dụng ở kỳ tiếp theo. Vui lòng chọn gói cho kỳ sau.");
         long remaining = ChronoUnit.DAYS.between(today, school.getLicenseEnd()) + 1;
         long duration = ChronoUnit.DAYS.between(school.getLicenseStart(), school.getLicenseEnd()) + 1;
         long amount = BigDecimal.valueOf(difference).multiply(BigDecimal.valueOf(remaining))
@@ -341,12 +342,12 @@ public class SchoolPaymentService {
             if (!payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now())) reconcile(payment);
             if (!"PENDING".equals(payment.getStatus())) return new Checkout(payment.getId(), null);
             if (!payment.getPlanCode().equals(code) || !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now()))
-                throw new ApiException(HttpStatus.CONFLICT, "CÃƒÆ’Ã‚Â²n giao dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch Ãƒâ€žÃ¢â‚¬Ëœang xÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÆ’Ã‚Â½. Vui lÃƒÆ’Ã‚Â²ng kiÃƒÂ¡Ã‚Â»Ã†â€™m tra giao dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â³ trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc.");
-            if (!Objects.equals(expectedAmount, payment.getAmountVnd())) throw new ApiException(HttpStatus.CONFLICT, "CÃƒÆ’Ã‚Â³ giao dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch cÃƒâ€¦Ã‚Â© vÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºi sÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ tiÃƒÂ¡Ã‚Â»Ã‚Ân khÃƒÆ’Ã‚Â¡c. Vui lÃƒÆ’Ã‚Â²ng kiÃƒÂ¡Ã‚Â»Ã†â€™m tra lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch sÃƒÂ¡Ã‚Â»Ã‚Â­ thanh toÃƒÆ’Ã‚Â¡n.");
+                throw new ApiException(HttpStatus.CONFLICT, "Còn giao dịch đang xử lý. Vui lòng kiểm tra giao dịch đó trước.");
+            if (!Objects.equals(expectedAmount, payment.getAmountVnd())) throw new ApiException(HttpStatus.CONFLICT, "Có giao dịch cũ với số tiền khác. Vui lòng kiểm tra lịch sử thanh toán.");
             return new Checkout(payment.getId(), buildUrl(payment, ip));
         }
         var plan = availablePlan(code); var quote = quote(school, plan);
-        if (!Objects.equals(expectedAmount, quote.amountVnd())) throw new ApiException(HttpStatus.CONFLICT, "BÃƒÆ’Ã‚Â¡o giÃƒÆ’Ã‚Â¡ Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ thay Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢i. Vui lÃƒÆ’Ã‚Â²ng lÃƒÂ¡Ã‚ÂºÃ‚Â¥y lÃƒÂ¡Ã‚ÂºÃ‚Â¡i bÃƒÆ’Ã‚Â¡o giÃƒÆ’Ã‚Â¡ trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc khi thanh toÃƒÆ’Ã‚Â¡n.");
+        if (!Objects.equals(expectedAmount, quote.amountVnd())) throw new ApiException(HttpStatus.CONFLICT, "Báo giá đã thay đổi. Vui lòng lấy lại báo giá trước khi thanh toán.");
         var payment = new SchoolPayment(); payment.setSchool(school); payment.setManager(manager);
         payment.setPlanCode(code); payment.setPreviousPlanCode(school.getPlanCode()); payment.setPurpose(quote.purpose());
         payment.setAmountVnd(quote.amountVnd()); payment.setAnnualPriceVnd(plan.getAnnualPriceVnd());

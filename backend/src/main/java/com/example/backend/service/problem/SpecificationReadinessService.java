@@ -35,7 +35,7 @@ public class SpecificationReadinessService {
         }
         if (!StringUtils.hasText(specification.getSchemaId())) blockers.add("Schema is missing");
         else {
-            SchemaVersion schema = schemas.requireApproved(specification.getSchemaId(), specification.getSchemaVersion());
+            SchemaVersion schema = schemas.requirePublishedVersion(specification.getSchemaId(), specification.getSchemaVersion());
             blockers.addAll(schemas.validateSpecification(toJson(specification), schema.getDefinition()));
         }
         return List.copyOf(blockers);
@@ -43,7 +43,7 @@ public class SpecificationReadinessService {
 
     public void ensureRequiredAmbiguities(Specification specification) {
         if (!StringUtils.hasText(specification.getSchemaId())) return;
-        SchemaVersion schema = schemas.requireApproved(specification.getSchemaId(), specification.getSchemaVersion());
+        SchemaVersion schema = schemas.requirePublishedVersion(specification.getSchemaId(), specification.getSchemaVersion());
         removeAmbiguousRequiredQuantities(specification, schema.getDefinition());
         List<SchemaDefinitionService.RequiredGap> gaps = schemas.missingRequiredQuantities(toJson(specification), schema.getDefinition());
         canonicalizeOpenAmbiguities(specification, gaps);
@@ -142,14 +142,16 @@ public class SpecificationReadinessService {
 
     public JsonNode toJson(Specification specification) {
         ObjectNode node = objectMapper.createObjectNode();
-        putText(node, "schemaId", specification.getSchemaId());
         putText(node, "schemaVersion", specification.getSchemaVersion());
         putText(node, "contractVersion", specification.getContractVersion());
         JsonNode definition = null;
         if (StringUtils.hasText(specification.getSchemaId())) {
-            definition = schemas.requireApproved(specification.getSchemaId(), specification.getSchemaVersion()).getDefinition();
+            SchemaVersion pinned = schemas.requirePublishedVersion(
+                    specification.getSchemaId(), specification.getSchemaVersion());
+            putText(node, "schemaId", pinned.getSchemaId());
+            definition = pinned.getDefinition();
             putText(node, "model", definition.path("model").asText());
-        }
+        } else putText(node, "schemaId", specification.getSchemaId());
         putText(node, "topic", specification.getTopic());
         node.set("objects", specification.getObjects());
         node.set("quantities", definition == null ? specification.getQuantities()

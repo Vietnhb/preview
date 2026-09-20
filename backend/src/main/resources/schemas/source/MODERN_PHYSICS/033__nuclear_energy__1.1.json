@@ -1,0 +1,110 @@
+{
+  "schemaId": "nuclear_energy",
+  "model": "nuclear_energy",
+  "name": "Mass defect and nuclear energy",
+  "topic": "MODERN_PHYSICS",
+  "version": "1.1",
+  "solverId": "nuclear_energy_solver",
+  "referenceSolverId": "nuclear_energy_reference",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "mass_defect",
+        "aliases": [
+          "delta_m",
+          "Δm"
+        ],
+        "allowedUnits": [
+          "kg"
+        ],
+        "nonNegative": true
+      }
+    ],
+    "optionalQuantities": [
+      {
+        "key": "reaction_count",
+        "aliases": [
+          "N"
+        ],
+        "allowedUnits": [
+          "1"
+        ],
+        "positive": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "mass_defect",
+        "label": "Mass defect",
+        "symbol": "Δm",
+        "unit": "kg",
+        "min": 0,
+        "max": 1,
+        "step": 1e-12
+      }
+    ],
+    "visualization": {
+      "scene": "nuclear_energy",
+      "series": [
+        {
+          "key": "releasedEnergy",
+          "source": "values.releasedEnergy",
+          "label": "Released energy",
+          "symbol": "E",
+          "unit": "J",
+          "color": "#fb923c"
+        }
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "lab.radiation",
+        "sceneGraph": {
+          "nodes": [
+            {
+              "id": "background",
+              "type": "background",
+              "layer": "static"
+            },
+            {
+              "id": "environment",
+              "type": "environment",
+              "layer": "static",
+              "properties": {
+                "environment": "lab.radiation"
+              }
+            },
+            {
+              "id": "graph",
+              "type": "graph",
+              "layer": "dynamic",
+              "properties": {
+                "source": "values.releasedEnergy"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 0.000001,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "releasedEnergy",
+        "massDefect"
+      ]
+    }
+  }
+}

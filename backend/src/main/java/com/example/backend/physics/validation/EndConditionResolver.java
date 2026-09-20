@@ -29,6 +29,34 @@ public final class EndConditionResolver {
     public record ResolvedEnd(double time, String reason, boolean conditionReached) {
     }
 
+    private static final EndConditionStrategyRegistry STRATEGIES = new EndConditionStrategyRegistry(List.of(
+            strategy(EndConditionType.TIME_LIMIT, EndConditionContract.TimeLimit.class,
+                    (condition, output, limit) -> resolveTimeLimit(condition, outputHorizon(output))),
+            strategy(EndConditionType.THRESHOLD, EndConditionContract.Threshold.class,
+                    (condition, output, limit) -> resolvedOrMax(findThreshold(condition, output, limit), limit, "threshold")),
+            strategy(EndConditionType.EVENT, EndConditionContract.Event.class,
+                    (condition, output, limit) -> resolvedOrMax(findEvent(condition, output, limit), limit, "event")),
+            strategy(EndConditionType.CYCLE_COUNT, EndConditionContract.CycleCount.class,
+                    (condition, output, limit) -> resolvedOrMax(findCycles(condition, output, limit), limit, "cycle_count")),
+            strategy(EndConditionType.MANUAL, EndConditionContract.Manual.class,
+                    (condition, output, limit) -> new ResolvedEnd(limit, "max_time", false))));
+
+    @FunctionalInterface
+    private interface TypedResolution<T extends EndConditionContract> {
+        ResolvedEnd resolve(T condition, SolverOutput output, double limit);
+    }
+
+    private static <T extends EndConditionContract> EndConditionStrategy<T> strategy(EndConditionType type,
+            Class<T> contractType, TypedResolution<T> resolution) {
+        return new EndConditionStrategy<>() {
+            @Override public EndConditionType type() { return type; }
+            @Override public Class<T> contractType() { return contractType; }
+            @Override public ResolvedEnd resolve(T condition, SolverOutput output, double limit) {
+                return resolution.resolve(condition, output, limit);
+            }
+        };
+    }
+
     public static JsonNode normalize(JsonNode specification, double fallbackDuration) {
         JsonNode explicit = specification == null ? null : specification.get("endCondition");
         if (explicit == null || explicit.isNull()) {
@@ -76,18 +104,19 @@ public final class EndConditionResolver {
         if (condition == null || !condition.isObject()) {
             return List.of("endCondition must be an object");
         }
-        String type = condition.path("type").asText("").trim().toLowerCase(Locale.ROOT);
-        if (!List.of("time_limit", "threshold", "event", "cycle_count", "manual").contains(type)) {
-            return List.of("Unsupported endCondition type: " + type);
+        String rawType = condition.path("type").asText("");
+        EndConditionType type = EndConditionType.fromWireName(rawType);
+        if (type == null) {
+            return List.of("Unsupported endCondition type: " + rawType.trim().toLowerCase(Locale.ROOT));
         }
         switch (type) {
-            case "time_limit" -> {
+            case TIME_LIMIT -> {
                 double duration = condition.path("duration").asDouble(Double.NaN);
                 if (!finitePositive(duration) || duration > MAX_DYNAMIC_SECONDS * 12) {
                     errors.add("endCondition.duration must be a finite positive number");
                 }
             }
-            case "threshold" -> {
+            case THRESHOLD -> {
                 if (condition.path("quantity").asText("").isBlank())
                     errors.add("threshold.quantity is required");
                 if (ComparisonOperator.parse(condition.path("operator").asText()) == null) {
@@ -97,17 +126,22 @@ public final class EndConditionResolver {
                     errors.add("threshold.value must be finite");
                 validateMaxTime(condition, errors);
             }
-            case "event" -> {
+            case EVENT -> {
                 JsonNode event = condition.path("event");
-                String eventType = event.path("type").asText("").trim().toLowerCase(Locale.ROOT);
-                if (!List.of("contact", "collision").contains(eventType)) {
+                String rawEventType = event.path("type").asText("").trim().toLowerCase(Locale.ROOT);
+                EndConditionContract.EventKind eventType = switch (rawEventType) {
+                    case "contact" -> EndConditionContract.EventKind.CONTACT;
+                    case "collision" -> EndConditionContract.EventKind.COLLISION;
+                    default -> null;
+                };
+                if (eventType == null) {
                     errors.add("event.type must be contact or collision");
                 }
                 if (!event.path("entities").isArray() || event.path("entities").isEmpty()
                         || !allText(event.path("entities"))) {
                     errors.add("event.entities must contain at least one entity id");
                 }
-                if ("contact".equals(eventType)) {
+                if (eventType == EndConditionContract.EventKind.CONTACT) {
                     if (!event.has("quantity") && !event.has("operator") && !event.has("value")) {
                         errors.add("contact.event requires quantity, operator and value");
                     }
@@ -119,7 +153,7 @@ public final class EndConditionResolver {
                     if (!finite(event.get("value")))
                         errors.add("contact.event.value must be finite");
                 }
-                if ("collision".equals(eventType)
+                if (eventType == EndConditionContract.EventKind.COLLISION
                         && (event.has("firstQuantity") || event.has("secondQuantity"))) {
                     if (event.path("firstQuantity").asText("").isBlank()
                             || event.path("secondQuantity").asText("").isBlank()) {
@@ -128,62 +162,68 @@ public final class EndConditionResolver {
                 }
                 validateMaxTime(condition, errors);
             }
-            case "cycle_count" -> {
+            case CYCLE_COUNT -> {
                 if (condition.path("quantity").asText("").isBlank())
                     errors.add("cycle_count.quantity is required");
                 double count = condition.path("count").asDouble(Double.NaN);
-                if (!finitePositive(count) || Math.rint(count) != count)
-                    errors.add("cycle_count.count must be a positive integer");
+                if (!finitePositive(count) || Math.rint(count) != count || !condition.path("count").canConvertToInt())
+                    errors.add("cycle_count.count must be a positive 32-bit integer");
                 validateMaxTime(condition, errors);
             }
-            case "manual" -> validateMaxTime(condition, errors);
-            default -> errors.add("Unsupported endCondition type: " + type);
+            case MANUAL -> validateMaxTime(condition, errors);
         }
         return List.copyOf(errors);
     }
 
     public static double initialHorizon(JsonNode condition, double fallbackDuration) {
-        String type = condition == null ? "time_limit" : condition.path("type").asText("time_limit");
-        if (condition != null && "time_limit".equals(type) && finitePositive(condition.path("duration"))) {
-            return condition.path("duration").asDouble();
+        try {
+            return initialHorizon(LegacyEndConditionJsonAdapterV1.compile(condition, fallbackDuration), fallbackDuration);
+        } catch (IllegalArgumentException invalidLegacyCondition) {
+            return Math.max(0.01, fallbackDuration);
         }
-        if (condition != null && finitePositive(condition.path("maxTime"))) {
-            return condition.path("maxTime").asDouble();
-        }
+    }
+
+    public static double initialHorizon(EndConditionContract condition, double fallbackDuration) {
+        if (condition == null) throw new IllegalArgumentException("Compiled end condition is required");
+        if (condition instanceof EndConditionContract.TimeLimit timeLimit) return timeLimit.duration();
+        if (condition.maxTime() != null) return condition.maxTime();
         return Math.max(0.01, fallbackDuration);
     }
 
     public static boolean expandable(JsonNode condition, ResolvedEnd resolved, double horizon) {
-        if (resolved.conditionReached() || horizon >= MAX_DYNAMIC_SECONDS - EPSILON || condition == null)
+        if (condition == null) return false;
+        try {
+            return expandable(LegacyEndConditionJsonAdapterV1.compile(condition, horizon), resolved, horizon);
+        } catch (IllegalArgumentException invalidLegacyCondition) {
             return false;
-        String type = condition.path("type").asText("");
-        return !"time_limit".equals(type) && !"manual".equals(type) && !finitePositive(condition.path("maxTime"));
+        }
+    }
+
+    public static boolean expandable(EndConditionContract condition, ResolvedEnd resolved, double horizon) {
+        if (resolved.conditionReached() || horizon >= MAX_DYNAMIC_SECONDS - EPSILON) return false;
+        return condition.type() != EndConditionType.TIME_LIMIT && condition.type() != EndConditionType.MANUAL
+                && condition.maxTime() == null;
     }
 
     public static ResolvedEnd resolve(JsonNode condition, SolverOutput output) {
-        List<Double> times = output == null || output.time() == null ? List.of() : output.time();
-        double horizon = times.isEmpty() ? 0 : times.get(times.size() - 1);
-        String type = condition == null ? "time_limit" : condition.path("type").asText("time_limit");
-        double maxTime = finitePositive(condition == null ? null : condition.get("maxTime"))
-                ? condition.get("maxTime").asDouble()
-                : horizon;
-        double limit = Math.min(horizon, maxTime);
-
-        return switch (type) {
-            case "time_limit" -> resolveTimeLimit(condition, horizon);
-            case "threshold" -> resolvedOrMax(findThreshold(condition, output, limit), limit, "threshold");
-            case "event" -> resolvedOrMax(findEvent(condition, output, limit), limit, "event");
-            case "cycle_count" -> resolvedOrMax(findCycles(condition, output, limit), limit, "cycle_count");
-            // A persisted run is bounded automatically. An interactive
-            // manual stop can be represented by reason=manual later, but a
-            // server-side horizon is always the safety boundary.
-            case "manual" -> new ResolvedEnd(limit, "max_time", false);
-            default -> new ResolvedEnd(limit, "max_time", false);
-        };
+        double horizon = outputHorizon(output);
+        return resolve(LegacyEndConditionJsonAdapterV1.compile(condition, horizon), output);
     }
 
-    private static ResolvedEnd resolveTimeLimit(JsonNode condition, double horizon) {
-        double target = condition == null ? horizon : condition.path("duration").asDouble(horizon);
+    public static ResolvedEnd resolve(EndConditionContract condition, SolverOutput output) {
+        if (condition == null) throw new IllegalArgumentException("Compiled end condition is required");
+        double horizon = outputHorizon(output);
+        double limit = condition.maxTime() == null ? horizon : Math.min(horizon, condition.maxTime());
+        return STRATEGIES.resolve(condition, output, limit);
+    }
+
+    private static double outputHorizon(SolverOutput output) {
+        return output == null || output.time() == null || output.time().isEmpty()
+                ? 0 : output.time().get(output.time().size() - 1);
+    }
+
+    private static ResolvedEnd resolveTimeLimit(EndConditionContract.TimeLimit condition, double horizon) {
+        double target = condition.duration();
         if (target <= horizon + EPSILON)
             return new ResolvedEnd(Math.min(target, horizon), "time_limit", true);
         return new ResolvedEnd(horizon, "max_time", false);
@@ -213,7 +253,7 @@ public final class EndConditionResolver {
                 trimGroup(output.velocities(), sourceTimes, last, target, append),
                 trimGroup(output.accelerations(), sourceTimes, last, target, append),
                 trimGroup(output.values(), sourceTimes, last, target, append),
-                trimFields(output.scalarFields(), endTime));
+                trimFields(output.scalarFields(), endTime), output.scalarOutputs());
     }
 
     private static Map<String, List<Double>> trimGroup(Map<String, List<Double>> group, List<Double> times,
@@ -266,57 +306,36 @@ public final class EndConditionResolver {
                 times, values, field.valueUnit(), field.timeUnit(), field.sampling(), field.interpolation(), field.boundary());
     }
 
-    private static Double findThreshold(JsonNode condition, SolverOutput output, double limit) {
-        Series series = findSeries(output, condition.path("quantity").asText());
+    private static Double findThreshold(EndConditionContract.Threshold condition, SolverOutput output, double limit) {
+        Series series = findSeries(output, condition.source());
         if (series == null)
             return null;
-        ComparisonOperator operator = ComparisonOperator.parse(condition.path("operator").asText());
-        if (operator == null) return null;
-        double target = condition.path("value").asDouble();
-        return crossing(series.values(), output.time(), limit, value -> matches(value, operator, target), target,
-                operator);
+        double target = condition.value();
+        return crossing(series.values(), output.time(), limit, value -> matches(value, condition.operator(), target), target,
+                condition.operator());
     }
 
-    private static Double findEvent(JsonNode condition, SolverOutput output, double limit) {
-        JsonNode event = condition.path("event");
-        String type = event.path("type").asText("").toLowerCase(Locale.ROOT);
+    private static Double findEvent(EndConditionContract.Event event, SolverOutput output, double limit) {
         // Event markers are schema-bound. Never infer them from a substring of
         // an arbitrary output key; the event must name the declared series.
-        Double marker = eventMarker(output, event, limit);
+        Double marker = event.markerSource() == null ? null : eventMarker(output, event.markerSource(), limit);
         if (marker != null)
             return marker;
-        if ("contact".equals(type)) {
-            Series quantity = findSeries(output, event.path("quantity").asText());
-            if (quantity == null || !finite(event.get("value")))
-                return null;
-            ComparisonOperator operator = ComparisonOperator.parse(event.path("operator").asText());
-            if (operator == null)
+        if (event.kind() == EndConditionContract.EventKind.CONTACT) {
+            Series quantity = findSeries(output, event.source());
+            if (quantity == null || event.value() == null)
                 return null;
             return contactCrossing(quantity.values(), output.time(), limit,
-                    operator, event.path("value").asDouble());
+                    event.operator(), event.value());
         }
 
-        String firstQuantity = event.path("firstQuantity").asText("");
-        String secondQuantity = event.path("secondQuantity").asText("");
-        if (!firstQuantity.isBlank() && !secondQuantity.isBlank()) {
-            Series first = findSeries(output, firstQuantity);
-            Series second = findSeries(output, secondQuantity);
+        if (event.firstSource() != null && event.secondSource() != null) {
+            Series first = findSeries(output, event.firstSource());
+            Series second = findSeries(output, event.secondSource());
             return first == null || second == null ? null
                     : differenceCrossing(first.values(), second.values(), output.time(), limit);
         }
 
-        List<String> entities = new ArrayList<>();
-        event.path("entities").forEach(entity -> {
-            if (entity.isTextual() && !entity.asText().isBlank())
-                entities.add(entity.asText());
-        });
-        if (entities.size() >= 2) {
-            Series first = findNamedSeries(output.positions(), entities.get(0));
-            Series second = findNamedSeries(output.positions(), entities.get(1));
-            if (first != null && second != null) {
-                return differenceCrossing(first.values(), second.values(), output.time(), limit);
-            }
-        }
         return null;
     }
 
@@ -350,11 +369,8 @@ public final class EndConditionResolver {
         return null;
     }
 
-    private static Double eventMarker(SolverOutput output, JsonNode event, double limit) {
-        String markerQuantity = event.path("markerQuantity").asText("").trim();
-        if (markerQuantity.isBlank())
-            return null;
-        Series marker = findSeries(output, markerQuantity);
+    private static Double eventMarker(SolverOutput output, OutputSourceBinding markerSource, double limit) {
+        Series marker = findSeries(output, markerSource);
         if (marker == null || marker.values() == null || marker.values().isEmpty()) return null;
         if (marker.values().size() == 1 && marker.values().get(0) > 0 && marker.values().get(0) <= limit) {
             return marker.values().get(0);
@@ -363,15 +379,14 @@ public final class EndConditionResolver {
                 ComparisonOperator.GREATER);
     }
 
-    private static Double findCycles(JsonNode condition, SolverOutput output, double limit) {
-        Series series = findSeries(output, condition.path("quantity").asText());
+    private static Double findCycles(EndConditionContract.CycleCount condition, SolverOutput output, double limit) {
+        Series series = findSeries(output, condition.source());
         if (series == null)
             return null;
-        double count = condition.path("count").asDouble();
         double period = estimatePeriod(series.values(), output.time(), limit);
         if (!finitePositive(period))
             return null;
-        double target = period * count;
+        double target = period * condition.count();
         return target <= limit + EPSILON ? target : null;
     }
 
@@ -442,51 +457,27 @@ public final class EndConditionResolver {
                 ComparisonOperator.EQUAL);
     }
 
-    private static Series findSeries(SolverOutput output, String requested) {
-        if (output == null || requested == null || requested.isBlank())
+    private static Series findSeries(SolverOutput output, OutputSourceBinding source) {
+        if (output == null || source == null)
             return null;
-        String key = requested.trim();
-        String normalized = key.toLowerCase(Locale.ROOT);
-        String group = null;
-        String name = normalized;
-        int dot = normalized.lastIndexOf('.');
-        if (dot >= 0) {
-            group = switch (normalized.substring(0, dot)) {
-                case "position", "positions" -> "positions";
-                case "velocity", "velocities" -> "velocities";
-                case "acceleration", "accelerations" -> "accelerations";
-                case "value", "values" -> "values";
-                default -> normalized.substring(0, dot);
-            };
-            name = normalized.substring(dot + 1);
-        }
-        if (group != null) {
-            Map<String, List<Double>> source = switch (group) {
-                case "positions" -> output.positions();
-                case "velocities" -> output.velocities();
-                case "accelerations" -> output.accelerations();
-                case "values" -> output.values();
-                default -> Map.of();
-            };
-            return named(source, name);
-        }
-        Series value = named(output.values(), name);
-        if (value != null)
-            return value;
-        value = named(output.positions(), name);
-        if (value != null)
-            return value;
-        value = named(output.velocities(), name);
-        if (value != null)
-            return value;
-        value = named(output.accelerations(), name);
-        if (value != null)
-            return value;
+        String key = source.key().toLowerCase(Locale.ROOT);
+        return switch (source.group()) {
+            case VALUES -> named(output.values(), key);
+            case POSITIONS -> named(output.positions(), key);
+            case VELOCITIES -> named(output.velocities(), key);
+            case ACCELERATIONS -> named(output.accelerations(), key);
+            case LEGACY_AUTO -> firstNamed(output, key);
+            case LEGACY_ENTITY_POSITION -> findNamedSeries(output.positions(), source.key());
+        };
+    }
 
-        // A quantity must be bound by the schema; cardinality-based inference
-        // is intentionally forbidden because it changes when a model gains a
-        // new output.
-        return null;
+    private static Series firstNamed(SolverOutput output, String key) {
+        Series value = named(output.values(), key);
+        if (value != null) return value;
+        value = named(output.positions(), key);
+        if (value != null) return value;
+        value = named(output.velocities(), key);
+        return value != null ? value : named(output.accelerations(), key);
     }
 
     private static Series named(Map<String, List<Double>> values, String requested) {

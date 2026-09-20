@@ -1,0 +1,107 @@
+{
+  "schemaId": "kinematics_position_time_graph",
+  "model": "position_time_graph",
+  "name": "Position-time graph",
+  "topic": "KINEMATICS",
+  "version": "1.1",
+  "solverId": "kinematics_position_time_graph_solver_v2",
+  "referenceSolverId": "kinematics_position_time_graph_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "initial_position",
+        "aliases": [
+          "x0"
+        ],
+        "allowedUnits": [
+          "m"
+        ]
+      },
+      {
+        "key": "initial_velocity",
+        "aliases": [
+          "v0"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ]
+      },
+      {
+        "key": "acceleration",
+        "aliases": [
+          "a"
+        ],
+        "allowedUnits": [
+          "m/s2"
+        ]
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "initial_velocity",
+        "label": "Initial velocity",
+        "symbol": "v0",
+        "unit": "m/s",
+        "min": -40,
+        "max": 60,
+        "step": 0.5
+      },
+      {
+        "key": "acceleration",
+        "label": "Acceleration",
+        "symbol": "a",
+        "unit": "m/s2",
+        "min": -10,
+        "max": 10,
+        "step": 0.1
+      }
+    ],
+    "visualization": {
+      "scene": "position_time_graph",
+      "series": [
+        {
+          "key": "position",
+          "source": "positions.position",
+          "label": "Position",
+          "symbol": "x(t)",
+          "unit": "m",
+          "color": "#38bdf8"
+        }
+      ]
+    },
+    "execution": {
+      "durationSeconds": 10,
+      "stepSeconds": 0.05,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 0.000001,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "x"
+      ],
+      "definitions": [
+        {
+          "key": "position",
+          "kind": "time_series",
+          "unit": "m",
+          "required": true
+        },
+        {
+          "key": "x",
+          "kind": "time_series",
+          "unit": "m",
+          "required": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "schemaId": "atomic_spectra",
+  "model": "atomic_spectra",
+  "name": "Hydrogen atomic spectrum",
+  "topic": "MODERN_PHYSICS",
+  "version": "1.2",
+  "solverId": "atomic_spectra_solver_v2",
+  "referenceSolverId": "atomic_spectra_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "initial_level",
+        "aliases": [
+          "ni"
+        ],
+        "allowedUnits": [
+          "1"
+        ],
+        "positive": true,
+        "integer": true,
+        "min": 1,
+        "max": 1000
+      },
+      {
+        "key": "final_level",
+        "aliases": [
+          "nf"
+        ],
+        "allowedUnits": [
+          "1"
+        ],
+        "positive": true,
+        "integer": true,
+        "min": 1,
+        "max": 1000
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "initial_level",
+        "label": "Initial level",
+        "symbol": "n_i",
+        "unit": "1",
+        "min": 2,
+        "max": 20,
+        "step": 1
+      }
+    ],
+    "visualization": {
+      "scene": "atomic_spectra",
+      "series": [
+        {
+          "key": "wavelength",
+          "source": "values.wavelength",
+          "label": "Wavelength",
+          "symbol": "λ",
+          "unit": "m",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "photonEnergy",
+          "source": "values.photonEnergy",
+          "label": "Photon energy",
+          "symbol": "E",
+          "unit": "J",
+          "color": "#fb923c"
+        }
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "lab.radiation",
+        "sceneGraph": {
+          "nodes": [
+            {
+              "id": "background",
+              "type": "background",
+              "layer": "static"
+            },
+            {
+              "id": "graph",
+              "type": "graph",
+              "layer": "dynamic",
+              "properties": {
+                "source": "values.wavelength"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "wavelength",
+        "frequency",
+        "photonEnergy"
+      ],
+      "definitions": [
+        {
+          "key": "wavelength",
+          "kind": "time_series",
+          "unit": "m",
+          "required": true
+        },
+        {
+          "key": "frequency",
+          "kind": "time_series",
+          "unit": "Hz",
+          "required": true
+        },
+        {
+          "key": "photonEnergy",
+          "kind": "time_series",
+          "unit": "J",
+          "required": true
+        }
+      ]
+    }
+  }
+}

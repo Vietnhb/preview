@@ -24,12 +24,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class LibraryService {
     private static final String LIBRARY_ITEM_NOT_FOUND = "Library item not found";
+    private static final Set<LibraryModerationStatus> PUBLISHED_STATUSES = Set.of(
+            LibraryModerationStatus.APPROVED, LibraryModerationStatus.FEATURED);
     private final LibraryItemRepository libraryRepository;
     private final LibraryFolderRepository folderRepository;
     private final SimulationRepository simulationRepository;
@@ -87,7 +90,7 @@ public class LibraryService {
         LibraryItem copy = new LibraryItem();
         copy.setSimulation(source.getSimulation()); copy.setFolder(folder); copy.setLesson(source.getLesson());
         copy.setSpecification(source.getSpecification()); copy.setOwner(user);
-        copy.setTitle(title == null || title.isBlank() ? source.getTitle() + " (bÃƒÂ¡Ã‚ÂºÃ‚Â£n sao)" : title.trim());
+        copy.setTitle(title == null || title.isBlank() ? source.getTitle() + " (bản sao)" : title.trim());
         copy.setVisibility(Visibility.PERSONAL); copy.setSharedInstitutionId(null);
         copy.setModerationStatus(LibraryModerationStatus.APPROVED); copy.setActive(true);
         return toResponse(libraryRepository.save(copy));
@@ -96,26 +99,15 @@ public class LibraryService {
     @Transactional(readOnly = true)
     public List<LibraryItemResponse> search(String topic) {
         User user = currentUserService.requireCurrentUser();
-        return libraryRepository.findAll().stream()
-                .filter(item -> item.isActive() && (item.getOwner().getId().equals(user.getId())
-                        || (item.getVisibility() != Visibility.PERSONAL && visibleTo(user, item)
-                        && (item.getModerationStatus() == LibraryModerationStatus.APPROVED || item.getModerationStatus() == LibraryModerationStatus.FEATURED))))
-                .filter(item -> topic == null || topic.isBlank() || (item.getSpecification().getTopic() != null
-                        && item.getSpecification().getTopic().equalsIgnoreCase(topic)))
-                .map(this::toResponse)
-                .toList();
+        return libraryRepository.findSearchVisibleItems(user.getId(), user.getInstitutionId(),
+                        Visibility.PERSONAL, Visibility.PUBLIC, PUBLISHED_STATUSES, normalizedTopic(topic))
+                .stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public List<LibraryItemResponse> community(String topic) {
-        return libraryRepository.findAll().stream()
-                .filter(item -> item.isActive() && item.getVisibility() == Visibility.PUBLIC)
-                .filter(item -> item.getModerationStatus() == LibraryModerationStatus.APPROVED
-                        || item.getModerationStatus() == LibraryModerationStatus.FEATURED)
-                .filter(item -> topic == null || topic.isBlank() || (item.getSpecification().getTopic() != null
-                        && item.getSpecification().getTopic().equalsIgnoreCase(topic)))
-                .map(this::toResponse)
-                .toList();
+        return libraryRepository.findCommunityItems(Visibility.PUBLIC, PUBLISHED_STATUSES, normalizedTopic(topic))
+                .stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -177,5 +169,9 @@ public class LibraryService {
         if (item.getVisibility() == Visibility.PUBLIC) return true;
         String scope = item.getSharedInstitutionId();
         return scope == null || scope.isBlank() || scope.equals(user.getInstitutionId());
+    }
+
+    private String normalizedTopic(String topic) {
+        return topic == null || topic.isBlank() ? null : topic;
     }
 }

@@ -63,6 +63,8 @@ class FreshSchemaBootstrapMigrationTest {
                 .load()
                 .migrate();
 
+        validateHibernateEntitySchema(dataSource);
+
         assertEquals("0", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
                 "WHERE type = 'BASELINE' AND success", String.class));
         assertEquals("9", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
@@ -98,6 +100,14 @@ class FreshSchemaBootstrapMigrationTest {
     }
 
     private static void createHibernateEntitySchema(DataSource dataSource) {
+        initializeHibernate(dataSource, "create");
+    }
+
+    private static void validateHibernateEntitySchema(DataSource dataSource) {
+        initializeHibernate(dataSource, "validate");
+    }
+
+    private static void initializeHibernate(DataSource dataSource, String ddlMode) {
         LocalContainerEntityManagerFactoryBean entityManagerFactoryBean =
                 new LocalContainerEntityManagerFactoryBean();
         entityManagerFactoryBean.setDataSource(dataSource);
@@ -105,7 +115,7 @@ class FreshSchemaBootstrapMigrationTest {
         entityManagerFactoryBean.setPersistenceUnitName("fresh-schema-bootstrap-test");
         entityManagerFactoryBean.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         entityManagerFactoryBean.setJpaPropertyMap(Map.of(
-                "hibernate.hbm2ddl.auto", "create",
+                "hibernate.hbm2ddl.auto", ddlMode,
                 "hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect",
                 "hibernate.show_sql", "false",
                 // Match Spring Boot's default JPA naming strategies used by the application.
@@ -115,7 +125,7 @@ class FreshSchemaBootstrapMigrationTest {
                 "org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy"));
         try {
             entityManagerFactoryBean.afterPropertiesSet();
-            assertNotNull(entityManagerFactoryBean.getObject(), "Hibernate must build the entity model");
+            assertNotNull(entityManagerFactoryBean.getObject(), "Hibernate must initialize the entity model");
         } finally {
             entityManagerFactoryBean.destroy();
         }

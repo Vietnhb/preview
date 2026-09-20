@@ -1,0 +1,185 @@
+{
+  "schemaId": "dynamics_forces",
+  "model": "forces",
+  "name": "Dynamics forces",
+  "topic": "DYNAMICS",
+  "version": "1.9",
+  "solverId": "dynamics_solver",
+  "referenceSolverId": "dynamics_reference",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "mass",
+        "aliases": [
+          "m"
+        ],
+        "allowedUnits": [
+          "kg"
+        ],
+        "positive": true
+      },
+      {
+        "key": "net_force",
+        "aliases": [
+          "force",
+          "f"
+        ],
+        "allowedUnits": [
+          "N"
+        ]
+      },
+      {
+        "key": "friction_coefficient",
+        "aliases": [
+          "mu",
+          "friction"
+        ],
+        "allowedUnits": [
+          "1"
+        ],
+        "nonNegative": true
+      },
+      {
+        "key": "initial_position",
+        "aliases": [
+          "x0",
+          "position",
+          "distance",
+          "s"
+        ],
+        "allowedUnits": [
+          "m"
+        ]
+      },
+      {
+        "key": "initial_velocity",
+        "aliases": [
+          "v0",
+          "velocity",
+          "speed",
+          "v"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ]
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "net_force",
+        "label": "Hợp lực",
+        "symbol": "F",
+        "unit": "N",
+        "min": -100,
+        "max": 100,
+        "step": 0.5
+      },
+      {
+        "key": "mass",
+        "label": "Khối lượng",
+        "symbol": "m",
+        "unit": "kg",
+        "min": 0.1,
+        "max": 100,
+        "step": 0.1
+      },
+      {
+        "key": "gravitational_acceleration",
+        "label": "Gia tốc trọng trường",
+        "symbol": "g",
+        "unit": "m/s²",
+        "min": 0,
+        "max": 30,
+        "step": 0.1
+      }
+    ],
+    "visualization": {
+      "scene": "motion",
+      "series": [
+        {
+          "key": "x",
+          "source": "positions.x",
+          "label": "Vị trí",
+          "symbol": "x",
+          "unit": "m",
+          "color": "#2563eb"
+        },
+        {
+          "key": "vx",
+          "source": "velocities.x",
+          "label": "Vận tốc",
+          "symbol": "v",
+          "unit": "m/s",
+          "color": "#087e68"
+        },
+        {
+          "key": "ax",
+          "source": "accelerations.x",
+          "label": "Gia tốc",
+          "symbol": "a",
+          "unit": "m/s²",
+          "color": "#d16a25"
+        }
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "road.highway",
+        "actors": [
+          {
+            "id": "body",
+            "asset": "vehicle.sport.blue",
+            "x": "positions.x",
+            "vx": "velocities.x",
+            "ax": "accelerations.x",
+            "label": "m"
+          }
+        ],
+        "effects": [
+          "motion.trail",
+          "vehicle.headlight",
+          "vehicle.brake-smoke"
+        ]
+      }
+    },
+    "execution": {
+      "durationSeconds": 10,
+      "stepSeconds": 0.05,
+      "durationBindings": [
+        {
+          "relationTypes": [
+            "requested_simulation_duration",
+            "simulation_duration",
+            "duration"
+          ],
+          "unit": "s"
+        }
+      ]
+    },
+    "validation": {
+      "tolerance": 0.02,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries"
+    },
+    "optionalQuantities": [
+      {
+        "key": "gravitational_acceleration",
+        "aliases": [
+          "gravity",
+          "g"
+        ],
+        "allowedUnits": [
+          "m/s2"
+        ],
+        "nonNegative": true,
+        "defaultValue": 9.81
+      }
+    ]
+  }
+}

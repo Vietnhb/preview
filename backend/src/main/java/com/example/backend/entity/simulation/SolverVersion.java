@@ -34,6 +34,9 @@ public class SolverVersion extends AuditedEntity {
     @Column(nullable = false, columnDefinition = "jsonb")
     private JsonNode outputDefinition;
 
+    @Column(name = "binding_checksum", length = 64)
+    private String bindingChecksum;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private LifecycleStatus lifecycleStatus = LifecycleStatus.DRAFT;

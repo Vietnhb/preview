@@ -37,6 +37,10 @@ public class UnitNormalizer {
         return new NormalizedQuantity(value, originalUnit, normalizedValue, definition.canonical(), true);
     }
 
+    public boolean isKnownUnit(String unit) {
+        return units.containsKey(normalizeKey(unit));
+    }
+
     public String normalizeKey(String unit) {
         if (unit == null) return "";
         return Normalizer.normalize(unit.trim().toLowerCase(), Normalizer.Form.NFKC).replace(" ", "").replace("^2", "2");

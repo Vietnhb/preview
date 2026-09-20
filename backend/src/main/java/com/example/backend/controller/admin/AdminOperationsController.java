@@ -36,13 +36,13 @@ public class AdminOperationsController {
     }
     @PostMapping("/plans") @Transactional
     public com.example.backend.entity.school.LicensePlan createPlan(@Valid @RequestBody PlanRequest request) {
-        if (plans.existsById(request.code())) throw new ApiException(HttpStatus.CONFLICT, "MÃƒÆ’Ã‚Â£ gÃƒÆ’Ã‚Â³i Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ tÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i.");
+        if (plans.existsById(request.code())) throw new ApiException(HttpStatus.CONFLICT, "Mã gói đã tồn tại.");
         var plan = new com.example.backend.entity.school.LicensePlan(); plan.setCode(request.code()); return savePlan(plan, request);
     }
     @PutMapping("/plans/{code}") @Transactional
     public com.example.backend.entity.school.LicensePlan updatePlan(@PathVariable String code, @Valid @RequestBody PlanRequest request) {
-        if (!code.equals(request.code())) throw new ApiException(HttpStatus.CONFLICT, "KhÃƒÆ’Ã‚Â´ng thÃƒÂ¡Ã‚Â»Ã†â€™ thay Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢i mÃƒÆ’Ã‚Â£ gÃƒÆ’Ã‚Â³i.");
-        return savePlan(plans.findById(code).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y gÃƒÆ’Ã‚Â³i.")), request);
+        if (!code.equals(request.code())) throw new ApiException(HttpStatus.CONFLICT, "Không thể thay đổi mã gói.");
+        return savePlan(plans.findById(code).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy gói.")), request);
     }
     private com.example.backend.entity.school.LicensePlan savePlan(com.example.backend.entity.school.LicensePlan plan, PlanRequest request) {
         plan.setName(request.name().trim()); plan.setDescription(request.description().trim());

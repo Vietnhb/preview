@@ -14,6 +14,7 @@ import com.example.backend.repository.simulation.SolverVersionRepository;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import com.example.backend.physics.solver.PhysicsSolverRegistry;
 import com.example.backend.physics.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.module.PhysicsModuleRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,25 +29,36 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
     private final SchemaDefinitionService schemaDefinitions;
     private final PhysicsSolverRegistry numericalSolvers;
     private final ReferenceSolverRegistry referenceSolvers;
+    private final PhysicsModuleRegistry physicsModules;
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        JsonNode activeCatalog;
         try (InputStream input = new ClassPathResource("schemas/catalog.json").getInputStream()) {
-            for (JsonNode entry : objectMapper.readTree(input))
-                upsert(entry);
+            activeCatalog = objectMapper.readTree(input);
+        }
+
+        try (InputStream input = new ClassPathResource("schemas/history/published-versions.json").getInputStream()) {
+            for (JsonNode entry : objectMapper.readTree(input)) {
+                upsert(entry, LifecycleStatus.RETIRED);
+            }
+        }
+        for (JsonNode entry : activeCatalog) {
+            upsert(entry, LifecycleStatus.APPROVED);
         }
     }
 
-    private void upsert(JsonNode entry) {
+    private void upsert(JsonNode entry, LifecycleStatus lifecycleStatus) {
         String id = entry.path("schemaId").asText();
         String version = entry.path("version").asText();
         var validatedDefinition = entry.path("definition").deepCopy();
         if (validatedDefinition instanceof com.fasterxml.jackson.databind.node.ObjectNode object)
             object.put("model", entry.path("model").asText());
-        schemaDefinitions.validateDefinition(validatedDefinition, id);
-        numericalSolvers.get(entry.path("solverId").asText());
-        referenceSolvers.get(entry.path("referenceSolverId").asText());
+        schemaDefinitions.validateDefinition(validatedDefinition, id, version, entry.path("topic").asText());
+        String solverId = entry.path("solverId").asText();
+        validateSolverBinding(solverId, entry.path("referenceSolverId").asText(),
+                physicsModules, numericalSolvers, referenceSolvers);
         if (schemaRepository.findFirstBySchemaIdAndVersion(id, version).isEmpty()) {
             SchemaVersion schema = new SchemaVersion();
             schema.setSchemaId(id);
@@ -55,31 +67,62 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
             schema.setVersion(version);
             schema.setDefinition(validatedDefinition);
             schema.setDefinitionChecksum(schemaDefinitions.compiledChecksum(validatedDefinition));
-            schema.setLifecycleStatus(LifecycleStatus.APPROVED);
+            schema.setLifecycleStatus(lifecycleStatus);
             schemaRepository.save(schema);
         } else {
             SchemaVersion existing = schemaRepository.findFirstBySchemaIdAndVersion(id, version).orElseThrow();
+            SchemaCatalogIntegrity.requireMetadataMatches(id, version, existing.getName(), existing.getTopic(),
+                    entry.path("name").asText(), entry.path("topic").asText());
+            SchemaCatalogIntegrity.requireDefinitionsMatch(id, version, existing.getDefinition(), validatedDefinition);
             String checksum = schemaDefinitions.compiledChecksum(validatedDefinition);
             if (existing.getDefinitionChecksum() != null && !existing.getDefinitionChecksum().equals(checksum)) {
                 throw new IllegalStateException("Catalog drift for published schema " + id + "@" + version
                         + ": create a new schema version instead of mutating the published definition");
             }
             if (existing.getDefinitionChecksum() == null) {
-                existing.setDefinitionChecksum(checksum);
+                existing.setDefinitionChecksum(SchemaCatalogIntegrity.checksumForVerifiedStoredDefinition(id, version,
+                        existing.getDefinition(), validatedDefinition, schemaDefinitions::compiledChecksum));
                 schemaRepository.save(existing);
             }
         }
+        var binding = objectMapper.createObjectNode();
+        binding.set("output", validatedDefinition.path("output").deepCopy());
+        binding.put("referenceSolverId", entry.path("referenceSolverId").asText());
+        String bindingChecksum = SchemaCatalogIntegrity.solverBindingChecksum(
+                solverId, binding, schemaDefinitions::compiledChecksum);
         if (solverRepository.findFirstBySchemaIdAndVersion(id, version).isEmpty()) {
             SolverVersion solver = new SolverVersion();
             solver.setSchemaId(id);
-            solver.setSolverId(entry.path("solverId").asText());
+            solver.setSolverId(solverId);
             solver.setVersion(version);
-            solver.setLifecycleStatus(LifecycleStatus.APPROVED);
-            var binding = objectMapper.createObjectNode();
-            binding.set("output", entry.path("definition").path("output"));
-            binding.put("referenceSolverId", entry.path("referenceSolverId").asText());
+            solver.setLifecycleStatus(lifecycleStatus);
             solver.setOutputDefinition(binding);
+            solver.setBindingChecksum(bindingChecksum);
             solverRepository.save(solver);
+        } else {
+            SolverVersion existing = solverRepository.findFirstBySchemaIdAndVersion(id, version).orElseThrow();
+            String verifiedChecksum = SchemaCatalogIntegrity.checksumForVerifiedSolverBinding(id, version,
+                    existing.getSolverId(), existing.getOutputDefinition(), solverId, binding,
+                    schemaDefinitions::compiledChecksum);
+            if (existing.getBindingChecksum() != null
+                    && !existing.getBindingChecksum().equals(verifiedChecksum)) {
+                throw new IllegalStateException("Solver binding checksum drift for " + id + "@" + version
+                        + ": create a new schema version instead of mutating the published solver binding");
+            }
+            if (existing.getBindingChecksum() == null) {
+                existing.setBindingChecksum(verifiedChecksum);
+                solverRepository.save(existing);
+            }
+        }
+    }
+
+    static void validateSolverBinding(String numericalSolverId, String referenceSolverId,
+                                      PhysicsModuleRegistry physicsModules,
+                                      PhysicsSolverRegistry numericalSolvers,
+                                      ReferenceSolverRegistry referenceSolvers) {
+        if (!physicsModules.supportsPair(numericalSolverId, referenceSolverId)) {
+            numericalSolvers.get(numericalSolverId);
+            referenceSolvers.get(referenceSolverId);
         }
     }
 }

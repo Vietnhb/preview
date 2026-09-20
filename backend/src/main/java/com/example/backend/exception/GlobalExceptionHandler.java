@@ -3,6 +3,7 @@ package com.example.backend.exception;
 import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -18,6 +19,44 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleApiException(ApiException ex) {
         ErrorResponse error = new ErrorResponse(ex.getStatus().value(), ex.getMessage());
         return ResponseEntity.status(ex.getStatus()).body(error);
+    }
+
+    @ExceptionHandler(CanonicalContractException.class)
+    public ResponseEntity<ErrorResponse> handleCanonicalContract(CanonicalContractException ex) {
+        return ResponseEntity.unprocessableEntity().body(new ErrorResponse(422, ex.getMessage()));
+    }
+
+    /** Invalid server-owned schema data is an internal configuration error. */
+    @ExceptionHandler(SchemaCompilationException.class)
+    public ResponseEntity<ErrorResponse> handleSchemaCompilation(SchemaCompilationException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(500, ex.getMessage()));
+    }
+
+    /** Routing found no eligible candidate; the problem needs more information or human selection. */
+    @ExceptionHandler(SchemaRoutingException.class)
+    public ResponseEntity<ErrorResponse> handleSchemaRouting(SchemaRoutingException ex) {
+        return ResponseEntity.unprocessableEntity().body(new ErrorResponse(422, ex.getMessage()));
+    }
+
+    /** Missing or inconsistent schema-to-solver bindings indicate a backend catalog defect. */
+    @ExceptionHandler(SolverBindingException.class)
+    public ResponseEntity<ErrorResponse> handleSolverBinding(SolverBindingException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(500, ex.getMessage()));
+    }
+
+    /** A request quantity falls outside a model's physical domain. */
+    @ExceptionHandler(PhysicsDomainException.class)
+    public ResponseEntity<ErrorResponse> handlePhysicsDomain(PhysicsDomainException ex) {
+        return ResponseEntity.unprocessableEntity().body(new ErrorResponse(422, ex.getMessage()));
+    }
+
+    /** Solver-generated output violating its pinned contract is an internal solver defect. */
+    @ExceptionHandler(OutputContractException.class)
+    public ResponseEntity<ErrorResponse> handleOutputContract(OutputContractException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(500, ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -44,18 +83,18 @@ public class GlobalExceptionHandler {
 
     private String conflictMessage(String detail) {
         String normalized = detail == null ? "" : detail.toLowerCase(java.util.Locale.ROOT);
-        if (normalized.contains("users_email_key")) return "Email Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ tÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i";
-        if (normalized.contains("schools_code_key")) return "MÃƒÆ’Ã‚Â£ trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ tÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i";
-        if (normalized.contains("schools_name_key")) return "TÃƒÆ’Ã‚Âªn trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ tÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i";
+        if (normalized.contains("users_email_key")) return "Email đã tồn tại";
+        if (normalized.contains("schools_code_key")) return "Mã trường đã tồn tại";
+        if (normalized.contains("schools_name_key")) return "Tên trường đã tồn tại";
         if (normalized.contains("idx_one_school_manager_per_school"))
-            return "TrÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng nÃƒÆ’Ã‚Â y Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ cÃƒÆ’Ã‚Â³ quÃƒÂ¡Ã‚ÂºÃ‚Â£n lÃƒÆ’Ã‚Â½ trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng Ãƒâ€žÃ¢â‚¬Ëœang hoÃƒÂ¡Ã‚ÂºÃ‚Â¡t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng";
+            return "Trường này đã có quản lý trường đang hoạt động";
         if (normalized.contains("idx_active_enrollment_per_year"))
-            return "HÃƒÂ¡Ã‚Â»Ã‚Âc sinh Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ thuÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢c mÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢t lÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp Ãƒâ€žÃ¢â‚¬Ëœang hoÃƒÂ¡Ã‚ÂºÃ‚Â¡t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng trong nÃƒâ€žÃ†â€™m hÃƒÂ¡Ã‚Â»Ã‚Âc nÃƒÆ’Ã‚Â y";
+            return "Học sinh đã thuộc một lớp đang hoạt động trong năm học này";
         if (normalized.contains("unique_active_enrollment_per_year"))
-            return "HÃƒÂ¡Ã‚Â»Ã‚Âc sinh Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ thuÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢c mÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢t lÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp trong nÃƒâ€žÃ†â€™m hÃƒÂ¡Ã‚Â»Ã‚Âc nÃƒÆ’Ã‚Â y";
+            return "Học sinh đã thuộc một lớp trong năm học này";
         if (normalized.contains("check_role_school_consistency") || normalized.contains("user role and school"))
-            return "Vai trÃƒÆ’Ã‚Â² vÃƒÆ’Ã‚Â  trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng cÃƒÂ¡Ã‚Â»Ã‚Â§a tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n khÃƒÆ’Ã‚Â´ng hÃƒÂ¡Ã‚Â»Ã‚Â£p lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡";
-        return "DÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ tÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i hoÃƒÂ¡Ã‚ÂºÃ‚Â·c Ãƒâ€žÃ¢â‚¬Ëœang Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c sÃƒÂ¡Ã‚Â»Ã‚Â­ dÃƒÂ¡Ã‚Â»Ã‚Â¥ng";
+            return "Vai trò và trường của tài khoản không hợp lệ";
+        return "Dữ liệu đã tồn tại hoặc đang được sử dụng";
     }
 
     @ExceptionHandler(Exception.class)

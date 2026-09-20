@@ -6,10 +6,12 @@ import com.example.backend.entity.enums.LibraryModerationStatus;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> {
     Optional<LibraryItem> findBySimulationIdAndOwnerId(UUID simulationId, Integer ownerId);
@@ -33,6 +35,44 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> 
                                                           @Param("institutionId") String institutionId);
 
     List<LibraryItem> findByOwnerIdAndActiveTrueOrderByCreatedAtDesc(Integer ownerId);
+
+    @EntityGraph(attributePaths = {"specification", "owner", "owner.school"})
+    @Query("""
+            select i from LibraryItem i
+            where i.active = true
+              and (:topic is null or lower(i.specification.topic) = lower(:topic))
+              and (
+                  i.owner.id = :ownerId
+                  or (
+                      i.visibility <> :personalVisibility
+                      and i.moderationStatus in :publishedStatuses
+                      and (
+                          i.visibility = :publicVisibility
+                          or i.sharedInstitutionId is null
+                          or trim(i.sharedInstitutionId) = ''
+                          or i.sharedInstitutionId = :institutionId
+                      )
+                  )
+              )
+            """)
+    List<LibraryItem> findSearchVisibleItems(@Param("ownerId") Integer ownerId,
+                                              @Param("institutionId") String institutionId,
+                                              @Param("personalVisibility") Visibility personalVisibility,
+                                              @Param("publicVisibility") Visibility publicVisibility,
+                                              @Param("publishedStatuses") Set<LibraryModerationStatus> publishedStatuses,
+                                              @Param("topic") String topic);
+
+    @EntityGraph(attributePaths = {"specification", "owner", "owner.school"})
+    @Query("""
+            select i from LibraryItem i
+            where i.active = true
+              and i.visibility = :publicVisibility
+              and i.moderationStatus in :publishedStatuses
+              and (:topic is null or lower(i.specification.topic) = lower(:topic))
+            """)
+    List<LibraryItem> findCommunityItems(@Param("publicVisibility") Visibility publicVisibility,
+                                         @Param("publishedStatuses") Set<LibraryModerationStatus> publishedStatuses,
+                                         @Param("topic") String topic);
 
     boolean existsByFolderIdAndActiveTrue(UUID folderId);
 

@@ -12,6 +12,7 @@ import org.springframework.web.client.RestClient;
 
 import com.example.backend.config.properties.OpenRouterProperties;
 import com.example.backend.service.school.SchoolService;
+import com.example.backend.ai.extraction.validation.StrictJsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -97,12 +98,8 @@ public class OpenRouterClient {
     }
 
     public JsonNode parseJson(String content) {
-        String normalized = content.trim();
-        if (normalized.startsWith("```")) {
-            normalized = normalized.replaceFirst("^```(?:json)?\\s*", "").replaceFirst("\\s*```$", "");
-        }
         try {
-            return objectMapper.readTree(normalized);
+            return StrictJsonParser.parse(objectMapper, content);
         } catch (Exception exception) {
             throw new IllegalStateException("OpenRouter returned invalid JSON.", exception);
         }

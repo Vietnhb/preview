@@ -2,7 +2,6 @@ package com.example.backend.physics.model.dynamics;
 
 import com.example.backend.physics.model.PhysicalConstants;
 import com.example.backend.physics.model.CanonicalQuantityBag;
-import com.example.backend.physics.model.LegacySpecificationAdapter;
 import com.example.backend.physics.model.PhysicsValues;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -11,8 +10,10 @@ import java.util.Map;
 /** Gauge pressure and Archimedes buoyancy in a quiescent fluid. */
 public record HydrostaticsParameters(double fluidDensity, double depth, double displacedVolume,
         double gravity, double atmosphericPressure) {
+    /** @deprecated Use {@link #from(CanonicalQuantityBag)} after schema-bound ingress. */
+    @Deprecated
     public static HydrostaticsParameters from(JsonNode specification, Map<String, Double> overrides) {
-        return from(LegacySpecificationAdapter.adapt(specification, overrides));
+        return from(PhysicsValues.bag(specification, overrides));
     }
 
     public static HydrostaticsParameters from(CanonicalQuantityBag quantities) {

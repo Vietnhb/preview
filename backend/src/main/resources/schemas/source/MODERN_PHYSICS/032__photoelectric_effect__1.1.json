@@ -1,0 +1,147 @@
+{
+  "schemaId": "photoelectric_effect",
+  "model": "photoelectric_effect",
+  "name": "Photoelectric effect",
+  "topic": "MODERN_PHYSICS",
+  "version": "1.1",
+  "solverId": "photoelectric_solver",
+  "referenceSolverId": "photoelectric_reference",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "photon_frequency",
+        "aliases": [
+          "f"
+        ],
+        "allowedUnits": [
+          "Hz"
+        ],
+        "positive": true
+      },
+      {
+        "key": "work_function",
+        "aliases": [
+          "phi",
+          "Φ"
+        ],
+        "allowedUnits": [
+          "J"
+        ],
+        "nonNegative": true
+      }
+    ],
+    "optionalQuantities": [
+      {
+        "key": "electron_charge",
+        "aliases": [
+          "e"
+        ],
+        "allowedUnits": [
+          "C"
+        ],
+        "positive": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "photon_frequency",
+        "label": "Photon frequency",
+        "symbol": "f",
+        "unit": "Hz",
+        "min": 1,
+        "max": 100000000000000000000,
+        "step": 1000000000000
+      }
+    ],
+    "visualization": {
+      "scene": "photoelectric_effect",
+      "series": [
+        {
+          "key": "photonEnergy",
+          "source": "values.photonEnergy",
+          "label": "Photon energy",
+          "symbol": "hf",
+          "unit": "J",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "maximumKineticEnergy",
+          "source": "values.maximumKineticEnergy",
+          "label": "Maximum kinetic energy",
+          "symbol": "Kₘₐₓ",
+          "unit": "J",
+          "color": "#34d399"
+        },
+        {
+          "key": "stoppingPotential",
+          "source": "values.stoppingPotential",
+          "label": "Stopping potential",
+          "symbol": "V₀",
+          "unit": "V",
+          "color": "#fb923c"
+        },
+        {
+          "key": "emissionOccurs",
+          "source": "values.emissionOccurs",
+          "label": "Emission occurs",
+          "symbol": "emission",
+          "unit": "1",
+          "color": "#facc15"
+        }
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "lab.radiation",
+        "sceneGraph": {
+          "nodes": [
+            {
+              "id": "background",
+              "type": "background",
+              "layer": "static"
+            },
+            {
+              "id": "environment",
+              "type": "environment",
+              "layer": "static",
+              "properties": {
+                "environment": "lab.radiation"
+              }
+            },
+            {
+              "id": "graph",
+              "type": "graph",
+              "layer": "dynamic",
+              "properties": {
+                "source": "values.maximumKineticEnergy"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 0.000001,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "photonEnergy",
+        "maximumKineticEnergy",
+        "stoppingPotential",
+        "wavelength",
+        "emissionOccurs"
+      ]
+    }
+  }
+}
