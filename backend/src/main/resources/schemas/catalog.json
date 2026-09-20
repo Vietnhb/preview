@@ -1,9 +1,844 @@
 [
-{"schemaId":"kinematics_1d","model":"uniform_acceleration_1d","name":"Kinematics 1D","topic":"KINEMATICS","version":"1.8","solverId":"kinematics_solver","referenceSolverId":"kinematics_reference","definition":{"requiredQuantities":[{"key":"initial_position","aliases":["x0","position"],"allowedUnits":["m"]},{"key":"initial_velocity","aliases":["v0","velocity"],"allowedUnits":["m/s"]},{"key":"acceleration","aliases":["a"],"allowedUnits":["m/s2"]}],"adjustableParameters":[{"key":"initial_velocity","label":"Vận tốc ban đầu","symbol":"v₀","unit":"m/s","min":-40,"max":60,"step":0.5},{"key":"acceleration","label":"Gia tốc","symbol":"a","unit":"m/s²","min":-10,"max":10,"step":0.1}],"visualization":{"scene":"motion_1d","series":[{"key":"x","source":"positions.x","label":"Vị trí","symbol":"x","unit":"m","color":"#2563eb"},{"key":"vx","source":"velocities.x","label":"Vận tốc","symbol":"v","unit":"m/s","color":"#087e68"},{"key":"ax","source":"accelerations.x","label":"Gia tốc","symbol":"a","unit":"m/s²","color":"#d16a25"}],"presentation":{"theme":"lab-night","environment":"road.highway","actors":[{"id":"body","asset":"vehicle.sport.blue","x":"positions.x","vx":"velocities.x","ax":"accelerations.x","label":"m"}],"effects":["motion.trail","vehicle.headlight","vehicle.brake-smoke"]}},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[{"relationTypes":["requested_simulation_duration","simulation_duration","duration"],"unit":"s"}]},"validation":{"tolerance":0.02,"checkpointFractions":[0.25,0.5,0.75,1.0]},"output":{"type":"timeseries"}}},
-{"schemaId":"kinematics_projectile","model":"projectile_2d","name":"Projectile motion","topic":"KINEMATICS","version":"1.8","solverId":"kinematics_solver","referenceSolverId":"kinematics_reference","definition":{"requiredQuantities":[{"key":"initial_position","aliases":["x0","position"],"allowedUnits":["m"]},{"key":"initial_height","aliases":["y0","height"],"allowedUnits":["m"]},{"key":"initial_velocity","aliases":["v0","velocity"],"allowedUnits":["m/s"],"positive":true},{"key":"launch_angle","aliases":["angle","theta"],"allowedUnits":["rad"]}],"adjustableParameters":[{"key":"initial_velocity","label":"Vận tốc ban đầu","symbol":"v₀","unit":"m/s","min":0,"max":100,"step":0.5},{"key":"launch_angle","label":"Góc phóng","symbol":"θ","unit":"rad","min":0,"max":3.1415926536,"step":0.01},{"key":"gravitational_acceleration","label":"Gia tốc trọng trường","symbol":"g","unit":"m/s²","min":0,"max":30,"step":0.1}],"visualization":{"scene":"projectile_2d","series":[{"key":"x","source":"positions.x","label":"Vị trí ngang","symbol":"x","unit":"m","color":"#2563eb"},{"key":"y","source":"positions.y","label":"Độ cao","symbol":"y","unit":"m","color":"#7c3aed"},{"key":"vx","source":"velocities.x","label":"Vận tốc ngang","symbol":"vₓ","unit":"m/s","color":"#087e68"},{"key":"vy","source":"velocities.y","label":"Vận tốc đứng","symbol":"vᵧ","unit":"m/s","color":"#d16a25"}],"presentation":{"theme":"lab-night","environment":"range.projectile","actors":[{"id":"projectile","asset":"projectile.energy","x":"positions.x","y":"positions.y","vx":"velocities.x","vy":"velocities.y"}],"props":["structure.launch-tower","launcher.cannon"],"effects":["motion.trail","projectile.glow"]}},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[{"relationTypes":["requested_simulation_duration","simulation_duration","duration"],"unit":"s"}]},"validation":{"tolerance":0.02,"checkpointFractions":[0.25,0.5,0.75,1.0]},"output":{"type":"timeseries"},"optionalQuantities":[{"key":"gravitational_acceleration","aliases":["gravity","g"],"allowedUnits":["m/s2"],"nonNegative":true,"defaultValue":9.81}]}},
-{"schemaId":"dynamics_forces","model":"forces_1d","name":"Dynamics forces","topic":"DYNAMICS","version":"1.8","solverId":"dynamics_solver","referenceSolverId":"dynamics_reference","definition":{"requiredQuantities":[{"key":"mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"net_force","aliases":["force","f"],"allowedUnits":["N"]},{"key":"friction_coefficient","aliases":["mu","friction"],"allowedUnits":["1"],"nonNegative":true},{"key":"initial_position","aliases":["x0","position"],"allowedUnits":["m"]},{"key":"initial_velocity","aliases":["v0","velocity"],"allowedUnits":["m/s"]}],"adjustableParameters":[{"key":"net_force","label":"Hợp lực","symbol":"F","unit":"N","min":-100,"max":100,"step":0.5},{"key":"mass","label":"Khối lượng","symbol":"m","unit":"kg","min":0.1,"max":100,"step":0.1},{"key":"gravitational_acceleration","label":"Gia tốc trọng trường","symbol":"g","unit":"m/s²","min":0,"max":30,"step":0.1}],"visualization":{"scene":"motion_1d","series":[{"key":"x","source":"positions.x","label":"Vị trí","symbol":"x","unit":"m","color":"#2563eb"},{"key":"vx","source":"velocities.x","label":"Vận tốc","symbol":"v","unit":"m/s","color":"#087e68"},{"key":"ax","source":"accelerations.x","label":"Gia tốc","symbol":"a","unit":"m/s²","color":"#d16a25"}],"presentation":{"theme":"lab-night","environment":"road.highway","actors":[{"id":"body","asset":"vehicle.sport.blue","x":"positions.x","vx":"velocities.x","ax":"accelerations.x","label":"m"}],"effects":["motion.trail","vehicle.headlight","vehicle.brake-smoke"]}},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[{"relationTypes":["requested_simulation_duration","simulation_duration","duration"],"unit":"s"}]},"validation":{"tolerance":0.02,"checkpointFractions":[0.25,0.5,0.75,1.0]},"output":{"type":"timeseries"},"optionalQuantities":[{"key":"gravitational_acceleration","aliases":["gravity","g"],"allowedUnits":["m/s2"],"nonNegative":true,"defaultValue":9.81}]}},
-{"schemaId":"dynamics_collision","model":"elastic_collision_1d","name":"Elastic collision 1D","topic":"DYNAMICS","version":"1.8","solverId":"dynamics_solver","referenceSolverId":"dynamics_reference","definition":{"requiredQuantities":[{"key":"mass_1","aliases":["m1"],"allowedUnits":["kg"],"positive":true},{"key":"mass_2","aliases":["m2"],"allowedUnits":["kg"],"positive":true},{"key":"initial_position_1","aliases":["x1_0","x10","x1"],"allowedUnits":["m"]},{"key":"initial_position_2","aliases":["x2_0","x20","x2"],"allowedUnits":["m"]},{"key":"velocity_1","aliases":["v1"],"allowedUnits":["m/s"]},{"key":"velocity_2","aliases":["v2"],"allowedUnits":["m/s"]}],"adjustableParameters":[{"key":"velocity_1","label":"Vận tốc vật 1","symbol":"v₁","unit":"m/s","min":-50,"max":50,"step":0.5},{"key":"velocity_2","label":"Vận tốc vật 2","symbol":"v₂","unit":"m/s","min":-50,"max":50,"step":0.5}],"visualization":{"scene":"collision_1d","series":[{"key":"x1","source":"positions.x1","label":"Vị trí vật 1","symbol":"x₁","unit":"m","color":"#2563eb"},{"key":"x2","source":"positions.x2","label":"Vị trí vật 2","symbol":"x₂","unit":"m","color":"#d16a25"},{"key":"v1","source":"velocities.v1","label":"Vận tốc vật 1","symbol":"v₁","unit":"m/s","color":"#087e68"},{"key":"v2","source":"velocities.v2","label":"Vận tốc vật 2","symbol":"v₂","unit":"m/s","color":"#ea580c"}],"presentation":{"theme":"lab-night","environment":"track.collision","actors":[{"id":"body-1","asset":"object.cart.blue","x":"positions.x1","vx":"velocities.v1","lane":0,"label":"1"},{"id":"body-2","asset":"object.cart.orange","x":"positions.x2","vx":"velocities.v2","lane":1,"label":"2"}],"effects":["motion.trail","collision.flash"]}},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[{"relationTypes":["requested_simulation_duration","simulation_duration","duration"],"unit":"s"}]},"validation":{"tolerance":0.02,"checkpointFractions":[0.25,0.5,0.75,1.0]},"output":{"type":"timeseries"}}},
-{"schemaId":"oscillations_spring","model":"spring_1d","name":"Spring oscillation","topic":"DYNAMICS","version":"1.8","solverId":"dynamics_solver","referenceSolverId":"dynamics_reference","definition":{"requiredQuantities":[{"key":"amplitude","aliases":["a"],"allowedUnits":["m"],"positive":true},{"key":"mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"spring_constant","aliases":["k"],"allowedUnits":["N/m"],"positive":true},{"key":"phase","aliases":["phi"],"allowedUnits":["rad"]}],"adjustableParameters":[{"key":"amplitude","label":"Biên độ","symbol":"A","unit":"m","min":0.001,"max":5,"step":0.01},{"key":"spring_constant","label":"Độ cứng","symbol":"k","unit":"N/m","min":0.1,"max":500,"step":0.1}],"visualization":{"scene":"spring_1d","series":[{"key":"x","source":"positions.x","label":"Li độ","symbol":"x","unit":"m","color":"#2563eb"},{"key":"vx","source":"velocities.x","label":"Vận tốc","symbol":"v","unit":"m/s","color":"#087e68"},{"key":"ax","source":"accelerations.x","label":"Gia tốc","symbol":"a","unit":"m/s²","color":"#d16a25"}],"presentation":{"theme":"lab-night","environment":"bench.spring","actors":[{"id":"mass","asset":"object.block.amber","x":"positions.x","vx":"velocities.x","ax":"accelerations.x","label":"m"}],"props":["spring.coil"],"effects":["motion.trail"]}},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[{"relationTypes":["requested_simulation_duration","simulation_duration","duration"],"unit":"s"}]},"validation":{"tolerance":0.02,"checkpointFractions":[0.25,0.5,0.75,1.0]},"output":{"type":"timeseries"}}},
-{"schemaId":"circuits_rc_charging","model":"rc_charging","name":"RC charging","topic":"CIRCUITS","version":"1.8","solverId":"circuit_solver","referenceSolverId":"circuit_reference","definition":{"requiredQuantities":[{"key":"voltage","aliases":["source_voltage","initial_voltage","v0"],"allowedUnits":["V"]},{"key":"resistance","aliases":["r"],"allowedUnits":["ohm"],"positive":true},{"key":"capacitance","aliases":["c"],"allowedUnits":["F"],"positive":true}],"adjustableParameters":[{"key":"voltage","label":"Điện áp","symbol":"U₀","unit":"V","min":0,"max":100,"step":0.5},{"key":"resistance","label":"Điện trở","symbol":"R","unit":"Ω","min":0.1,"max":100000,"step":1}],"visualization":{"scene":"rc_circuit","series":[{"key":"voltage","source":"values.voltage","label":"Điện áp trên tụ","symbol":"U꜀","unit":"V","color":"#2563eb"},{"key":"current","source":"values.current","label":"Dòng điện","symbol":"I","unit":"A","color":"#087e68"}],"presentation":{"theme":"lab-night","environment":"board.circuit","effects":["circuit.current-flow","circuit.capacitor-glow"]}},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[{"relationTypes":["requested_simulation_duration","simulation_duration","duration"],"unit":"s"}]},"validation":{"tolerance":0.02,"checkpointFractions":[0.25,0.5,0.75,1.0]},"output":{"type":"timeseries"}}},
-{"schemaId":"circuits_rc_discharging","model":"rc_discharging","name":"RC discharging","topic":"CIRCUITS","version":"1.8","solverId":"circuit_solver","referenceSolverId":"circuit_reference","definition":{"requiredQuantities":[{"key":"voltage","aliases":["source_voltage","initial_voltage","v0"],"allowedUnits":["V"]},{"key":"resistance","aliases":["r"],"allowedUnits":["ohm"],"positive":true},{"key":"capacitance","aliases":["c"],"allowedUnits":["F"],"positive":true}],"adjustableParameters":[{"key":"voltage","label":"Điện áp ban đầu","symbol":"U₀","unit":"V","min":0,"max":100,"step":0.5},{"key":"resistance","label":"Điện trở","symbol":"R","unit":"Ω","min":0.1,"max":100000,"step":1}],"visualization":{"scene":"rc_circuit","series":[{"key":"voltage","source":"values.voltage","label":"Điện áp trên tụ","symbol":"U꜀","unit":"V","color":"#2563eb"},{"key":"current","source":"values.current","label":"Dòng điện","symbol":"I","unit":"A","color":"#087e68"}],"presentation":{"theme":"lab-night","environment":"board.circuit","effects":["circuit.current-flow","circuit.capacitor-glow"]}},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[{"relationTypes":["requested_simulation_duration","simulation_duration","duration"],"unit":"s"}]},"validation":{"tolerance":0.02,"checkpointFractions":[0.25,0.5,0.75,1.0]},"output":{"type":"timeseries"}}}
+  {
+    "schemaId": "kinematics_1d",
+    "model": "uniform_acceleration_1d",
+    "name": "Kinematics 1D",
+    "topic": "KINEMATICS",
+    "version": "1.8",
+    "solverId": "kinematics_solver",
+    "referenceSolverId": "kinematics_reference",
+    "definition": {
+      "requiredQuantities": [
+        {
+          "key": "initial_position",
+          "aliases": ["x0", "position"],
+          "allowedUnits": ["m"]
+        },
+        {
+          "key": "initial_velocity",
+          "aliases": ["v0", "velocity"],
+          "allowedUnits": ["m/s"]
+        },
+        { "key": "acceleration", "aliases": ["a"], "allowedUnits": ["m/s2"] }
+      ],
+      "adjustableParameters": [
+        {
+          "key": "initial_velocity",
+          "label": "Vận tốc ban đầu",
+          "symbol": "v₀",
+          "unit": "m/s",
+          "min": -40,
+          "max": 60,
+          "step": 0.5
+        },
+        {
+          "key": "acceleration",
+          "label": "Gia tốc",
+          "symbol": "a",
+          "unit": "m/s²",
+          "min": -10,
+          "max": 10,
+          "step": 0.1
+        }
+      ],
+      "visualization": {
+        "scene": "motion_1d",
+        "series": [
+          {
+            "key": "x",
+            "source": "positions.x",
+            "label": "Vị trí",
+            "symbol": "x",
+            "unit": "m",
+            "color": "#2563eb"
+          },
+          {
+            "key": "vx",
+            "source": "velocities.x",
+            "label": "Vận tốc",
+            "symbol": "v",
+            "unit": "m/s",
+            "color": "#087e68"
+          },
+          {
+            "key": "ax",
+            "source": "accelerations.x",
+            "label": "Gia tốc",
+            "symbol": "a",
+            "unit": "m/s²",
+            "color": "#d16a25"
+          }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "road.highway",
+          "actors": [
+            {
+              "id": "body",
+              "asset": "vehicle.sport.blue",
+              "x": "positions.x",
+              "vx": "velocities.x",
+              "ax": "accelerations.x",
+              "label": "m"
+            }
+          ],
+          "effects": [
+            "motion.trail",
+            "vehicle.headlight",
+            "vehicle.brake-smoke"
+          ]
+        }
+      },
+      "execution": {
+        "durationSeconds": 10,
+        "stepSeconds": 0.05,
+        "durationBindings": [
+          {
+            "relationTypes": [
+              "requested_simulation_duration",
+              "simulation_duration",
+              "duration"
+            ],
+            "unit": "s"
+          }
+        ]
+      },
+      "validation": {
+        "tolerance": 0.02,
+        "checkpointFractions": [0.25, 0.5, 0.75, 1.0]
+      },
+      "output": { "type": "timeseries" }
+    }
+  },
+  {
+    "schemaId": "kinematics_projectile",
+    "model": "projectile_2d",
+    "name": "Projectile motion",
+    "topic": "KINEMATICS",
+    "version": "1.8",
+    "solverId": "kinematics_solver",
+    "referenceSolverId": "kinematics_reference",
+    "definition": {
+      "requiredQuantities": [
+        {
+          "key": "initial_position",
+          "aliases": ["x0", "position"],
+          "allowedUnits": ["m"]
+        },
+        {
+          "key": "initial_height",
+          "aliases": ["y0", "height"],
+          "allowedUnits": ["m"]
+        },
+        {
+          "key": "initial_velocity",
+          "aliases": ["v0", "velocity"],
+          "allowedUnits": ["m/s"],
+          "positive": true
+        },
+        {
+          "key": "launch_angle",
+          "aliases": ["angle", "theta"],
+          "allowedUnits": ["rad"]
+        }
+      ],
+      "adjustableParameters": [
+        {
+          "key": "initial_velocity",
+          "label": "Vận tốc ban đầu",
+          "symbol": "v₀",
+          "unit": "m/s",
+          "min": 0,
+          "max": 100,
+          "step": 0.5
+        },
+        {
+          "key": "launch_angle",
+          "label": "Góc phóng",
+          "symbol": "θ",
+          "unit": "rad",
+          "min": 0,
+          "max": 3.1415926536,
+          "step": 0.01
+        },
+        {
+          "key": "gravitational_acceleration",
+          "label": "Gia tốc trọng trường",
+          "symbol": "g",
+          "unit": "m/s²",
+          "min": 0,
+          "max": 30,
+          "step": 0.1
+        }
+      ],
+      "visualization": {
+        "scene": "projectile_2d",
+        "series": [
+          {
+            "key": "x",
+            "source": "positions.x",
+            "label": "Vị trí ngang",
+            "symbol": "x",
+            "unit": "m",
+            "color": "#2563eb"
+          },
+          {
+            "key": "y",
+            "source": "positions.y",
+            "label": "Độ cao",
+            "symbol": "y",
+            "unit": "m",
+            "color": "#7c3aed"
+          },
+          {
+            "key": "vx",
+            "source": "velocities.x",
+            "label": "Vận tốc ngang",
+            "symbol": "vₓ",
+            "unit": "m/s",
+            "color": "#087e68"
+          },
+          {
+            "key": "vy",
+            "source": "velocities.y",
+            "label": "Vận tốc đứng",
+            "symbol": "vᵧ",
+            "unit": "m/s",
+            "color": "#d16a25"
+          }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "range.projectile",
+          "actors": [
+            {
+              "id": "projectile",
+              "asset": "projectile.energy",
+              "x": "positions.x",
+              "y": "positions.y",
+              "vx": "velocities.x",
+              "vy": "velocities.y"
+            }
+          ],
+          "props": ["structure.launch-tower", "launcher.cannon"],
+          "effects": ["motion.trail", "projectile.glow"]
+        }
+      },
+      "execution": {
+        "durationSeconds": 10,
+        "stepSeconds": 0.05,
+        "durationBindings": [
+          {
+            "relationTypes": [
+              "requested_simulation_duration",
+              "simulation_duration",
+              "duration"
+            ],
+            "unit": "s"
+          }
+        ]
+      },
+      "validation": {
+        "tolerance": 0.02,
+        "checkpointFractions": [0.25, 0.5, 0.75, 1.0]
+      },
+      "output": { "type": "timeseries" },
+      "optionalQuantities": [
+        {
+          "key": "gravitational_acceleration",
+          "aliases": ["gravity", "g"],
+          "allowedUnits": ["m/s2"],
+          "nonNegative": true,
+          "defaultValue": 9.81
+        }
+      ]
+    }
+  },
+  {
+    "schemaId": "dynamics_forces",
+    "model": "forces_1d",
+    "name": "Dynamics forces",
+    "topic": "DYNAMICS",
+    "version": "1.8",
+    "solverId": "dynamics_solver",
+    "referenceSolverId": "dynamics_reference",
+    "definition": {
+      "requiredQuantities": [
+        {
+          "key": "mass",
+          "aliases": ["m"],
+          "allowedUnits": ["kg"],
+          "positive": true
+        },
+        {
+          "key": "net_force",
+          "aliases": ["force", "f"],
+          "allowedUnits": ["N"]
+        },
+        {
+          "key": "friction_coefficient",
+          "aliases": ["mu", "friction"],
+          "allowedUnits": ["1"],
+          "nonNegative": true
+        },
+        {
+          "key": "initial_position",
+          "aliases": ["x0", "position"],
+          "allowedUnits": ["m"]
+        },
+        {
+          "key": "initial_velocity",
+          "aliases": ["v0", "velocity"],
+          "allowedUnits": ["m/s"]
+        }
+      ],
+      "adjustableParameters": [
+        {
+          "key": "net_force",
+          "label": "Hợp lực",
+          "symbol": "F",
+          "unit": "N",
+          "min": -100,
+          "max": 100,
+          "step": 0.5
+        },
+        {
+          "key": "mass",
+          "label": "Khối lượng",
+          "symbol": "m",
+          "unit": "kg",
+          "min": 0.1,
+          "max": 100,
+          "step": 0.1
+        },
+        {
+          "key": "gravitational_acceleration",
+          "label": "Gia tốc trọng trường",
+          "symbol": "g",
+          "unit": "m/s²",
+          "min": 0,
+          "max": 30,
+          "step": 0.1
+        }
+      ],
+      "visualization": {
+        "scene": "motion_1d",
+        "series": [
+          {
+            "key": "x",
+            "source": "positions.x",
+            "label": "Vị trí",
+            "symbol": "x",
+            "unit": "m",
+            "color": "#2563eb"
+          },
+          {
+            "key": "vx",
+            "source": "velocities.x",
+            "label": "Vận tốc",
+            "symbol": "v",
+            "unit": "m/s",
+            "color": "#087e68"
+          },
+          {
+            "key": "ax",
+            "source": "accelerations.x",
+            "label": "Gia tốc",
+            "symbol": "a",
+            "unit": "m/s²",
+            "color": "#d16a25"
+          }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "road.highway",
+          "actors": [
+            {
+              "id": "body",
+              "asset": "vehicle.sport.blue",
+              "x": "positions.x",
+              "vx": "velocities.x",
+              "ax": "accelerations.x",
+              "label": "m"
+            }
+          ],
+          "effects": [
+            "motion.trail",
+            "vehicle.headlight",
+            "vehicle.brake-smoke"
+          ]
+        }
+      },
+      "execution": {
+        "durationSeconds": 10,
+        "stepSeconds": 0.05,
+        "durationBindings": [
+          {
+            "relationTypes": [
+              "requested_simulation_duration",
+              "simulation_duration",
+              "duration"
+            ],
+            "unit": "s"
+          }
+        ]
+      },
+      "validation": {
+        "tolerance": 0.02,
+        "checkpointFractions": [0.25, 0.5, 0.75, 1.0]
+      },
+      "output": { "type": "timeseries" },
+      "optionalQuantities": [
+        {
+          "key": "gravitational_acceleration",
+          "aliases": ["gravity", "g"],
+          "allowedUnits": ["m/s2"],
+          "nonNegative": true,
+          "defaultValue": 9.81
+        }
+      ]
+    }
+  },
+  {
+    "schemaId": "dynamics_collision",
+    "model": "elastic_collision_1d",
+    "name": "Elastic collision 1D",
+    "topic": "DYNAMICS",
+    "version": "1.8",
+    "solverId": "dynamics_solver",
+    "referenceSolverId": "dynamics_reference",
+    "definition": {
+      "requiredQuantities": [
+        {
+          "key": "mass_1",
+          "aliases": ["m1"],
+          "allowedUnits": ["kg"],
+          "positive": true
+        },
+        {
+          "key": "mass_2",
+          "aliases": ["m2"],
+          "allowedUnits": ["kg"],
+          "positive": true
+        },
+        {
+          "key": "initial_position_1",
+          "aliases": ["x1_0", "x10", "x1"],
+          "allowedUnits": ["m"]
+        },
+        {
+          "key": "initial_position_2",
+          "aliases": ["x2_0", "x20", "x2"],
+          "allowedUnits": ["m"]
+        },
+        { "key": "velocity_1", "aliases": ["v1"], "allowedUnits": ["m/s"] },
+        { "key": "velocity_2", "aliases": ["v2"], "allowedUnits": ["m/s"] }
+      ],
+      "adjustableParameters": [
+        {
+          "key": "velocity_1",
+          "label": "Vận tốc vật 1",
+          "symbol": "v₁",
+          "unit": "m/s",
+          "min": -50,
+          "max": 50,
+          "step": 0.5
+        },
+        {
+          "key": "velocity_2",
+          "label": "Vận tốc vật 2",
+          "symbol": "v₂",
+          "unit": "m/s",
+          "min": -50,
+          "max": 50,
+          "step": 0.5
+        }
+      ],
+      "visualization": {
+        "scene": "collision_1d",
+        "series": [
+          {
+            "key": "x1",
+            "source": "positions.x1",
+            "label": "Vị trí vật 1",
+            "symbol": "x₁",
+            "unit": "m",
+            "color": "#2563eb"
+          },
+          {
+            "key": "x2",
+            "source": "positions.x2",
+            "label": "Vị trí vật 2",
+            "symbol": "x₂",
+            "unit": "m",
+            "color": "#d16a25"
+          },
+          {
+            "key": "v1",
+            "source": "velocities.v1",
+            "label": "Vận tốc vật 1",
+            "symbol": "v₁",
+            "unit": "m/s",
+            "color": "#087e68"
+          },
+          {
+            "key": "v2",
+            "source": "velocities.v2",
+            "label": "Vận tốc vật 2",
+            "symbol": "v₂",
+            "unit": "m/s",
+            "color": "#ea580c"
+          }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "track.collision",
+          "actors": [
+            {
+              "id": "body-1",
+              "asset": "object.cart.blue",
+              "x": "positions.x1",
+              "vx": "velocities.v1",
+              "lane": 0,
+              "label": "1"
+            },
+            {
+              "id": "body-2",
+              "asset": "object.cart.orange",
+              "x": "positions.x2",
+              "vx": "velocities.v2",
+              "lane": 1,
+              "label": "2"
+            }
+          ],
+          "effects": ["motion.trail", "collision.flash"]
+        }
+      },
+      "execution": {
+        "durationSeconds": 10,
+        "stepSeconds": 0.05,
+        "durationBindings": [
+          {
+            "relationTypes": [
+              "requested_simulation_duration",
+              "simulation_duration",
+              "duration"
+            ],
+            "unit": "s"
+          }
+        ]
+      },
+      "validation": {
+        "tolerance": 0.02,
+        "checkpointFractions": [0.25, 0.5, 0.75, 1.0]
+      },
+      "output": { "type": "timeseries" }
+    }
+  },
+  {
+    "schemaId": "oscillations_spring",
+    "model": "spring_1d",
+    "name": "Spring oscillation",
+    "topic": "DYNAMICS",
+    "version": "1.8",
+    "solverId": "dynamics_solver",
+    "referenceSolverId": "dynamics_reference",
+    "definition": {
+      "requiredQuantities": [
+        {
+          "key": "amplitude",
+          "aliases": ["a"],
+          "allowedUnits": ["m"],
+          "positive": true
+        },
+        {
+          "key": "mass",
+          "aliases": ["m"],
+          "allowedUnits": ["kg"],
+          "positive": true
+        },
+        {
+          "key": "spring_constant",
+          "aliases": ["k"],
+          "allowedUnits": ["N/m"],
+          "positive": true
+        },
+        { "key": "phase", "aliases": ["phi"], "allowedUnits": ["rad"] }
+      ],
+      "adjustableParameters": [
+        {
+          "key": "amplitude",
+          "label": "Biên độ",
+          "symbol": "A",
+          "unit": "m",
+          "min": 0.001,
+          "max": 5,
+          "step": 0.01
+        },
+        {
+          "key": "spring_constant",
+          "label": "Độ cứng",
+          "symbol": "k",
+          "unit": "N/m",
+          "min": 0.1,
+          "max": 500,
+          "step": 0.1
+        }
+      ],
+      "visualization": {
+        "scene": "spring_1d",
+        "series": [
+          {
+            "key": "x",
+            "source": "positions.x",
+            "label": "Li độ",
+            "symbol": "x",
+            "unit": "m",
+            "color": "#2563eb"
+          },
+          {
+            "key": "vx",
+            "source": "velocities.x",
+            "label": "Vận tốc",
+            "symbol": "v",
+            "unit": "m/s",
+            "color": "#087e68"
+          },
+          {
+            "key": "ax",
+            "source": "accelerations.x",
+            "label": "Gia tốc",
+            "symbol": "a",
+            "unit": "m/s²",
+            "color": "#d16a25"
+          }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "bench.spring",
+          "actors": [
+            {
+              "id": "mass",
+              "asset": "object.block.amber",
+              "x": "positions.x",
+              "vx": "velocities.x",
+              "ax": "accelerations.x",
+              "label": "m"
+            }
+          ],
+          "props": ["spring.coil"],
+          "effects": ["motion.trail"]
+        }
+      },
+      "execution": {
+        "durationSeconds": 10,
+        "stepSeconds": 0.05,
+        "durationBindings": [
+          {
+            "relationTypes": [
+              "requested_simulation_duration",
+              "simulation_duration",
+              "duration"
+            ],
+            "unit": "s"
+          }
+        ]
+      },
+      "validation": {
+        "tolerance": 0.02,
+        "checkpointFractions": [0.25, 0.5, 0.75, 1.0]
+      },
+      "output": { "type": "timeseries" }
+    }
+  },
+  {
+    "schemaId": "circuits_rc_charging",
+    "model": "rc_charging",
+    "name": "RC charging",
+    "topic": "CIRCUITS",
+    "version": "1.8",
+    "solverId": "circuit_solver",
+    "referenceSolverId": "circuit_reference",
+    "definition": {
+      "requiredQuantities": [
+        {
+          "key": "voltage",
+          "aliases": ["source_voltage", "initial_voltage", "v0"],
+          "allowedUnits": ["V"]
+        },
+        {
+          "key": "resistance",
+          "aliases": ["r"],
+          "allowedUnits": ["ohm"],
+          "positive": true
+        },
+        {
+          "key": "capacitance",
+          "aliases": ["c"],
+          "allowedUnits": ["F"],
+          "positive": true
+        }
+      ],
+      "adjustableParameters": [
+        {
+          "key": "voltage",
+          "label": "Điện áp",
+          "symbol": "U₀",
+          "unit": "V",
+          "min": 0,
+          "max": 100,
+          "step": 0.5
+        },
+        {
+          "key": "resistance",
+          "label": "Điện trở",
+          "symbol": "R",
+          "unit": "Ω",
+          "min": 0.1,
+          "max": 100000,
+          "step": 1
+        }
+      ],
+      "visualization": {
+        "scene": "rc_circuit",
+        "series": [
+          {
+            "key": "voltage",
+            "source": "values.voltage",
+            "label": "Điện áp trên tụ",
+            "symbol": "U꜀",
+            "unit": "V",
+            "color": "#2563eb"
+          },
+          {
+            "key": "current",
+            "source": "values.current",
+            "label": "Dòng điện",
+            "symbol": "I",
+            "unit": "A",
+            "color": "#087e68"
+          }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "board.circuit",
+          "effects": ["circuit.current-flow", "circuit.capacitor-glow"]
+        }
+      },
+      "execution": {
+        "durationSeconds": 10,
+        "stepSeconds": 0.05,
+        "durationBindings": [
+          {
+            "relationTypes": [
+              "requested_simulation_duration",
+              "simulation_duration",
+              "duration"
+            ],
+            "unit": "s"
+          }
+        ]
+      },
+      "validation": {
+        "tolerance": 0.02,
+        "checkpointFractions": [0.25, 0.5, 0.75, 1.0]
+      },
+      "output": { "type": "timeseries" }
+    }
+  },
+  {
+    "schemaId": "circuits_rc_discharging",
+    "model": "rc_discharging",
+    "name": "RC discharging",
+    "topic": "CIRCUITS",
+    "version": "1.8",
+    "solverId": "circuit_solver",
+    "referenceSolverId": "circuit_reference",
+    "definition": {
+      "requiredQuantities": [
+        {
+          "key": "voltage",
+          "aliases": ["source_voltage", "initial_voltage", "v0"],
+          "allowedUnits": ["V"]
+        },
+        {
+          "key": "resistance",
+          "aliases": ["r"],
+          "allowedUnits": ["ohm"],
+          "positive": true
+        },
+        {
+          "key": "capacitance",
+          "aliases": ["c"],
+          "allowedUnits": ["F"],
+          "positive": true
+        }
+      ],
+      "adjustableParameters": [
+        {
+          "key": "voltage",
+          "label": "Điện áp ban đầu",
+          "symbol": "U₀",
+          "unit": "V",
+          "min": 0,
+          "max": 100,
+          "step": 0.5
+        },
+        {
+          "key": "resistance",
+          "label": "Điện trở",
+          "symbol": "R",
+          "unit": "Ω",
+          "min": 0.1,
+          "max": 100000,
+          "step": 1
+        }
+      ],
+      "visualization": {
+        "scene": "rc_circuit",
+        "series": [
+          {
+            "key": "voltage",
+            "source": "values.voltage",
+            "label": "Điện áp trên tụ",
+            "symbol": "U꜀",
+            "unit": "V",
+            "color": "#2563eb"
+          },
+          {
+            "key": "current",
+            "source": "values.current",
+            "label": "Dòng điện",
+            "symbol": "I",
+            "unit": "A",
+            "color": "#087e68"
+          }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "board.circuit",
+          "effects": ["circuit.current-flow", "circuit.capacitor-glow"]
+        }
+      },
+      "execution": {
+        "durationSeconds": 10,
+        "stepSeconds": 0.05,
+        "durationBindings": [
+          {
+            "relationTypes": [
+              "requested_simulation_duration",
+              "simulation_duration",
+              "duration"
+            ],
+            "unit": "s"
+          }
+        ]
+      },
+      "validation": {
+        "tolerance": 0.02,
+        "checkpointFractions": [0.25, 0.5, 0.75, 1.0]
+      },
+      "output": { "type": "timeseries" }
+    }
+  }
 ]
