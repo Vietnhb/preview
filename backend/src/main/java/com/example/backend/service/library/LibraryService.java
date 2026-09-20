@@ -87,7 +87,7 @@ public class LibraryService {
         LibraryItem copy = new LibraryItem();
         copy.setSimulation(source.getSimulation()); copy.setFolder(folder); copy.setLesson(source.getLesson());
         copy.setSpecification(source.getSpecification()); copy.setOwner(user);
-        copy.setTitle(title == null || title.isBlank() ? source.getTitle() + " (bản sao)" : title.trim());
+        copy.setTitle(title == null || title.isBlank() ? source.getTitle() + " (bÃƒÂ¡Ã‚ÂºÃ‚Â£n sao)" : title.trim());
         copy.setVisibility(Visibility.PERSONAL); copy.setSharedInstitutionId(null);
         copy.setModerationStatus(LibraryModerationStatus.APPROVED); copy.setActive(true);
         return toResponse(libraryRepository.save(copy));

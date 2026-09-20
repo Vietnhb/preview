@@ -19,6 +19,16 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+  curriculum:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/attach-curriculum-sources.mjs
+      - run: node scripts/check-curriculum-coverage.mjs
+      - run: node scripts/report-topic-coverage.mjs
+      - run: git diff --exit-code -- docs/curriculum/coverage.csv
   python:
     runs-on: ubuntu-latest
     strategy: { matrix: { service: [problem-understanding-service, simulation-service, validation-service] } }

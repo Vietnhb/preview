@@ -14,7 +14,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Resolves declarative end conditions against solver output.  This class only
+ * Resolves declarative end conditions against solver output. This class only
  * knows generic timeline capabilities; it has no knowledge of a lesson or a
  * physics model.
  */
@@ -34,7 +34,8 @@ public final class EndConditionResolver {
             explicit = specification == null ? null : specification.get("end_condition");
         }
         if (explicit != null && !explicit.isNull()) {
-            if (!(explicit instanceof ObjectNode object)) return explicit.deepCopy();
+            if (!(explicit instanceof ObjectNode object))
+                return explicit.deepCopy();
             ObjectNode normalized = object.deepCopy();
             if (normalized.path("type").isTextual()) {
                 normalized.put("type", normalized.path("type").asText().trim().toLowerCase(Locale.ROOT));
@@ -57,10 +58,11 @@ public final class EndConditionResolver {
     public static List<String> validate(JsonNode specification, double fallbackDuration) {
         boolean explicitlyPresent = specification != null
                 && ((specification.has("endCondition") && !specification.get("endCondition").isNull())
-                || (specification.has("end_condition") && !specification.get("end_condition").isNull()));
+                        || (specification.has("end_condition") && !specification.get("end_condition").isNull()));
         JsonNode condition = normalize(specification, fallbackDuration);
         List<String> errors = validateNode(condition, fallbackDuration);
-        if (!explicitlyPresent && errors.isEmpty()) return List.of();
+        if (!explicitlyPresent && errors.isEmpty())
+            return List.of();
         return List.copyOf(errors);
     }
 
@@ -68,7 +70,8 @@ public final class EndConditionResolver {
         List<String> errors = new ArrayList<>();
         // A missing condition is a supported legacy document. It is
         // normalized to time_limit by normalize(...).
-        if (condition == null || condition.isNull()) return List.of();
+        if (condition == null || condition.isNull())
+            return List.of();
         if (condition == null || !condition.isObject()) {
             return List.of("endCondition must be an object");
         }
@@ -84,11 +87,13 @@ public final class EndConditionResolver {
                 }
             }
             case "threshold" -> {
-                if (condition.path("quantity").asText("").isBlank()) errors.add("threshold.quantity is required");
+                if (condition.path("quantity").asText("").isBlank())
+                    errors.add("threshold.quantity is required");
                 if (!List.of(">=", "<=", ">", "<", "==").contains(condition.path("operator").asText())) {
                     errors.add("threshold.operator is unsupported");
                 }
-                if (!finite(condition.path("value"))) errors.add("threshold.value must be finite");
+                if (!finite(condition.path("value")))
+                    errors.add("threshold.value must be finite");
                 validateMaxTime(condition, errors);
             }
             case "event" -> {
@@ -105,11 +110,13 @@ public final class EndConditionResolver {
                     if (!event.has("quantity") && !event.has("operator") && !event.has("value")) {
                         errors.add("contact.event requires quantity, operator and value");
                     }
-                    if (event.path("quantity").asText("").isBlank()) errors.add("contact.event.quantity is required when a contact threshold is provided");
+                    if (event.path("quantity").asText("").isBlank())
+                        errors.add("contact.event.quantity is required when a contact threshold is provided");
                     if (!List.of(">=", "<=", ">", "<", "==").contains(event.path("operator").asText())) {
                         errors.add("contact.event.operator is unsupported");
                     }
-                    if (!finite(event.get("value"))) errors.add("contact.event.value must be finite");
+                    if (!finite(event.get("value")))
+                        errors.add("contact.event.value must be finite");
                 }
                 if ("collision".equals(eventType)
                         && (event.has("firstQuantity") || event.has("secondQuantity"))) {
@@ -121,9 +128,11 @@ public final class EndConditionResolver {
                 validateMaxTime(condition, errors);
             }
             case "cycle_count" -> {
-                if (condition.path("quantity").asText("").isBlank()) errors.add("cycle_count.quantity is required");
+                if (condition.path("quantity").asText("").isBlank())
+                    errors.add("cycle_count.quantity is required");
                 double count = condition.path("count").asDouble(Double.NaN);
-                if (!finitePositive(count) || Math.rint(count) != count) errors.add("cycle_count.count must be a positive integer");
+                if (!finitePositive(count) || Math.rint(count) != count)
+                    errors.add("cycle_count.count must be a positive integer");
                 validateMaxTime(condition, errors);
             }
             case "manual" -> validateMaxTime(condition, errors);
@@ -144,7 +153,8 @@ public final class EndConditionResolver {
     }
 
     public static boolean expandable(JsonNode condition, ResolvedEnd resolved, double horizon) {
-        if (resolved.conditionReached() || horizon >= MAX_DYNAMIC_SECONDS - EPSILON || condition == null) return false;
+        if (resolved.conditionReached() || horizon >= MAX_DYNAMIC_SECONDS - EPSILON || condition == null)
+            return false;
         String type = condition.path("type").asText("");
         return !"time_limit".equals(type) && !"manual".equals(type) && !finitePositive(condition.path("maxTime"));
     }
@@ -154,7 +164,8 @@ public final class EndConditionResolver {
         double horizon = times.isEmpty() ? 0 : times.get(times.size() - 1);
         String type = condition == null ? "time_limit" : condition.path("type").asText("time_limit");
         double maxTime = finitePositive(condition == null ? null : condition.get("maxTime"))
-                ? condition.get("maxTime").asDouble() : horizon;
+                ? condition.get("maxTime").asDouble()
+                : horizon;
         double limit = Math.min(horizon, maxTime);
 
         return switch (type) {
@@ -172,7 +183,8 @@ public final class EndConditionResolver {
 
     private static ResolvedEnd resolveTimeLimit(JsonNode condition, double horizon) {
         double target = condition == null ? horizon : condition.path("duration").asDouble(horizon);
-        if (target <= horizon + EPSILON) return new ResolvedEnd(Math.min(target, horizon), "time_limit", true);
+        if (target <= horizon + EPSILON)
+            return new ResolvedEnd(Math.min(target, horizon), "time_limit", true);
         return new ResolvedEnd(horizon, "max_time", false);
     }
 
@@ -184,14 +196,17 @@ public final class EndConditionResolver {
 
     /** Trims all timeline-aligned arrays and interpolates the final sample. */
     public static SolverOutput trim(SolverOutput output, double endTime) {
-        if (output == null || output.time() == null || output.time().isEmpty()) return output;
+        if (output == null || output.time() == null || output.time().isEmpty())
+            return output;
         List<Double> sourceTimes = output.time();
         double target = Math.max(sourceTimes.get(0), Math.min(endTime, sourceTimes.get(sourceTimes.size() - 1)));
         int last = 0;
-        while (last + 1 < sourceTimes.size() && sourceTimes.get(last + 1) <= target + EPSILON) last++;
+        while (last + 1 < sourceTimes.size() && sourceTimes.get(last + 1) <= target + EPSILON)
+            last++;
         boolean append = sourceTimes.get(last) < target - EPSILON;
         List<Double> times = new ArrayList<>(sourceTimes.subList(0, last + 1));
-        if (append) times.add(target);
+        if (append)
+            times.add(target);
         return new SolverOutput(times,
                 trimGroup(output.positions(), sourceTimes, last, target, append),
                 trimGroup(output.velocities(), sourceTimes, last, target, append),
@@ -200,9 +215,10 @@ public final class EndConditionResolver {
     }
 
     private static Map<String, List<Double>> trimGroup(Map<String, List<Double>> group, List<Double> times,
-                                                        int last, double target, boolean append) {
+            int last, double target, boolean append) {
         Map<String, List<Double>> result = new LinkedHashMap<>();
-        if (group == null) return result;
+        if (group == null)
+            return result;
         for (Map.Entry<String, List<Double>> entry : group.entrySet()) {
             List<Double> values = entry.getValue() == null ? List.of() : entry.getValue();
             if (values.size() != times.size()) {
@@ -210,7 +226,8 @@ public final class EndConditionResolver {
                 continue;
             }
             List<Double> trimmed = new ArrayList<>(values.subList(0, last + 1));
-            if (append) trimmed.add(interpolate(values, times, target));
+            if (append)
+                trimmed.add(interpolate(values, times, target));
             result.put(entry.getKey(), List.copyOf(trimmed));
         }
         return result;
@@ -218,22 +235,27 @@ public final class EndConditionResolver {
 
     private static Double findThreshold(JsonNode condition, SolverOutput output, double limit) {
         Series series = findSeries(output, condition.path("quantity").asText());
-        if (series == null) return null;
+        if (series == null)
+            return null;
         String operator = condition.path("operator").asText();
         double target = condition.path("value").asDouble();
-        return crossing(series.values(), output.time(), limit, value -> matches(value, operator, target), target, operator);
+        return crossing(series.values(), output.time(), limit, value -> matches(value, operator, target), target,
+                operator);
     }
 
     private static Double findEvent(JsonNode condition, SolverOutput output, double limit) {
         JsonNode event = condition.path("event");
         String type = event.path("type").asText("").toLowerCase(Locale.ROOT);
         Double marker = eventMarker(output, type, limit);
-        if (marker != null) return marker;
+        if (marker != null)
+            return marker;
         if ("contact".equals(type)) {
             Series quantity = findSeries(output, event.path("quantity").asText());
-            if (quantity == null || !finite(event.get("value"))) return null;
+            if (quantity == null || !finite(event.get("value")))
+                return null;
             String operator = event.path("operator").asText();
-            if (!List.of(">=", "<=", ">", "<", "==").contains(operator)) return null;
+            if (!List.of(">=", "<=", ">", "<", "==").contains(operator))
+                return null;
             return contactCrossing(quantity.values(), output.time(), limit,
                     operator, event.path("value").asDouble());
         }
@@ -249,7 +271,8 @@ public final class EndConditionResolver {
 
         List<String> entities = new ArrayList<>();
         event.path("entities").forEach(entity -> {
-            if (entity.isTextual() && !entity.asText().isBlank()) entities.add(entity.asText());
+            if (entity.isTextual() && !entity.asText().isBlank())
+                entities.add(entity.asText());
         });
         if (entities.size() >= 2) {
             Series first = findNamedSeries(output.positions(), entities.get(0));
@@ -262,8 +285,9 @@ public final class EndConditionResolver {
     }
 
     private static Double contactCrossing(List<Double> values, List<Double> times, double limit,
-                                          String operator, double target) {
-        if (values == null || times == null || values.isEmpty() || values.size() != times.size()) return null;
+            String operator, double target) {
+        if (values == null || times == null || values.isEmpty() || values.size() != times.size())
+            return null;
         String boundaryOperator = switch (operator) {
             case "<" -> "<=";
             case ">" -> ">=";
@@ -281,7 +305,8 @@ public final class EndConditionResolver {
             }
         }
         for (int i = Math.max(1, start + 1); i < values.size() && i < times.size(); i++) {
-            if (times.get(i) > limit + EPSILON) break;
+            if (times.get(i) > limit + EPSILON)
+                break;
             double previous = values.get(i - 1);
             double current = values.get(i);
             boolean enteredContact = !matches(previous, boundaryOperator, target)
@@ -294,38 +319,51 @@ public final class EndConditionResolver {
     }
 
     private static Double eventMarker(SolverOutput output, String type, double limit) {
-        if (output.values() == null) return null;
+        if (output.values() == null)
+            return null;
         for (Map.Entry<String, List<Double>> entry : output.values().entrySet()) {
             String key = compact(entry.getKey());
-            if (!key.contains(type)) continue;
+            if (!key.contains(type))
+                continue;
             List<Double> values = entry.getValue();
-            if (values == null || values.isEmpty()) continue;
+            if (values == null || values.isEmpty())
+                continue;
             if (values.size() == 1 && key.endsWith("time")
-                    && values.get(0) > 0 && values.get(0) <= limit) return values.get(0);
+                    && values.get(0) > 0 && values.get(0) <= limit)
+                return values.get(0);
             Double found = crossing(values, output.time(), limit, value -> value > 0.5, 0.5, ">");
-            if (found != null) return found;
+            if (found != null)
+                return found;
         }
         return null;
     }
 
     private static Double findCycles(JsonNode condition, SolverOutput output, double limit) {
         Series series = findSeries(output, condition.path("quantity").asText());
-        if (series == null) return null;
+        if (series == null)
+            return null;
         double count = condition.path("count").asDouble();
         double period = estimatePeriod(series.values(), output.time(), limit);
-        if (!finitePositive(period)) return null;
+        if (!finitePositive(period))
+            return null;
         double target = period * count;
         return target <= limit + EPSILON ? target : null;
     }
 
     private static double estimatePeriod(List<Double> values, List<Double> times, double limit) {
-        if (values == null || times == null || values.size() != times.size() || values.size() < 3) return Double.NaN;
+        if (values == null || times == null || values.size() != times.size() || values.size() < 3)
+            return Double.NaN;
         int end = 0;
-        while (end + 1 < times.size() && times.get(end + 1) <= limit + EPSILON) end++;
-        if (end < 2) return Double.NaN;
-        double min = values.subList(0, end + 1).stream().filter(EndConditionResolver::finite).min(Comparator.naturalOrder()).orElse(Double.NaN);
-        double max = values.subList(0, end + 1).stream().filter(EndConditionResolver::finite).max(Comparator.naturalOrder()).orElse(Double.NaN);
-        if (!finite(min) || !finite(max) || max - min <= EPSILON) return Double.NaN;
+        while (end + 1 < times.size() && times.get(end + 1) <= limit + EPSILON)
+            end++;
+        if (end < 2)
+            return Double.NaN;
+        double min = values.subList(0, end + 1).stream().filter(EndConditionResolver::finite)
+                .min(Comparator.naturalOrder()).orElse(Double.NaN);
+        double max = values.subList(0, end + 1).stream().filter(EndConditionResolver::finite)
+                .max(Comparator.naturalOrder()).orElse(Double.NaN);
+        if (!finite(min) || !finite(max) || max - min <= EPSILON)
+            return Double.NaN;
         double mean = (min + max) / 2;
         List<Double> crossings = new ArrayList<>();
         for (int i = 1; i <= end; i++) {
@@ -338,22 +376,27 @@ public final class EndConditionResolver {
         }
         if (crossings.size() >= 2) {
             List<Double> halfPeriods = new ArrayList<>();
-            for (int i = 1; i < crossings.size(); i++) halfPeriods.add(crossings.get(i) - crossings.get(i - 1));
+            for (int i = 1; i < crossings.size(); i++)
+                halfPeriods.add(crossings.get(i) - crossings.get(i - 1));
             return 2 * median(halfPeriods);
         }
         return Double.NaN;
     }
 
     private static Double crossing(List<Double> values, List<Double> times, double limit,
-                                   java.util.function.DoublePredicate predicate, double target, String operator) {
-        if (values == null || times == null || values.isEmpty() || values.size() != times.size()) return null;
-        if (times.get(0) <= limit + EPSILON && predicate.test(values.get(0))) return times.get(0);
+            java.util.function.DoublePredicate predicate, double target, String operator) {
+        if (values == null || times == null || values.isEmpty() || values.size() != times.size())
+            return null;
+        if (times.get(0) <= limit + EPSILON && predicate.test(values.get(0)))
+            return times.get(0);
         for (int i = 1; i < values.size() && i < times.size(); i++) {
-            if (times.get(i) > limit + EPSILON) break;
+            if (times.get(i) > limit + EPSILON)
+                break;
             if (predicate.test(values.get(i))) {
                 double previous = values.get(i - 1);
                 double current = values.get(i);
-                if (crosses(previous, current, target, operator)) return interpolate(previous, current, times.get(i - 1), times.get(i), target);
+                if (crosses(previous, current, target, operator))
+                    return interpolate(previous, current, times.get(i - 1), times.get(i), target);
                 return times.get(i);
             }
             if (crosses(values.get(i - 1), values.get(i), target, operator)) {
@@ -363,15 +406,19 @@ public final class EndConditionResolver {
         return null;
     }
 
-    private static Double differenceCrossing(List<Double> first, List<Double> second, List<Double> times, double limit) {
-        if (first == null || second == null || first.size() != second.size()) return null;
+    private static Double differenceCrossing(List<Double> first, List<Double> second, List<Double> times,
+            double limit) {
+        if (first == null || second == null || first.size() != second.size())
+            return null;
         List<Double> difference = new ArrayList<>();
-        for (int i = 0; i < first.size(); i++) difference.add(first.get(i) - second.get(i));
+        for (int i = 0; i < first.size(); i++)
+            difference.add(first.get(i) - second.get(i));
         return crossing(difference, times, limit, value -> Math.abs(value) <= EPSILON, 0, "==");
     }
 
     private static Series findSeries(SolverOutput output, String requested) {
-        if (output == null || requested == null || requested.isBlank()) return null;
+        if (output == null || requested == null || requested.isBlank())
+            return null;
         String key = requested.trim();
         String normalized = key.toLowerCase(Locale.ROOT);
         String group = null;
@@ -398,13 +445,17 @@ public final class EndConditionResolver {
             return named(source, name);
         }
         Series value = named(output.values(), name);
-        if (value != null) return value;
+        if (value != null)
+            return value;
         value = named(output.positions(), name);
-        if (value != null) return value;
+        if (value != null)
+            return value;
         value = named(output.velocities(), name);
-        if (value != null) return value;
+        if (value != null)
+            return value;
         value = named(output.accelerations(), name);
-        if (value != null) return value;
+        if (value != null)
+            return value;
 
         // AI may use a semantic quantity name such as "oscillation" while
         // the solver exposes one unambiguous observable as values.x. Resolve
@@ -418,7 +469,8 @@ public final class EndConditionResolver {
     }
 
     private static void addSeries(List<Series> target, Map<String, List<Double>> source) {
-        if (source == null) return;
+        if (source == null)
+            return;
         source.forEach((key, values) -> {
             if (target.stream().noneMatch(existing -> existing.name().equalsIgnoreCase(key))) {
                 target.add(new Series(key, values));
@@ -427,15 +479,17 @@ public final class EndConditionResolver {
     }
 
     private static Series named(Map<String, List<Double>> values, String requested) {
-        if (values == null) return null;
+        if (values == null)
+            return null;
         return values.entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase(requested))
                 .map(entry -> new Series(entry.getKey(), entry.getValue())).findFirst().orElse(null);
     }
 
     private static Series findNamedSeries(Map<String, List<Double>> values, String requested) {
-        if (values == null) return null;
+        if (values == null)
+            return null;
         return values.entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase(requested)
-                        || compact(entry.getKey()).equals(compact(requested)))
+                || compact(entry.getKey()).equals(compact(requested)))
                 .map(entry -> new Series(entry.getKey(), entry.getValue())).findFirst().orElse(null);
     }
 
@@ -451,7 +505,8 @@ public final class EndConditionResolver {
     }
 
     private static boolean crosses(double before, double current, double target, String operator) {
-        if (!finite(before) || !finite(current)) return false;
+        if (!finite(before) || !finite(current))
+            return false;
         return switch (operator) {
             case ">=", ">" -> before < target && current >= target;
             case "<=", "<" -> before > target && current <= target;
@@ -460,8 +515,10 @@ public final class EndConditionResolver {
         };
     }
 
-    private static double interpolate(double before, double current, double beforeTime, double currentTime, double target) {
-        if (Math.abs(current - before) <= EPSILON) return currentTime;
+    private static double interpolate(double before, double current, double beforeTime, double currentTime,
+            double target) {
+        if (Math.abs(current - before) <= EPSILON)
+            return currentTime;
         double ratio = (target - before) / (current - before);
         return beforeTime + Math.max(0, Math.min(1, ratio)) * (currentTime - beforeTime);
     }
@@ -469,44 +526,70 @@ public final class EndConditionResolver {
     private static double interpolate(List<Double> values, List<Double> times, double target) {
         int last = times.size() - 1;
         for (int i = 1; i <= last; i++) {
-            if (target <= times.get(i)) return interpolateAtTime(values.get(i - 1), values.get(i),
-                    times.get(i - 1), times.get(i), target);
+            if (target <= times.get(i))
+                return interpolateAtTime(values.get(i - 1), values.get(i),
+                        times.get(i - 1), times.get(i), target);
         }
         return values.get(last);
     }
 
     private static double interpolateAtTime(double before, double current, double beforeTime,
-                                             double currentTime, double targetTime) {
-        if (Math.abs(currentTime - beforeTime) <= EPSILON) return current;
+            double currentTime, double targetTime) {
+        if (Math.abs(currentTime - beforeTime) <= EPSILON)
+            return current;
         double ratio = (targetTime - beforeTime) / (currentTime - beforeTime);
         return before + Math.max(0, Math.min(1, ratio)) * (current - before);
     }
 
     private static void validateMaxTime(JsonNode condition, List<String> errors) {
         if (condition.has("maxTime") && !condition.get("maxTime").isNull()
-                && (!finitePositive(condition.get("maxTime")) || condition.get("maxTime").asDouble() > MAX_DYNAMIC_SECONDS)) {
+                && (!finitePositive(condition.get("maxTime"))
+                        || condition.get("maxTime").asDouble() > MAX_DYNAMIC_SECONDS)) {
             errors.add("endCondition.maxTime must be finite, positive and <= " + MAX_DYNAMIC_SECONDS);
         }
     }
 
     private static boolean allText(JsonNode values) {
-        for (JsonNode value : values) if (!value.isTextual() || value.asText().isBlank()) return false;
+        for (JsonNode value : values)
+            if (!value.isTextual() || value.asText().isBlank())
+                return false;
         return true;
     }
 
-    private static boolean finite(JsonNode node) { return node != null && node.isNumber() && finite(node.asDouble()); }
-    private static boolean finitePositive(JsonNode node) { return finite(node) && node.asDouble() > 0; }
-    private static boolean finite(double value) { return Double.isFinite(value); }
-    private static boolean finitePositive(double value) { return finite(value) && value > 0; }
-    private static double number(JsonNode node, double fallback) { return finite(node) ? node.asDouble() : Math.max(0.01, fallback); }
-    private static String compact(String value) { return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", ""); }
+    private static boolean finite(JsonNode node) {
+        return node != null && node.isNumber() && finite(node.asDouble());
+    }
+
+    private static boolean finitePositive(JsonNode node) {
+        return finite(node) && node.asDouble() > 0;
+    }
+
+    private static boolean finite(double value) {
+        return Double.isFinite(value);
+    }
+
+    private static boolean finitePositive(double value) {
+        return finite(value) && value > 0;
+    }
+
+    private static double number(JsonNode node, double fallback) {
+        return finite(node) ? node.asDouble() : Math.max(0.01, fallback);
+    }
+
+    private static String compact(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+    }
+
     private static double median(List<Double> values) {
-        if (values.isEmpty()) return Double.NaN;
+        if (values.isEmpty())
+            return Double.NaN;
         List<Double> sorted = values.stream().filter(EndConditionResolver::finite).sorted().toList();
-        if (sorted.isEmpty()) return Double.NaN;
+        if (sorted.isEmpty())
+            return Double.NaN;
         int middle = sorted.size() / 2;
         return sorted.size() % 2 == 0 ? (sorted.get(middle - 1) + sorted.get(middle)) / 2 : sorted.get(middle);
     }
 
-    private record Series(String name, List<Double> values) { }
+    private record Series(String name, List<Double> values) {
+    }
 }

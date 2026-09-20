@@ -51,6 +51,7 @@ import com.example.backend.repository.problem.ProblemSubmissionRepository;
 import com.example.backend.repository.problem.SourceAssetRepository;
 import com.example.backend.repository.problem.SpecificationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -230,14 +231,17 @@ public class ProblemService {
         if (specification == null) {
             throw new ApiException(HttpStatus.CONFLICT, "Extract a specification before editing it");
         }
-        validateQuantities(request.quantities());
+        var schema = schemaDefinitions.requireApproved(specification.getSchemaId(), specification.getSchemaVersion());
+        var canonicalQuantities = schemaDefinitions.canonicalizeQuantities(
+                request.quantities(), schema.getDefinition());
+        validateQuantities(canonicalQuantities);
         if (request.endCondition() != null) {
             var errors = EndConditionResolver.validateNode(request.endCondition(), 10);
             if (!errors.isEmpty()) throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Invalid endCondition: " + String.join("; ", errors));
         }
         specification.setObjects(request.objects().deepCopy());
-        specification.setQuantities(request.quantities().deepCopy());
+        specification.setQuantities(canonicalQuantities.deepCopy());
         specification.setRelations(request.relations().deepCopy());
         if (request.endCondition() != null) specification.setEndCondition(request.endCondition().deepCopy());
         specification.setValidationStatus("NOT_VALIDATED");
@@ -271,12 +275,15 @@ public class ProblemService {
         specification.setSubmission(problem);
         specification.setExtractionRun(run);
         specification.setContractVersion(SpecificationDocument.CURRENT_SCHEMA_VERSION);
-        specification.setSchemaVersion(schemaDefinitions.requireApproved(document.schemaId()).getVersion());
+        var schema = schemaDefinitions.requireApproved(document.schemaId());
+        specification.setSchemaVersion(schema.getVersion());
         specification.setTopic(document.topic());
         specification.setSchemaId(document.schemaId());
         specification.setConfidence(document.confidence());
         specification.setObjects(objectMapper.valueToTree(document.objects()));
-        specification.setQuantities(objectMapper.valueToTree(document.quantities()));
+        JsonNode extractedQuantities = objectMapper.valueToTree(document.quantities());
+        specification.setQuantities(schemaDefinitions.canonicalizeQuantities(
+                extractedQuantities, schema.getDefinition()));
         specification.setRelations(objectMapper.valueToTree(document.relations()));
         specification.setEndCondition(document.endCondition());
         specification.setAmbiguity(objectMapper.valueToTree(document.ambiguities()));

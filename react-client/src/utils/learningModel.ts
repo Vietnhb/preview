@@ -20,7 +20,7 @@ export function clampControlValue(control: LearningControl, value: number): numb
 export function lessonKind(schemaId: string): LessonKind {
   const schema = schemaId.toLowerCase();
   if (/circuit|rc_|rl_/.test(schema)) return "circuit";
-  if (/projectile|2d/.test(schema)) return "projectile";
+  if (schema.includes("projectile")) return "projectile";
   if (/spring|oscillation/.test(schema)) return "spring";
   if (schema.includes("collision")) return "collision";
   if (/dynamic|force/.test(schema)) return "forces";

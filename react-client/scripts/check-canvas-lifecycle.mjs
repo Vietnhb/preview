@@ -41,7 +41,7 @@ const { default: Canvas } = await import(`data:text/javascript;base64,${Buffer.f
 Canvas({ simulation: {
   simulationId: 'test', time: [0, 1], positions: { x: [0, 1] },
   velocities: {}, accelerations: {}, values: {}, parameters: {},
-  visualization: { scene: 'motion_1d' },
+  visualization: { scene: 'motion' },
 }, index: 0, playing: false, overlays: { grid: true, trajectory: true, velocity: false, acceleration: false } });
 let cleanup = effects.map(setup => setup());
 cleanup.forEach(fn => fn?.());

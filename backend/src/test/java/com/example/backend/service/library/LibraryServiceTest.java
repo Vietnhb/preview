@@ -28,20 +28,20 @@ class LibraryServiceTest {
         CurrentUserService currentUser = mock(CurrentUserService.class);
         LibraryService service = new LibraryService(items, mock(LibraryFolderRepository.class),
                 mock(SimulationRepository.class), mock(LessonRepository.class), currentUser);
-        School ownSchool = school("Trường A");
-        School otherSchool = school("Trường B");
-        User student = user(1, "Học sinh", ownSchool);
-        LibraryItem publicItem = item("Mô phỏng công khai", Visibility.PUBLIC, otherSchool);
-        LibraryItem sameSchoolItem = item("Mô phỏng của trường", Visibility.SHARED, ownSchool);
-        LibraryItem hiddenItem = item("Mô phỏng trường khác", Visibility.SHARED, otherSchool);
+        School ownSchool = school("TrÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng A");
+        School otherSchool = school("TrÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng B");
+        User student = user(1, "HÃƒÂ¡Ã‚Â»Ã‚Âc sinh", ownSchool);
+        LibraryItem publicItem = item("MÃƒÆ’Ã‚Â´ phÃƒÂ¡Ã‚Â»Ã‚Âng cÃƒÆ’Ã‚Â´ng khai", Visibility.PUBLIC, otherSchool);
+        LibraryItem sameSchoolItem = item("MÃƒÆ’Ã‚Â´ phÃƒÂ¡Ã‚Â»Ã‚Âng cÃƒÂ¡Ã‚Â»Ã‚Â§a trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng", Visibility.SHARED, ownSchool);
+        LibraryItem hiddenItem = item("MÃƒÆ’Ã‚Â´ phÃƒÂ¡Ã‚Â»Ã‚Âng trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng khÃƒÆ’Ã‚Â¡c", Visibility.SHARED, otherSchool);
         when(currentUser.requireCurrentUser()).thenReturn(student);
         when(items.findAll()).thenReturn(List.of(publicItem, sameSchoolItem, hiddenItem));
 
         var result = service.search(null);
         assertEquals(2, result.size());
-        assertTrue(result.stream().anyMatch(row -> row.title().equals("Mô phỏng công khai")
-                && row.sharedByName().equals("Giáo viên") && row.schoolName().equals("Trường B")));
-        assertTrue(result.stream().anyMatch(row -> row.title().equals("Mô phỏng của trường")));
+        assertTrue(result.stream().anyMatch(row -> row.title().equals("MÃƒÆ’Ã‚Â´ phÃƒÂ¡Ã‚Â»Ã‚Âng cÃƒÆ’Ã‚Â´ng khai")
+                && row.sharedByName().equals("GiÃƒÆ’Ã‚Â¡o viÃƒÆ’Ã‚Âªn") && row.schoolName().equals("TrÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng B")));
+        assertTrue(result.stream().anyMatch(row -> row.title().equals("MÃƒÆ’Ã‚Â´ phÃƒÂ¡Ã‚Â»Ã‚Âng cÃƒÂ¡Ã‚Â»Ã‚Â§a trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng")));
     }
 
     @Test
@@ -49,17 +49,17 @@ class LibraryServiceTest {
         LibraryItemRepository items = mock(LibraryItemRepository.class);
         LibraryService service = new LibraryService(items, mock(LibraryFolderRepository.class),
                 mock(SimulationRepository.class), mock(LessonRepository.class), mock(CurrentUserService.class));
-        School school = school("Trường A");
-        LibraryItem approved = item("Công khai", Visibility.PUBLIC, school);
-        LibraryItem pending = item("Đang duyệt", Visibility.PUBLIC, school);
+        School school = school("TrÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng A");
+        LibraryItem approved = item("CÃƒÆ’Ã‚Â´ng khai", Visibility.PUBLIC, school);
+        LibraryItem pending = item("Ãƒâ€žÃ‚Âang duyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡t", Visibility.PUBLIC, school);
         pending.setModerationStatus(LibraryModerationStatus.PENDING);
-        LibraryItem internal = item("Nội bộ", Visibility.SHARED, school);
+        LibraryItem internal = item("NÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢i bÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢", Visibility.SHARED, school);
         when(items.findAll()).thenReturn(List.of(approved, pending, internal));
 
         var result = service.community(null);
 
         assertEquals(1, result.size());
-        assertEquals("Công khai", result.get(0).title());
+        assertEquals("CÃƒÆ’Ã‚Â´ng khai", result.get(0).title());
     }
 
     private static School school(String name) {
@@ -72,11 +72,11 @@ class LibraryServiceTest {
 
     private static LibraryItem item(String title, Visibility visibility, School school) {
         Specification specification = new Specification(); specification.setId(UUID.randomUUID());
-        specification.setTopic("Động học"); specification.setValidationStatus("PASSED");
+        specification.setTopic("Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng hÃƒÂ¡Ã‚Â»Ã‚Âc"); specification.setValidationStatus("PASSED");
         LibraryItem item = new LibraryItem(); item.setId(UUID.randomUUID()); item.setTitle(title); item.setVisibility(visibility);
         item.setSharedInstitutionId(visibility == Visibility.SHARED ? school.getId().toString() : null);
         item.setModerationStatus(LibraryModerationStatus.APPROVED); item.setActive(true);
-        item.setOwner(user(title.hashCode(), "Giáo viên", school)); item.setSpecification(specification);
+        item.setOwner(user(title.hashCode(), "GiÃƒÆ’Ã‚Â¡o viÃƒÆ’Ã‚Âªn", school)); item.setSpecification(specification);
         return item;
     }
 }

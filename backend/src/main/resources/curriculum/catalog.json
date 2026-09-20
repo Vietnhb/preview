@@ -14,18 +14,110 @@
       "name": "DYNAMICS",
       "slug": "dynamics",
       "modules": [
-        {"name":"Forces and Newton's Laws","slug":"forces-newton-laws","levels":[{"name":"Grade 10","lessons":[{"name":"Force and Acceleration","slug":"force-and-acceleration"},{"name":"Newton's Laws","slug":"newton-laws"},{"name":"Friction","slug":"friction"}]}]},
-        {"name":"Oscillations","slug":"oscillations","levels":[{"name":"Grade 11","lessons":[{"name":"Harmonic Motion","slug":"harmonic-motion"},{"name":"Spring Oscillation","slug":"spring-oscillation"}]}]},
-        {"name":"Momentum and Collisions","slug":"momentum-collisions","levels":[{"name":"Grade 12","lessons":[{"name":"Conservation of Momentum","slug":"conservation-of-momentum"},{"name":"Elastic Collision","slug":"elastic-collision"}]}]}
+        {"name":"Forces and Newton's Laws","slug":"forces-newton-laws","levels":[{"name":"Grade 10","lessons":[{"name":"Force and Acceleration","slug":"force-and-acceleration"},{"name":"Newton's Laws","slug":"newton-laws"},{"name":"Friction","slug":"friction"},{"name":"Linear Air Resistance","slug":"linear-drag-motion"},{"name":"Moment and Rotational Equilibrium","slug":"moment-equilibrium"}]}]},
+        {"name":"Oscillations","slug":"oscillations","levels":[{"name":"Grade 11","lessons":[{"name":"Harmonic Motion","slug":"harmonic-motion"},{"name":"Spring Oscillation","slug":"spring-oscillation"},{"name":"Damped and Forced Oscillation","slug":"damped-forced-oscillation"}]}]},
+        {"name":"Momentum and Collisions","slug":"momentum-collisions","levels":[{"name":"Grade 10","lessons":[{"name":"Conservation of Momentum","slug":"conservation-of-momentum"},{"name":"Elastic Collision","slug":"elastic-collision"}]}]},
+        {"name":"Energy and Circular Motion","slug":"energy-circular-motion","levels":[{"name":"Grade 10","lessons":[{"name":"Work, Energy and Power","slug":"work-energy-power"},{"name":"Uniform Circular Motion","slug":"circular-motion"},{"name":"Hooke Law and Elastic Deformation","slug":"hooke-law"},{"name":"Hydrostatic Pressure and Buoyancy","slug":"hydrostatics"}]}]},
+        {"name":"Gravitation and Orbits","slug":"gravitation-orbits","levels":[{"name":"Grade 11","lessons":[{"name":"Gravity Field and Circular Orbits","slug":"gravity-orbit"}]}]}
       ]
     },
     {
       "name": "CIRCUITS",
       "slug": "circuits",
       "modules": [
-        {"name":"Direct Current Circuits","slug":"direct-current-circuits","levels":[{"name":"Grade 11","lessons":[{"name":"Current, Voltage and Resistance","slug":"current-voltage-resistance"},{"name":"Ohm's Law","slug":"ohms-law"},{"name":"Series and Parallel Circuits","slug":"series-parallel-circuits"}]}]},
+        {"name":"Direct Current Circuits","slug":"direct-current-circuits","levels":[{"name":"Grade 11","lessons":[{"name":"Current, Voltage and Resistance","slug":"current-voltage-resistance"},{"name":"Ohm's Law","slug":"ohms-law"},{"name":"Series and Parallel Circuits","slug":"series-parallel-circuits"},{"name":"EMF and Internal Resistance","slug":"source-internal-resistance"}]}]},
         {"name":"Capacitors and RC Circuits","slug":"capacitors-rc","levels":[{"name":"Grade 11","lessons":[{"name":"Capacitance","slug":"capacitance"},{"name":"RC Charging and Discharging","slug":"rc-charging-discharging"}]}]},
-        {"name":"Alternating Current","slug":"alternating-current","levels":[{"name":"Grade 12","lessons":[{"name":"AC Voltage and Current","slug":"ac-voltage-current"}]}]}
+        {"name":"Alternating Current","slug":"alternating-current","levels":[{"name":"Grade 12","lessons":[{"name":"AC Voltage and Current","slug":"ac-voltage-current"}]}]},
+        {"name":"Semiconductor Electronics","slug":"semiconductor-electronics","levels":[{"name":"Grade 12","lessons":[{"name":"Diode Characteristic","slug":"diode-characteristic"}]}]},
+        {"name":"Sensors and Op-Amps","slug":"sensors-op-amps","levels":[{"name":"Grade 11","lessons":[{"name":"Sensor Divider and Op-Amp Output","slug":"sensor-op-amp"},{"name":"Thermistor Response","slug":"thermistor-response"}]}]}
+      ]
+    },
+    {
+      "name": "WAVES",
+      "slug": "waves",
+      "modules": [
+        {
+          "name": "Mechanical Waves",
+          "slug": "mechanical-waves",
+          "levels": [
+            {
+              "name": "Grade 11",
+              "lessons": [
+                {
+                  "name": "Transverse Wave on a String (pilot)",
+                  "slug": "transverse-string-wave-pilot"
+                },
+                {
+                  "name": "Travelling Pulse on a String",
+                  "slug": "travelling-pulse"
+                },
+                {
+                  "name": "Standing-Wave Interference",
+                  "slug": "standing-wave"
+                },
+                {
+                  "name": "Reflection at a Fixed or Free Boundary",
+                  "slug": "reflection-boundary"
+                },
+                {
+                  "name": "Wave Superposition",
+                  "slug": "superposition"
+                },
+                {
+                  "name": "Sound as an Acoustic Pressure Wave",
+                  "slug": "sound"
+                }
+              ]
+            }
+          ]
+        },
+        {"name":"Radio Communication","slug":"radio-communication","levels":[{"name":"Grade 11","lessons":[{"name":"Radio Communication","slug":"radio-communication"},{"name":"AM FM Signal Chain and Attenuation","slug":"radio-signal-chain"}]}]},
+        {"name":"Medical Waves","slug":"medical-waves","levels":[{"name":"Grade 12","lessons":[{"name":"Pulse-Echo Ultrasound Imaging","slug":"ultrasound-imaging"}]}]
+        }
+      ]
+    },
+    {
+      "name": "THERMAL",
+      "slug": "thermal",
+      "modules": [
+        {"name":"Temperature and Heat","slug":"temperature-heat","levels":[{"name":"Grade 12","lessons":[{"name":"Temperature Scales","slug":"temperature-scales"},{"name":"Thermal Expansion","slug":"thermal-expansion"},{"name":"Heat and Calorimetry","slug":"heat-calorimetry"}]}]},
+        {"name":"Phase Changes","slug":"phase-changes","levels":[{"name":"Grade 12","lessons":[{"name":"Heating Curve and Phase Changes","slug":"phase-change"}]}]},
+        {"name":"Gases and Thermodynamics","slug":"gases-thermodynamics","levels":[{"name":"Grade 12","lessons":[{"name":"Ideal Gas Law","slug":"ideal-gas-law"},{"name":"Gas Processes","slug":"gas-processes"},{"name":"First Law of Thermodynamics","slug":"first-law-thermodynamics"}]}]}
+      ]
+    },
+    {
+      "name": "OPTICS",
+      "slug": "optics",
+      "modules": [
+        {"name":"Geometric Optics","slug":"geometric-optics","levels":[{"name":"Grade 11","lessons":[{"name":"Reflection and Refraction","slug":"reflection-refraction"},{"name":"Thin Lenses","slug":"thin-lenses"},{"name":"Optical Instruments","slug":"optical-instruments"}]}]},
+        {"name":"Wave Optics","slug":"wave-optics","levels":[{"name":"Grade 12","lessons":[{"name":"Interference of Light","slug":"light-interference"},{"name":"Diffraction and Polarization","slug":"diffraction-polarization"}]}]}
+      ]
+    },
+    {
+      "name": "ELECTROMAGNETISM",
+      "slug": "electromagnetism",
+      "modules": [
+        {"name":"Electric Fields and Potential","slug":"electric-fields","levels":[{"name":"Grade 11","lessons":[{"name":"Electric Field","slug":"electric-field"},{"name":"Uniform Electric Field","slug":"uniform-electric-field"},{"name":"Electric Potential and Energy","slug":"electric-potential"}]}]},
+        {"name":"Magnetism and Induction","slug":"magnetism-induction","levels":[{"name":"Grade 12","lessons":[{"name":"Magnetic Force","slug":"magnetic-force"},{"name":"Electromagnetic Induction","slug":"electromagnetic-induction"},{"name":"Transformers","slug":"transformers"}]}]},
+        {"name":"Alternating Current","slug":"alternating-current-advanced","levels":[{"name":"Grade 12","lessons":[{"name":"AC RLC Circuits","slug":"ac-rlc"},{"name":"Power Factor","slug":"power-factor"}]}]}
+      ]
+    },
+    {
+      "name": "MODERN_PHYSICS",
+      "slug": "modern-physics",
+      "modules": [
+        {"name":"Quantum Phenomena","slug":"quantum-phenomena","levels":[{"name":"Grade 12","lessons":[{"name":"Photoelectric Effect","slug":"photoelectric-effect"},{"name":"Atomic Spectra","slug":"atomic-spectra"},{"name":"De Broglie Matter Waves and Electron Diffraction","slug":"de-broglie-diffraction"},{"name":"Energy Band Transition","slug":"energy-band-transition"}]}]},
+        {"name":"Medical Imaging","slug":"medical-imaging","levels":[{"name":"Grade 12","lessons":[{"name":"X-ray Attenuation and Imaging","slug":"xray-imaging"},{"name":"CT Projection and Reconstruction","slug":"ct-reconstruction"},{"name":"MRI Relaxation","slug":"mri-relaxation"}]}]},
+        {"name":"Earth and Sky","slug":"earth-and-sky","levels":[{"name":"Grade 10","lessons":[{"name":"Eclipse Geometry","slug":"eclipse-geometry"}]}]},
+        {"name":"Nuclear Physics","slug":"nuclear-physics","levels":[{"name":"Grade 12","lessons":[{"name":"Radioactive Decay","slug":"radioactive-decay"},{"name":"Nuclear Reactions and Energy","slug":"nuclear-energy"},{"name":"Reaction Mass Balance","slug":"nuclear-reaction-energy"},{"name":"Radiation Safety","slug":"radiation-safety"}]}]}
+      ]
+    },
+    {
+      "name": "PRACTICAL_AND_DATA",
+      "slug": "practical-data",
+      "modules": [
+        {"name":"Measurement and Uncertainty","slug":"measurement-uncertainty","levels":[{"name":"Grade 10","lessons":[{"name":"SI Units and Significant Figures","slug":"si-units"},{"name":"Uncertainty and Error","slug":"uncertainty-error"},{"name":"Graphing Experimental Data","slug":"experimental-graphs"}]}]},
+        {"name":"Investigation Activities","slug":"investigations","levels":[{"name":"Grade 10","lessons":[{"name":"Motion Measurement Lab","slug":"motion-lab"},{"name":"Energy and Environment Project","slug":"energy-environment"}]},{"name":"Grade 11","lessons":[{"name":"Circuit Measurement Lab","slug":"circuit-lab"}]},{"name":"Grade 12","lessons":[{"name":"Radiation and Counting Lab","slug":"radiation-lab"}]}]}
       ]
     }
   ]

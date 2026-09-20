@@ -12,8 +12,13 @@ async function visit(directory) {
     const file = path.join(directory, entry.name);
     if (entry.isDirectory()) { await visit(file); continue; }
     if (!/\.(ts|tsx)$/.test(file)) continue;
-    const source = ts.createSourceFile(file, await readFile(file, "utf8"), ts.ScriptTarget.Latest, true);
+    const content = await readFile(file, "utf8");
+    const source = ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true);
     const relative = path.relative(root, file).replaceAll("\\", "/");
+    if (/^(simulation-scene|simulation-renderer)\//.test(relative)
+      && /(schemaId\s*===|schemaId\s*!==|visualization\??\.scene\s*===|environment\s*===)/.test(content)) {
+      errors.push(relative + ": rendering must dispatch by declared capabilities, not schema/lesson/environment identity");
+    }
     const check = (specifier) => {
       if (!specifier.startsWith(".")) return;
       const target = path.relative(root, path.resolve(path.dirname(file), specifier)).replaceAll("\\", "/");

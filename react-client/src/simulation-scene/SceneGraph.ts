@@ -55,18 +55,16 @@ function specEntityNode(entity: Record<string, unknown>, index: number): Visuali
   };
 }
 
-function legacyGraph(simulation: Simulation): SceneNode[] {
+/** Build a usable scene from schema presentation/series without inspecting a lesson or schema id. */
+function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
   const presentation = presentationFor(simulation);
   const environment = presentation?.environment ?? "track.engineering";
-  const layout = environment === "range.projectile"
-    ? "projectileRange"
-    : environment === "track.collision"
-      ? "collisionTrack"
-      : environment === "bench.spring"
-        ? "springBench"
-        : environment === "board.circuit"
-          ? "circuitBoard"
-          : "horizontalTrack";
+  const actors = presentation?.actors ?? [];
+  const hasSecondDimension = actors.some(actor => Boolean(actor.y));
+  const lanes = new Set(actors.map(actor => actor.lane ?? 0));
+  // The canvas is always the default coordinate plane. A single scalar series
+  // is still plotted on that plane; it must not switch renderer modes.
+  const layout = hasSecondDimension || lanes.size <= 1 ? "dataPlane" : "lanes";
   const nodes: SceneNode[] = [
     normalizeNode({ id: "background", type: "background", layer: "static" }, "scene", 0),
     normalizeNode({ id: "grid", type: "grid", layer: "static" }, "scene", 1),
@@ -78,7 +76,6 @@ function legacyGraph(simulation: Simulation): SceneNode[] {
     }, "scene", 2),
   ];
 
-  const actors = presentation?.actors ?? [];
   for (let index = 0; index < actors.length; index++) {
     const actor = actors[index];
     const actorId = actor.id || `body-${index}`;
@@ -105,7 +102,7 @@ function legacyGraph(simulation: Simulation): SceneNode[] {
         type: "trajectory",
         layer: "trajectory",
         transform: { x: binding(actor.x), y: binding(actor.y) },
-        properties: { actorId, lane: actor.lane ?? 0, layout, previewAll: layout === "projectileRange" },
+        properties: { actorId, lane: actor.lane ?? 0, layout, previewAll: hasSecondDimension },
       }, "scene", 100 + index));
     }
     if (actor.vx || actor.vy) {
@@ -140,47 +137,26 @@ function legacyGraph(simulation: Simulation): SceneNode[] {
   }
 
   for (const prop of presentation?.props ?? []) {
-    if (prop === "spring.coil") {
-      nodes.push(normalizeNode({
-        id: prop,
-        type: "spring",
-        layer: "dynamic",
-        properties: { targetId: actors[0]?.id, anchorX: 92, coils: 16, layout },
-      }, "scene", nodes.length));
-      continue;
-    }
     nodes.push(normalizeNode({
       id: prop,
       type: "prop",
-      layer: "static",
+      layer: "dynamic",
       properties: { asset: prop, anchorId: actors[0]?.id, layout },
     }, "scene", nodes.length));
   }
-
-  if (layout === "circuitBoard") {
+  // Schemas may provide a compact `series` declaration without a hand-authored
+  // scene graph. Keep those production simulations visible in the canvas by
+  // compiling each declared series into a lightweight graph node.
+  const declaredSeries = simulation.visualization?.series ?? [];
+  for (let seriesIndex = 0; seriesIndex < declaredSeries.length; seriesIndex++) {
+    const series = declaredSeries[seriesIndex];
+    const source = typeof series.source === "string" ? series.source : "";
+    if (!source) continue;
     nodes.push(normalizeNode({
-      id: "circuit",
-      type: "circuitComponent",
-      layer: "dynamic",
-      properties: {
-        voltage: "values.voltage",
-        current: "values.current",
-        effects: presentation?.effects ?? [],
-      },
-    }, "scene", nodes.length));
-    nodes.push(normalizeNode({
-      id: "voltage-chart",
+      id: `series-${series.key || nodes.length}`,
       type: "graph",
-      layer: "static",
-      properties: { source: "values.voltage", layout },
-    }, "scene", nodes.length));
-  }
-  if (simulation.values?.force?.length) {
-    nodes.push(normalizeNode({
-      id: "force-readout",
-      type: "text",
       layer: "dynamic",
-      properties: { source: "values.force", format: "F = {value} N", x: 105, y: 36, color: "amber" },
+      properties: { source, label: series.label, unit: series.unit, color: series.color, slot: seriesIndex, total: declaredSeries.length },
     }, "scene", nodes.length));
   }
   nodes.push(normalizeNode({ id: "ruler", type: "ruler", layer: "static", properties: { layout } }, "scene", nodes.length));
@@ -202,7 +178,7 @@ export function compileSceneGraph(simulation: Simulation): SceneGraph {
   const explicitNodes = visualization.presentation?.sceneGraph?.nodes ?? [...entityNodes, ...visualNodes, ...chartNodes];
   const nodes = explicitNodes?.length
     ? explicitNodes.map((node, index) => normalizeNode(node, "scene", index))
-    : legacyGraph(simulation);
+    : schemaDrivenFallbackGraph(simulation);
   const signature = JSON.stringify(nodes);
   return { id: simulation.simulationId, nodes, signature };
 }

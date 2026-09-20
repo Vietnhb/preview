@@ -91,10 +91,12 @@ public class AmbiguityResolutionApplier {
 
     private void applyDocument(Specification specification, SpecificationDocument document) {
         specification.setContractVersion(SpecificationDocument.CURRENT_SCHEMA_VERSION);
-        specification.setSchemaVersion(schemaDefinitions.requireApproved(document.schemaId()).getVersion());
+        var schema = schemaDefinitions.requireApproved(document.schemaId());
+        specification.setSchemaVersion(schema.getVersion());
         specification.setTopic(document.topic());
         specification.setSchemaId(document.schemaId()); specification.setObjects(objectMapper.valueToTree(document.objects()));
-        specification.setQuantities(objectMapper.valueToTree(document.quantities()));
+        specification.setQuantities(schemaDefinitions.canonicalizeQuantities(
+                objectMapper.valueToTree(document.quantities()), schema.getDefinition()));
         specification.setRelations(objectMapper.valueToTree(document.relations())); specification.setConfidence(document.confidence());
         specification.setEndCondition(document.endCondition());
         specification.setAmbiguity(objectMapper.valueToTree(document.ambiguities()));

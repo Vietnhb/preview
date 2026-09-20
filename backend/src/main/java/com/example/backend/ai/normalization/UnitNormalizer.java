@@ -1,7 +1,6 @@
 package com.example.backend.ai.normalization;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +30,10 @@ public class UnitNormalizer {
     public NormalizedQuantity normalize(BigDecimal value, String originalUnit) {
         UnitDefinition definition = units.get(normalizeKey(originalUnit));
         if (definition == null) return new NormalizedQuantity(value, originalUnit, value, originalUnit, false);
-        BigDecimal normalizedValue = value.multiply(definition.factor()).setScale(8, RoundingMode.HALF_UP).stripTrailingZeros();
+        // Do not quantize at the normalization boundary.  High-school modern
+        // physics legitimately uses values such as a mass defect (1e-30 kg)
+        // and a fixed eight-decimal scale would silently turn them into zero.
+        BigDecimal normalizedValue = value.multiply(definition.factor()).stripTrailingZeros();
         return new NormalizedQuantity(value, originalUnit, normalizedValue, definition.canonical(), true);
     }
 

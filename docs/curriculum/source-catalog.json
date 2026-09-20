@@ -1,0 +1,57 @@
+{
+  "sources": {
+    "sgk10_kntt": {
+      "title": "Vật lí 10 - Kết nối tri thức với cuộc sống",
+      "grade": "10",
+      "publisher": "Nhà xuất bản Giáo dục Việt Nam",
+      "url": "https://sqhx-hanoi.mediacdn.vn/91579363132710912/2025/11/9/sgk-vat-ly-lop-10-1762705900568218724925.pdf",
+      "edition": "Publisher-cover PDF supplied by Vietnhb; bibliographic year pending title-page verification",
+      "quality": "publisher-cover"
+    },
+    "sgk11_kntt": {
+      "title": "Vật lí 11 - Kết nối tri thức với cuộc sống",
+      "grade": "11",
+      "publisher": "Nhà xuất bản Giáo dục Việt Nam",
+      "url": "https://sqhx-hanoi.mediacdn.vn/91579363132710912/2025/11/18/3-sgk-vl-11-kntt-17634527300041496836870.pdf",
+      "edition": "Publisher-cover PDF supplied by Vietnhb; sample approval mark 11-2022",
+      "quality": "publisher-cover"
+    },
+    "sgk12_kntt": {
+      "title": "Vật lí 12 - Kết nối tri thức với cuộc sống",
+      "grade": "12",
+      "publisher": "Nhà xuất bản Giáo dục Việt Nam",
+      "url": "https://sieugioi.com/docs/threads/sach-giao-khoa-vat-li-12-file-pdf.1071/",
+      "edition": "2024 publisher metadata corroborated; scan is hosted by a third-party mirror",
+      "quality": "secondary-mirror"
+    },
+    "moet_tt32": {
+      "title": "Chương trình giáo dục phổ thông 2018 - Thông tư 32/2018/TT-BGDĐT",
+      "grade": "10-12",
+      "publisher": "Bộ Giáo dục và Đào tạo",
+      "url": "https://vbpl.vn/TW/Pages/ivbpq-van-ban-goc.aspx?ItemID=146721",
+      "edition": "Official legal curriculum framework",
+      "quality": "official-framework"
+    }
+  },
+  "rules": [
+    {"pattern": "damped.?forced.?oscillation|resonance|harmonic.?motion|spring.?oscillation", "source": "sgk11_kntt", "chapter": "I. Dao dong"},
+    {"pattern": "gravity.?orbit|gravitation|orbital", "source": "sgk11_kntt", "chapter": "Chuyen de 11.1. Vat li voi mot so nganh nghe"},
+    {"pattern": "uniform.?electric.?field|electric.?field|electric.?potential|capacitor|capacitance", "source": "sgk11_kntt", "chapter": "III. Dien truong"},
+    {"pattern": "source.?internal.?resistance|emf|internal.?resistance", "source": "sgk11_kntt", "chapter": "IV. Dong dien va mach dien"},
+    {"pattern": "radio|modulation|sideband|signal.?chain|attenuation.*dB|carson", "source": "sgk11_kntt", "chapter": "Chuyen de 11.2. Truyen thong tin bang song vo tuyen"},
+    {"pattern": "phase.?change|heating.?curve|latent.?heat", "source": "sgk12_kntt", "chapter": "I-II. Vat li nhiet va khi li tuong"},
+    {"pattern": "x.?ray|ct.?reconstruction|mri|medical.?imaging|de.?broglie|energy.?band|nuclear.?reaction|eclipse|energy.?environment|thermistor|sensor.?op.?amp", "source": "moet_tt32", "chapter": "Official curriculum outcome; supplied textbooks do not contain a direct lesson"},
+    {"pattern": "optical|lens|refraction|diffraction|polarization|hydrostatic|ultrasound|diode|photoelectric|atomic.?spectra|radiation.?safety|rc.?charging|rc.?discharging|ac.?rlc|power.?factor", "source": "moet_tt32", "chapter": "Official curriculum outcome; supplied textbooks do not contain a direct lesson"},
+    {"pattern": "distance|displacement|speed|velocity|acceleration|uniform|free.?fall|projectile|position.?time|velocity.?time|acceleration.?time|motion.?lab", "source": "sgk10_kntt", "chapter": "II. Động học"},
+    {"pattern": "force|newton|friction|work.?energy|power|circular|gravity|orbit|hooke|elastic|momentum|collision", "source": "sgk10_kntt", "chapter": "III-VII. Động lực học, năng lượng, động lượng, chuyển động tròn và biến dạng"},
+    {"pattern": "si.?units|measurement|uncertainty|experimental.?graph", "source": "sgk10_kntt", "chapter": "I. Mở đầu và thực hành đo"},
+    {"pattern": "harmonic|oscillation|spring|damped|forced|resonan", "source": "sgk11_kntt", "chapter": "I. Dao động"},
+    {"pattern": "radio|modulation|sideband|signal.?chain|attenuation.*dB|carson", "source": "sgk11_kntt", "chapter": "Chuyên đề 11.2. Truyền thông tin bằng sóng vô tuyến"},
+    {"pattern": "wave|sound|standing|reflection|superposition|interference", "source": "sgk11_kntt", "chapter": "II. Sóng"},
+    {"pattern": "electric.?field|electric.?potential|capacitor|capacitance", "source": "sgk11_kntt", "chapter": "III. Điện trường"},
+    {"pattern": "current|voltage|resistance|ohm|circuit|diode", "source": "sgk11_kntt", "chapter": "IV. Dòng điện và mạch điện"},
+    {"pattern": "temperature|heat|calor|gas|thermodynamic|ideal.?gas|thermal", "source": "sgk12_kntt", "chapter": "I-II. Vật lí nhiệt và khí lí tưởng"},
+    {"pattern": "magnetic|induction|transformer", "source": "sgk12_kntt", "chapter": "III. Từ trường và cảm ứng điện từ"},
+    {"pattern": "nuclear|radioactive|nuclear.?energy", "source": "sgk12_kntt", "chapter": "IV. Vật lí hạt nhân"}
+  ]
+}

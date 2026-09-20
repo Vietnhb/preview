@@ -11,6 +11,7 @@ import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.entity.simulation.SolverVersion;
 import com.example.backend.repository.problem.SchemaVersionRepository;
 import com.example.backend.repository.simulation.SolverVersionRepository;
+import com.example.backend.service.problem.SchemaDefinitionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
     private final SchemaVersionRepository schemaRepository;
     private final SolverVersionRepository solverRepository;
     private final ObjectMapper objectMapper;
+    private final SchemaDefinitionService schemaDefinitions;
 
     @Override
     @Transactional
@@ -35,16 +37,17 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
     private void upsert(JsonNode entry) {
         String id = entry.path("schemaId").asText();
         String version = entry.path("version").asText();
+        var validatedDefinition = entry.path("definition").deepCopy();
+        if (validatedDefinition instanceof com.fasterxml.jackson.databind.node.ObjectNode object)
+            object.put("model", entry.path("model").asText());
+        schemaDefinitions.validateDefinition(validatedDefinition, id);
         if (schemaRepository.findFirstBySchemaIdAndVersion(id, version).isEmpty()) {
             SchemaVersion schema = new SchemaVersion();
             schema.setSchemaId(id);
             schema.setName(entry.path("name").asText());
             schema.setTopic(entry.path("topic").asText());
             schema.setVersion(version);
-            var definition = entry.path("definition").deepCopy();
-            if (definition instanceof com.fasterxml.jackson.databind.node.ObjectNode object)
-                object.put("model", entry.path("model").asText());
-            schema.setDefinition(definition);
+            schema.setDefinition(validatedDefinition);
             schema.setLifecycleStatus(LifecycleStatus.APPROVED);
             schemaRepository.save(schema);
         }

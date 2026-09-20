@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.example.backend.physics.model.ScalarField;
 
 public record SimulationResponse(
         UUID simulationId,
@@ -18,6 +19,7 @@ public record SimulationResponse(
         Map<String, List<Double>> velocities,
         Map<String, List<Double>> accelerations,
         Map<String, List<Double>> values,
+        Map<String, ScalarField> scalarFields,
         Map<String, Double> adjustableParams,
         JsonNode visualization,
         ValidationResponse validation,

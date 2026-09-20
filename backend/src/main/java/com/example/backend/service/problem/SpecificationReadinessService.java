@@ -54,7 +54,7 @@ public class SpecificationReadinessService {
                     && item.getCode().equals(code));
             if (exists) continue;
             AmbiguityCase ambiguity = new AmbiguityCase(); ambiguity.setCode(code); ambiguity.setFieldPath("quantities." + gap.key());
-            ambiguity.setQuestion("Đề bài chưa xác định " + gap.key() + ". Vui lòng cung cấp giá trị và đơn vị " + gap.unit() + ".");
+            ambiguity.setQuestion("Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚Â»Ã‚Â bÃƒÆ’Ã‚Â i chÃƒâ€ Ã‚Â°a xÃƒÆ’Ã‚Â¡c Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹nh " + gap.key() + ". Vui lÃƒÆ’Ã‚Â²ng cung cÃƒÂ¡Ã‚ÂºÃ‚Â¥p giÃƒÆ’Ã‚Â¡ trÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ vÃƒÆ’Ã‚Â  Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â¡n vÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ " + gap.unit() + ".");
             ambiguity.setOptions(objectMapper.createArrayNode()); ambiguity.setStatus(AmbiguityStatus.OPEN);
             specification.addAmbiguityCase(ambiguity);
         }
@@ -151,11 +151,15 @@ public class SpecificationReadinessService {
         putText(node, "schemaId", specification.getSchemaId());
         putText(node, "schemaVersion", specification.getSchemaVersion());
         putText(node, "contractVersion", specification.getContractVersion());
-        if (StringUtils.hasText(specification.getSchemaId())) putText(node, "model",
-                schemas.requireApproved(specification.getSchemaId(), specification.getSchemaVersion()).getDefinition().path("model").asText());
+        JsonNode definition = null;
+        if (StringUtils.hasText(specification.getSchemaId())) {
+            definition = schemas.requireApproved(specification.getSchemaId(), specification.getSchemaVersion()).getDefinition();
+            putText(node, "model", definition.path("model").asText());
+        }
         putText(node, "topic", specification.getTopic());
         node.set("objects", specification.getObjects());
-        node.set("quantities", specification.getQuantities());
+        node.set("quantities", definition == null ? specification.getQuantities()
+                : schemas.canonicalizeQuantities(specification.getQuantities(), definition));
         node.set("relations", specification.getRelations());
         if (specification.getEndCondition() != null) node.set("endCondition", specification.getEndCondition());
         node.set("ambiguities", specification.getAmbiguity());

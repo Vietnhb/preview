@@ -154,8 +154,12 @@ public class OpenRouterExtractionProvider implements ExtractionProvider {
             if (!normalized.knownUnit()) {
                 throw new IllegalStateException("OpenRouter returned an unsupported unit: " + quantity.originalUnit());
             }
+            String canonicalName = schemaDefinitions.canonicalQuantityKey(schema.getDefinition(), quantity.name());
+            if (!StringUtils.hasText(canonicalName)) {
+                throw new IllegalStateException("OpenRouter returned a quantity without a canonical schema key.");
+            }
             quantities.add(new PhysicalQuantity(
-                    quantity.name(), quantity.symbol(), quantity.value(), quantity.originalUnit(),
+                    canonicalName, quantity.symbol(), quantity.value(), quantity.originalUnit(),
                     normalized.normalizedValue(), normalized.normalizedUnit(), clamp(quantity.confidence()),
                     quantity.sourceText()));
         }

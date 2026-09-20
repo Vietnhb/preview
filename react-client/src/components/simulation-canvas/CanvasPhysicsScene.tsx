@@ -55,7 +55,7 @@ export default function CanvasPhysicsScene(props: CanvasPhysicsSceneProps) {
   const presentation = useMemo(() => presentationFor(props.simulation), [props.simulation]);
   const graph = useMemo(() => compileSimulationScene(props.simulation), [props.simulation]);
   const palette = useMemo(() => paletteFor(presentation.theme, darkMode), [darkMode, presentation.theme]);
-  const validation = useMemo(() => validateSceneGraph(graph), [graph]);
+  const validation = useMemo(() => validateSceneGraph(graph, data), [data, graph]);
   const supported = validation.valid && hasRenderableNodes(graph);
   const renderStateRef = useRef<RenderState>({
     simulation: props.simulation, data, graph, overlays: props.overlays, palette, supported,

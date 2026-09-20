@@ -101,7 +101,7 @@ public class SchoolClassService {
         String name = clean(request.name());
         String year = clean(request.schoolYear());
         if (classes.existsBySchoolIdAndNameIgnoreCaseAndSchoolYear(schoolId, name, year))
-            throw new ApiException(HttpStatus.CONFLICT, "Lớp đã tồn tại trong năm học này.");
+            throw new ApiException(HttpStatus.CONFLICT, "LÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ tÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i trong nÃƒâ€žÃ†â€™m hÃƒÂ¡Ã‚Â»Ã‚Âc nÃƒÆ’Ã‚Â y.");
         School school = school(schoolId);
         SchoolClass schoolClass = new SchoolClass();
         schoolClass.setSchool(school); schoolClass.setName(name); schoolClass.setGradeLevel(request.gradeLevel());
@@ -116,9 +116,9 @@ public class SchoolClassService {
         String name = clean(request.name()); String year = clean(request.schoolYear());
         if ((!schoolClass.getName().equalsIgnoreCase(name) || !schoolClass.getSchoolYear().equals(year))
                 && classes.existsBySchoolIdAndNameIgnoreCaseAndSchoolYear(schoolId, name, year))
-            throw new ApiException(HttpStatus.CONFLICT, "Lớp đã tồn tại trong năm học này.");
+            throw new ApiException(HttpStatus.CONFLICT, "LÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ tÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i trong nÃƒâ€žÃ†â€™m hÃƒÂ¡Ã‚Â»Ã‚Âc nÃƒÆ’Ã‚Â y.");
         if (!schoolClass.getSchoolYear().equals(year) && !enrollments.findByClassId(classId).isEmpty())
-            throw new ApiException(HttpStatus.CONFLICT, "Không thể đổi năm học khi lớp đã có enrollment.");
+            throw new ApiException(HttpStatus.CONFLICT, "KhÃƒÆ’Ã‚Â´ng thÃƒÂ¡Ã‚Â»Ã†â€™ Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢i nÃƒâ€žÃ†â€™m hÃƒÂ¡Ã‚Â»Ã‚Âc khi lÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ cÃƒÆ’Ã‚Â³ enrollment.");
         schoolClass.setName(name); schoolClass.setGradeLevel(request.gradeLevel()); schoolClass.setSchoolYear(year);
         schoolClass.setSubject(blankToNull(request.subject()));
         return get(schoolId, classes.save(schoolClass).getId());
@@ -147,7 +147,7 @@ public class SchoolClassService {
     public void unassignTeacher(UUID schoolId, UUID classId, Integer teacherId) {
         requireWriteAccess(schoolId); activeClassInSchool(schoolId, classId);
         ClassTeacherAssignment assignment = teacherAssignments.findBySchoolClassIdAndTeacherId(classId, teacherId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy phân công giáo viên."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y phÃƒÆ’Ã‚Â¢n cÃƒÆ’Ã‚Â´ng giÃƒÆ’Ã‚Â¡o viÃƒÆ’Ã‚Âªn."));
         assignment.setIsActive(false); teacherAssignments.save(assignment);
     }
 
@@ -155,17 +155,17 @@ public class SchoolClassService {
     public Enrollment enrollStudent(UUID schoolId, UUID classId, Integer studentId) {
         requireWriteAccess(schoolId);
         School school = schools.findByIdForUpdate(schoolId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy trường."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng."));
         SchoolClass schoolClass = activeClassInSchool(schoolId, classId);
         User student = userInSchool(schoolId, studentId, RoleName.STUDENT.name());
         Optional<ClassEnrollment> activeEnrollment = enrollments.findActiveEnrollment(studentId, schoolClass.getSchoolYear());
         activeEnrollment.ifPresent(existing -> {
             if (!existing.getSchoolClass().getId().equals(classId))
-                throw new ApiException(HttpStatus.CONFLICT, "Học sinh đã thuộc một lớp khác trong năm học này.");
+                throw new ApiException(HttpStatus.CONFLICT, "HÃƒÂ¡Ã‚Â»Ã‚Âc sinh Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ thuÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢c mÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢t lÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp khÃƒÆ’Ã‚Â¡c trong nÃƒâ€žÃ†â€™m hÃƒÂ¡Ã‚Â»Ã‚Âc nÃƒÆ’Ã‚Â y.");
         });
         if (activeEnrollment.isEmpty() && school.getStudentQuota() != null
                 && enrollments.countActiveStudentsBySchoolId(schoolId) >= school.getStudentQuota())
-            throw new ApiException(HttpStatus.CONFLICT, "Trường đã đạt quota học sinh của gói hiện tại.");
+            throw new ApiException(HttpStatus.CONFLICT, "TrÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â¡t quota hÃƒÂ¡Ã‚Â»Ã‚Âc sinh cÃƒÂ¡Ã‚Â»Ã‚Â§a gÃƒÆ’Ã‚Â³i hiÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i.");
         ClassEnrollment enrollment = enrollments.findBySchoolClassIdAndStudentIdAndStatus(classId, studentId, ClassEnrollment.EnrollmentStatus.ACTIVE)
                 .orElseGet(ClassEnrollment::new);
         enrollment.setSchoolClass(schoolClass); enrollment.setStudent(student); enrollment.setSchoolYear(schoolClass.getSchoolYear());
@@ -189,7 +189,7 @@ public class SchoolClassService {
     public void removeStudent(UUID schoolId, UUID classId, Integer studentId) {
         requireWriteAccess(schoolId); activeClassInSchool(schoolId, classId);
         ClassEnrollment enrollment = enrollments.findBySchoolClassIdAndStudentIdAndStatus(classId, studentId, ClassEnrollment.EnrollmentStatus.ACTIVE)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Học sinh chưa ở trong lớp này."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "HÃƒÂ¡Ã‚Â»Ã‚Âc sinh chÃƒâ€ Ã‚Â°a ÃƒÂ¡Ã‚Â»Ã…Â¸ trong lÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp nÃƒÆ’Ã‚Â y."));
         enrollment.setStatus(ClassEnrollment.EnrollmentStatus.DROPPED); enrollments.save(enrollment);
     }
 
@@ -213,24 +213,24 @@ public class SchoolClassService {
     }
 
     private SchoolClass classInSchool(UUID schoolId, UUID classId) {
-        SchoolClass schoolClass = classes.findById(classId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp."));
-        if (schoolClass.getSchool() == null || !schoolId.equals(schoolClass.getSchool().getId())) throw new ApiException(HttpStatus.FORBIDDEN, "Lớp không thuộc trường này.");
+        SchoolClass schoolClass = classes.findById(classId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y lÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp."));
+        if (schoolClass.getSchool() == null || !schoolId.equals(schoolClass.getSchool().getId())) throw new ApiException(HttpStatus.FORBIDDEN, "LÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp khÃƒÆ’Ã‚Â´ng thuÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢c trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng nÃƒÆ’Ã‚Â y.");
         return schoolClass;
     }
 
     private SchoolClass activeClassInSchool(UUID schoolId, UUID classId) {
         SchoolClass schoolClass = classInSchool(schoolId, classId);
         if (!Boolean.TRUE.equals(schoolClass.getIsActive()))
-            throw new ApiException(HttpStatus.CONFLICT, "Lớp đã được tắt và không thể cập nhật.");
+            throw new ApiException(HttpStatus.CONFLICT, "LÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c tÃƒÂ¡Ã‚ÂºÃ‚Â¯t vÃƒÆ’Ã‚Â  khÃƒÆ’Ã‚Â´ng thÃƒÂ¡Ã‚Â»Ã†â€™ cÃƒÂ¡Ã‚ÂºÃ‚Â­p nhÃƒÂ¡Ã‚ÂºÃ‚Â­t.");
         return schoolClass;
     }
 
-    private School school(UUID schoolId) { return schools.findById(schoolId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy trường.")); }
+    private School school(UUID schoolId) { return schools.findById(schoolId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng.")); }
 
     private User userInSchool(UUID schoolId, Integer id, String role) {
-        User user = users.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng."));
+        User user = users.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi dÃƒÆ’Ã‚Â¹ng."));
         if (user.getSchool() == null || !schoolId.equals(user.getSchool().getId()) || user.getRole() == null || !role.equals(user.getRole().getName()) || !Boolean.TRUE.equals(user.getActive()))
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Người dùng không hợp lệ trong trường này.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "NgÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi dÃƒÆ’Ã‚Â¹ng khÃƒÆ’Ã‚Â´ng hÃƒÂ¡Ã‚Â»Ã‚Â£p lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ trong trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng nÃƒÆ’Ã‚Â y.");
         return user;
     }
 

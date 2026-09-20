@@ -20,6 +20,7 @@ import com.example.backend.physics.solver.PhysicsSolver;
 import com.example.backend.physics.solver.PhysicsSolverRegistry;
 import com.example.backend.physics.validation.EndConditionResolver;
 import com.example.backend.physics.model.SolverOutput;
+import com.example.backend.physics.model.ScalarField;
 import com.example.backend.dto.simulation.ResolvedEnd;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.repository.simulation.SimulationRepository;
@@ -167,7 +168,7 @@ public class SimulationService {
         double elapsed = (System.nanoTime() - started) / 1_000_000.0;
         return new SimulationResponse(simulation.getId(), baseRunId, simulation.getSpecification().getId(),
                 simulation.getSchemaId(), validation.passed(), validation.passed(), output.time(),
-                output.positions(), output.velocities(), output.accelerations(), output.values(), params,
+                output.positions(), output.velocities(), output.accelerations(), output.values(), output.scalarFields(), params,
                 visualization(simulation.getSchemaId(), schemaVersion), validation, result, resolvedEnd, elapsed,
                 validation.passed() ? "Preview adjustment passed" : "Preview adjustment failed validation");
     }
@@ -277,7 +278,7 @@ public class SimulationService {
         double elapsed = (System.nanoTime() - started) / 1_000_000.0;
         return new SimulationResponse(simulation.getId(), run.getId(), simulation.getSpecification().getId(), context.schemaId(),
                 validation.passed(), validation.passed(), output.time(), output.positions(), output.velocities(),
-                output.accelerations(), output.values(), context.params(),
+                output.accelerations(), output.values(), output.scalarFields(), context.params(),
                 visualization(context.schemaId(), context.schemaVersion()), validation, result, resolvedEnd, elapsed,
                 validation.passed() ? "Validation passed" : "Simulation blocked because validation failed");
     }
@@ -338,7 +339,7 @@ public class SimulationService {
         ResolvedEnd resolvedEnd = resolvedEndFromResult(result);
         return new SimulationResponse(simulation.getId(), runId, simulation.getSpecification().getId(), simulation.getSchemaId(),
                 ready, ready, list(result, "time"), map(result, "positions"), map(result, "velocities"),
-                map(result, "accelerations"), map(result, "values"), parameters,
+                map(result, "accelerations"), map(result, "values"), scalarFields(result), parameters,
                 safeVisualization(simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion()),
                 validationFromResult(result), result, resolvedEnd, 0, message);
     }
@@ -432,6 +433,7 @@ public class SimulationService {
         node.set("velocities", objectMapper.valueToTree(output.velocities()));
         node.set("accelerations", objectMapper.valueToTree(output.accelerations()));
         node.set("values", objectMapper.valueToTree(output.values()));
+        node.set("scalarFields", objectMapper.valueToTree(output.scalarFields()));
         node.set(PARAMETERS, objectMapper.valueToTree(params));
         node.set(VALIDATION, objectMapper.valueToTree(validation));
         node.set("resolvedEnd", objectMapper.valueToTree(resolvedEnd));
@@ -454,5 +456,11 @@ public class SimulationService {
     private Map<String, Double> mapNumbers(JsonNode node, String field) {
         if (node == null || node.get(field) == null) return Map.of();
         return objectMapper.convertValue(node.get(field), objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Double.class));
+    }
+
+    private Map<String, ScalarField> scalarFields(JsonNode node) {
+        if (node == null || node.get("scalarFields") == null || !node.get("scalarFields").isObject()) return Map.of();
+        var type = objectMapper.getTypeFactory().constructMapType(Map.class, String.class, ScalarField.class);
+        return objectMapper.convertValue(node.get("scalarFields"), type);
     }
 }

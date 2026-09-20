@@ -65,20 +65,20 @@ export type ActorFrame = {
 // Kept for historical simulations whose saved schema response predates
 // presentation metadata. Current schema releases define these visuals in the catalog.
 const DEFAULT_PRESENTATIONS: Record<string, VisualizationPresentation> = {
-  motion_1d: {
+  motion: {
     theme: "lab-night",
     environment: "road.highway",
     actors: [{ id: "body", asset: "vehicle.sport.blue", x: "positions.x", vx: "velocities.x", ax: "accelerations.x", label: "m" }],
     effects: ["motion.trail", "vehicle.headlight", "vehicle.brake-smoke"],
   },
-  projectile_2d: {
+  projectile: {
     theme: "lab-night",
     environment: "range.projectile",
     actors: [{ id: "projectile", asset: "projectile.energy", x: "positions.x", y: "positions.y", vx: "velocities.x", vy: "velocities.y" }],
     props: ["structure.launch-tower", "launcher.cannon"],
     effects: ["motion.trail", "projectile.glow"],
   },
-  collision_1d: {
+  collision: {
     theme: "lab-night",
     environment: "track.collision",
     actors: [
@@ -87,7 +87,7 @@ const DEFAULT_PRESENTATIONS: Record<string, VisualizationPresentation> = {
     ],
     effects: ["motion.trail", "collision.flash"],
   },
-  spring_1d: {
+  spring: {
     theme: "lab-night",
     environment: "bench.spring",
     actors: [{ id: "mass", asset: "object.block.amber", x: "positions.x", vx: "velocities.x", ax: "accelerations.x", label: "m" }],

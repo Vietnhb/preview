@@ -88,7 +88,7 @@ export function VersionEditorModal({
                 maxLength={80}
                 readOnly={isEdit}
                 defaultValue={initial?.schemaId ?? ""}
-                placeholder="kinematics-1d"
+                placeholder="kinematics"
               />
             </div>
             <div className="form-group">

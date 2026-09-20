@@ -44,18 +44,30 @@ export type VisualizationPresentation = {
   actors?: VisualizationActor[];
   props?: string[];
   effects?: string[];
+  /** Optional defaults for the versioned scalar-field wave view. */
+  wave?: {
+    fieldId?: string;
+    probeX?: VisualizationBinding;
+    displayExaggeration?: number;
+  };
   /** Optional AI-generated scene graph. Legacy scene/actors remain supported. */
   sceneGraph?: {
     nodes: VisualizationNode[];
   };
 };
+export type VisualizationExpressionOperator = "add" | "subtract" | "multiply" | "divide" | "min" | "max" | "abs" | "negate" | "sin" | "cos" | "clamp";
 export type VisualizationBinding = number | string | {
   source: "constant" | "series" | "entity" | "quantity";
   key?: string;
   entityId?: string;
   path?: string;
   value?: number;
+} | {
+  source: "expression";
+  operator: VisualizationExpressionOperator;
+  args: VisualizationBinding[];
 };
+/** vectorScene properties.vector accepts the VectorScene drawing contract. */
 export type VisualizationNode = {
   id: string;
   type: string;
@@ -65,6 +77,46 @@ export type VisualizationNode = {
   properties?: Record<string, unknown>;
   children?: VisualizationNode[];
 };
+/**
+ * A sampled scalar field is versioned independently from legacy particle
+ * timeseries. Samples are row-major: one spatial row for each field time.
+ */
+export type ScalarFieldAxis = {
+  /** `key`/`coordinates` are the wire-format names; id/values remain aliases. */
+  key?: string;
+  id?: string;
+  coordinates?: number[];
+  values?: number[];
+  unit: string;
+  label?: string;
+  symbol?: string;
+};
+export type ScalarFieldSamples = {
+  encoding?: "time-major";
+  values: number[] | number[][];
+  /** Required for flattened values when its shape cannot be inferred. */
+  shape?: number[];
+};
+export type ScalarFieldDefinition = {
+  id: string;
+  version: number | string;
+  type: "scalarField";
+  physicalDimension: 1 | 2;
+  axes: ScalarFieldAxis[];
+  shape: number[];
+  time: number[];
+  /** Row-major field samples: values[timeIndex][spaceIndex]. */
+  values: number[] | number[][];
+  valueUnit: string;
+  timeUnit: string;
+  sampling?: { spaceStep?: number; timeStep?: number };
+  interpolation?: "linear";
+  boundary?: string | { kind?: string; description?: string };
+  /** Legacy transport aliases accepted by the frontend normalizer. */
+  value?: { unit: string; label?: string; symbol?: string };
+  samples?: ScalarFieldSamples;
+};
+export type ScalarFieldCollection = ScalarFieldDefinition[] | Record<string, ScalarFieldDefinition>;
 export type EntitySpec = Record<string, unknown>;
 export type QuantitySpec = Record<string, unknown>;
 export type BindingSpec = VisualizationBinding;
@@ -96,7 +148,7 @@ export type Specification = {
 };
 export type Problem = { id: string; editableText?: string; originalText?: string; sourceMode: string; status: string; currentSpecification?: Specification; sourceAssets?: { id: string; originalFilename: string }[] };
 export type Validation = { passed: boolean; tolerance: number; checkpoints: { time: number; maxRelativeError: number; passed: boolean }[] };
-export type Simulation = { simulationId: string; runId: string; specificationId: string; schemaId: string; valid: boolean; ready: boolean; time: number[]; positions: Record<string, number[]>; velocities: Record<string, number[]>; accelerations: Record<string, number[]>; values: Record<string, number[]>; parameters: Record<string, number>; visualization: VisualizationDefinition; validation: Validation; endCondition?: EndCondition; resolvedEnd?: ResolvedEnd; spec?: SimulationSpec; result?: unknown; elapsedMilliseconds: number };
+export type Simulation = { simulationId: string; runId: string; specificationId: string; schemaId: string; valid: boolean; ready: boolean; time: number[]; positions: Record<string, number[]>; velocities: Record<string, number[]>; accelerations: Record<string, number[]>; values: Record<string, number[]>; /** Versioned spatial data; legacy clients may send either an array or an object-map. */ scalarFields?: ScalarFieldCollection; parameters: Record<string, number>; visualization: VisualizationDefinition; validation: Validation; endCondition?: EndCondition; resolvedEnd?: ResolvedEnd; spec?: SimulationSpec; result?: unknown; elapsedMilliseconds: number };
 export type SimulationSummary = { simulationId: string; specificationId: string; schemaId: string; status: string; createdAt: string };
 export type Curriculum = { topics: { id: string; name: string; slug: string; enabled: boolean; modules: { id: string; name: string; slug: string; levels: { id: string; name: string; lessons: { id: string; name: string; slug: string }[] }[] }[] }[] };
 export type LibraryFolder = { id: string; name: string; itemCount: number; createdAt: string; updatedAt: string };

@@ -16,7 +16,7 @@ import jakarta.persistence.Table;
 import lombok.Data;
 
 /**
- * School class (e.g., "Lớp 10A1", "Lớp 11 Lý 2").
+ * School class (e.g., "LÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp 10A1", "LÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºp 11 LÃƒÆ’Ã‚Â½ 2").
  * Created by SCHOOL_MANAGER, assigned to teachers.
  * 
  * Business Rules:
@@ -54,7 +54,7 @@ public class SchoolClass {
     private String schoolYear;
 
     /**
-     * Subject specialization (optional): "Lý", "Hóa", "Sinh", "Toán", etc.
+     * Subject specialization (optional): "LÃƒÆ’Ã‚Â½", "HÃƒÆ’Ã‚Â³a", "Sinh", "ToÃƒÆ’Ã‚Â¡n", etc.
      */
     @Column(length = 50)
     private String subject;

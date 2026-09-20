@@ -1,8 +1,19 @@
 [
+{"schemaId":"linear_drag_motion","model":"linear_drag_motion","name":"Linear air resistance","topic":"DYNAMICS","version":"1.0","solverId":"linear_drag_solver","referenceSolverId":"linear_drag_reference","definition":{"requiredQuantities":[{"key":"mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"initial_position","aliases":["x0"],"allowedUnits":["m"]},{"key":"initial_velocity","aliases":["v0"],"allowedUnits":["m/s"]},{"key":"constant_force","aliases":["F"],"allowedUnits":["N"]},{"key":"drag_coefficient","aliases":["b"],"allowedUnits":["kg/s"],"positive":true}],"adjustableParameters":[{"key":"drag_coefficient","label":"Linear drag coefficient","symbol":"b","unit":"kg/s","min":0.001,"max":1000,"step":0.01}],"visualization":{"scene":"linear_drag_motion","series":[{"key":"position","source":"values.position","label":"Position","symbol":"x(t)","unit":"m","color":"#38bdf8"},{"key":"velocity","source":"values.velocity","label":"Velocity","symbol":"v(t)","unit":"m/s","color":"#34d399"},{"key":"dragForce","source":"values.dragForce","label":"Drag force","symbol":"F_d","unit":"N","color":"#fb923c"}]},"execution":{"durationSeconds":10,"stepSeconds":0.02,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["position","velocity","acceleration","dragForce"]}}},
+{"schemaId":"uniform_electric_field","model":"uniform_electric_field","name":"Uniform electric field motion","topic":"ELECTROMAGNETISM","version":"1.0","solverId":"uniform_electric_field_solver","referenceSolverId":"uniform_electric_field_reference","definition":{"requiredQuantities":[{"key":"charge","aliases":["q"],"allowedUnits":["C"]},{"key":"mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"potential_difference","aliases":["U"],"allowedUnits":["V"],"nonNegative":true},{"key":"plate_separation","aliases":["d"],"allowedUnits":["m"],"positive":true},{"key":"initial_velocity","aliases":["v0"],"allowedUnits":["m/s"],"nonNegative":true},{"key":"travel_time","aliases":["t"],"allowedUnits":["s"],"nonNegative":true}],"adjustableParameters":[{"key":"potential_difference","label":"Potential difference","symbol":"U","unit":"V","min":0,"max":100000,"step":1}],"visualization":{"scene":"uniform_electric_field","series":[{"key":"fieldStrength","source":"values.fieldStrength","label":"Field strength","symbol":"E","unit":"N/C","color":"#38bdf8"},{"key":"transverseDisplacement","source":"values.transverseDisplacement","label":"Transverse displacement","symbol":"y","unit":"m","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["fieldStrength","electricForce","acceleration","transverseDisplacement","longitudinalDisplacement"]}}},
+{"schemaId":"thermistor_response","model":"thermistor_response","name":"Thermistor response","topic":"CIRCUITS","version":"1.0","solverId":"applications_solver","referenceSolverId":"applications_reference","definition":{"requiredQuantities":[{"key":"reference_resistance","aliases":["R0"],"allowedUnits":["ohm"],"positive":true},{"key":"reference_temperature","aliases":["T0"],"allowedUnits":["K"],"positive":true},{"key":"beta_constant","aliases":["B"],"allowedUnits":["K"],"positive":true},{"key":"temperature","aliases":["T"],"allowedUnits":["degC"]},{"key":"supply_voltage","aliases":["Vs"],"allowedUnits":["V"],"positive":true},{"key":"divider_resistance","aliases":["Rref"],"allowedUnits":["ohm"],"positive":true}],"adjustableParameters":[{"key":"temperature","label":"Sensor temperature","symbol":"T","unit":"degC","min":-40,"max":200,"step":0.1}],"visualization":{"scene":"thermistor_response","series":[{"key":"resistance","source":"values.resistance","label":"Thermistor resistance","symbol":"R(T)","unit":"ohm","color":"#38bdf8"},{"key":"dividerVoltage","source":"values.dividerVoltage","label":"Divider voltage","symbol":"V_s","unit":"V","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["resistance","dividerVoltage","sensorPower"]}}},
+{"schemaId":"eclipse_geometry","model":"eclipse_geometry","name":"Eclipse geometry","topic":"MODERN_PHYSICS","version":"1.0","solverId":"applications_solver","referenceSolverId":"applications_reference","definition":{"requiredQuantities":[{"key":"star_radius","aliases":["Rstar"],"allowedUnits":["m"],"positive":true},{"key":"star_distance","aliases":["Dstar"],"allowedUnits":["m"],"positive":true},{"key":"occluder_radius","aliases":["Rmoon"],"allowedUnits":["m"],"positive":true},{"key":"occluder_distance","aliases":["Dmoon"],"allowedUnits":["m"],"positive":true},{"key":"alignment_angle","aliases":["theta"],"allowedUnits":["rad"],"nonNegative":true}],"adjustableParameters":[{"key":"alignment_angle","label":"Alignment angle","symbol":"theta","unit":"rad","min":0,"max":0.1,"step":0.0001}],"visualization":{"scene":"eclipse_geometry","series":[{"key":"starAngularDiameter","source":"values.starAngularDiameter","label":"Star angular diameter","symbol":"delta_star","unit":"rad","color":"#38bdf8"},{"key":"occluderAngularDiameter","source":"values.occluderAngularDiameter","label":"Occluder angular diameter","symbol":"delta_occluder","unit":"rad","color":"#fb923c"},{"key":"totality","source":"values.totality","label":"Totality condition","symbol":"totality","unit":"1","color":"#34d399"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["starAngularDiameter","occluderAngularDiameter","alignmentMargin","totality"]}}},
+{"schemaId":"energy_environment","model":"energy_environment","name":"Energy mix and environmental impact","topic":"PRACTICAL_AND_DATA","version":"1.0","solverId":"applications_solver","referenceSolverId":"applications_reference","definition":{"requiredQuantities":[{"key":"energy_demand","aliases":["E"],"allowedUnits":["J"],"nonNegative":true},{"key":"renewable_fraction","aliases":["f_renewable"],"allowedUnits":["1"],"nonNegative":true},{"key":"fossil_emission_factor","aliases":["e_fossil"],"allowedUnits":["kg/J"],"nonNegative":true},{"key":"renewable_emission_factor","aliases":["e_renewable"],"allowedUnits":["kg/J"],"nonNegative":true},{"key":"conversion_efficiency","aliases":["eta"],"allowedUnits":["1"],"positive":true}],"adjustableParameters":[{"key":"renewable_fraction","label":"Renewable fraction","symbol":"f_renewable","unit":"1","min":0,"max":1,"step":0.01}],"visualization":{"scene":"energy_environment","series":[{"key":"renewableEnergy","source":"values.renewableEnergy","label":"Renewable energy","symbol":"E_r","unit":"J","color":"#34d399"},{"key":"fossilEnergy","source":"values.fossilEnergy","label":"Fossil energy","symbol":"E_f","unit":"J","color":"#fb923c"},{"key":"emissions","source":"values.emissions","label":"Emissions","symbol":"m_CO2","unit":"kg","color":"#38bdf8"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["renewableEnergy","fossilEnergy","emissions","usefulEnergy","avoidedEmissionsVsFossil"]}}},
+{"schemaId":"source_internal_resistance","model":"source_internal_resistance","name":"EMF and internal resistance","topic":"CIRCUITS","version":"1.0","solverId":"source_internal_resistance_solver","referenceSolverId":"source_internal_resistance_reference","definition":{"requiredQuantities":[{"key":"emf","aliases":["E"],"allowedUnits":["V"],"positive":true},{"key":"internal_resistance","aliases":["r"],"allowedUnits":["ohm"],"positive":true},{"key":"load_resistance","aliases":["R"],"allowedUnits":["ohm"],"positive":true}],"adjustableParameters":[{"key":"load_resistance","label":"Load resistance","symbol":"R","unit":"ohm","min":0.001,"max":100000,"step":0.1}],"visualization":{"scene":"source_internal_resistance","series":[{"key":"terminalVoltage","source":"values.terminalVoltage","label":"Terminal voltage","symbol":"U","unit":"V","color":"#38bdf8"},{"key":"current","source":"values.current","label":"Circuit current","symbol":"I","unit":"A","color":"#34d399"},{"key":"efficiency","source":"values.efficiency","label":"Source efficiency","symbol":"eta","unit":"1","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["current","terminalVoltage","loadPower","internalPowerLoss","efficiency"]}}},
+{"schemaId":"energy_band_transition","model":"energy_band_transition","name":"Energy-band photon transition","topic":"MODERN_PHYSICS","version":"1.0","solverId":"energy_band_solver","referenceSolverId":"energy_band_reference","definition":{"requiredQuantities":[{"key":"valence_band_energy","aliases":["Ev"],"allowedUnits":["J"]},{"key":"conduction_band_energy","aliases":["Ec"],"allowedUnits":["J"]},{"key":"photon_frequency","aliases":["f"],"allowedUnits":["Hz"],"positive":true}],"adjustableParameters":[{"key":"photon_frequency","label":"Photon frequency","symbol":"f","unit":"Hz","min":1,"max":1e16,"step":1e12}],"visualization":{"scene":"energy_band_transition","series":[{"key":"bandGap","source":"values.bandGap","label":"Band gap","symbol":"Eg","unit":"J","color":"#38bdf8"},{"key":"photonEnergy","source":"values.photonEnergy","label":"Photon energy","symbol":"hf","unit":"J","color":"#fb923c"},{"key":"transitionAllowed","source":"values.transitionAllowed","label":"Transition allowed","symbol":"transition","unit":"1","color":"#34d399"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["bandGap","photonEnergy","thresholdWavelength","transitionAllowed"]}}},
+{"schemaId":"nuclear_reaction_energy","model":"nuclear_reaction_energy","name":"Nuclear reaction mass balance","topic":"MODERN_PHYSICS","version":"1.0","solverId":"nuclear_reaction_solver","referenceSolverId":"nuclear_reaction_reference","definition":{"requiredQuantities":[{"key":"reactant_mass","aliases":["mReactants"],"allowedUnits":["kg"],"positive":true},{"key":"product_mass","aliases":["mProducts"],"allowedUnits":["kg"],"positive":true}],"optionalQuantities":[{"key":"reaction_count","aliases":["N"],"allowedUnits":["1"],"positive":true,"defaultValue":1}],"adjustableParameters":[{"key":"reaction_count","label":"Reaction count","symbol":"N","unit":"1","min":1,"max":1e30,"step":1}],"visualization":{"scene":"nuclear_reaction_energy","series":[{"key":"massDefect","source":"values.massDefect","label":"Mass defect","symbol":"Delta m","unit":"kg","color":"#38bdf8"},{"key":"totalReleasedEnergy","source":"values.totalReleasedEnergy","label":"Released energy","symbol":"E","unit":"J","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["massDefect","releasedEnergyPerReaction","totalReleasedEnergy"]}}},
+{"schemaId":"sensor_op_amp","model":"sensor_op_amp","name":"Sensor divider and op-amp output","topic":"CIRCUITS","version":"1.0","solverId":"applications_solver","referenceSolverId":"applications_reference","definition":{"requiredQuantities":[{"key":"supply_voltage","aliases":["Vs"],"allowedUnits":["V"],"positive":true},{"key":"sensor_resistance","aliases":["Rs"],"allowedUnits":["ohm"],"positive":true},{"key":"reference_resistance","aliases":["Rref"],"allowedUnits":["ohm"],"positive":true},{"key":"op_amp_gain","aliases":["G"],"allowedUnits":["1"],"positive":true},{"key":"threshold_voltage","aliases":["Vth"],"allowedUnits":["V"]}],"adjustableParameters":[{"key":"sensor_resistance","label":"Sensor resistance","symbol":"Rs","unit":"ohm","min":0.001,"max":10000000,"step":1}],"visualization":{"scene":"sensor_op_amp","series":[{"key":"sensorVoltage","source":"values.sensorVoltage","label":"Sensor divider voltage","symbol":"Vsensor","unit":"V","color":"#38bdf8"},{"key":"amplifiedOutput","source":"values.amplifiedOutput","label":"Op-amp output","symbol":"Vout","unit":"V","color":"#fb923c"},{"key":"ledState","source":"values.ledState","label":"LED state","symbol":"LED","unit":"1","color":"#34d399"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["sensorVoltage","referenceVoltage","amplifiedOutput","ledState","sensorPower"]}}},
+{"schemaId":"radio_signal_chain","model":"radio_signal_chain","name":"AM FM modulation and signal attenuation","topic":"WAVES","version":"1.0","solverId":"applications_solver","referenceSolverId":"applications_reference","definition":{"requiredQuantities":[{"key":"carrier_frequency","aliases":["fc"],"allowedUnits":["Hz"],"positive":true},{"key":"modulation_frequency","aliases":["fm"],"allowedUnits":["Hz"],"positive":true},{"key":"frequency_deviation","aliases":["delta_f"],"allowedUnits":["Hz"],"nonNegative":true},{"key":"modulation_index","aliases":["m"],"allowedUnits":["1"],"nonNegative":true},{"key":"signal_amplitude","aliases":["A"],"allowedUnits":["V"],"nonNegative":true},{"key":"path_length","aliases":["d"],"allowedUnits":["m"],"nonNegative":true},{"key":"attenuation_db_per_meter","aliases":["alpha_db"],"allowedUnits":["dB/m"],"nonNegative":true}],"adjustableParameters":[{"key":"path_length","label":"Transmission path length","symbol":"d","unit":"m","min":0,"max":100000,"step":1}],"visualization":{"scene":"radio_signal_chain","series":[{"key":"receivedAmplitude","source":"values.receivedAmplitude","label":"Received amplitude","symbol":"A_r","unit":"V","color":"#38bdf8"},{"key":"fmModulationIndex","source":"values.fmModulationIndex","label":"FM modulation index","symbol":"beta","unit":"1","color":"#fb923c"},{"key":"carsonBandwidth","source":"values.carsonBandwidth","label":"Carson bandwidth","symbol":"B_T","unit":"Hz","color":"#34d399"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["wavelength","lowerSideband","upperSideband","fmModulationIndex","carsonBandwidth","attenuationFactor","receivedAmplitude"]}}},
+{"schemaId":"moment_equilibrium","model":"moment_equilibrium","name":"Moment and rotational equilibrium","topic":"DYNAMICS","version":"1.0","solverId":"moment_equilibrium_solver","referenceSolverId":"moment_equilibrium_reference","definition":{"requiredQuantities":[{"key":"force_1","aliases":["F1"],"allowedUnits":["N"],"nonNegative":true},{"key":"arm_1","aliases":["r1"],"allowedUnits":["m"],"nonNegative":true},{"key":"angle_1","aliases":["theta1"],"allowedUnits":["rad"]},{"key":"force_2","aliases":["F2"],"allowedUnits":["N"],"nonNegative":true},{"key":"arm_2","aliases":["r2"],"allowedUnits":["m"],"nonNegative":true},{"key":"angle_2","aliases":["theta2"],"allowedUnits":["rad"]}],"adjustableParameters":[{"key":"force_2","label":"Second force","symbol":"F2","unit":"N","min":0,"max":10000,"step":1}],"visualization":{"scene":"moment_equilibrium","series":[{"key":"moment1","source":"values.moment1","label":"Moment 1","symbol":"tau_1","unit":"N*m","color":"#38bdf8"},{"key":"moment2","source":"values.moment2","label":"Moment 2","symbol":"tau_2","unit":"N*m","color":"#fb923c"},{"key":"equilibriumResidual","source":"values.equilibriumResidual","label":"Equilibrium residual","symbol":"|tau_net|","unit":"N*m","color":"#34d399"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["moment1","moment2","netMoment","equilibriumResidual"]}}},
   {
-    "schemaId": "kinematics_1d",
-    "model": "uniform_acceleration_1d",
-    "name": "Kinematics 1D",
+    "schemaId": "kinematics",
+    "model": "uniform_acceleration",
+    "name": "Kinematics",
     "topic": "KINEMATICS",
     "version": "1.8",
     "solverId": "kinematics_solver",
@@ -11,12 +22,12 @@
       "requiredQuantities": [
         {
           "key": "initial_position",
-          "aliases": ["x0", "position"],
+          "aliases": ["x0", "position", "distance", "s"],
           "allowedUnits": ["m"]
         },
         {
           "key": "initial_velocity",
-          "aliases": ["v0", "velocity"],
+          "aliases": ["v0", "velocity", "speed", "v"],
           "allowedUnits": ["m/s"]
         },
         { "key": "acceleration", "aliases": ["a"], "allowedUnits": ["m/s2"] }
@@ -24,8 +35,8 @@
       "adjustableParameters": [
         {
           "key": "initial_velocity",
-          "label": "Vận tốc ban đầu",
-          "symbol": "v₀",
+          "label": "Váº­n tá»‘c ban Ä‘áº§u",
+          "symbol": "vâ‚€",
           "unit": "m/s",
           "min": -40,
           "max": 60,
@@ -33,21 +44,21 @@
         },
         {
           "key": "acceleration",
-          "label": "Gia tốc",
+          "label": "Gia tá»‘c",
           "symbol": "a",
-          "unit": "m/s²",
+          "unit": "m/sÂ²",
           "min": -10,
           "max": 10,
           "step": 0.1
         }
       ],
       "visualization": {
-        "scene": "motion_1d",
+        "scene": "motion",
         "series": [
           {
             "key": "x",
             "source": "positions.x",
-            "label": "Vị trí",
+            "label": "Vá»‹ trÃ­",
             "symbol": "x",
             "unit": "m",
             "color": "#2563eb"
@@ -55,7 +66,7 @@
           {
             "key": "vx",
             "source": "velocities.x",
-            "label": "Vận tốc",
+            "label": "Váº­n tá»‘c",
             "symbol": "v",
             "unit": "m/s",
             "color": "#087e68"
@@ -63,9 +74,9 @@
           {
             "key": "ax",
             "source": "accelerations.x",
-            "label": "Gia tốc",
+            "label": "Gia tá»‘c",
             "symbol": "a",
-            "unit": "m/s²",
+            "unit": "m/sÂ²",
             "color": "#d16a25"
           }
         ],
@@ -112,7 +123,7 @@
   },
   {
     "schemaId": "kinematics_projectile",
-    "model": "projectile_2d",
+    "model": "projectile",
     "name": "Projectile motion",
     "topic": "KINEMATICS",
     "version": "1.8",
@@ -122,17 +133,17 @@
       "requiredQuantities": [
         {
           "key": "initial_position",
-          "aliases": ["x0", "position"],
+          "aliases": ["x0", "position", "distance", "s"],
           "allowedUnits": ["m"]
         },
         {
           "key": "initial_height",
-          "aliases": ["y0", "height"],
+          "aliases": ["y0", "height", "h"],
           "allowedUnits": ["m"]
         },
         {
           "key": "initial_velocity",
-          "aliases": ["v0", "velocity"],
+          "aliases": ["v0", "velocity", "speed", "v"],
           "allowedUnits": ["m/s"],
           "positive": true
         },
@@ -145,8 +156,8 @@
       "adjustableParameters": [
         {
           "key": "initial_velocity",
-          "label": "Vận tốc ban đầu",
-          "symbol": "v₀",
+          "label": "Váº­n tá»‘c ban Ä‘áº§u",
+          "symbol": "vâ‚€",
           "unit": "m/s",
           "min": 0,
           "max": 100,
@@ -154,8 +165,8 @@
         },
         {
           "key": "launch_angle",
-          "label": "Góc phóng",
-          "symbol": "θ",
+          "label": "GÃ³c phÃ³ng",
+          "symbol": "Î¸",
           "unit": "rad",
           "min": 0,
           "max": 3.1415926536,
@@ -163,21 +174,21 @@
         },
         {
           "key": "gravitational_acceleration",
-          "label": "Gia tốc trọng trường",
+          "label": "Gia tá»‘c trá»ng trÆ°á»ng",
           "symbol": "g",
-          "unit": "m/s²",
+          "unit": "m/sÂ²",
           "min": 0,
           "max": 30,
           "step": 0.1
         }
       ],
       "visualization": {
-        "scene": "projectile_2d",
+        "scene": "projectile",
         "series": [
           {
             "key": "x",
             "source": "positions.x",
-            "label": "Vị trí ngang",
+            "label": "Vá»‹ trÃ­ ngang",
             "symbol": "x",
             "unit": "m",
             "color": "#2563eb"
@@ -185,7 +196,7 @@
           {
             "key": "y",
             "source": "positions.y",
-            "label": "Độ cao",
+            "label": "Äá»™ cao",
             "symbol": "y",
             "unit": "m",
             "color": "#7c3aed"
@@ -193,16 +204,16 @@
           {
             "key": "vx",
             "source": "velocities.x",
-            "label": "Vận tốc ngang",
-            "symbol": "vₓ",
+            "label": "Váº­n tá»‘c ngang",
+            "symbol": "vâ‚“",
             "unit": "m/s",
             "color": "#087e68"
           },
           {
             "key": "vy",
             "source": "velocities.y",
-            "label": "Vận tốc đứng",
-            "symbol": "vᵧ",
+            "label": "Váº­n tá»‘c Ä‘á»©ng",
+            "symbol": "váµ§",
             "unit": "m/s",
             "color": "#d16a25"
           }
@@ -256,7 +267,7 @@
   },
   {
     "schemaId": "dynamics_forces",
-    "model": "forces_1d",
+    "model": "forces",
     "name": "Dynamics forces",
     "topic": "DYNAMICS",
     "version": "1.8",
@@ -283,19 +294,19 @@
         },
         {
           "key": "initial_position",
-          "aliases": ["x0", "position"],
+          "aliases": ["x0", "position", "distance", "s"],
           "allowedUnits": ["m"]
         },
         {
           "key": "initial_velocity",
-          "aliases": ["v0", "velocity"],
+          "aliases": ["v0", "velocity", "speed", "v"],
           "allowedUnits": ["m/s"]
         }
       ],
       "adjustableParameters": [
         {
           "key": "net_force",
-          "label": "Hợp lực",
+          "label": "Há»£p lá»±c",
           "symbol": "F",
           "unit": "N",
           "min": -100,
@@ -304,7 +315,7 @@
         },
         {
           "key": "mass",
-          "label": "Khối lượng",
+          "label": "Khá»‘i lÆ°á»£ng",
           "symbol": "m",
           "unit": "kg",
           "min": 0.1,
@@ -313,21 +324,21 @@
         },
         {
           "key": "gravitational_acceleration",
-          "label": "Gia tốc trọng trường",
+          "label": "Gia tá»‘c trá»ng trÆ°á»ng",
           "symbol": "g",
-          "unit": "m/s²",
+          "unit": "m/sÂ²",
           "min": 0,
           "max": 30,
           "step": 0.1
         }
       ],
       "visualization": {
-        "scene": "motion_1d",
+        "scene": "motion",
         "series": [
           {
             "key": "x",
             "source": "positions.x",
-            "label": "Vị trí",
+            "label": "Vá»‹ trÃ­",
             "symbol": "x",
             "unit": "m",
             "color": "#2563eb"
@@ -335,7 +346,7 @@
           {
             "key": "vx",
             "source": "velocities.x",
-            "label": "Vận tốc",
+            "label": "Váº­n tá»‘c",
             "symbol": "v",
             "unit": "m/s",
             "color": "#087e68"
@@ -343,9 +354,9 @@
           {
             "key": "ax",
             "source": "accelerations.x",
-            "label": "Gia tốc",
+            "label": "Gia tá»‘c",
             "symbol": "a",
-            "unit": "m/s²",
+            "unit": "m/sÂ²",
             "color": "#d16a25"
           }
         ],
@@ -401,8 +412,8 @@
   },
   {
     "schemaId": "dynamics_collision",
-    "model": "elastic_collision_1d",
-    "name": "Elastic collision 1D",
+    "model": "elastic_collision",
+    "name": "Elastic collision",
     "topic": "DYNAMICS",
     "version": "1.8",
     "solverId": "dynamics_solver",
@@ -437,8 +448,8 @@
       "adjustableParameters": [
         {
           "key": "velocity_1",
-          "label": "Vận tốc vật 1",
-          "symbol": "v₁",
+          "label": "Váº­n tá»‘c váº­t 1",
+          "symbol": "vâ‚",
           "unit": "m/s",
           "min": -50,
           "max": 50,
@@ -446,8 +457,8 @@
         },
         {
           "key": "velocity_2",
-          "label": "Vận tốc vật 2",
-          "symbol": "v₂",
+          "label": "Váº­n tá»‘c váº­t 2",
+          "symbol": "vâ‚‚",
           "unit": "m/s",
           "min": -50,
           "max": 50,
@@ -455,37 +466,37 @@
         }
       ],
       "visualization": {
-        "scene": "collision_1d",
+        "scene": "collision",
         "series": [
           {
             "key": "x1",
             "source": "positions.x1",
-            "label": "Vị trí vật 1",
-            "symbol": "x₁",
+            "label": "Vá»‹ trÃ­ váº­t 1",
+            "symbol": "xâ‚",
             "unit": "m",
             "color": "#2563eb"
           },
           {
             "key": "x2",
             "source": "positions.x2",
-            "label": "Vị trí vật 2",
-            "symbol": "x₂",
+            "label": "Vá»‹ trÃ­ váº­t 2",
+            "symbol": "xâ‚‚",
             "unit": "m",
             "color": "#d16a25"
           },
           {
             "key": "v1",
             "source": "velocities.v1",
-            "label": "Vận tốc vật 1",
-            "symbol": "v₁",
+            "label": "Váº­n tá»‘c váº­t 1",
+            "symbol": "vâ‚",
             "unit": "m/s",
             "color": "#087e68"
           },
           {
             "key": "v2",
             "source": "velocities.v2",
-            "label": "Vận tốc vật 2",
-            "symbol": "v₂",
+            "label": "Váº­n tá»‘c váº­t 2",
+            "symbol": "vâ‚‚",
             "unit": "m/s",
             "color": "#ea580c"
           }
@@ -537,7 +548,7 @@
   },
   {
     "schemaId": "oscillations_spring",
-    "model": "spring_1d",
+    "model": "spring",
     "name": "Spring oscillation",
     "topic": "DYNAMICS",
     "version": "1.8",
@@ -568,7 +579,7 @@
       "adjustableParameters": [
         {
           "key": "amplitude",
-          "label": "Biên độ",
+          "label": "BiÃªn Ä‘á»™",
           "symbol": "A",
           "unit": "m",
           "min": 0.001,
@@ -577,7 +588,7 @@
         },
         {
           "key": "spring_constant",
-          "label": "Độ cứng",
+          "label": "Äá»™ cá»©ng",
           "symbol": "k",
           "unit": "N/m",
           "min": 0.1,
@@ -586,12 +597,12 @@
         }
       ],
       "visualization": {
-        "scene": "spring_1d",
+        "scene": "spring",
         "series": [
           {
             "key": "x",
             "source": "positions.x",
-            "label": "Li độ",
+            "label": "Li Ä‘á»™",
             "symbol": "x",
             "unit": "m",
             "color": "#2563eb"
@@ -599,7 +610,7 @@
           {
             "key": "vx",
             "source": "velocities.x",
-            "label": "Vận tốc",
+            "label": "Váº­n tá»‘c",
             "symbol": "v",
             "unit": "m/s",
             "color": "#087e68"
@@ -607,9 +618,9 @@
           {
             "key": "ax",
             "source": "accelerations.x",
-            "label": "Gia tốc",
+            "label": "Gia tá»‘c",
             "symbol": "a",
-            "unit": "m/s²",
+            "unit": "m/sÂ²",
             "color": "#d16a25"
           }
         ],
@@ -682,8 +693,8 @@
       "adjustableParameters": [
         {
           "key": "voltage",
-          "label": "Điện áp",
-          "symbol": "U₀",
+          "label": "Äiá»‡n Ã¡p",
+          "symbol": "Uâ‚€",
           "unit": "V",
           "min": 0,
           "max": 100,
@@ -691,9 +702,9 @@
         },
         {
           "key": "resistance",
-          "label": "Điện trở",
+          "label": "Äiá»‡n trá»Ÿ",
           "symbol": "R",
-          "unit": "Ω",
+          "unit": "Î©",
           "min": 0.1,
           "max": 100000,
           "step": 1
@@ -705,15 +716,15 @@
           {
             "key": "voltage",
             "source": "values.voltage",
-            "label": "Điện áp trên tụ",
-            "symbol": "U꜀",
+            "label": "Äiá»‡n Ã¡p trÃªn tá»¥",
+            "symbol": "Uêœ€",
             "unit": "V",
             "color": "#2563eb"
           },
           {
             "key": "current",
             "source": "values.current",
-            "label": "Dòng điện",
+            "label": "DÃ²ng Ä‘iá»‡n",
             "symbol": "I",
             "unit": "A",
             "color": "#087e68"
@@ -777,8 +788,8 @@
       "adjustableParameters": [
         {
           "key": "voltage",
-          "label": "Điện áp ban đầu",
-          "symbol": "U₀",
+          "label": "Äiá»‡n Ã¡p ban Ä‘áº§u",
+          "symbol": "Uâ‚€",
           "unit": "V",
           "min": 0,
           "max": 100,
@@ -786,9 +797,9 @@
         },
         {
           "key": "resistance",
-          "label": "Điện trở",
+          "label": "Äiá»‡n trá»Ÿ",
           "symbol": "R",
-          "unit": "Ω",
+          "unit": "Î©",
           "min": 0.1,
           "max": 100000,
           "step": 1
@@ -800,15 +811,15 @@
           {
             "key": "voltage",
             "source": "values.voltage",
-            "label": "Điện áp trên tụ",
-            "symbol": "U꜀",
+            "label": "Äiá»‡n Ã¡p trÃªn tá»¥",
+            "symbol": "Uêœ€",
             "unit": "V",
             "color": "#2563eb"
           },
           {
             "key": "current",
             "source": "values.current",
-            "label": "Dòng điện",
+            "label": "DÃ²ng Ä‘iá»‡n",
             "symbol": "I",
             "unit": "A",
             "color": "#087e68"
@@ -840,5 +851,586 @@
       },
       "output": { "type": "timeseries" }
     }
-  }
+  },
+  {
+    "schemaId": "string_wave",
+    "model": "string_wave",
+    "name": "Transverse wave on a string",
+    "topic": "WAVES",
+    "version": "1.0",
+    "solverId": "string_wave_solver",
+    "referenceSolverId": "string_wave_reference",
+    "definition": {
+      "requiredQuantities": [
+        { "key": "amplitude", "aliases": ["a"], "allowedUnits": ["m"], "nonNegative": true },
+        { "key": "frequency", "aliases": ["f"], "allowedUnits": ["Hz"], "positive": true },
+        { "key": "wave_speed", "aliases": ["speed", "c"], "allowedUnits": ["m/s"], "positive": true }
+      ],
+      "optionalQuantities": [
+        { "key": "phase", "aliases": ["phi"], "allowedUnits": ["rad"], "defaultValue": 0 },
+        { "key": "domain_start", "aliases": ["x_min"], "allowedUnits": ["m"], "defaultValue": 0 },
+        { "key": "domain_length", "aliases": ["string_length"], "allowedUnits": ["m"], "positive": true },
+        { "key": "domain_end", "aliases": ["x_max"], "allowedUnits": ["m"], "positive": true },
+        { "key": "probe_position", "aliases": ["x_probe"], "allowedUnits": ["m"], "nonNegative": true },
+        { "key": "spatial_samples", "aliases": ["x_samples"], "allowedUnits": ["1"], "positive": true },
+        { "key": "source_ramp_seconds", "aliases": ["ramp"], "allowedUnits": ["s"], "positive": true }
+      ],
+      "adjustableParameters": [
+        { "key": "amplitude", "label": "BiÃªn Ä‘á»™", "symbol": "A", "unit": "m", "min": 0, "max": 1, "step": 0.001 },
+        { "key": "frequency", "label": "Táº§n sá»‘", "symbol": "f", "unit": "Hz", "min": 0.01, "max": 100, "step": 0.01 },
+        { "key": "wave_speed", "label": "Tá»‘c Ä‘á»™ truyá»n sÃ³ng", "symbol": "c", "unit": "m/s", "min": 0.01, "max": 100, "step": 0.01 },
+        { "key": "phase", "label": "Pha ban Ä‘áº§u", "symbol": "Ï†", "unit": "rad", "min": -6.2831853072, "max": 6.2831853072, "step": 0.01 }
+      ],
+      "visualization": {
+        "scene": "string_wave",
+        "series": [
+          { "key": "displacement", "source": "values.displacement", "label": "Li Ä‘á»™ táº¡i probe", "symbol": "u", "unit": "m", "color": "#38bdf8" },
+          { "key": "particleVelocity", "source": "values.particleVelocity", "label": "Váº­n tá»‘c pháº§n tá»­", "symbol": "uÌ‡", "unit": "m/s", "color": "#34d399" },
+          { "key": "particleAcceleration", "source": "values.particleAcceleration", "label": "Gia tá»‘c pháº§n tá»­", "symbol": "uÌˆ", "unit": "m/sÂ²", "color": "#fb923c" }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "track.engineering",
+          "wave": { "fieldId": "transverseDisplacement", "probeX": 0, "displayExaggeration": 1 },
+          "sceneGraph": {
+            "nodes": [
+              { "id": "background", "type": "background", "layer": "static" },
+              { "id": "grid", "type": "grid", "layer": "static" },
+              { "id": "environment", "type": "environment", "layer": "static", "properties": { "environment": "track.engineering", "layout": "horizontalTrack" } },
+              { "id": "wave", "type": "waveField", "layer": "dynamic", "properties": { "field": "transverseDisplacement", "probeX": 0, "displayExaggeration": 1 } },
+              { "id": "ruler", "type": "ruler", "layer": "static" }
+            ]
+          }
+        }
+      },
+      "execution": { "durationSeconds": 10, "stepSeconds": 0.05, "durationBindings": [] },
+      "validation": { "tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1.0] },
+      "output": { "type": "scalarField", "fieldId": "transverseDisplacement", "probeSeries": ["displacement", "particleVelocity", "particleAcceleration"] }
+    }
+  },
+  {
+    "schemaId": "wave_pulse",
+    "model": "wave_pulse",
+    "name": "Travelling pulse on a string",
+    "topic": "WAVES",
+    "version": "1.0",
+    "solverId": "wave_pulse_solver",
+    "referenceSolverId": "wave_pulse_reference",
+    "definition": {
+      "requiredQuantities": [
+        { "key": "amplitude", "aliases": ["a"], "allowedUnits": ["m"], "nonNegative": true },
+        { "key": "wave_speed", "aliases": ["speed", "c"], "allowedUnits": ["m/s"], "positive": true },
+        { "key": "pulse_width", "aliases": ["width", "sigma"], "allowedUnits": ["m"], "positive": true }
+      ],
+      "optionalQuantities": [
+        { "key": "initial_position", "aliases": ["x0", "pulse_center"], "allowedUnits": ["m"] },
+        { "key": "domain_start", "aliases": ["x_min"], "allowedUnits": ["m"] },
+        { "key": "domain_end", "aliases": ["x_max"], "allowedUnits": ["m"], "positive": true },
+        { "key": "domain_length", "aliases": ["string_length"], "allowedUnits": ["m"], "positive": true },
+        { "key": "probe_position", "aliases": ["x_probe"], "allowedUnits": ["m"] },
+        { "key": "spatial_samples", "aliases": ["x_samples"], "allowedUnits": ["1"], "positive": true }
+      ],
+      "adjustableParameters": [
+        { "key": "amplitude", "label": "BiÃƒÂªn Ã„â€˜Ã¡Â»â„¢ xung", "symbol": "A", "unit": "m", "min": 0, "max": 1, "step": 0.001 },
+        { "key": "wave_speed", "label": "TÃ¡Â»â€˜c Ã„â€˜Ã¡Â»â„¢ truyÃ¡Â»Ân", "symbol": "c", "unit": "m/s", "min": 0.01, "max": 100, "step": 0.01 },
+        { "key": "pulse_width", "label": "Ã„ÂÃ¡Â»â„¢ rÃ¡Â»â„¢ng xung", "symbol": "ÃÆ’", "unit": "m", "min": 0.001, "max": 10, "step": 0.001 }
+      ],
+      "visualization": {
+        "scene": "wave_pulse",
+        "series": [
+          { "key": "displacement", "source": "values.displacement", "label": "Li Ã„â€˜Ã¡Â»â„¢ tÃ¡ÂºÂ¡i probe", "symbol": "u", "unit": "m", "color": "#38bdf8" },
+          { "key": "particleVelocity", "source": "values.particleVelocity", "label": "VÃ¡ÂºÂ­n tÃ¡Â»â€˜c phÃ¡ÂºÂ§n tÃ¡Â»Â­", "symbol": "uÃŒâ€¡", "unit": "m/s", "color": "#34d399" },
+          { "key": "particleAcceleration", "source": "values.particleAcceleration", "label": "Gia tÃ¡Â»â€˜c phÃ¡ÂºÂ§n tÃ¡Â»Â­", "symbol": "uÃŒË†", "unit": "m/sÃ‚Â²", "color": "#fb923c" }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "track.engineering",
+          "wave": { "fieldId": "pulseDisplacement", "probeX": 0, "displayExaggeration": 1 },
+          "sceneGraph": { "nodes": [
+            { "id": "background", "type": "background", "layer": "static" },
+            { "id": "grid", "type": "grid", "layer": "static" },
+            { "id": "environment", "type": "environment", "layer": "static", "properties": { "environment": "track.engineering", "layout": "horizontalTrack" } },
+            { "id": "wave", "type": "waveField", "layer": "dynamic", "properties": { "field": "pulseDisplacement", "probeX": 0, "displayExaggeration": 1 } },
+            { "id": "ruler", "type": "ruler", "layer": "static" }
+          ] }
+        }
+      },
+      "execution": { "durationSeconds": 10, "stepSeconds": 0.05, "durationBindings": [] },
+      "validation": { "tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1.0] },
+      "output": { "type": "scalarField", "fieldId": "pulseDisplacement", "probeSeries": ["displacement", "particleVelocity", "particleAcceleration"] }
+    }
+  },
+  {
+    "schemaId": "standing_wave",
+    "model": "standing_wave",
+    "name": "Standing-wave interference on a string",
+    "topic": "WAVES",
+    "version": "1.0",
+    "solverId": "standing_wave_solver",
+    "referenceSolverId": "standing_wave_reference",
+    "definition": {
+      "requiredQuantities": [
+        { "key": "amplitude", "aliases": ["a"], "allowedUnits": ["m"], "nonNegative": true },
+        { "key": "frequency", "aliases": ["f"], "allowedUnits": ["Hz"], "positive": true },
+        { "key": "wave_speed", "aliases": ["speed", "c"], "allowedUnits": ["m/s"], "positive": true },
+        { "key": "string_length", "aliases": ["domain_length", "length"], "allowedUnits": ["m"], "positive": true }
+      ],
+      "optionalQuantities": [
+        { "key": "phase", "aliases": ["phi"], "allowedUnits": ["rad"] },
+        { "key": "domain_start", "aliases": ["x_min"], "allowedUnits": ["m"] },
+        { "key": "probe_position", "aliases": ["x_probe"], "allowedUnits": ["m"] },
+        { "key": "spatial_samples", "aliases": ["x_samples"], "allowedUnits": ["1"], "positive": true }
+      ],
+      "adjustableParameters": [
+        { "key": "amplitude", "label": "BiÃƒÂªn Ã„â€˜Ã¡Â»â„¢", "symbol": "A", "unit": "m", "min": 0, "max": 1, "step": 0.001 },
+        { "key": "frequency", "label": "TÃ¡ÂºÂ§n sÃ¡Â»â€˜", "symbol": "f", "unit": "Hz", "min": 0.01, "max": 100, "step": 0.01 },
+        { "key": "wave_speed", "label": "TÃ¡Â»â€˜c Ã„â€˜Ã¡Â»â„¢ truyÃ¡Â»Ân", "symbol": "c", "unit": "m/s", "min": 0.01, "max": 100, "step": 0.01 },
+        { "key": "string_length", "label": "ChiÃ¡Â»Âu dÃƒÂ i dÃƒÂ¢y", "symbol": "L", "unit": "m", "min": 0.1, "max": 100, "step": 0.1 }
+      ],
+      "visualization": {
+        "scene": "standing_wave",
+        "series": [
+          { "key": "displacement", "source": "values.displacement", "label": "Li Ã„â€˜Ã¡Â»â„¢ tÃ¡ÂºÂ¡i probe", "symbol": "u", "unit": "m", "color": "#38bdf8" },
+          { "key": "particleVelocity", "source": "values.particleVelocity", "label": "VÃ¡ÂºÂ­n tÃ¡Â»â€˜c phÃ¡ÂºÂ§n tÃ¡Â»Â­", "symbol": "uÃŒâ€¡", "unit": "m/s", "color": "#34d399" },
+          { "key": "particleAcceleration", "source": "values.particleAcceleration", "label": "Gia tÃ¡Â»â€˜c phÃ¡ÂºÂ§n tÃ¡Â»Â­", "symbol": "uÃŒË†", "unit": "m/sÃ‚Â²", "color": "#fb923c" }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "track.engineering",
+          "wave": { "fieldId": "standingDisplacement", "probeX": 0.5, "displayExaggeration": 1 },
+          "sceneGraph": { "nodes": [
+            { "id": "background", "type": "background", "layer": "static" },
+            { "id": "grid", "type": "grid", "layer": "static" },
+            { "id": "environment", "type": "environment", "layer": "static", "properties": { "environment": "track.engineering", "layout": "horizontalTrack" } },
+            { "id": "wave", "type": "waveField", "layer": "dynamic", "properties": { "field": "standingDisplacement", "probeX": 0.5, "displayExaggeration": 1 } },
+            { "id": "ruler", "type": "ruler", "layer": "static" }
+          ] }
+        }
+      },
+      "execution": { "durationSeconds": 10, "stepSeconds": 0.05, "durationBindings": [] },
+      "validation": { "tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1.0] },
+      "output": { "type": "scalarField", "fieldId": "standingDisplacement", "probeSeries": ["displacement", "particleVelocity", "particleAcceleration"] }
+    }
+  },
+  {
+    "schemaId": "wave_reflection",
+    "model": "wave_reflection",
+    "name": "Reflection of a pulse at a boundary",
+    "topic": "WAVES",
+    "version": "1.0",
+    "solverId": "wave_reflection_solver",
+    "referenceSolverId": "wave_reflection_reference",
+    "definition": {
+      "requiredQuantities": [
+        { "key": "amplitude", "aliases": ["a"], "allowedUnits": ["m"], "nonNegative": true },
+        { "key": "wave_speed", "aliases": ["speed", "c"], "allowedUnits": ["m/s"], "positive": true },
+        { "key": "pulse_width", "aliases": ["width", "sigma"], "allowedUnits": ["m"], "positive": true },
+        { "key": "initial_position", "aliases": ["x0", "pulse_center"], "allowedUnits": ["m"] },
+        { "key": "boundary_position", "aliases": ["boundary", "x_boundary"], "allowedUnits": ["m"], "positive": true }
+      ],
+      "optionalQuantities": [
+        { "key": "domain_start", "aliases": ["x_min"], "allowedUnits": ["m"] },
+        { "key": "probe_position", "aliases": ["x_probe"], "allowedUnits": ["m"] },
+        { "key": "spatial_samples", "aliases": ["x_samples"], "allowedUnits": ["1"], "positive": true }
+      ],
+      "adjustableParameters": [
+        { "key": "amplitude", "label": "Pulse amplitude", "symbol": "A", "unit": "m", "min": 0, "max": 1, "step": 0.001 },
+        { "key": "wave_speed", "label": "Wave speed", "symbol": "c", "unit": "m/s", "min": 0.01, "max": 100, "step": 0.01 },
+        { "key": "boundary_position", "label": "Boundary position", "symbol": "L", "unit": "m", "min": 0.1, "max": 100, "step": 0.1 }
+      ],
+      "visualization": {
+        "scene": "wave_reflection",
+        "series": [
+          { "key": "displacement", "source": "values.displacement", "label": "Displacement at probe", "symbol": "u", "unit": "m", "color": "#38bdf8" },
+          { "key": "particleVelocity", "source": "values.particleVelocity", "label": "Particle velocity", "symbol": "u_dot", "unit": "m/s", "color": "#34d399" },
+          { "key": "particleAcceleration", "source": "values.particleAcceleration", "label": "Particle acceleration", "symbol": "u_ddot", "unit": "m/s2", "color": "#fb923c" }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "track.engineering",
+          "wave": { "fieldId": "reflectionDisplacement", "probeX": 1, "displayExaggeration": 1 },
+          "sceneGraph": { "nodes": [
+            { "id": "background", "type": "background", "layer": "static" },
+            { "id": "grid", "type": "grid", "layer": "static" },
+            { "id": "environment", "type": "environment", "layer": "static", "properties": { "environment": "track.engineering", "layout": "horizontalTrack" } },
+            { "id": "wave", "type": "waveField", "layer": "dynamic", "properties": { "field": "reflectionDisplacement", "probeX": 1, "displayExaggeration": 1 } },
+            { "id": "boundary", "type": "ruler", "layer": "static" }
+          ] }
+        }
+      },
+      "execution": { "durationSeconds": 10, "stepSeconds": 0.05, "durationBindings": [] },
+      "validation": { "tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1.0] },
+      "output": { "type": "scalarField", "fieldId": "reflectionDisplacement", "probeSeries": ["displacement", "particleVelocity", "particleAcceleration"] }
+    }
+  },
+  {
+    "schemaId": "wave_superposition",
+    "model": "wave_superposition",
+    "name": "Superposition of two coherent waves",
+    "topic": "WAVES",
+    "version": "1.0",
+    "solverId": "wave_superposition_solver",
+    "referenceSolverId": "wave_superposition_reference",
+    "definition": {
+      "requiredQuantities": [
+        { "key": "amplitude_1", "aliases": ["a1"], "allowedUnits": ["m"], "nonNegative": true },
+        { "key": "amplitude_2", "aliases": ["a2"], "allowedUnits": ["m"], "nonNegative": true },
+        { "key": "frequency", "aliases": ["f"], "allowedUnits": ["Hz"], "positive": true },
+        { "key": "wave_speed", "aliases": ["speed", "c"], "allowedUnits": ["m/s"], "positive": true }
+      ],
+      "optionalQuantities": [
+        { "key": "phase_1", "aliases": ["phi1"], "allowedUnits": ["rad"] },
+        { "key": "phase_2", "aliases": ["phi2"], "allowedUnits": ["rad"] },
+        { "key": "domain_start", "aliases": ["x_min"], "allowedUnits": ["m"] },
+        { "key": "domain_end", "aliases": ["x_max"], "allowedUnits": ["m"], "positive": true },
+        { "key": "domain_length", "aliases": ["length"], "allowedUnits": ["m"], "positive": true },
+        { "key": "probe_position", "aliases": ["x_probe"], "allowedUnits": ["m"] },
+        { "key": "spatial_samples", "aliases": ["x_samples"], "allowedUnits": ["1"], "positive": true }
+      ],
+      "adjustableParameters": [
+        { "key": "amplitude_1", "label": "Amplitude 1", "symbol": "A1", "unit": "m", "min": 0, "max": 1, "step": 0.001 },
+        { "key": "amplitude_2", "label": "Amplitude 2", "symbol": "A2", "unit": "m", "min": 0, "max": 1, "step": 0.001 },
+        { "key": "phase_1", "label": "Phase 1", "symbol": "phi1", "unit": "rad", "min": -6.2831853072, "max": 6.2831853072, "step": 0.01 },
+        { "key": "phase_2", "label": "Phase 2", "symbol": "phi2", "unit": "rad", "min": -6.2831853072, "max": 6.2831853072, "step": 0.01 }
+      ],
+      "visualization": {
+        "scene": "wave_superposition",
+        "series": [
+          { "key": "displacement", "source": "values.displacement", "label": "Resultant displacement", "symbol": "u", "unit": "m", "color": "#38bdf8" },
+          { "key": "particleVelocity", "source": "values.particleVelocity", "label": "Particle velocity", "symbol": "u_dot", "unit": "m/s", "color": "#34d399" },
+          { "key": "particleAcceleration", "source": "values.particleAcceleration", "label": "Particle acceleration", "symbol": "u_ddot", "unit": "m/s2", "color": "#fb923c" }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "track.engineering",
+          "wave": { "fieldId": "superpositionDisplacement", "probeX": 0, "displayExaggeration": 1 },
+          "sceneGraph": { "nodes": [
+            { "id": "background", "type": "background", "layer": "static" },
+            { "id": "grid", "type": "grid", "layer": "static" },
+            { "id": "environment", "type": "environment", "layer": "static", "properties": { "environment": "track.engineering", "layout": "horizontalTrack" } },
+            { "id": "wave", "type": "waveField", "layer": "dynamic", "properties": { "field": "superpositionDisplacement", "probeX": 0, "displayExaggeration": 1 } },
+            { "id": "ruler", "type": "ruler", "layer": "static" }
+          ] }
+        }
+      },
+      "execution": { "durationSeconds": 10, "stepSeconds": 0.05, "durationBindings": [] },
+      "validation": { "tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1.0] },
+      "output": { "type": "scalarField", "fieldId": "superpositionDisplacement", "probeSeries": ["displacement", "particleVelocity", "particleAcceleration"] }
+    }
+  },
+  {
+    "schemaId": "sound_wave",
+    "model": "sound_wave",
+    "name": "Acoustic pressure wave",
+    "topic": "WAVES",
+    "version": "1.0",
+    "solverId": "sound_wave_solver",
+    "referenceSolverId": "sound_wave_reference",
+    "definition": {
+      "requiredQuantities": [
+        { "key": "pressure_amplitude", "aliases": ["p0", "pressure"], "allowedUnits": ["Pa"], "nonNegative": true },
+        { "key": "frequency", "aliases": ["f"], "allowedUnits": ["Hz"], "positive": true },
+        { "key": "sound_speed", "aliases": ["speed", "c"], "allowedUnits": ["m/s"], "positive": true }
+      ],
+      "optionalQuantities": [
+        { "key": "phase", "aliases": ["phi"], "allowedUnits": ["rad"] },
+        { "key": "domain_start", "aliases": ["x_min"], "allowedUnits": ["m"] },
+        { "key": "domain_end", "aliases": ["x_max"], "allowedUnits": ["m"], "positive": true },
+        { "key": "domain_length", "aliases": ["length"], "allowedUnits": ["m"], "positive": true },
+        { "key": "probe_position", "aliases": ["x_probe"], "allowedUnits": ["m"] },
+        { "key": "spatial_samples", "aliases": ["x_samples"], "allowedUnits": ["1"], "positive": true }
+      ],
+      "adjustableParameters": [
+        { "key": "pressure_amplitude", "label": "Pressure amplitude", "symbol": "P0", "unit": "Pa", "min": 0, "max": 1000, "step": 0.1 },
+        { "key": "frequency", "label": "Frequency", "symbol": "f", "unit": "Hz", "min": 1, "max": 20000, "step": 1 },
+        { "key": "sound_speed", "label": "Sound speed", "symbol": "c", "unit": "m/s", "min": 1, "max": 1000, "step": 1 }
+      ],
+      "visualization": {
+        "scene": "sound_wave",
+        "series": [
+          { "key": "pressure", "source": "values.pressure", "label": "Pressure at probe", "symbol": "p", "unit": "Pa", "color": "#38bdf8" },
+          { "key": "pressureRate", "source": "values.pressureRate", "label": "Pressure rate", "symbol": "p_dot", "unit": "Pa/s", "color": "#34d399" },
+          { "key": "pressureAcceleration", "source": "values.pressureAcceleration", "label": "Pressure acceleration", "symbol": "p_ddot", "unit": "Pa/s2", "color": "#fb923c" }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "room.acoustics",
+          "wave": { "fieldId": "soundPressure", "probeX": 0, "displayExaggeration": 1 },
+          "sceneGraph": { "nodes": [
+            { "id": "background", "type": "background", "layer": "static" },
+            { "id": "grid", "type": "grid", "layer": "static" },
+            { "id": "environment", "type": "environment", "layer": "static", "properties": { "environment": "room.acoustics", "layout": "horizontalTrack" } },
+            { "id": "wave", "type": "waveField", "layer": "dynamic", "properties": { "field": "soundPressure", "probeX": 0, "displayExaggeration": 1 } },
+            { "id": "ruler", "type": "ruler", "layer": "static" }
+          ] }
+        }
+      },
+      "execution": { "durationSeconds": 0.1, "stepSeconds": 0.0005, "durationBindings": [] },
+      "validation": { "tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1.0] },
+      "output": { "type": "scalarField", "fieldId": "soundPressure", "probeSeries": ["pressure", "pressureRate", "pressureAcceleration"] }
+    }
+  },
+  {
+    "schemaId": "ideal_gas_isothermal",
+    "model": "ideal_gas_isothermal",
+    "name": "Isothermal ideal-gas process",
+    "topic": "THERMAL",
+    "version": "1.0",
+    "solverId": "ideal_gas_solver",
+    "referenceSolverId": "ideal_gas_reference",
+    "definition": {
+      "requiredQuantities": [
+        { "key": "amount_of_substance", "aliases": ["amount", "n"], "allowedUnits": ["mol"], "positive": true },
+        { "key": "temperature", "aliases": ["T"], "allowedUnits": ["K"], "positive": true },
+        { "key": "initial_volume", "aliases": ["V0"], "allowedUnits": ["m3"], "positive": true },
+        { "key": "volume_rate", "aliases": ["dV_dt", "rate"], "allowedUnits": ["m3/s"] }
+      ],
+      "optionalQuantities": [
+        { "key": "gas_constant", "aliases": ["R"], "allowedUnits": ["J/(mol*K)"], "positive": true, "defaultValue": 8.314462618 }
+      ],
+      "adjustableParameters": [
+        { "key": "temperature", "label": "Temperature", "symbol": "T", "unit": "K", "min": 1, "max": 2000, "step": 1 },
+        { "key": "initial_volume", "label": "Initial volume", "symbol": "V0", "unit": "m3", "min": 0.0001, "max": 100, "step": 0.001 },
+        { "key": "volume_rate", "label": "Volume rate", "symbol": "dV/dt", "unit": "m3/s", "min": -10, "max": 10, "step": 0.01 }
+      ],
+      "visualization": {
+        "scene": "ideal_gas_isothermal",
+        "series": [
+          { "key": "pressure", "source": "values.pressure", "label": "Pressure", "symbol": "p", "unit": "Pa", "color": "#38bdf8" },
+          { "key": "volume", "source": "values.volume", "label": "Volume", "symbol": "V", "unit": "m3", "color": "#34d399" },
+          { "key": "work", "source": "values.work", "label": "Work", "symbol": "W", "unit": "J", "color": "#fb923c" }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "room.thermodynamics",
+          "sceneGraph": { "nodes": [
+            { "id": "background", "type": "background", "layer": "static" },
+            { "id": "grid", "type": "grid", "layer": "static" },
+            { "id": "environment", "type": "environment", "layer": "static", "properties": { "environment": "room.thermodynamics", "layout": "horizontalTrack" } },
+            { "id": "pressureGraph", "type": "graph", "layer": "dynamic", "properties": { "source": "values.pressure" } },
+            { "id": "volumeGraph", "type": "graph", "layer": "dynamic", "properties": { "source": "values.volume" } },
+            { "id": "ruler", "type": "ruler", "layer": "static" }
+          ] }
+        }
+      },
+      "execution": { "durationSeconds": 1, "stepSeconds": 0.01, "durationBindings": [] },
+      "validation": { "tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1.0] },
+      "output": { "type": "timeseries", "probeSeries": ["volume", "pressure", "temperature", "work"] }
+    }
+  },
+  {
+    "schemaId": "thin_lens_imaging",
+    "model": "thin_lens_imaging",
+    "name": "Paraxial thin-lens imaging",
+    "topic": "OPTICS",
+    "version": "1.0",
+    "solverId": "thin_lens_solver",
+    "referenceSolverId": "thin_lens_reference",
+    "definition": {
+      "requiredQuantities": [
+        { "key": "focal_length", "aliases": ["f"], "allowedUnits": ["m"] },
+        { "key": "object_distance", "aliases": ["d_o", "do"], "allowedUnits": ["m"], "positive": true },
+        { "key": "object_height", "aliases": ["h_o", "ho"], "allowedUnits": ["m"] }
+      ],
+      "adjustableParameters": [
+        { "key": "focal_length", "label": "Focal length", "symbol": "f", "unit": "m", "min": -10, "max": 10, "step": 0.001 },
+        { "key": "object_distance", "label": "Object distance", "symbol": "d_o", "unit": "m", "min": 0.001, "max": 100, "step": 0.001 },
+        { "key": "object_height", "label": "Object height", "symbol": "h_o", "unit": "m", "min": -10, "max": 10, "step": 0.001 }
+      ],
+      "visualization": {
+        "scene": "thin_lens_imaging",
+        "series": [
+          { "key": "imageDistance", "source": "values.imageDistance", "label": "Image distance", "symbol": "d_i", "unit": "m", "color": "#38bdf8" },
+          { "key": "imageHeight", "source": "values.imageHeight", "label": "Image height", "symbol": "h_i", "unit": "m", "color": "#34d399" },
+          { "key": "magnification", "source": "values.magnification", "label": "Magnification", "symbol": "M", "unit": "1", "color": "#fb923c" }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "optical.bench",
+          "sceneGraph": { "nodes": [
+            { "id": "background", "type": "background", "layer": "static" },
+            { "id": "grid", "type": "grid", "layer": "static" },
+            { "id": "environment", "type": "environment", "layer": "static", "properties": { "environment": "optical.bench", "layout": "horizontalTrack" } },
+            { "id": "axis", "type": "line", "layer": "static", "transform": { "x": 0, "y": 0 }, "properties": { "dx": 1, "dy": 0, "label": "optical axis" } },
+            { "id": "imageGraph", "type": "graph", "layer": "dynamic", "properties": { "source": "values.imageDistance" } },
+            { "id": "ruler", "type": "ruler", "layer": "static" }
+          ] }
+        }
+      },
+      "execution": { "durationSeconds": 1, "stepSeconds": 0.1, "durationBindings": [] },
+      "validation": { "tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1.0] },
+      "output": { "type": "timeseries", "probeSeries": ["imageDistance", "imageHeight", "magnification"] }
+    }
+  },
+  {
+    "schemaId": "radioactive_decay",
+    "model": "radioactive_decay",
+    "name": "Radioactive exponential decay",
+    "topic": "MODERN_PHYSICS",
+    "version": "1.0",
+    "solverId": "radioactive_decay_solver",
+    "referenceSolverId": "radioactive_decay_reference",
+    "definition": {
+      "requiredQuantities": [
+        { "key": "initial_count", "aliases": ["N0", "atoms"], "allowedUnits": ["1"], "nonNegative": true },
+        { "key": "decay_constant", "aliases": ["lambda", "lambda_decay"], "allowedUnits": ["1/s"], "nonNegative": true }
+      ],
+      "adjustableParameters": [
+        { "key": "initial_count", "label": "Initial nuclei", "symbol": "N0", "unit": "1", "min": 0, "max": 1000000000, "step": 1 },
+        { "key": "decay_constant", "label": "Decay constant", "symbol": "lambda", "unit": "1/s", "min": 0, "max": 100, "step": 0.000001 }
+      ],
+      "visualization": {
+        "scene": "radioactive_decay",
+        "series": [
+          { "key": "remainingCount", "source": "values.remainingCount", "label": "Remaining nuclei", "symbol": "N", "unit": "1", "color": "#38bdf8" },
+          { "key": "activity", "source": "values.activity", "label": "Activity", "symbol": "A", "unit": "Bq", "color": "#fb923c" }
+        ],
+        "presentation": {
+          "theme": "lab-night",
+          "environment": "lab.radiation",
+          "sceneGraph": { "nodes": [
+            { "id": "background", "type": "background", "layer": "static" },
+            { "id": "grid", "type": "grid", "layer": "static" },
+            { "id": "environment", "type": "environment", "layer": "static", "properties": { "environment": "lab.radiation", "layout": "horizontalTrack" } },
+            { "id": "countGraph", "type": "graph", "layer": "dynamic", "properties": { "source": "values.remainingCount" } },
+            { "id": "ruler", "type": "ruler", "layer": "static" }
+          ] }
+        }
+      },
+      "execution": { "durationSeconds": 10, "stepSeconds": 0.05, "durationBindings": [] },
+      "validation": { "tolerance": 0.000001, "checkpointFractions": [0.25, 0.5, 0.75, 1.0] },
+      "output": { "type": "timeseries", "probeSeries": ["remainingCount", "activity"] }
+    }
+  },
+  {
+    "schemaId": "calorimetry_mixing", "model": "calorimetry_mixing", "name": "Ideal calorimetry mixing", "topic": "THERMAL", "version": "1.0",
+    "solverId": "calorimetry_solver", "referenceSolverId": "calorimetry_reference",
+    "definition": {
+      "requiredQuantities": [
+        {"key":"mass_1","aliases":["m1"],"allowedUnits":["kg"],"positive":true},
+        {"key":"specific_heat_1","aliases":["c1"],"allowedUnits":["J/(kg*K)"],"positive":true},
+        {"key":"initial_temperature_1","aliases":["T1"],"allowedUnits":["K"],"positive":true},
+        {"key":"mass_2","aliases":["m2"],"allowedUnits":["kg"],"positive":true},
+        {"key":"specific_heat_2","aliases":["c2"],"allowedUnits":["J/(kg*K)"],"positive":true},
+        {"key":"initial_temperature_2","aliases":["T2"],"allowedUnits":["K"],"positive":true}
+      ],
+      "adjustableParameters": [{"key":"initial_temperature_1","label":"Initial temperature 1","symbol":"Tâ‚","unit":"K","min":1,"max":2000,"step":1},{"key":"initial_temperature_2","label":"Initial temperature 2","symbol":"Tâ‚‚","unit":"K","min":1,"max":2000,"step":1}],
+      "visualization":{"scene":"calorimetry_mixing","series":[{"key":"temperature1","source":"values.temperature1","label":"Temperature 1","symbol":"Tâ‚","unit":"K","color":"#38bdf8"},{"key":"temperature2","source":"values.temperature2","label":"Temperature 2","symbol":"Tâ‚‚","unit":"K","color":"#fb923c"},{"key":"equilibriumTemperature","source":"values.equilibriumTemperature","label":"Equilibrium","symbol":"T_f","unit":"K","color":"#34d399"}],"presentation":{"theme":"lab-night","environment":"room.thermodynamics","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"environment","type":"environment","layer":"static","properties":{"environment":"room.thermodynamics"}},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.equilibriumTemperature"}}]}}},
+      "execution":{"durationSeconds":1,"stepSeconds":0.05,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["temperature1","temperature2","equilibriumTemperature","heat1","heat2"]}
+    }
+  },
+  {
+    "schemaId": "first_law_thermodynamics", "model": "first_law_thermodynamics", "name": "First law of thermodynamics", "topic": "THERMAL", "version": "1.0",
+    "solverId": "first_law_solver", "referenceSolverId": "first_law_reference",
+    "definition": {"requiredQuantities":[{"key":"initial_internal_energy","aliases":["U0"],"allowedUnits":["J"]},{"key":"heat_added","aliases":["Q"],"allowedUnits":["J"]},{"key":"work_done","aliases":["W"],"allowedUnits":["J"]}],"adjustableParameters":[{"key":"heat_added","label":"Heat added","symbol":"Q","unit":"J","min":-1000000,"max":1000000,"step":1},{"key":"work_done","label":"Work by system","symbol":"W","unit":"J","min":-1000000,"max":1000000,"step":1}],"visualization":{"scene":"first_law_thermodynamics","series":[{"key":"internalEnergy","source":"values.internalEnergy","label":"Internal energy","symbol":"U","unit":"J","color":"#38bdf8"},{"key":"deltaInternalEnergy","source":"values.deltaInternalEnergy","label":"Delta U","symbol":"Î”U","unit":"J","color":"#34d399"}],"presentation":{"theme":"lab-night","environment":"room.thermodynamics","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"environment","type":"environment","layer":"static","properties":{"environment":"room.thermodynamics"}},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.internalEnergy"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["internalEnergy","deltaInternalEnergy","heat","work"]}}
+  },
+  {
+    "schemaId": "snell_refraction", "model": "snell_refraction", "name": "Snell refraction", "topic": "OPTICS", "version": "1.0", "solverId": "refraction_solver", "referenceSolverId": "refraction_reference",
+    "definition":{"requiredQuantities":[{"key":"refractive_index_1","aliases":["n1"],"allowedUnits":["1"],"positive":true},{"key":"refractive_index_2","aliases":["n2"],"allowedUnits":["1"],"positive":true},{"key":"incident_angle","aliases":["theta_i"],"allowedUnits":["rad"],"nonNegative":true}],"adjustableParameters":[{"key":"incident_angle","label":"Incident angle","symbol":"Î¸_i","unit":"rad","min":0,"max":1.570796,"step":0.001}],"visualization":{"scene":"snell_refraction","series":[{"key":"refractedAngle","source":"values.refractedAngle","label":"Refracted angle","symbol":"Î¸_r","unit":"rad","color":"#38bdf8"},{"key":"totalInternalReflection","source":"values.totalInternalReflection","label":"Total internal reflection","symbol":"TIR","unit":"1","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"optical.bench","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"environment","type":"environment","layer":"static","properties":{"environment":"optical.bench"}},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.refractedAngle"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["refractedAngle","totalInternalReflection","reflectedAngle"]}}
+  },
+  {
+    "schemaId": "electromagnetic_induction", "model": "electromagnetic_induction", "name": "Faraday induction", "topic": "ELECTROMAGNETISM", "version": "1.0", "solverId": "induction_solver", "referenceSolverId": "induction_reference",
+    "definition":{"requiredQuantities":[{"key":"turns","aliases":["N"],"allowedUnits":["1"],"positive":true,"integer":true},{"key":"magnetic_field","aliases":["B"],"allowedUnits":["T"]},{"key":"coil_area","aliases":["A"],"allowedUnits":["m2"],"positive":true},{"key":"magnetic_field_rate","aliases":["dB_dt"],"allowedUnits":["T/s"]},{"key":"coil_angle","aliases":["theta"],"allowedUnits":["rad"],"nonNegative":true}],"adjustableParameters":[{"key":"magnetic_field","label":"Signed normal field component","symbol":"B_n","unit":"T","min":-10,"max":10,"step":0.01},{"key":"magnetic_field_rate","label":"Field rate","symbol":"dB/dt","unit":"T/s","min":-10,"max":10,"step":0.01}],"visualization":{"scene":"electromagnetic_induction","series":[{"key":"magneticFlux","source":"values.magneticFlux","label":"Magnetic flux","symbol":"Î¦","unit":"Wb","color":"#38bdf8"},{"key":"inducedEmf","source":"values.inducedEmf","label":"Induced emf","symbol":"Îµ","unit":"V","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"environment","type":"environment","layer":"static","properties":{"environment":"board.circuit"}},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.inducedEmf"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.05,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["magneticField","magneticFlux","inducedEmf"]}}
+  },
+  {
+    "schemaId": "ac_rlc_circuit", "model": "ac_rlc_circuit", "name": "Series AC RLC", "topic": "CIRCUITS", "version": "1.0", "solverId": "ac_rlc_solver", "referenceSolverId": "ac_rlc_reference",
+    "definition":{"requiredQuantities":[{"key":"resistance","aliases":["R"],"allowedUnits":["ohm"],"positive":true},{"key":"inductance","aliases":["L"],"allowedUnits":["H"],"positive":true},{"key":"capacitance","aliases":["C"],"allowedUnits":["F"],"positive":true},{"key":"frequency","aliases":["f"],"allowedUnits":["Hz"],"positive":true},{"key":"rms_voltage","aliases":["Vrms"],"allowedUnits":["V"],"nonNegative":true}],"adjustableParameters":[{"key":"frequency","label":"Frequency","symbol":"f","unit":"Hz","min":0.01,"max":100000,"step":0.01},{"key":"rms_voltage","label":"RMS voltage","symbol":"Váµ£â‚˜â‚›","unit":"V","min":0,"max":10000,"step":0.1}],"visualization":{"scene":"ac_rlc_circuit","series":[{"key":"impedance","source":"values.impedance","label":"Impedance","symbol":"Z","unit":"ohm","color":"#38bdf8"},{"key":"rmsCurrent","source":"values.rmsCurrent","label":"RMS current","symbol":"I","unit":"A","color":"#34d399"},{"key":"powerFactor","source":"values.powerFactor","label":"Power factor","symbol":"cosÏ†","unit":"1","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"environment","type":"environment","layer":"static","properties":{"environment":"board.circuit"}},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.rmsCurrent"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.05,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["impedance","rmsCurrent","powerFactor","realPower","phase"]}}
+  },
+  {
+    "schemaId": "photoelectric_effect", "model": "photoelectric_effect", "name": "Photoelectric effect", "topic": "MODERN_PHYSICS", "version": "1.0", "solverId": "photoelectric_solver", "referenceSolverId": "photoelectric_reference",
+    "definition":{"requiredQuantities":[{"key":"photon_frequency","aliases":["f"],"allowedUnits":["Hz"],"positive":true},{"key":"work_function","aliases":["phi","Î¦"],"allowedUnits":["J"],"nonNegative":true}],"optionalQuantities":[{"key":"electron_charge","aliases":["e"],"allowedUnits":["C"],"positive":true}],"adjustableParameters":[{"key":"photon_frequency","label":"Photon frequency","symbol":"f","unit":"Hz","min":1,"max":1e20,"step":1e12}],"visualization":{"scene":"photoelectric_effect","series":[{"key":"photonEnergy","source":"values.photonEnergy","label":"Photon energy","symbol":"hf","unit":"J","color":"#38bdf8"},{"key":"maximumKineticEnergy","source":"values.maximumKineticEnergy","label":"Maximum kinetic energy","symbol":"Kâ‚˜â‚â‚“","unit":"J","color":"#34d399"},{"key":"stoppingPotential","source":"values.stoppingPotential","label":"Stopping potential","symbol":"Vâ‚€","unit":"V","color":"#fb923c"},{"key":"emissionOccurs","source":"values.emissionOccurs","label":"Emission occurs","symbol":"emission","unit":"1","color":"#facc15"}],"presentation":{"theme":"lab-night","environment":"lab.radiation","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"environment","type":"environment","layer":"static","properties":{"environment":"lab.radiation"}},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.maximumKineticEnergy"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["photonEnergy","maximumKineticEnergy","stoppingPotential","wavelength","emissionOccurs"]}}
+  },
+  {
+    "schemaId": "nuclear_energy", "model": "nuclear_energy", "name": "Mass defect and nuclear energy", "topic": "MODERN_PHYSICS", "version": "1.0", "solverId": "nuclear_energy_solver", "referenceSolverId": "nuclear_energy_reference",
+    "definition":{"requiredQuantities":[{"key":"mass_defect","aliases":["delta_m","Î”m"],"allowedUnits":["kg"],"nonNegative":true}],"optionalQuantities":[{"key":"reaction_count","aliases":["N"],"allowedUnits":["1"],"positive":true}],"adjustableParameters":[{"key":"mass_defect","label":"Mass defect","symbol":"Î”m","unit":"kg","min":0,"max":1,"step":1e-12}],"visualization":{"scene":"nuclear_energy","series":[{"key":"releasedEnergy","source":"values.releasedEnergy","label":"Released energy","symbol":"E","unit":"J","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"lab.radiation","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"environment","type":"environment","layer":"static","properties":{"environment":"lab.radiation"}},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.releasedEnergy"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["releasedEnergy","massDefect"]}}
+  },
+  {
+    "schemaId":"point_charge_field","model":"point_charge_field","name":"Point-charge electric field","topic":"ELECTROMAGNETISM","version":"1.0","solverId":"electric_field_solver","referenceSolverId":"electric_field_reference",
+    "definition":{"requiredQuantities":[{"key":"charge","aliases":["q"],"allowedUnits":["C"]},{"key":"distance","aliases":["r"],"allowedUnits":["m"],"positive":true}],"adjustableParameters":[{"key":"distance","label":"Probe distance","symbol":"r","unit":"m","min":0.001,"max":100,"step":0.001}],"visualization":{"scene":"point_charge_field","series":[{"key":"electricField","source":"values.electricField","label":"Electric field","symbol":"E","unit":"N/C","color":"#38bdf8"},{"key":"electricPotential","source":"values.electricPotential","label":"Electric potential","symbol":"V","unit":"V","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"environment","type":"environment","layer":"static","properties":{"environment":"board.circuit"}},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.electricField"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["electricField","electricPotential"]}}
+  },
+  {
+    "schemaId":"magnetic_force","model":"magnetic_force","name":"Magnetic force on charge","topic":"ELECTROMAGNETISM","version":"1.0","solverId":"magnetic_force_solver","referenceSolverId":"magnetic_force_reference",
+    "definition":{"requiredQuantities":[{"key":"charge","aliases":["q"],"allowedUnits":["C"]},{"key":"speed","aliases":["v"],"allowedUnits":["m/s"],"nonNegative":true},{"key":"magnetic_field","aliases":["B"],"allowedUnits":["T"],"nonNegative":true},{"key":"velocity_field_angle","aliases":["theta"],"allowedUnits":["rad"],"nonNegative":true}],"adjustableParameters":[{"key":"speed","label":"Charge speed","symbol":"v","unit":"m/s","min":0,"max":100000,"step":1},{"key":"velocity_field_angle","label":"Field angle","symbol":"Î¸","unit":"rad","min":0,"max":3.141593,"step":0.001}],"visualization":{"scene":"magnetic_force","series":[{"key":"magneticForce","source":"values.magneticForce","label":"Magnetic force","symbol":"F","unit":"N","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"environment","type":"environment","layer":"static","properties":{"environment":"board.circuit"}},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.magneticForce"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["magneticForce"]}}
+  },
+  {
+    "schemaId":"measurement_uncertainty","model":"measurement_uncertainty","name":"Measurement uncertainty","topic":"PRACTICAL_AND_DATA","version":"1.0","solverId":"measurement_uncertainty_solver","referenceSolverId":"measurement_uncertainty_reference",
+    "definition":{"requiredQuantities":[{"key":"measured_value","aliases":["x"],"allowedUnits":["1","m","s","kg","K","V","A"]},{"key":"absolute_uncertainty","aliases":["delta_x","uncertainty"],"allowedUnits":["1","m","s","kg","K","V","A"],"nonNegative":true,"sameUnitAs":"measured_value"}],"adjustableParameters":[{"key":"measured_value","label":"Measured value","symbol":"x","unit":"1","min":-1000000,"max":1000000,"step":0.01},{"key":"absolute_uncertainty","label":"Absolute uncertainty","symbol":"Î”x","unit":"1","min":0,"max":1000000,"step":0.01}],"visualization":{"scene":"measurement_uncertainty","series":[{"key":"measuredValue","source":"values.measuredValue","label":"Measured value","symbol":"x","unit":"1","color":"#38bdf8"},{"key":"lowerBound","source":"values.lowerBound","label":"Lower bound","symbol":"x-Î”x","unit":"1","color":"#fb923c"},{"key":"upperBound","source":"values.upperBound","label":"Upper bound","symbol":"x+Î”x","unit":"1","color":"#34d399"}],"presentation":{"theme":"lab-night","environment":"lab.measurement","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"grid","type":"grid","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.measuredValue"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["measuredValue","absoluteUncertainty","relativeUncertainty","relativeUncertaintyDefined","lowerBound","upperBound"]}}
+  },
+  {
+    "schemaId":"temperature_scales","model":"temperature_scales","name":"Temperature scales","topic":"THERMAL","version":"1.0","solverId":"temperature_scale_solver","referenceSolverId":"temperature_scale_reference",
+    "definition":{"requiredQuantities":[{"key":"temperature_celsius","aliases":["celsius","Â°C"],"allowedUnits":["degC"]}],"adjustableParameters":[{"key":"temperature_celsius","label":"Celsius value","symbol":"Â°C","unit":"degC","min":-273.15,"max":5000,"step":1}],"visualization":{"scene":"temperature_scales","series":[{"key":"kelvin","source":"values.kelvin","label":"Kelvin","symbol":"T","unit":"K","color":"#38bdf8"},{"key":"fahrenheit","source":"values.fahrenheit","label":"Fahrenheit","symbol":"Â°F","unit":"1","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"room.thermodynamics","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.kelvin"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["celsius","kelvin","fahrenheit"]}}
+  },
+  {
+    "schemaId":"thermal_expansion","model":"thermal_expansion","name":"Linear thermal expansion","topic":"THERMAL","version":"1.0","solverId":"thermal_expansion_solver","referenceSolverId":"thermal_expansion_reference",
+    "definition":{"requiredQuantities":[{"key":"initial_length","aliases":["L0"],"allowedUnits":["m"],"positive":true},{"key":"linear_expansion_coefficient","aliases":["alpha","Î±"],"allowedUnits":["1/K"],"nonNegative":true},{"key":"initial_temperature","aliases":["T0"],"allowedUnits":["K"]},{"key":"final_temperature","aliases":["T1"],"allowedUnits":["K"]}],"adjustableParameters":[{"key":"final_temperature","label":"Final temperature","symbol":"Tâ‚","unit":"K","min":1,"max":3000,"step":1}],"visualization":{"scene":"thermal_expansion","series":[{"key":"extension","source":"values.extension","label":"Extension","symbol":"Î”L","unit":"m","color":"#fb923c"},{"key":"finalLength","source":"values.finalLength","label":"Final length","symbol":"L","unit":"m","color":"#38bdf8"}],"presentation":{"theme":"lab-night","environment":"room.thermodynamics","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.finalLength"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["deltaTemperature","extension","finalLength"]}}
+  },
+  {
+    "schemaId":"ohms_law","model":"ohms_law","name":"Ohm's law","topic":"CIRCUITS","version":"1.0","solverId":"ohms_law_solver","referenceSolverId":"ohms_law_reference",
+    "definition":{"requiredQuantities":[{"key":"voltage","aliases":["V"],"allowedUnits":["V"]},{"key":"resistance","aliases":["R"],"allowedUnits":["ohm"],"positive":true}],"adjustableParameters":[{"key":"voltage","label":"Voltage","symbol":"V","unit":"V","min":-1000,"max":1000,"step":1}],"visualization":{"scene":"ohms_law","series":[{"key":"current","source":"values.current","label":"Current","symbol":"I","unit":"A","color":"#38bdf8"},{"key":"power","source":"values.power","label":"Power","symbol":"P","unit":"W","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.current"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["voltage","resistance","current","power"]}}
+  },
+  {
+    "schemaId":"resistors_series","model":"resistors_series","name":"Series resistors","topic":"CIRCUITS","version":"1.0","solverId":"resistor_network_solver","referenceSolverId":"resistor_network_reference",
+    "definition":{"requiredQuantities":[{"key":"voltage","aliases":["V"],"allowedUnits":["V"]},{"key":"resistance_1","aliases":["R1"],"allowedUnits":["ohm"],"positive":true},{"key":"resistance_2","aliases":["R2"],"allowedUnits":["ohm"],"positive":true}],"adjustableParameters":[{"key":"voltage","label":"Source voltage","symbol":"V","unit":"V","min":0,"max":1000,"step":1}],"visualization":{"scene":"resistors_series","series":[{"key":"equivalentResistance","source":"values.equivalentResistance","label":"Equivalent resistance","symbol":"R_eq","unit":"ohm","color":"#38bdf8"},{"key":"totalCurrent","source":"values.totalCurrent","label":"Current","symbol":"I","unit":"A","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.totalCurrent"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["equivalentResistance","totalCurrent","branchCurrent1","branchCurrent2"]}}
+  },
+  {
+    "schemaId":"resistors_parallel","model":"resistors_parallel","name":"Parallel resistors","topic":"CIRCUITS","version":"1.0","solverId":"resistor_network_solver","referenceSolverId":"resistor_network_reference",
+    "definition":{"requiredQuantities":[{"key":"voltage","aliases":["V"],"allowedUnits":["V"]},{"key":"resistance_1","aliases":["R1"],"allowedUnits":["ohm"],"positive":true},{"key":"resistance_2","aliases":["R2"],"allowedUnits":["ohm"],"positive":true}],"adjustableParameters":[{"key":"voltage","label":"Source voltage","symbol":"V","unit":"V","min":0,"max":1000,"step":1}],"visualization":{"scene":"resistors_parallel","series":[{"key":"equivalentResistance","source":"values.equivalentResistance","label":"Equivalent resistance","symbol":"R_eq","unit":"ohm","color":"#38bdf8"},{"key":"branchCurrent1","source":"values.branchCurrent1","label":"Branch current 1","symbol":"Iâ‚","unit":"A","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.equivalentResistance"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["equivalentResistance","totalCurrent","branchCurrent1","branchCurrent2"]}}
+  },
+  {
+    "schemaId":"capacitor_basic","model":"capacitor_basic","name":"Capacitor charge and energy","topic":"CIRCUITS","version":"1.0","solverId":"capacitor_solver","referenceSolverId":"capacitor_reference",
+    "definition":{"requiredQuantities":[{"key":"capacitance","aliases":["C"],"allowedUnits":["F"],"positive":true},{"key":"voltage","aliases":["V"],"allowedUnits":["V"]}],"adjustableParameters":[{"key":"voltage","label":"Voltage","symbol":"V","unit":"V","min":-1000,"max":1000,"step":1}],"visualization":{"scene":"capacitor_basic","series":[{"key":"charge","source":"values.charge","label":"Charge","symbol":"Q","unit":"C","color":"#38bdf8"},{"key":"energy","source":"values.energy","label":"Stored energy","symbol":"U","unit":"J","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.energy"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["charge","energy","voltage"]}}
+  },
+  {
+    "schemaId":"ac_waveform","model":"ac_waveform","name":"Sinusoidal AC waveform","topic":"CIRCUITS","version":"1.0","solverId":"ac_waveform_solver","referenceSolverId":"ac_waveform_reference",
+    "definition":{"requiredQuantities":[{"key":"peak_voltage","aliases":["V0"],"allowedUnits":["V"],"nonNegative":true},{"key":"frequency","aliases":["f"],"allowedUnits":["Hz"],"positive":true}],"optionalQuantities":[{"key":"phase","aliases":["phi"],"allowedUnits":["rad"],"defaultValue":0}],"adjustableParameters":[{"key":"frequency","label":"Frequency","symbol":"f","unit":"Hz","min":0.01,"max":100000,"step":0.01}],"visualization":{"scene":"ac_waveform","series":[{"key":"voltage","source":"values.voltage","label":"Instantaneous voltage","symbol":"u(t)","unit":"V","color":"#38bdf8"},{"key":"rmsVoltage","source":"values.rmsVoltage","label":"RMS voltage","symbol":"U","unit":"V","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.voltage"}}]}}},"execution":{"durationSeconds":0.1,"stepSeconds":0.0005,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["voltage","rmsVoltage"]}}
+  },
+  {
+    "schemaId":"ideal_transformer","model":"ideal_transformer","name":"Ideal transformer","topic":"CIRCUITS","version":"1.0","solverId":"transformer_solver","referenceSolverId":"transformer_reference",
+    "definition":{"requiredQuantities":[{"key":"primary_turns","aliases":["Np"],"allowedUnits":["1"],"positive":true,"integer":true},{"key":"secondary_turns","aliases":["Ns"],"allowedUnits":["1"],"positive":true,"integer":true},{"key":"primary_voltage","aliases":["Vp"],"allowedUnits":["V"]},{"key":"secondary_current","aliases":["Is"],"allowedUnits":["A"]}],"adjustableParameters":[{"key":"secondary_turns","label":"Secondary turns","symbol":"N_s","unit":"1","min":1,"max":10000,"step":1}],"visualization":{"scene":"ideal_transformer","series":[{"key":"secondaryVoltage","source":"values.secondaryVoltage","label":"Secondary voltage","symbol":"V_s","unit":"V","color":"#38bdf8"},{"key":"primaryCurrent","source":"values.primaryCurrent","label":"Primary current","symbol":"I_p","unit":"A","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"board.circuit","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.secondaryVoltage"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["turnsRatio","secondaryVoltage","primaryCurrent"]}}
+  },
+  {
+    "schemaId":"light_interference","model":"light_interference","name":"Two-source light interference","topic":"OPTICS","version":"1.0","solverId":"light_interference_solver","referenceSolverId":"light_interference_reference",
+    "definition":{"requiredQuantities":[{"key":"wavelength","aliases":["lambda"],"allowedUnits":["m"],"positive":true},{"key":"path_difference","aliases":["delta"],"allowedUnits":["m"]},{"key":"reference_intensity","aliases":["I0"],"allowedUnits":["W/m2"],"nonNegative":true}],"adjustableParameters":[{"key":"path_difference","label":"Path difference","symbol":"Î”","unit":"m","min":-1,"max":1,"step":0.0001}],"visualization":{"scene":"light_interference","series":[{"key":"intensity","source":"values.intensity","label":"Intensity","symbol":"I","unit":"W/m2","color":"#38bdf8"}],"presentation":{"theme":"lab-night","environment":"optical.bench","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.intensity"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["phaseDifference","intensity"]}}
+  },
+  {
+    "schemaId":"diffraction_polarization","model":"diffraction_polarization","name":"Diffraction and polarization","topic":"OPTICS","version":"1.0","solverId":"diffraction_solver","referenceSolverId":"diffraction_reference",
+    "definition":{"requiredQuantities":[{"key":"wavelength","aliases":["lambda"],"allowedUnits":["m"],"positive":true},{"key":"slit_width","aliases":["a"],"allowedUnits":["m"],"positive":true},{"key":"diffraction_order","aliases":["m"],"allowedUnits":["1"],"nonNegative":true,"integer":true},{"key":"input_intensity","aliases":["I0"],"allowedUnits":["W/m2"],"nonNegative":true},{"key":"analyzer_angle","aliases":["theta"],"allowedUnits":["rad"]}],"adjustableParameters":[{"key":"analyzer_angle","label":"Analyzer angle","symbol":"Î¸","unit":"rad","min":0,"max":3.141593,"step":0.001}],"visualization":{"scene":"diffraction_polarization","series":[{"key":"diffractionAngle","source":"values.diffractionAngle","label":"Diffraction angle","symbol":"Î¸_m","unit":"rad","color":"#38bdf8"},{"key":"transmittedIntensity","source":"values.transmittedIntensity","label":"Polarized intensity","symbol":"I","unit":"W/m2","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"optical.bench","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.transmittedIntensity"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["diffractionAngle","minimumExists","transmittedIntensity"]}}
+  },
+  {
+    "schemaId":"atomic_spectra","model":"atomic_spectra","name":"Hydrogen atomic spectrum","topic":"MODERN_PHYSICS","version":"1.0","solverId":"hydrogen_spectrum_solver","referenceSolverId":"hydrogen_spectrum_reference",
+    "definition":{"requiredQuantities":[{"key":"initial_level","aliases":["ni"],"allowedUnits":["1"],"positive":true,"integer":true},{"key":"final_level","aliases":["nf"],"allowedUnits":["1"],"positive":true,"integer":true}],"adjustableParameters":[{"key":"initial_level","label":"Initial level","symbol":"n_i","unit":"1","min":2,"max":20,"step":1}],"visualization":{"scene":"atomic_spectra","series":[{"key":"wavelength","source":"values.wavelength","label":"Wavelength","symbol":"Î»","unit":"m","color":"#38bdf8"},{"key":"photonEnergy","source":"values.photonEnergy","label":"Photon energy","symbol":"E","unit":"J","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"lab.radiation","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.wavelength"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["wavelength","frequency","photonEnergy"]}}
+  },
+  {
+    "schemaId":"radiation_safety","model":"radiation_safety","name":"Inverse-square radiation safety","topic":"MODERN_PHYSICS","version":"1.0","solverId":"radiation_safety_solver","referenceSolverId":"radiation_safety_reference",
+    "definition":{"requiredQuantities":[{"key":"reference_dose_rate","aliases":["D0"],"allowedUnits":["Gy/s"],"nonNegative":true},{"key":"reference_distance","aliases":["r0"],"allowedUnits":["m"],"positive":true},{"key":"distance","aliases":["r"],"allowedUnits":["m"],"positive":true}],"adjustableParameters":[{"key":"distance","label":"Distance from source","symbol":"r","unit":"m","min":0.001,"max":1000,"step":0.001}],"visualization":{"scene":"radiation_safety","series":[{"key":"doseRate","source":"values.doseRate","label":"Dose rate","symbol":"DÌ‡","unit":"Gy/s","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"lab.radiation","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.doseRate"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["doseRate"]}}
+  },
+  {
+    "schemaId":"adiabatic_gas","model":"adiabatic_gas","name":"Reversible adiabatic gas process","topic":"THERMAL","version":"1.0","solverId":"adiabatic_gas_solver","referenceSolverId":"adiabatic_gas_reference",
+    "definition":{"requiredQuantities":[{"key":"initial_pressure","aliases":["P1"],"allowedUnits":["Pa"],"positive":true},{"key":"initial_volume","aliases":["V1"],"allowedUnits":["m3"],"positive":true},{"key":"final_volume","aliases":["V2"],"allowedUnits":["m3"],"positive":true},{"key":"initial_temperature","aliases":["T1"],"allowedUnits":["K"],"positive":true},{"key":"heat_capacity_ratio","aliases":["gamma","Î³"],"allowedUnits":["1"],"positive":true}],"adjustableParameters":[{"key":"final_volume","label":"Final volume","symbol":"Vâ‚‚","unit":"m3","min":0.0001,"max":100,"step":0.001}],"visualization":{"scene":"adiabatic_gas","series":[{"key":"finalPressure","source":"values.finalPressure","label":"Final pressure","symbol":"Pâ‚‚","unit":"Pa","color":"#38bdf8"},{"key":"finalTemperature","source":"values.finalTemperature","label":"Final temperature","symbol":"Tâ‚‚","unit":"K","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"room.thermodynamics","sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"graph","type":"graph","layer":"dynamic","properties":{"source":"values.finalPressure"}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["initialPressure","finalPressure","finalTemperature","work"]}}
+  },
+  {"schemaId":"simple_magnifier","model":"simple_magnifier","name":"Simple magnifier","topic":"OPTICS","version":"1.1","solverId":"optical_instrument_solver","referenceSolverId":"optical_instrument_reference","definition":{"requiredQuantities":[{"key":"focal_length","aliases":["f"],"allowedUnits":["m"],"positive":true},{"key":"object_distance","aliases":["d_o"],"allowedUnits":["m"],"positive":true},{"key":"near_point","aliases":["D"],"allowedUnits":["m"],"positive":true}],"adjustableParameters":[{"key":"object_distance","label":"Object distance","symbol":"d_o","unit":"m","min":0.000001,"max":0.1,"step":0.0001}],"visualization":{"scene":"simple_magnifier","series":[{"key":"virtualImageDistance","source":"values.virtualImageDistance","label":"Virtual image distance","symbol":"d_i","unit":"m","color":"#38bdf8"},{"key":"nearPointAngularMagnification","source":"values.nearPointAngularMagnification","label":"Angular magnification","symbol":"M","unit":"1","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"optical.bench","sceneGraph":{"nodes":[{"id":"magnifier-diagram","type":"vectorScene","layer":"dynamic","properties":{"vector":{"viewBox":[0,0,100,60],"shapes":[{"kind":"path","stroke":"#64748b","lineWidth":0.4,"commands":[{"op":"M","args":[5,30]},{"op":"L","args":[95,30]}]},{"kind":"ellipse","x":50,"y":30,"radiusX":2,"radiusY":23,"fill":"#38bdf8","stroke":"#e0f2fe","lineWidth":0.5},{"kind":"path","stroke":"#fbbf24","lineWidth":0.8,"commands":[{"op":"M","args":[25,30]},{"op":"L","args":[25,12]},{"op":"L","args":[22,17]},{"op":"M","args":[25,12]},{"op":"L","args":[28,17]}]},{"kind":"path","stroke":"#fb7185","lineWidth":0.5,"commands":[{"op":"M","args":[25,12]},{"op":"L","args":[50,12]},{"op":"L","args":[88,24]},{"op":"M","args":[25,12]},{"op":"L","args":[50,30]},{"op":"L","args":[88,48]}]},{"kind":"text","x":5,"y":8,"fontSize":4,"fill":"#f8fafc","text":"M = {value}","value":"values.nearPointAngularMagnification"}]}}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["virtualImageDistance","linearMagnification","relaxedAngularMagnification","nearPointAngularMagnification"]}}},
+  {"schemaId":"compound_microscope","model":"compound_microscope","name":"Compound microscope","topic":"OPTICS","version":"1.1","solverId":"optical_instrument_solver","referenceSolverId":"optical_instrument_reference","definition":{"requiredQuantities":[{"key":"objective_focal_length","aliases":["f_o"],"allowedUnits":["m"],"positive":true},{"key":"eyepiece_focal_length","aliases":["f_e"],"allowedUnits":["m"],"positive":true},{"key":"tube_length","aliases":["L"],"allowedUnits":["m"],"positive":true},{"key":"near_point","aliases":["D"],"allowedUnits":["m"],"positive":true}],"adjustableParameters":[{"key":"tube_length","label":"Tube length","symbol":"L","unit":"m","min":0.001,"max":1,"step":0.001}],"visualization":{"scene":"compound_microscope","series":[{"key":"objectiveMagnification","source":"values.objectiveMagnification","label":"Objective magnification","symbol":"m_o","unit":"1","color":"#38bdf8"},{"key":"nearPointAngularMagnification","source":"values.nearPointAngularMagnification","label":"Total magnification","symbol":"M","unit":"1","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"optical.bench","sceneGraph":{"nodes":[{"id":"microscope-diagram","type":"vectorScene","layer":"dynamic","properties":{"vector":{"viewBox":[0,0,120,60],"shapes":[{"kind":"path","stroke":"#64748b","lineWidth":0.4,"commands":[{"op":"M","args":[4,30]},{"op":"L","args":[116,30]}]},{"kind":"ellipse","x":35,"y":30,"radiusX":2,"radiusY":22,"fill":"#38bdf8","stroke":"#e0f2fe","lineWidth":0.5},{"kind":"ellipse","x":88,"y":30,"radiusX":2,"radiusY":22,"fill":"#a78bfa","stroke":"#ede9fe","lineWidth":0.5},{"kind":"path","stroke":"#fbbf24","lineWidth":0.8,"commands":[{"op":"M","args":[15,30]},{"op":"L","args":[15,14]},{"op":"L","args":[12,19]},{"op":"M","args":[15,14]},{"op":"L","args":[18,19]}]},{"kind":"path","stroke":"#fb7185","lineWidth":0.5,"commands":[{"op":"M","args":[15,14]},{"op":"L","args":[35,14]},{"op":"L","args":[72,43]},{"op":"L","args":[88,30]},{"op":"L","args":[114,18]},{"op":"M","args":[15,14]},{"op":"L","args":[35,30]},{"op":"L","args":[72,43]}]},{"kind":"text","x":4,"y":7,"fontSize":4,"fill":"#f8fafc","text":"M = {value}","value":"values.nearPointAngularMagnification"}]}}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["objectiveMagnification","relaxedAngularMagnification","nearPointAngularMagnification"]}}},
+  {"schemaId":"astronomical_telescope","model":"astronomical_telescope","name":"Astronomical telescope","topic":"OPTICS","version":"1.1","solverId":"optical_instrument_solver","referenceSolverId":"optical_instrument_reference","definition":{"requiredQuantities":[{"key":"objective_focal_length","aliases":["f_o"],"allowedUnits":["m"],"positive":true},{"key":"eyepiece_focal_length","aliases":["f_e"],"allowedUnits":["m"],"positive":true}],"adjustableParameters":[{"key":"eyepiece_focal_length","label":"Eyepiece focal length","symbol":"f_e","unit":"m","min":0.0001,"max":1,"step":0.0001}],"visualization":{"scene":"astronomical_telescope","series":[{"key":"angularMagnification","source":"values.angularMagnification","label":"Angular magnification","symbol":"M","unit":"1","color":"#38bdf8"},{"key":"normalAdjustmentLength","source":"values.normalAdjustmentLength","label":"Normal adjustment length","symbol":"L","unit":"m","color":"#fb923c"}],"presentation":{"theme":"lab-night","environment":"optical.bench","sceneGraph":{"nodes":[{"id":"telescope-diagram","type":"vectorScene","layer":"dynamic","properties":{"vector":{"viewBox":[0,0,120,60],"shapes":[{"kind":"path","stroke":"#64748b","lineWidth":0.4,"commands":[{"op":"M","args":[4,30]},{"op":"L","args":[116,30]}]},{"kind":"ellipse","x":30,"y":30,"radiusX":2,"radiusY":24,"fill":"#38bdf8","stroke":"#e0f2fe","lineWidth":0.5},{"kind":"ellipse","x":90,"y":30,"radiusX":2,"radiusY":17,"fill":"#a78bfa","stroke":"#ede9fe","lineWidth":0.5},{"kind":"path","stroke":"#fb7185","lineWidth":0.5,"commands":[{"op":"M","args":[4,12]},{"op":"L","args":[30,12]},{"op":"L","args":[76,30]},{"op":"L","args":[90,24]},{"op":"L","args":[116,12]},{"op":"M","args":[4,48]},{"op":"L","args":[30,48]},{"op":"L","args":[76,30]},{"op":"L","args":[90,36]},{"op":"L","args":[116,48]}]},{"kind":"text","x":4,"y":7,"fontSize":4,"fill":"#f8fafc","text":"M = {value}","value":"values.angularMagnification"}]}}}]}}},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["angularMagnification","signedAngularMagnification","normalAdjustmentLength"]}}}
+  ,{"schemaId":"water_surface_interference","model":"water_surface_interference","name":"Two-source water-surface interference","topic":"WAVES","version":"1.0","solverId":"water_surface_interference_solver","referenceSolverId":"water_surface_interference_reference","definition":{"requiredQuantities":[{"key":"wavelength","aliases":["lambda"],"allowedUnits":["m"],"positive":true},{"key":"wave_speed","aliases":["v"],"allowedUnits":["m/s"],"positive":true},{"key":"source_separation","aliases":["d"],"allowedUnits":["m"],"positive":true},{"key":"amplitude","aliases":["A"],"allowedUnits":["m"],"nonNegative":true},{"key":"domain_size","aliases":["L"],"allowedUnits":["m"],"positive":true},{"key":"spatial_samples","aliases":["N"],"allowedUnits":["1"],"positive":true,"integer":true}],"adjustableParameters":[{"key":"source_separation","label":"Source separation","symbol":"d","unit":"m","min":0.0001,"max":10,"step":0.0001}],"visualization":{"scene":"water_surface_interference","series":[{"key":"surface","source":"scalarFields.waterSurface","label":"Water-surface displacement","symbol":"u(x,y,t)","unit":"m","color":"#38bdf8"}],"presentation":{"theme":"lab-night","environment":"wave.tank","wave":{"fieldId":"waterSurface","displayExaggeration":1},"sceneGraph":{"nodes":[{"id":"background","type":"background","layer":"static"},{"id":"waveField","type":"waveField","layer":"dynamic","properties":{"field":"waterSurface"}}]}}},"execution":{"durationSeconds":2,"stepSeconds":0.05,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"scalarField","probeSeries":["centerHeight"]}}}
+,
+{"schemaId":"work_energy_power","model":"work_energy_power","name":"Work, energy and power","topic":"DYNAMICS","version":"1.0","solverId":"mechanics_foundation_solver","referenceSolverId":"mechanics_foundation_reference","definition":{"requiredQuantities":[{"key":"mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"initial_speed","aliases":["v0"],"allowedUnits":["m/s"],"nonNegative":true},{"key":"final_speed","aliases":["v1"],"allowedUnits":["m/s"],"nonNegative":true},{"key":"force","aliases":["F"],"allowedUnits":["N"],"nonNegative":true},{"key":"displacement","aliases":["s"],"allowedUnits":["m"],"nonNegative":true},{"key":"force_angle","aliases":["theta"],"allowedUnits":["rad"]},{"key":"duration","aliases":["t"],"allowedUnits":["s"],"positive":true}],"adjustableParameters":[{"key":"force","label":"Force","symbol":"F","unit":"N","min":0,"max":10000,"step":1}],"visualization":{"scene":"work_energy_power","series":[{"key":"workByForce","source":"values.workByForce","label":"Work","symbol":"W","unit":"J","color":"#38bdf8"},{"key":"averagePower","source":"values.averagePower","label":"Average power","symbol":"P","unit":"W","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["workByForce","initialKineticEnergy","finalKineticEnergy","deltaKineticEnergy","averagePower"]}}},
+{"schemaId":"circular_motion","model":"circular_motion","name":"Uniform circular motion","topic":"DYNAMICS","version":"1.0","solverId":"mechanics_foundation_solver","referenceSolverId":"mechanics_foundation_reference","definition":{"requiredQuantities":[{"key":"mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"radius","aliases":["r"],"allowedUnits":["m"],"positive":true},{"key":"speed","aliases":["v"],"allowedUnits":["m/s"],"positive":true}],"adjustableParameters":[{"key":"speed","label":"Speed","symbol":"v","unit":"m/s","min":0.000001,"max":1000,"step":0.1}],"visualization":{"scene":"circular_motion","series":[{"key":"centripetalAcceleration","source":"values.centripetalAcceleration","label":"Centripetal acceleration","symbol":"a_c","unit":"m/s2","color":"#38bdf8"},{"key":"centripetalForce","source":"values.centripetalForce","label":"Centripetal force","symbol":"F_c","unit":"N","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["angularSpeed","period","frequency","centripetalAcceleration","centripetalForce"]}}},
+{"schemaId":"hooke_law","model":"hooke_law","name":"Hooke law and elastic energy","topic":"DYNAMICS","version":"1.0","solverId":"mechanics_foundation_solver","referenceSolverId":"mechanics_foundation_reference","definition":{"requiredQuantities":[{"key":"spring_constant","aliases":["k"],"allowedUnits":["N/m"],"positive":true},{"key":"displacement","aliases":["x"],"allowedUnits":["m"]}],"adjustableParameters":[{"key":"displacement","label":"Displacement","symbol":"x","unit":"m","min":-1,"max":1,"step":0.001}],"visualization":{"scene":"hooke_law","series":[{"key":"restoringForce","source":"values.restoringForce","label":"Restoring force","symbol":"F","unit":"N","color":"#38bdf8"},{"key":"elasticPotentialEnergy","source":"values.elasticPotentialEnergy","label":"Elastic potential energy","symbol":"U","unit":"J","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["restoringForce","elasticPotentialEnergy"]}}},
+{"schemaId":"gravity_orbit","model":"gravity_orbit","name":"Gravity field and circular orbit","topic":"DYNAMICS","version":"1.0","solverId":"mechanics_foundation_solver","referenceSolverId":"mechanics_foundation_reference","definition":{"requiredQuantities":[{"key":"central_mass","aliases":["M"],"allowedUnits":["kg"],"positive":true},{"key":"satellite_mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"orbit_radius","aliases":["r"],"allowedUnits":["m"],"positive":true}],"adjustableParameters":[{"key":"orbit_radius","label":"Orbit radius","symbol":"r","unit":"m","min":1,"max":1e12,"step":1}],"visualization":{"scene":"gravity_orbit","series":[{"key":"gravitationalField","source":"values.gravitationalField","label":"Gravitational field","symbol":"g","unit":"m/s2","color":"#38bdf8"},{"key":"orbitalSpeed","source":"values.orbitalSpeed","label":"Orbital speed","symbol":"v","unit":"m/s","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["gravitationalForce","gravitationalField","orbitalSpeed","orbitalPeriod"]}}},
+{"schemaId":"hydrostatics","model":"hydrostatics","name":"Hydrostatic pressure and buoyancy","topic":"DYNAMICS","version":"1.0","solverId":"mechanics_foundation_solver","referenceSolverId":"mechanics_foundation_reference","definition":{"requiredQuantities":[{"key":"fluid_density","aliases":["rho"],"allowedUnits":["kg/m3"],"positive":true},{"key":"depth","aliases":["h"],"allowedUnits":["m"],"nonNegative":true},{"key":"displaced_volume","aliases":["V"],"allowedUnits":["m3"],"nonNegative":true}],"optionalQuantities":[{"key":"gravitational_acceleration","aliases":["g"],"allowedUnits":["m/s2"],"positive":true,"defaultValue":9.81},{"key":"atmospheric_pressure","aliases":["p_atm"],"allowedUnits":["Pa"],"nonNegative":true,"defaultValue":101325}],"adjustableParameters":[{"key":"depth","label":"Depth","symbol":"h","unit":"m","min":0,"max":1000,"step":0.01}],"visualization":{"scene":"hydrostatics","series":[{"key":"gaugePressure","source":"values.gaugePressure","label":"Gauge pressure","symbol":"p_g","unit":"Pa","color":"#38bdf8"},{"key":"buoyantForce","source":"values.buoyantForce","label":"Buoyant force","symbol":"F_b","unit":"N","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["gaugePressure","absolutePressure","buoyantForce"]}}},
+{"schemaId":"radio_communication","model":"radio_communication","name":"Radio carrier and AM sidebands","topic":"WAVES","version":"1.0","solverId":"applications_solver","referenceSolverId":"applications_reference","definition":{"requiredQuantities":[{"key":"carrier_frequency","aliases":["f_c"],"allowedUnits":["Hz"],"positive":true},{"key":"modulation_frequency","aliases":["f_m"],"allowedUnits":["Hz"],"positive":true},{"key":"modulation_index","aliases":["m"],"allowedUnits":["1"],"nonNegative":true}],"adjustableParameters":[{"key":"carrier_frequency","label":"Carrier frequency","symbol":"f_c","unit":"Hz","min":1,"max":1e12,"step":1}],"visualization":{"scene":"radio_communication","series":[{"key":"wavelength","source":"values.wavelength","label":"Carrier wavelength","symbol":"lambda","unit":"m","color":"#38bdf8"},{"key":"upperSideband","source":"values.upperSideband","label":"Upper sideband","symbol":"f_U","unit":"Hz","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["wavelength","period","angularFrequency","lowerSideband","upperSideband"]}}},
+{"schemaId":"diode_characteristic","model":"diode_characteristic","name":"Semiconductor diode characteristic","topic":"CIRCUITS","version":"1.0","solverId":"applications_solver","referenceSolverId":"applications_reference","definition":{"requiredQuantities":[{"key":"voltage","aliases":["V"],"allowedUnits":["V"]},{"key":"saturation_current","aliases":["I_s"],"allowedUnits":["A"],"positive":true},{"key":"ideality_factor","aliases":["n"],"allowedUnits":["1"],"positive":true},{"key":"temperature","aliases":["T"],"allowedUnits":["K"],"positive":true}],"adjustableParameters":[{"key":"voltage","label":"Diode voltage","symbol":"V","unit":"V","min":-2,"max":2,"step":0.001}],"visualization":{"scene":"diode_characteristic","series":[{"key":"current","source":"values.current","label":"Current","symbol":"I","unit":"A","color":"#38bdf8"},{"key":"power","source":"values.power","label":"Power","symbol":"P","unit":"W","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["thermalVoltage","current","power"]}}},
+{"schemaId":"ultrasound_imaging","model":"ultrasound_imaging","name":"Pulse-echo ultrasound imaging","topic":"WAVES","version":"1.0","solverId":"applications_solver","referenceSolverId":"applications_reference","definition":{"requiredQuantities":[{"key":"sound_speed","aliases":["v"],"allowedUnits":["m/s"],"positive":true},{"key":"frequency","aliases":["f"],"allowedUnits":["Hz"],"positive":true},{"key":"echo_time","aliases":["t_echo"],"allowedUnits":["s"],"nonNegative":true}],"adjustableParameters":[{"key":"echo_time","label":"Echo time","symbol":"t_e","unit":"s","min":0,"max":1,"step":0.000001}],"visualization":{"scene":"ultrasound_imaging","series":[{"key":"depth","source":"values.depth","label":"Target depth","symbol":"d","unit":"m","color":"#38bdf8"},{"key":"wavelength","source":"values.wavelength","label":"Wavelength","symbol":"lambda","unit":"m","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["wavelength","depth","period"]}}},
+{"schemaId":"ideal_gas_isobaric","model":"ideal_gas_isobaric","name":"Isobaric ideal-gas process","topic":"THERMAL","version":"1.0","solverId":"gas_process_solver","referenceSolverId":"gas_process_reference","definition":{"requiredQuantities":[{"key":"initial_pressure","aliases":["P1"],"allowedUnits":["Pa"],"positive":true},{"key":"initial_volume","aliases":["V1"],"allowedUnits":["m3"],"positive":true},{"key":"initial_temperature","aliases":["T1"],"allowedUnits":["K"],"positive":true},{"key":"final_temperature","aliases":["T2"],"allowedUnits":["K"],"positive":true}],"adjustableParameters":[{"key":"final_temperature","label":"Final temperature","symbol":"T2","unit":"K","min":1,"max":5000,"step":1}],"visualization":{"scene":"ideal_gas_isobaric","series":[{"key":"finalVolume","source":"values.finalVolume","label":"Final volume","symbol":"V2","unit":"m3","color":"#38bdf8"},{"key":"work","source":"values.work","label":"Work","symbol":"W","unit":"J","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["finalPressure","finalVolume","work"]}}},
+{"schemaId":"ideal_gas_isochoric","model":"ideal_gas_isochoric","name":"Isochoric ideal-gas process","topic":"THERMAL","version":"1.0","solverId":"gas_process_solver","referenceSolverId":"gas_process_reference","definition":{"requiredQuantities":[{"key":"initial_pressure","aliases":["P1"],"allowedUnits":["Pa"],"positive":true},{"key":"initial_volume","aliases":["V1"],"allowedUnits":["m3"],"positive":true},{"key":"initial_temperature","aliases":["T1"],"allowedUnits":["K"],"positive":true},{"key":"final_temperature","aliases":["T2"],"allowedUnits":["K"],"positive":true}],"adjustableParameters":[{"key":"final_temperature","label":"Final temperature","symbol":"T2","unit":"K","min":1,"max":5000,"step":1}],"visualization":{"scene":"ideal_gas_isochoric","series":[{"key":"finalPressure","source":"values.finalPressure","label":"Final pressure","symbol":"P2","unit":"Pa","color":"#38bdf8"},{"key":"work","source":"values.work","label":"Work","symbol":"W","unit":"J","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["finalPressure","finalVolume","work"]}}},
+{"schemaId":"kinematics_position_time_graph","model":"position_time_graph","name":"Position-time graph","topic":"KINEMATICS","version":"1.0","solverId":"kinematics_solver","referenceSolverId":"kinematics_reference","definition":{"requiredQuantities":[{"key":"initial_position","aliases":["x0"],"allowedUnits":["m"]},{"key":"initial_velocity","aliases":["v0"],"allowedUnits":["m/s"]},{"key":"acceleration","aliases":["a"],"allowedUnits":["m/s2"]}],"adjustableParameters":[{"key":"initial_velocity","label":"Initial velocity","symbol":"v0","unit":"m/s","min":-40,"max":60,"step":0.5},{"key":"acceleration","label":"Acceleration","symbol":"a","unit":"m/s2","min":-10,"max":10,"step":0.1}],"visualization":{"scene":"position_time_graph","series":[{"key":"position","source":"positions.x","label":"Position","symbol":"x(t)","unit":"m","color":"#38bdf8"}]},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["x"]}}},
+{"schemaId":"kinematics_velocity_time_graph","model":"velocity_time_graph","name":"Velocity-time graph","topic":"KINEMATICS","version":"1.0","solverId":"kinematics_solver","referenceSolverId":"kinematics_reference","definition":{"requiredQuantities":[{"key":"initial_position","aliases":["x0"],"allowedUnits":["m"]},{"key":"initial_velocity","aliases":["v0"],"allowedUnits":["m/s"]},{"key":"acceleration","aliases":["a"],"allowedUnits":["m/s2"]}],"adjustableParameters":[{"key":"initial_velocity","label":"Initial velocity","symbol":"v0","unit":"m/s","min":-40,"max":60,"step":0.5},{"key":"acceleration","label":"Acceleration","symbol":"a","unit":"m/s2","min":-10,"max":10,"step":0.1}],"visualization":{"scene":"velocity_time_graph","series":[{"key":"velocity","source":"velocities.x","label":"Velocity","symbol":"v(t)","unit":"m/s","color":"#22c55e"}]},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["vx"]}}},
+{"schemaId":"kinematics_acceleration_time_graph","model":"acceleration_time_graph","name":"Acceleration-time graph","topic":"KINEMATICS","version":"1.0","solverId":"kinematics_solver","referenceSolverId":"kinematics_reference","definition":{"requiredQuantities":[{"key":"initial_position","aliases":["x0"],"allowedUnits":["m"]},{"key":"initial_velocity","aliases":["v0"],"allowedUnits":["m/s"]},{"key":"acceleration","aliases":["a"],"allowedUnits":["m/s2"]}],"adjustableParameters":[{"key":"initial_velocity","label":"Initial velocity","symbol":"v0","unit":"m/s","min":-40,"max":60,"step":0.5},{"key":"acceleration","label":"Acceleration","symbol":"a","unit":"m/s2","min":-10,"max":10,"step":0.1}],"visualization":{"scene":"acceleration_time_graph","series":[{"key":"acceleration","source":"accelerations.x","label":"Acceleration","symbol":"a(t)","unit":"m/s2","color":"#f97316"}]},"execution":{"durationSeconds":10,"stepSeconds":0.05,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["ax"]}}},
+{"schemaId":"experimental_data_graph","model":"experimental_data_graph","name":"Experimental data graph","topic":"PRACTICAL_AND_DATA","version":"1.0","solverId":"experimental_graph_solver","referenceSolverId":"experimental_graph_reference","definition":{"requiredQuantities":[{"key":"x_start","aliases":["x0"],"allowedUnits":["1"]},{"key":"x_end","aliases":["x1"],"allowedUnits":["1"]},{"key":"slope","aliases":["m"],"allowedUnits":["1"]},{"key":"intercept","aliases":["b"],"allowedUnits":["1"]}],"optionalQuantities":[{"key":"sample_count","aliases":["N"],"allowedUnits":["1"],"integer":true,"defaultValue":25}],"adjustableParameters":[{"key":"slope","label":"Fitted slope","symbol":"m","unit":"1","min":-1000,"max":1000,"step":0.01}],"visualization":{"scene":"experimental_data_graph","series":[{"key":"measuredData","source":"values.y","label":"Experimental data","symbol":"y(x)","unit":"1","color":"#38bdf8"},{"key":"fitSlope","source":"values.slope","label":"Linear fit slope","symbol":"m","unit":"1","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["x","y","slope","intercept"]}}},
+{"schemaId":"damped_forced_oscillation","model":"damped_forced_oscillation","name":"Damped and forced oscillation","topic":"DYNAMICS","version":"1.0","solverId":"advanced_oscillation_solver","referenceSolverId":"advanced_oscillation_reference","definition":{"requiredQuantities":[{"key":"mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"spring_constant","aliases":["k"],"allowedUnits":["N/m"],"positive":true},{"key":"damping_coefficient","aliases":["c"],"allowedUnits":["kg/s"],"nonNegative":true},{"key":"driving_force_amplitude","aliases":["F0"],"allowedUnits":["N"],"nonNegative":true},{"key":"driving_frequency","aliases":["omega"],"allowedUnits":["rad/s"],"nonNegative":true},{"key":"initial_displacement","aliases":["x0"],"allowedUnits":["m"]},{"key":"initial_velocity","aliases":["v0"],"allowedUnits":["m/s"]}],"adjustableParameters":[{"key":"driving_frequency","label":"Driving angular frequency","symbol":"omega","unit":"rad/s","min":0,"max":100,"step":0.01}],"visualization":{"scene":"damped_forced_oscillation","series":[{"key":"displacement","source":"values.displacement","label":"Displacement","symbol":"x(t)","unit":"m","color":"#38bdf8"},{"key":"mechanicalEnergy","source":"values.mechanicalEnergy","label":"Mechanical energy","symbol":"E","unit":"J","color":"#fb923c"},{"key":"drivingForce","source":"values.drivingForce","label":"Driving force","symbol":"F(t)","unit":"N","color":"#34d399"}]},"execution":{"durationSeconds":10,"stepSeconds":0.02,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["displacement","velocity","acceleration","mechanicalEnergy","drivingForce"]}}},
+{"schemaId":"phase_change","model":"phase_change","name":"Heating curve and phase changes","topic":"THERMAL","version":"1.0","solverId":"phase_change_solver","referenceSolverId":"phase_change_reference","definition":{"requiredQuantities":[{"key":"mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"initial_temperature","aliases":["T0"],"allowedUnits":["K"]},{"key":"melting_temperature","aliases":["Tm"],"allowedUnits":["K"]},{"key":"boiling_temperature","aliases":["Tb"],"allowedUnits":["K"]},{"key":"specific_heat_solid","aliases":["cs"],"allowedUnits":["J/(kg*K)"],"positive":true},{"key":"specific_heat_liquid","aliases":["cl"],"allowedUnits":["J/(kg*K)"],"positive":true},{"key":"specific_heat_gas","aliases":["cg"],"allowedUnits":["J/(kg*K)"],"positive":true},{"key":"latent_heat_fusion","aliases":["Lf"],"allowedUnits":["J/kg"],"positive":true},{"key":"latent_heat_vaporization","aliases":["Lv"],"allowedUnits":["J/kg"],"positive":true},{"key":"heating_power","aliases":["P"],"allowedUnits":["W"],"positive":true}],"adjustableParameters":[{"key":"heating_power","label":"Heating power","symbol":"P","unit":"W","min":0.001,"max":100000,"step":1}],"visualization":{"scene":"phase_change","series":[{"key":"temperature","source":"values.temperature","label":"Temperature","symbol":"T(t)","unit":"K","color":"#38bdf8"},{"key":"liquidFraction","source":"values.liquidFraction","label":"Liquid fraction","symbol":"f_l","unit":"1","color":"#34d399"},{"key":"vaporFraction","source":"values.vaporFraction","label":"Vapor fraction","symbol":"f_v","unit":"1","color":"#fb923c"}]},"execution":{"durationSeconds":3600,"stepSeconds":1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["temperature","heatAdded","liquidFraction","vaporFraction"]}}},
+{"schemaId":"xray_imaging","model":"xray_imaging","name":"X-ray attenuation and diagnostic image contrast","topic":"MODERN_PHYSICS","version":"1.0","solverId":"medical_imaging_solver","referenceSolverId":"medical_imaging_reference","definition":{"requiredQuantities":[{"key":"incident_intensity","aliases":["I0"],"allowedUnits":["1"],"positive":true},{"key":"attenuation_coefficient","aliases":["mu"],"allowedUnits":["1/m"],"positive":true},{"key":"material_thickness","aliases":["x"],"allowedUnits":["m"],"nonNegative":true}],"optionalQuantities":[{"key":"exposure_time","aliases":["t"],"allowedUnits":["s"],"positive":true,"defaultValue":1}],"adjustableParameters":[{"key":"material_thickness","label":"Material thickness","symbol":"x","unit":"m","min":0,"max":10,"step":0.001}],"visualization":{"scene":"xray_imaging","series":[{"key":"transmittedIntensity","source":"values.transmittedIntensity","label":"Transmitted intensity","symbol":"I(x)","unit":"1","color":"#38bdf8"},{"key":"absorbedFraction","source":"values.absorbedFraction","label":"Absorbed fraction","symbol":"A","unit":"1","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["transmittedIntensity","absorbedFraction","detectorDoseProxy","halfValueLayer"]}}},
+{"schemaId":"ct_reconstruction","model":"ct_reconstruction","name":"CT projection and line integral","topic":"MODERN_PHYSICS","version":"1.0","solverId":"medical_imaging_solver","referenceSolverId":"medical_imaging_reference","definition":{"requiredQuantities":[{"key":"incident_intensity","aliases":["I0"],"allowedUnits":["1"],"positive":true},{"key":"attenuation_coefficient","aliases":["mu"],"allowedUnits":["1/m"],"nonNegative":true},{"key":"path_length","aliases":["x"],"allowedUnits":["m"],"positive":true},{"key":"projection_count","aliases":["N"],"allowedUnits":["1"],"positive":true,"integer":true}],"adjustableParameters":[{"key":"projection_count","label":"Projection count","symbol":"N","unit":"1","min":1,"max":4096,"step":1}],"visualization":{"scene":"ct_reconstruction","series":[{"key":"transmittedIntensity","source":"values.transmittedIntensity","label":"Projection transmission","symbol":"I/I0","unit":"1","color":"#38bdf8"},{"key":"lineIntegral","source":"values.lineIntegral","label":"Line integral","symbol":"p(theta)","unit":"1","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["transmittedIntensity","lineIntegral","angularStep","reconstructedAttenuation"]}}},
+{"schemaId":"mri_relaxation","model":"mri_relaxation","name":"MRI longitudinal and transverse relaxation","topic":"MODERN_PHYSICS","version":"1.0","solverId":"medical_imaging_solver","referenceSolverId":"medical_imaging_reference","definition":{"requiredQuantities":[{"key":"equilibrium_magnetization","aliases":["M0"],"allowedUnits":["1"],"nonNegative":true},{"key":"longitudinal_relaxation_time","aliases":["T1"],"allowedUnits":["s"],"positive":true},{"key":"transverse_relaxation_time","aliases":["T2"],"allowedUnits":["s"],"positive":true},{"key":"echo_time","aliases":["TE"],"allowedUnits":["s"],"nonNegative":true}],"adjustableParameters":[{"key":"echo_time","label":"Echo time","symbol":"TE","unit":"s","min":0,"max":10,"step":0.001}],"visualization":{"scene":"mri_relaxation","series":[{"key":"longitudinalMagnetization","source":"values.longitudinalMagnetization","label":"Longitudinal magnetization","symbol":"Mz","unit":"1","color":"#38bdf8"},{"key":"transverseMagnetization","source":"values.transverseMagnetization","label":"Transverse magnetization","symbol":"Mxy","unit":"1","color":"#fb923c"}]},"execution":{"durationSeconds":5,"stepSeconds":0.01,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["longitudinalMagnetization","transverseMagnetization","echoSignal"]}}},
+{"schemaId":"de_broglie_diffraction","model":"de_broglie_diffraction","name":"De Broglie wavelength and electron diffraction","topic":"MODERN_PHYSICS","version":"1.0","solverId":"quantum_extension_solver","referenceSolverId":"quantum_extension_reference","definition":{"requiredQuantities":[{"key":"particle_mass","aliases":["m"],"allowedUnits":["kg"],"positive":true},{"key":"particle_speed","aliases":["v"],"allowedUnits":["m/s"],"positive":true},{"key":"lattice_spacing","aliases":["d"],"allowedUnits":["m"],"positive":true},{"key":"diffraction_order","aliases":["n"],"allowedUnits":["1"],"positive":true,"integer":true}],"adjustableParameters":[{"key":"particle_speed","label":"Particle speed","symbol":"v","unit":"m/s","min":1,"max":100000000,"step":1000}],"visualization":{"scene":"de_broglie_diffraction","series":[{"key":"wavelength","source":"values.wavelength","label":"Matter wavelength","symbol":"lambda","unit":"m","color":"#38bdf8"},{"key":"diffractionAngle","source":"values.diffractionAngle","label":"Diffraction angle","symbol":"theta","unit":"rad","color":"#fb923c"}]},"execution":{"durationSeconds":1,"stepSeconds":0.1,"durationBindings":[]},"validation":{"tolerance":0.000001,"checkpointFractions":[0.25,0.5,0.75,1]},"output":{"type":"timeseries","probeSeries":["momentum","wavelength","kineticEnergy","diffractionAngle","diffractionAllowed"]}}}
 ]

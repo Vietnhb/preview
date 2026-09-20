@@ -44,7 +44,7 @@ public class UserService {
     public void changePassword(String email, String currentPassword, String newPassword, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         User user = findCurrent(email);
         if (!matchesPassword(currentPassword, user.getPassword(), passwordEncoder)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại không đúng");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "MÃƒÂ¡Ã‚ÂºÃ‚Â­t khÃƒÂ¡Ã‚ÂºÃ‚Â©u hiÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i khÃƒÆ’Ã‚Â´ng Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Âºng");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -58,7 +58,7 @@ public class UserService {
 
     private User findCurrent(String email) {
         return userRepository.findByEmail(normalizeEmail(email))
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi dÃƒÆ’Ã‚Â¹ng"));
     }
 
     private UserResponse toResponse(User user) {
