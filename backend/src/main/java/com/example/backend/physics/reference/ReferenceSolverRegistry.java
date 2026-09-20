@@ -1,15 +1,26 @@
 package com.example.backend.physics.reference;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ReferenceSolverRegistry {
-    private final List<ReferenceSolver> solvers;
-    public ReferenceSolverRegistry(List<ReferenceSolver> solvers) { this.solvers = List.copyOf(solvers); }
-    public ReferenceSolver get(String solverId) {
-        return solvers.stream().filter(solver -> solver.solverId().equals(solverId)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("No independent reference solver registered with id: " + solverId));
+    private final Map<String, ReferenceSolver> solvers;
+    public ReferenceSolverRegistry(List<ReferenceSolver> solvers) {
+        this.solvers = solvers.stream().collect(Collectors.toUnmodifiableMap(
+                ReferenceSolver::solverId,
+                Function.identity(),
+                (left, right) -> {
+                    throw new IllegalStateException("Duplicate reference solver id: " + left.solverId());
+                }));
     }
-    public List<String> ids() { return solvers.stream().map(ReferenceSolver::solverId).sorted().toList(); }
+    public ReferenceSolver get(String solverId) {
+        ReferenceSolver solver = solvers.get(solverId);
+        if (solver == null) throw new IllegalArgumentException("No independent reference solver registered with id: " + solverId);
+        return solver;
+    }
+    public List<String> ids() { return solvers.keySet().stream().sorted().toList(); }
 }

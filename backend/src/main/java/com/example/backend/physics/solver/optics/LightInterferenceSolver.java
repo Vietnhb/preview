@@ -1,6 +1,6 @@
 package com.example.backend.physics.solver.optics;
 
-import com.example.backend.physics.solver.thermal.TemperatureScaleSolver;
+import com.example.backend.physics.runtime.SimulationTimeline;
 
 import com.example.backend.physics.solver.PhysicsSolver;
 
@@ -19,7 +19,7 @@ public class LightInterferenceSolver implements PhysicsSolver {
     @Override public SolverOutput solve(JsonNode specification, Map<String, Double> overrides, double duration, double step) {
         if (!"light_interference".equals(PhysicsValues.model(specification))) throw new IllegalArgumentException("Unsupported light-interference model: " + PhysicsValues.model(specification));
         LightInterferenceParameters p = LightInterferenceParameters.from(specification, overrides);
-        List<Double> time = TemperatureScaleSolver.staticTime(duration, step);
+        List<Double> time = SimulationTimeline.sample(duration, step);
         Map<String,List<Double>> values = new LinkedHashMap<>();
         values.put("phaseDifference", java.util.Collections.nCopies(time.size(), p.phaseDifference()));
         values.put("intensity", java.util.Collections.nCopies(time.size(), p.intensity()));

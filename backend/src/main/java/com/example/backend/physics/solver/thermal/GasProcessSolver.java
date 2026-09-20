@@ -1,6 +1,6 @@
 package com.example.backend.physics.solver.thermal;
 
-import com.example.backend.physics.solver.thermal.TemperatureScaleSolver;
+import com.example.backend.physics.runtime.SimulationTimeline;
 
 import com.example.backend.physics.solver.PhysicsSolver;
 
@@ -24,7 +24,7 @@ public class GasProcessSolver implements PhysicsSolver {
         if (!model.equals("ideal_gas_isobaric") && !model.equals("ideal_gas_isochoric"))
             throw new IllegalArgumentException("Unsupported gas-process model: " + model);
         GasProcessParameters p = GasProcessParameters.from(specification, overrides);
-        List<Double> time = TemperatureScaleSolver.staticTime(durationSeconds, stepSeconds);
+        List<Double> time = SimulationTimeline.sample(durationSeconds, stepSeconds);
         Map<String, List<Double>> values = new LinkedHashMap<>();
         put(values, time, "initialPressure", p.initialPressure());
         put(values, time, "initialVolume", p.initialVolume());

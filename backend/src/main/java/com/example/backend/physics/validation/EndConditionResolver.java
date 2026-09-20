@@ -1,6 +1,7 @@
 package com.example.backend.physics.validation;
 
 import com.example.backend.physics.model.SolverOutput;
+import com.example.backend.physics.model.ScalarField;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -89,7 +90,7 @@ public final class EndConditionResolver {
             case "threshold" -> {
                 if (condition.path("quantity").asText("").isBlank())
                     errors.add("threshold.quantity is required");
-                if (!List.of(">=", "<=", ">", "<", "==").contains(condition.path("operator").asText())) {
+                if (ComparisonOperator.parse(condition.path("operator").asText()) == null) {
                     errors.add("threshold.operator is unsupported");
                 }
                 if (!finite(condition.path("value")))
@@ -112,7 +113,7 @@ public final class EndConditionResolver {
                     }
                     if (event.path("quantity").asText("").isBlank())
                         errors.add("contact.event.quantity is required when a contact threshold is provided");
-                    if (!List.of(">=", "<=", ">", "<", "==").contains(event.path("operator").asText())) {
+                    if (ComparisonOperator.parse(event.path("operator").asText()) == null) {
                         errors.add("contact.event.operator is unsupported");
                     }
                     if (!finite(event.get("value")))
@@ -211,7 +212,8 @@ public final class EndConditionResolver {
                 trimGroup(output.positions(), sourceTimes, last, target, append),
                 trimGroup(output.velocities(), sourceTimes, last, target, append),
                 trimGroup(output.accelerations(), sourceTimes, last, target, append),
-                trimGroup(output.values(), sourceTimes, last, target, append));
+                trimGroup(output.values(), sourceTimes, last, target, append),
+                trimFields(output.scalarFields(), endTime));
     }
 
     private static Map<String, List<Double>> trimGroup(Map<String, List<Double>> group, List<Double> times,
@@ -233,11 +235,43 @@ public final class EndConditionResolver {
         return result;
     }
 
+    private static Map<String, ScalarField> trimFields(Map<String, ScalarField> fields, double endTime) {
+        if (fields == null || fields.isEmpty()) return Map.of();
+        Map<String, ScalarField> result = new LinkedHashMap<>();
+        fields.forEach((key, field) -> result.put(key, trimField(field, endTime)));
+        return result;
+    }
+
+    private static ScalarField trimField(ScalarField field, double endTime) {
+        List<Double> sourceTimes = field.time();
+        double target = Math.max(sourceTimes.getFirst(), Math.min(endTime, sourceTimes.getLast()));
+        int last = 0;
+        while (last + 1 < sourceTimes.size() && sourceTimes.get(last + 1) <= target + EPSILON) last++;
+        boolean append = sourceTimes.get(last) < target - EPSILON;
+        List<Double> times = new ArrayList<>(sourceTimes.subList(0, last + 1));
+        List<List<Double>> values = new ArrayList<>(field.values().subList(0, last + 1));
+        if (append) {
+            times.add(target);
+            List<Double> before = field.values().get(last);
+            List<Double> after = field.values().get(Math.min(last + 1, field.values().size() - 1));
+            double ratio = (target - sourceTimes.get(last))
+                    / (sourceTimes.get(Math.min(last + 1, sourceTimes.size() - 1)) - sourceTimes.get(last));
+            List<Double> interpolated = new ArrayList<>(before.size());
+            for (int i = 0; i < before.size(); i++) interpolated.add(before.get(i) + ratio * (after.get(i) - before.get(i)));
+            values.add(interpolated);
+        }
+        List<Integer> shape = new ArrayList<>(field.shape());
+        shape.set(0, times.size());
+        return new ScalarField(field.version(), field.type(), field.physicalDimension(), field.axes(), shape,
+                times, values, field.valueUnit(), field.timeUnit(), field.sampling(), field.interpolation(), field.boundary());
+    }
+
     private static Double findThreshold(JsonNode condition, SolverOutput output, double limit) {
         Series series = findSeries(output, condition.path("quantity").asText());
         if (series == null)
             return null;
-        String operator = condition.path("operator").asText();
+        ComparisonOperator operator = ComparisonOperator.parse(condition.path("operator").asText());
+        if (operator == null) return null;
         double target = condition.path("value").asDouble();
         return crossing(series.values(), output.time(), limit, value -> matches(value, operator, target), target,
                 operator);
@@ -246,15 +280,17 @@ public final class EndConditionResolver {
     private static Double findEvent(JsonNode condition, SolverOutput output, double limit) {
         JsonNode event = condition.path("event");
         String type = event.path("type").asText("").toLowerCase(Locale.ROOT);
-        Double marker = eventMarker(output, type, limit);
+        // Event markers are schema-bound. Never infer them from a substring of
+        // an arbitrary output key; the event must name the declared series.
+        Double marker = eventMarker(output, event, limit);
         if (marker != null)
             return marker;
         if ("contact".equals(type)) {
             Series quantity = findSeries(output, event.path("quantity").asText());
             if (quantity == null || !finite(event.get("value")))
                 return null;
-            String operator = event.path("operator").asText();
-            if (!List.of(">=", "<=", ">", "<", "==").contains(operator))
+            ComparisonOperator operator = ComparisonOperator.parse(event.path("operator").asText());
+            if (operator == null)
                 return null;
             return contactCrossing(quantity.values(), output.time(), limit,
                     operator, event.path("value").asDouble());
@@ -285,14 +321,10 @@ public final class EndConditionResolver {
     }
 
     private static Double contactCrossing(List<Double> values, List<Double> times, double limit,
-            String operator, double target) {
+            ComparisonOperator operator, double target) {
         if (values == null || times == null || values.isEmpty() || values.size() != times.size())
             return null;
-        String boundaryOperator = switch (operator) {
-            case "<" -> "<=";
-            case ">" -> ">=";
-            default -> operator;
-        };
+        ComparisonOperator boundaryOperator = operator.boundary();
         int start = 0;
         if (times.get(0) <= limit + EPSILON && matches(values.get(0), boundaryOperator, target)) {
             // A body may launch from the contact surface. Ignore that initial
@@ -318,24 +350,17 @@ public final class EndConditionResolver {
         return null;
     }
 
-    private static Double eventMarker(SolverOutput output, String type, double limit) {
-        if (output.values() == null)
+    private static Double eventMarker(SolverOutput output, JsonNode event, double limit) {
+        String markerQuantity = event.path("markerQuantity").asText("").trim();
+        if (markerQuantity.isBlank())
             return null;
-        for (Map.Entry<String, List<Double>> entry : output.values().entrySet()) {
-            String key = compact(entry.getKey());
-            if (!key.contains(type))
-                continue;
-            List<Double> values = entry.getValue();
-            if (values == null || values.isEmpty())
-                continue;
-            if (values.size() == 1 && key.endsWith("time")
-                    && values.get(0) > 0 && values.get(0) <= limit)
-                return values.get(0);
-            Double found = crossing(values, output.time(), limit, value -> value > 0.5, 0.5, ">");
-            if (found != null)
-                return found;
+        Series marker = findSeries(output, markerQuantity);
+        if (marker == null || marker.values() == null || marker.values().isEmpty()) return null;
+        if (marker.values().size() == 1 && marker.values().get(0) > 0 && marker.values().get(0) <= limit) {
+            return marker.values().get(0);
         }
-        return null;
+        return crossing(marker.values(), output.time(), limit, value -> value > 0.5, 0.5,
+                ComparisonOperator.GREATER);
     }
 
     private static Double findCycles(JsonNode condition, SolverOutput output, double limit) {
@@ -384,7 +409,7 @@ public final class EndConditionResolver {
     }
 
     private static Double crossing(List<Double> values, List<Double> times, double limit,
-            java.util.function.DoublePredicate predicate, double target, String operator) {
+            java.util.function.DoublePredicate predicate, double target, ComparisonOperator operator) {
         if (values == null || times == null || values.isEmpty() || values.size() != times.size())
             return null;
         if (times.get(0) <= limit + EPSILON && predicate.test(values.get(0)))
@@ -413,7 +438,8 @@ public final class EndConditionResolver {
         List<Double> difference = new ArrayList<>();
         for (int i = 0; i < first.size(); i++)
             difference.add(first.get(i) - second.get(i));
-        return crossing(difference, times, limit, value -> Math.abs(value) <= EPSILON, 0, "==");
+        return crossing(difference, times, limit, value -> Math.abs(value) <= EPSILON, 0,
+                ComparisonOperator.EQUAL);
     }
 
     private static Series findSeries(SolverOutput output, String requested) {
@@ -457,25 +483,10 @@ public final class EndConditionResolver {
         if (value != null)
             return value;
 
-        // AI may use a semantic quantity name such as "oscillation" while
-        // the solver exposes one unambiguous observable as values.x. Resolve
-        // that alias by cardinality, never by a model id.
-        List<Series> candidates = new ArrayList<>();
-        addSeries(candidates, output.values());
-        addSeries(candidates, output.positions());
-        addSeries(candidates, output.velocities());
-        addSeries(candidates, output.accelerations());
-        return candidates.size() == 1 ? candidates.get(0) : null;
-    }
-
-    private static void addSeries(List<Series> target, Map<String, List<Double>> source) {
-        if (source == null)
-            return;
-        source.forEach((key, values) -> {
-            if (target.stream().noneMatch(existing -> existing.name().equalsIgnoreCase(key))) {
-                target.add(new Series(key, values));
-            }
-        });
+        // A quantity must be bound by the schema; cardinality-based inference
+        // is intentionally forbidden because it changes when a model gains a
+        // new output.
+        return null;
     }
 
     private static Series named(Map<String, List<Double>> values, String requested) {
@@ -493,24 +504,24 @@ public final class EndConditionResolver {
                 .map(entry -> new Series(entry.getKey(), entry.getValue())).findFirst().orElse(null);
     }
 
-    private static boolean matches(double value, String operator, double target) {
+    private static boolean matches(double value, ComparisonOperator operator, double target) {
         return switch (operator) {
-            case ">=" -> value >= target;
-            case "<=" -> value <= target;
-            case ">" -> value > target;
-            case "<" -> value < target;
-            case "==" -> Math.abs(value - target) <= EPSILON;
+            case GREATER_OR_EQUAL -> value >= target;
+            case LESS_OR_EQUAL -> value <= target;
+            case GREATER -> value > target;
+            case LESS -> value < target;
+            case EQUAL -> Math.abs(value - target) <= EPSILON;
             default -> false;
         };
     }
 
-    private static boolean crosses(double before, double current, double target, String operator) {
+    private static boolean crosses(double before, double current, double target, ComparisonOperator operator) {
         if (!finite(before) || !finite(current))
             return false;
         return switch (operator) {
-            case ">=", ">" -> before < target && current >= target;
-            case "<=", "<" -> before > target && current <= target;
-            case "==" -> (before - target) * (current - target) <= 0 && Math.abs(before - current) > EPSILON;
+            case GREATER_OR_EQUAL, GREATER -> before < target && current >= target;
+            case LESS_OR_EQUAL, LESS -> before > target && current <= target;
+            case EQUAL -> (before - target) * (current - target) <= 0 && Math.abs(before - current) > EPSILON;
             default -> false;
         };
     }

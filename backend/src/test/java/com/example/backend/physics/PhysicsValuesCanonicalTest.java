@@ -33,4 +33,17 @@ class PhysicsValuesCanonicalTest {
         assertThrows(IllegalArgumentException.class,
                 () -> PhysicsValues.require(specification, Map.of(), "initial_velocity"));
     }
+
+    @Test
+    void canonicalBagRejectsDuplicateKeysAndKeepsLegacyAtAdapterBoundary() {
+        ObjectNode duplicate = mapper.createObjectNode();
+        duplicate.putArray("quantities")
+                .addObject().put("name", "mass").put("normalizedValue", 1).put("normalizedUnit", "kg");
+        duplicate.withArray("quantities").addObject().put("name", "mass")
+                .put("normalizedValue", 2).put("normalizedUnit", "kg");
+        assertThrows(IllegalArgumentException.class, () -> PhysicsValues.bag(duplicate, Map.of()));
+
+        ObjectNode legacy = mapper.createObjectNode().put("mass", 2.0);
+        assertEquals(2.0, PhysicsValues.require(legacy, Map.of(), "mass"));
+    }
 }

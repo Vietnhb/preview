@@ -19,6 +19,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.physics.solver.PhysicsSolver;
 import com.example.backend.physics.solver.PhysicsSolverRegistry;
 import com.example.backend.physics.validation.EndConditionResolver;
+import com.example.backend.physics.validation.OutputContractValidator;
 import com.example.backend.physics.model.SolverOutput;
 import com.example.backend.physics.model.ScalarField;
 import com.example.backend.dto.simulation.ResolvedEnd;
@@ -294,6 +295,8 @@ public class SimulationService {
         PhysicsSolver solver = solverRegistry.get(
                 schemaDefinitions.requireSolverBinding(schemaId, schemaVersion).numericalSolverId());
         SolverOutput output = solver.solve(input, params, horizon, step);
+        OutputContractValidator.validate(schemaId,
+                schemaDefinitions.requireApproved(schemaId, schemaVersion).getDefinition(), output);
         EndConditionResolver.ResolvedEnd resolved = EndConditionResolver.resolve(condition, output);
 
         // Dynamic conditions may need more samples to discover a future
@@ -305,6 +308,8 @@ public class SimulationService {
             if (nextHorizon <= horizon) break;
             horizon = nextHorizon;
             output = solver.solve(input, params, horizon, step);
+            OutputContractValidator.validate(schemaId,
+                    schemaDefinitions.requireApproved(schemaId, schemaVersion).getDefinition(), output);
             resolved = EndConditionResolver.resolve(condition, output);
         }
 

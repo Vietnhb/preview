@@ -1,5 +1,6 @@
 package com.example.backend.physics.model.circuits;
 
+import com.example.backend.physics.model.PhysicalConstants;
 import com.example.backend.physics.model.PhysicsValues;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -8,8 +9,6 @@ import java.util.Map;
 /** Shockley ideal-diode characteristic at a fixed temperature. */
 public record DiodeParameters(double voltage, double saturationCurrent,
         double idealityFactor, double temperature) {
-    private static final double ELEMENTARY_CHARGE = 1.602176634e-19;
-    private static final double BOLTZMANN = 1.380649e-23;
 
     public static DiodeParameters from(JsonNode specification, Map<String, Double> overrides) {
         double voltage = PhysicsValues.require(specification, overrides, "voltage");
@@ -22,7 +21,7 @@ public record DiodeParameters(double voltage, double saturationCurrent,
     }
 
     public double thermalVoltage() {
-        return BOLTZMANN * temperature / ELEMENTARY_CHARGE;
+        return PhysicalConstants.BOLTZMANN * temperature / PhysicalConstants.ELEMENTARY_CHARGE;
     }
 
     public double current() {

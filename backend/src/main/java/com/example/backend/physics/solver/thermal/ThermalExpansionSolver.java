@@ -1,6 +1,6 @@
 package com.example.backend.physics.solver.thermal;
 
-import com.example.backend.physics.solver.thermal.TemperatureScaleSolver;
+import com.example.backend.physics.runtime.SimulationTimeline;
 
 import com.example.backend.physics.solver.PhysicsSolver;
 
@@ -21,7 +21,7 @@ public class ThermalExpansionSolver implements PhysicsSolver {
         if (!"thermal_expansion".equals(PhysicsValues.model(specification)))
             throw new IllegalArgumentException("Unsupported thermal-expansion model: " + PhysicsValues.model(specification));
         ThermalExpansionParameters p = ThermalExpansionParameters.from(specification, overrides);
-        List<Double> time = TemperatureScaleSolver.staticTime(durationSeconds, stepSeconds);
+        List<Double> time = SimulationTimeline.sample(durationSeconds, stepSeconds);
         Map<String, List<Double>> values = new LinkedHashMap<>();
         values.put("deltaTemperature", java.util.Collections.nCopies(time.size(), p.deltaTemperature()));
         values.put("extension", java.util.Collections.nCopies(time.size(), p.extension()));

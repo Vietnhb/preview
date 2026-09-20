@@ -1,6 +1,8 @@
 package com.example.backend.physics.model.circuits;
 
 import com.example.backend.physics.model.PhysicsValues;
+import com.example.backend.physics.model.CanonicalQuantityBag;
+import com.example.backend.physics.model.LegacySpecificationAdapter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
@@ -8,9 +10,13 @@ import java.util.Map;
 /** Ideal sinusoidal AC voltage source. */
 public record AcWaveformParameters(double peakVoltage, double frequency, double phase) {
     public static AcWaveformParameters from(JsonNode specification, Map<String, Double> overrides) {
-        double peak = PhysicsValues.require(specification, overrides, "peak_voltage");
-        double frequency = PhysicsValues.require(specification, overrides, "frequency");
-        double phase = PhysicsValues.optional(specification, overrides, 0, "phase");
+        return from(LegacySpecificationAdapter.adapt(specification, overrides));
+    }
+
+    public static AcWaveformParameters from(CanonicalQuantityBag quantities) {
+        double peak = quantities.require("peak_voltage");
+        double frequency = quantities.require("frequency");
+        double phase = quantities.optional("phase", 0);
         if (peak < 0 || !(frequency > 0) || !Double.isFinite(phase)) throw new IllegalArgumentException("Peak voltage non-negative, frequency positive and phase finite required");
         return new AcWaveformParameters(peak, frequency, phase);
     }

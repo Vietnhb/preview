@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -21,26 +20,22 @@ public class SchemaService {
 
     @Transactional(readOnly = true)
     public List<SchemaVersion> list(boolean enabledOnly) {
-        return schemaRepository.findAll().stream()
-                .filter(schema -> !enabledOnly || schema.getLifecycleStatus() == LifecycleStatus.APPROVED)
-                .sorted(Comparator.comparing(SchemaVersion::getTopic).thenComparing(SchemaVersion::getSchemaId))
-                .toList();
+        return enabledOnly
+                ? schemaRepository.findAllByLifecycleStatusOrderByTopicAscSchemaIdAscCreatedAtDesc(LifecycleStatus.APPROVED)
+                : schemaRepository.findAllByOrderByTopicAscNameAscVersionAsc();
     }
 
     @Transactional(readOnly = true)
     public SchemaVersion get(String schemaId) {
-        return schemaRepository.findAll().stream()
-                .filter(schema -> schema.getSchemaId().equalsIgnoreCase(schemaId)
-                        && schema.getLifecycleStatus() == LifecycleStatus.APPROVED)
-                .max(Comparator.comparing(SchemaVersion::getCreatedAt))
+        return schemaRepository.findTopBySchemaIdIgnoreCaseAndLifecycleStatusOrderByCreatedAtDesc(
+                schemaId.trim(), LifecycleStatus.APPROVED)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Schema not found"));
     }
 
     @Transactional
     public SchemaVersion create(SchemaRequest request) {
         schemaDefinitions.validateDefinition(request.definition(), request.schemaId());
-        if (schemaRepository.findAll().stream().anyMatch(schema -> schema.getSchemaId().equals(request.schemaId())
-                && schema.getVersion().equals(request.version()))) {
+        if (schemaRepository.existsBySchemaIdAndVersion(request.schemaId().trim(), request.version().trim())) {
             throw new ApiException(HttpStatus.CONFLICT, "Schema version already exists");
         }
         SchemaVersion schema = new SchemaVersion();
@@ -55,9 +50,8 @@ public class SchemaService {
 
     @Transactional
     public SchemaVersion changeLifecycle(String schemaId, LifecycleStatus status) {
-        SchemaVersion schema = schemaRepository.findAll().stream()
-                .filter(item -> item.getSchemaId().equalsIgnoreCase(schemaId))
-                .max(Comparator.comparing(SchemaVersion::getCreatedAt))
+        SchemaVersion schema = schemaRepository.findTopBySchemaIdIgnoreCaseAndLifecycleStatusOrderByCreatedAtDesc(
+                schemaId.trim(), LifecycleStatus.APPROVED)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Schema not found"));
         transition(schema, status);
         return schemaRepository.save(schema);

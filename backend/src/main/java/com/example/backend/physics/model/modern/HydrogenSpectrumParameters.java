@@ -1,5 +1,6 @@
 package com.example.backend.physics.model.modern;
 
+import com.example.backend.physics.model.PhysicalConstants;
 import com.example.backend.physics.model.PhysicsValues;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -8,8 +9,8 @@ import java.util.Map;
 /** Hydrogen emission/absorption line from the Rydberg relation. */
 public record HydrogenSpectrumParameters(double initialLevel, double finalLevel) {
     public static final double RYDBERG = 10_973_731.568160;
-    public static final double PLANCK = 6.62607015e-34;
-    public static final double SPEED_OF_LIGHT = 299_792_458.0;
+    public static final double PLANCK = PhysicalConstants.PLANCK;
+    public static final double SPEED_OF_LIGHT = PhysicalConstants.SPEED_OF_LIGHT;
     public static HydrogenSpectrumParameters from(JsonNode specification, Map<String, Double> overrides) {
         double initial = PhysicsValues.require(specification, overrides, "initial_level");
         double finish = PhysicsValues.require(specification, overrides, "final_level");

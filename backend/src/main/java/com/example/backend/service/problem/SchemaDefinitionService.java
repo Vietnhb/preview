@@ -4,12 +4,12 @@ import com.example.backend.entity.curriculum.Topic;
 import com.example.backend.repository.curriculum.TopicRepository;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -56,18 +57,20 @@ public class SchemaDefinitionService {
     private final SchemaVersionRepository repository;
     private final SolverVersionRepository solverRepository;
     private final com.example.backend.repository.curriculum.TopicRepository topicRepository;
+    private final SchemaCompiler schemaCompiler = new SchemaCompiler(new ObjectMapper());
+    private final Map<String, CompiledSchema> compiledCache = new ConcurrentHashMap<>();
 
     @Transactional(readOnly = true)
     public SchemaVersion requireApproved(String schemaId) {
         if (!StringUtils.hasText(schemaId)) throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Schema is missing");
         String canonicalSchemaId = PhysicsValues.canonicalName(schemaId);
-        SchemaVersion schema = repository.findByLifecycleStatus(LifecycleStatus.APPROVED).stream()
-                .filter(item -> item.getSchemaId().equalsIgnoreCase(canonicalSchemaId))
-                .max(Comparator.comparing(SchemaVersion::getCreatedAt))
+        SchemaVersion schema = repository.findTopBySchemaIdIgnoreCaseAndLifecycleStatusOrderByCreatedAtDesc(
+                canonicalSchemaId, LifecycleStatus.APPROVED)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                         "No approved schema definition exists for: " + canonicalSchemaId));
         validateDefinition(schema.getDefinition(), canonicalSchemaId);
         requireEnabledTopic(schema.getTopic());
+        compiled(schema);
         return schema;
     }
 
@@ -83,6 +86,7 @@ public class SchemaDefinitionService {
                         "Persisted schema binding is not approved: " + canonicalSchemaId + "@" + version));
         validateDefinition(schema.getDefinition(), canonicalSchemaId);
         requireEnabledTopic(schema.getTopic());
+        compiled(schema);
         return schema;
     }
 
@@ -122,6 +126,16 @@ public class SchemaDefinitionService {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Approved solver binding is incomplete: " + canonicalSchemaId);
         }
         return new SolverBinding(solver.getSolverId(), referenceId, solver.getVersion());
+    }
+
+    public String compiledChecksum(JsonNode definition) {
+        return schemaCompiler.checksum(definition);
+    }
+
+    public CompiledSchema compiled(SchemaVersion schema) {
+        String cacheKey = schema.getSchemaId() + "@" + schema.getVersion();
+        return compiledCache.computeIfAbsent(cacheKey,
+                ignored -> schemaCompiler.compile(schema.getDefinition(), schema.getSchemaId()));
     }
 
     @Transactional(readOnly = true)
@@ -202,7 +216,39 @@ public class SchemaDefinitionService {
         }
         double fallbackDuration = definition.path("execution").path(DURATION_SECONDS).asDouble();
         blockers.addAll(EndConditionResolver.validate(specification, fallbackDuration));
+        blockers.addAll(validateEndConditionBindings(specification, definition));
         return List.copyOf(blockers);
+    }
+
+    private List<String> validateEndConditionBindings(JsonNode specification, JsonNode definition) {
+        JsonNode condition = EndConditionResolver.normalize(specification,
+                definition.path("execution").path(DURATION_SECONDS).asDouble());
+        Set<String> declared = new HashSet<>();
+        for (JsonNode output : definition.path("output").path("probeSeries")) {
+            if (output.isTextual()) declared.add(output.asText());
+        }
+        for (JsonNode series : definition.path("visualization").path("series")) {
+            if (series.path("key").isTextual()) declared.add(series.path("key").asText());
+        }
+        List<String> errors = new ArrayList<>();
+        if (!condition.isObject()) return errors;
+        addBindingError(errors, declared, condition.path("quantity").asText(""), "endCondition.quantity");
+        JsonNode event = condition.path("event");
+        if (event.isObject()) {
+            addBindingError(errors, declared, event.path("quantity").asText(""), "endCondition.event.quantity");
+            addBindingError(errors, declared, event.path("firstQuantity").asText(""), "endCondition.event.firstQuantity");
+            addBindingError(errors, declared, event.path("secondQuantity").asText(""), "endCondition.event.secondQuantity");
+            addBindingError(errors, declared, event.path("markerQuantity").asText(""), "endCondition.event.markerQuantity");
+        }
+        return errors;
+    }
+
+    private void addBindingError(List<String> errors, Set<String> declared, String key, String path) {
+        if (key == null || key.isBlank()) return;
+        String normalized = key.contains(".") ? key.substring(key.lastIndexOf('.') + 1) : key;
+        if (!declared.contains(key) && !declared.contains(normalized)) {
+            errors.add(path + " is not declared by the schema output contract: " + key);
+        }
     }
 
     public List<RequiredGap> missingRequiredQuantities(JsonNode specification, JsonNode definition) {
@@ -229,17 +275,25 @@ public class SchemaDefinitionService {
     public String canonicalQuantityKey(JsonNode definition, String rawName) {
         String raw = rawName == null ? "" : rawName.trim();
         if (raw.isBlank()) return "";
-        if (definition == null || !definition.isObject()) return raw;
+        if (definition == null || !definition.isObject()) return "";
         for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path("optionalQuantities"))) {
             for (JsonNode field : fields) {
                 String key = field.path("key").asText("").trim();
-                if (key.equalsIgnoreCase(raw)) return key;
+                if (key.equals(raw)) return key;
+                for (JsonNode alias : field.path("aliases")) if (alias.asText("").trim().equals(raw)) return key;
+            }
+        }
+        Set<String> caseInsensitiveMatches = new HashSet<>();
+        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path("optionalQuantities"))) {
+            for (JsonNode field : fields) {
+                String key = field.path("key").asText("").trim();
+                if (key.equalsIgnoreCase(raw)) caseInsensitiveMatches.add(key);
                 for (JsonNode alias : field.path("aliases")) {
-                    if (alias.asText("").trim().equalsIgnoreCase(raw)) return key;
+                    if (alias.asText("").trim().equalsIgnoreCase(raw)) caseInsensitiveMatches.add(key);
                 }
             }
         }
-        return raw;
+        return caseInsensitiveMatches.size() == 1 ? caseInsensitiveMatches.iterator().next() : "";
     }
 
     /** Return a deep-copied quantity array whose names are schema keys. */
@@ -247,16 +301,48 @@ public class SchemaDefinitionService {
         if (quantities == null || !quantities.isArray()) return quantities == null
                 ? JsonNodeFactory.instance.arrayNode() : quantities.deepCopy();
         ArrayNode canonical = JsonNodeFactory.instance.arrayNode();
+        Set<String> seen = new HashSet<>();
         for (JsonNode quantity : quantities) {
-            if (!quantity.isObject()) {
-                canonical.add(quantity.deepCopy());
-                continue;
-            }
+            if (!quantity.isObject()) throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Quantity entries must be objects");
             ObjectNode copy = (ObjectNode) quantity.deepCopy();
-            copy.put("name", canonicalQuantityKey(definition, quantity.path("name").asText()));
+            String key = canonicalQuantityKey(definition, quantity.path("name").asText());
+            if (!StringUtils.hasText(key)) throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Unknown physical quantity: " + quantity.path("name").asText());
+            if (!seen.add(key.toLowerCase(java.util.Locale.ROOT))) throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Duplicate canonical physical quantity: " + key);
+            copy.put("name", key);
             canonical.add(copy);
         }
         return canonical;
+    }
+
+    /** Materialize only defaults owned by the selected schema at the ingress boundary. */
+    public JsonNode materializeDefaults(JsonNode specification, JsonNode definition) {
+        ObjectNode copy = specification == null || !specification.isObject()
+                ? JsonNodeFactory.instance.objectNode() : (ObjectNode) specification.deepCopy();
+        ArrayNode quantities = copy.path(QUANTITIES).isArray()
+                ? (ArrayNode) copy.path(QUANTITIES).deepCopy() : JsonNodeFactory.instance.arrayNode();
+        Set<String> present = new HashSet<>();
+        for (JsonNode quantity : quantities) present.add(quantity.path("name").asText());
+        for (JsonNode field : definition.path("optionalQuantities")) {
+            String key = field.path("key").asText("").trim();
+            JsonNode value = field.get("defaultValue");
+            if (key.isBlank() || value == null || !value.isNumber() || present.contains(key)) continue;
+            ObjectNode materialized = JsonNodeFactory.instance.objectNode();
+            materialized.put("name", key);
+            materialized.set("value", value.deepCopy());
+            materialized.set(NORMALIZED_VALUE, value.deepCopy());
+            String unit = field.path(ALLOWED_UNITS).path(0).asText("1");
+            materialized.put("originalUnit", unit);
+            materialized.put(NORMALIZED_UNIT, unit);
+            materialized.put("confidence", 1.0);
+            materialized.put("sourceText", "schema.default");
+            quantities.add(materialized);
+            present.add(key);
+        }
+        copy.set(QUANTITIES, quantities);
+        return copy;
     }
 
     public Set<String> adjustableKeys(JsonNode definition) {
@@ -341,7 +427,126 @@ public class SchemaDefinitionService {
                 || !validation.path("tolerance").isNumber() || validation.path("tolerance").asDouble() < 0) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Schema timing or validation tolerance is invalid");
         }
+        validateValidationContract(validation, schemaId);
+        validateQuantityDefinitions(definition, schemaId);
         validateVisualization(definition.path("visualization"), schemaId);
+        try {
+            schemaCompiler.compile(definition, schemaId);
+        } catch (IllegalArgumentException exception) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage());
+        }
+    }
+
+    private void validateValidationContract(JsonNode validation, String schemaId) {
+        JsonNode fractions = validation.path("checkpointFractions");
+        if (!fractions.isArray() || fractions.isEmpty()) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Validation checkpoints are required: " + schemaId);
+        }
+        double previous = 0;
+        for (JsonNode fraction : fractions) {
+            if (!fraction.isNumber() || !finite(fraction) || fraction.asDouble() <= 0
+                    || fraction.asDouble() > 1 || fraction.asDouble() <= previous) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Validation checkpoint fractions must be finite, increasing and in (0,1]: " + schemaId);
+            }
+            previous = fraction.asDouble();
+        }
+        JsonNode outputs = validation.get("outputs");
+        if (outputs == null || outputs.isNull()) return;
+        if (!outputs.isObject() && !outputs.isArray()) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Validation output tolerances must be an object or array: " + schemaId);
+        }
+        Iterable<JsonNode> definitions = outputs.isObject()
+                ? java.util.stream.StreamSupport.stream(java.util.Spliterators.spliteratorUnknownSize(
+                        outputs.fields(), 0), false).map(java.util.Map.Entry::getValue).toList()
+                : outputs;
+        Set<String> keys = new HashSet<>();
+        for (JsonNode output : definitions) {
+            String key = output.path("key").asText("").trim();
+            if (outputs.isObject()) key = key.isBlank() ? "object-entry" : key;
+            if (!outputs.isObject() && (key.isBlank() || !keys.add(key))) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Validation output key is missing or duplicated: " + schemaId);
+            }
+            double absolute = output.path("absoluteTolerance").asDouble(-1);
+            double relative = output.path("relativeTolerance").asDouble(-1);
+            String comparison = output.path("comparison").asText("numeric");
+            if (!Double.isFinite(absolute) || absolute < 0 || !Double.isFinite(relative) || relative < 0
+                    || !List.of("numeric", "exact", "discrete").contains(comparison)) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Invalid output tolerance contract: " + schemaId + "." + key);
+            }
+        }
+    }
+
+    private void validateQuantityDefinitions(JsonNode definition, String schemaId) {
+        Set<String> keys = new HashSet<>();
+        Set<String> aliases = new HashSet<>();
+        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path("optionalQuantities"))) {
+            if (!fields.isMissingNode() && !fields.isArray()) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Quantity definitions must be arrays: " + schemaId);
+            }
+            for (JsonNode field : fields) {
+                String key = field.path("key").asText("").trim();
+                if (key.isBlank() || !keys.add(key.toLowerCase(java.util.Locale.ROOT))) {
+                    throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                            "Duplicate or missing quantity key in: " + schemaId);
+                }
+                JsonNode allowedUnits = field.path(ALLOWED_UNITS);
+                if (!allowedUnits.isArray() || allowedUnits.isEmpty()) {
+                    throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                            "Quantity allowedUnits are required for " + schemaId + "." + key);
+                }
+                Set<String> localAliases = new HashSet<>();
+                for (JsonNode alias : field.path("aliases")) {
+                    String normalized = alias.asText("").trim();
+                    if (normalized.isBlank() || !localAliases.add(normalized)
+                            || !aliases.add(normalized) || normalized.equals(key)) {
+                        throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                                "Duplicate or conflicting quantity alias in: " + schemaId + "." + key);
+                    }
+                }
+                if (field.path("positive").asBoolean(false) && field.path("nonNegative").asBoolean(false)) {
+                    throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                            "Quantity cannot be both positive and nonNegative: " + schemaId + "." + key);
+                }
+                JsonNode defaultValue = field.get("defaultValue");
+                if (defaultValue != null && (!defaultValue.isNumber() || !finite(defaultValue))) {
+                    throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                            "Quantity defaultValue must be finite: " + schemaId + "." + key);
+                }
+                if (defaultValue != null && defaultValue.isNumber()
+                        && invalidNumericValue(field, defaultValue.asDouble())) {
+                    throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                            "Quantity defaultValue violates constraints: " + schemaId + "." + key);
+                }
+            }
+        }
+        for (String key : keys) {
+            if (aliases.contains(key)) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Quantity alias conflicts with canonical key in: " + schemaId + "." + key);
+            }
+        }
+        Set<String> controls = new HashSet<>();
+        for (JsonNode control : definition.path(ADJUSTABLE_PARAMETERS)) {
+            String key = control.path("key").asText("").trim();
+            if (key.isBlank() || !controls.add(key.toLowerCase(java.util.Locale.ROOT)) || !keys.contains(key.toLowerCase(java.util.Locale.ROOT))) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Adjustable parameter is missing, duplicated or not a quantity: " + schemaId + "." + key);
+            }
+            if (!control.path("min").isNumber() || !control.path("max").isNumber()
+                    || !control.path("step").isNumber() || !finite(control.path("min"))
+                    || !finite(control.path("max")) || !finite(control.path("step"))
+                    || control.path("min").asDouble() > control.path("max").asDouble()
+                    || control.path("step").asDouble() <= 0) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Invalid adjustable parameter bounds: " + schemaId + "." + key);
+            }
+        }
     }
 
     private void validateVisualization(JsonNode visualization, String schemaId) {
@@ -462,8 +667,7 @@ public class SchemaDefinitionService {
         if (quantities == null || !quantities.isArray()) return null;
         for (JsonNode quantity : quantities) {
             String name = quantity.path("name").asText("").toLowerCase();
-            String symbol = quantity.path("symbol").asText("").toLowerCase();
-            if (acceptedNames.contains(name) || acceptedNames.contains(symbol)) return quantity;
+            if (acceptedNames.contains(name)) return quantity;
         }
         return null;
     }
@@ -486,7 +690,6 @@ public class SchemaDefinitionService {
     private Set<String> names(JsonNode field) {
         Set<String> names = new HashSet<>();
         names.add(field.path("key").asText().toLowerCase());
-        for (JsonNode alias : field.path("aliases")) names.add(alias.asText().toLowerCase());
         return names;
     }
 

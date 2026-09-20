@@ -1,6 +1,9 @@
 package com.example.backend.physics.model.dynamics;
 
 import com.example.backend.physics.model.PhysicsValues;
+import com.example.backend.physics.model.CanonicalQuantityBag;
+import com.example.backend.physics.model.LegacySpecificationAdapter;
+import com.example.backend.physics.model.PhysicalChecks;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Map;
@@ -20,17 +23,24 @@ public record DampedForcedOscillationParameters(
 
     public static DampedForcedOscillationParameters from(JsonNode specification,
             Map<String, Double> overrides) {
-        double mass = PhysicsValues.require(specification, overrides, "mass");
-        double spring = PhysicsValues.require(specification, overrides, "spring_constant");
-        double damping = PhysicsValues.require(specification, overrides, "damping_coefficient");
-        double driveAmplitude = PhysicsValues.require(specification, overrides, "driving_force_amplitude");
-        double driveFrequency = PhysicsValues.require(specification, overrides, "driving_frequency");
-        double x0 = PhysicsValues.require(specification, overrides, "initial_displacement");
-        double v0 = PhysicsValues.require(specification, overrides, "initial_velocity");
-        if (!(mass > 0) || !(spring > 0) || damping < 0 || driveAmplitude < 0 || driveFrequency < 0
-                || !Double.isFinite(x0) || !Double.isFinite(v0)) {
-            throw new IllegalArgumentException("Oscillator parameters must be finite and within physical bounds");
-        }
+        return from(LegacySpecificationAdapter.adapt(specification, overrides));
+    }
+
+    public static DampedForcedOscillationParameters from(CanonicalQuantityBag quantities) {
+        double mass = quantities.require("mass");
+        double spring = quantities.require("spring_constant");
+        double damping = quantities.require("damping_coefficient");
+        double driveAmplitude = quantities.require("driving_force_amplitude");
+        double driveFrequency = quantities.require("driving_frequency");
+        double x0 = quantities.require("initial_displacement");
+        double v0 = quantities.require("initial_velocity");
+        PhysicalChecks.positive(mass, "mass");
+        PhysicalChecks.positive(spring, "spring_constant");
+        PhysicalChecks.nonNegative(damping, "damping_coefficient");
+        PhysicalChecks.nonNegative(driveAmplitude, "driving_force_amplitude");
+        PhysicalChecks.nonNegative(driveFrequency, "driving_frequency");
+        PhysicalChecks.finite(x0, "initial_displacement");
+        PhysicalChecks.finite(v0, "initial_velocity");
         return new DampedForcedOscillationParameters(mass, spring, damping, driveAmplitude,
                 driveFrequency, x0, v0);
     }
@@ -39,9 +49,14 @@ public record DampedForcedOscillationParameters(
         return Math.sqrt(springConstant / mass);
     }
 
+    /** Damping rate gamma = c/(2m) for m*x'' + c*x' + k*x = F(t). */
+    public double dampingRate() {
+        return dampingCoefficient / (2 * mass);
+    }
+
     public double dampedAngularFrequency() {
-        return Math.sqrt(Math.max(0, naturalAngularFrequency() * naturalAngularFrequency()
-                - dampingCoefficient * dampingCoefficient));
+        double gamma = dampingRate();
+        return Math.sqrt(Math.max(0, naturalAngularFrequency() * naturalAngularFrequency() - gamma * gamma));
     }
 
     public double forceAmplitudePerMass() {
@@ -51,13 +66,19 @@ public record DampedForcedOscillationParameters(
     public double steadyStateAmplitude() {
         double w0 = naturalAngularFrequency();
         double w = drivingFrequency;
-        return forceAmplitudePerMass() / Math.sqrt(
-                Math.pow(w0 * w0 - w * w, 2) + Math.pow(2 * dampingCoefficient * w, 2));
+        double gamma = dampingRate();
+        double denominator = Math.sqrt(Math.pow(w0 * w0 - w * w, 2) + Math.pow(2 * gamma * w, 2));
+        if (denominator == 0) {
+            if (drivingAmplitude == 0) return 0;
+            throw new IllegalArgumentException("Undamped resonant steady-state amplitude is unbounded");
+        }
+        return forceAmplitudePerMass() / denominator;
     }
 
     public double steadyStatePhase() {
         double w0 = naturalAngularFrequency();
-        return Math.atan2(2 * dampingCoefficient * drivingFrequency,
+        double gamma = dampingRate();
+        return Math.atan2(2 * gamma * drivingFrequency,
                 w0 * w0 - drivingFrequency * drivingFrequency);
     }
 
@@ -67,6 +88,7 @@ public record DampedForcedOscillationParameters(
         }
         double w = drivingFrequency;
         double amplitude = steadyStateAmplitude();
+        double gamma = dampingRate();
         double phase = steadyStatePhase();
         double xParticular = amplitude * Math.cos(w * timeSeconds - phase);
         double vParticular = -amplitude * w * Math.sin(w * timeSeconds - phase);
@@ -79,35 +101,35 @@ public record DampedForcedOscillationParameters(
         double hVelocity;
         double hAcceleration;
         double criticalTolerance = 1e-12 * Math.max(1, w0);
-        if (Math.abs(dampingCoefficient - w0) <= criticalTolerance) {
+        if (Math.abs(gamma - w0) <= criticalTolerance) {
             // Repeated root r=-gamma: h=e^(-gamma t)(C+D t).
-            double envelope = Math.exp(-dampingCoefficient * timeSeconds);
-            double d = velocityDifference + dampingCoefficient * c;
+            double envelope = Math.exp(-gamma * timeSeconds);
+            double d = velocityDifference + gamma * c;
             h = envelope * (c + d * timeSeconds);
-            hVelocity = envelope * (d - dampingCoefficient * (c + d * timeSeconds));
-            hAcceleration = -2 * dampingCoefficient * hVelocity - w0 * w0 * h;
-        } else if (dampingCoefficient < w0) {
-            double wd = Math.sqrt(w0 * w0 - dampingCoefficient * dampingCoefficient);
-            double d = (velocityDifference + dampingCoefficient * c) / wd;
-            double envelope = Math.exp(-dampingCoefficient * timeSeconds);
+            hVelocity = envelope * (d - gamma * (c + d * timeSeconds));
+            hAcceleration = -2 * gamma * hVelocity - w0 * w0 * h;
+        } else if (gamma < w0) {
+            double wd = Math.sqrt(w0 * w0 - gamma * gamma);
+            double d = (velocityDifference + gamma * c) / wd;
+            double envelope = Math.exp(-gamma * timeSeconds);
             double cosine = Math.cos(wd * timeSeconds);
             double sine = Math.sin(wd * timeSeconds);
             h = envelope * (c * cosine + d * sine);
-            hVelocity = envelope * ((d * wd - dampingCoefficient * c) * cosine
-                    + (-c * wd - dampingCoefficient * d) * sine);
-            hAcceleration = -2 * dampingCoefficient * hVelocity - w0 * w0 * h;
+            hVelocity = envelope * ((d * wd - gamma * c) * cosine
+                    + (-c * wd - gamma * d) * sine);
+            hAcceleration = -2 * gamma * hVelocity - w0 * w0 * h;
         } else {
             // Over-damped roots r1/r2 are real and distinct.
-            double root = Math.sqrt(dampingCoefficient * dampingCoefficient - w0 * w0);
-            double r1 = -dampingCoefficient + root;
-            double r2 = -dampingCoefficient - root;
+            double root = Math.sqrt(gamma * gamma - w0 * w0);
+            double r1 = -gamma + root;
+            double r2 = -gamma - root;
             double c1 = (velocityDifference - r2 * c) / (r1 - r2);
             double c2 = c - c1;
             double e1 = Math.exp(r1 * timeSeconds);
             double e2 = Math.exp(r2 * timeSeconds);
             h = c1 * e1 + c2 * e2;
             hVelocity = r1 * c1 * e1 + r2 * c2 * e2;
-            hAcceleration = -2 * dampingCoefficient * hVelocity - w0 * w0 * h;
+            hAcceleration = -2 * gamma * hVelocity - w0 * w0 * h;
         }
         return new State(xParticular + h, vParticular + hVelocity, aParticular + hAcceleration);
     }

@@ -24,7 +24,8 @@ public class AdvancedOscillationSolver implements PhysicsSolver {
             throw new IllegalArgumentException("Unsupported advanced oscillation model: "
                     + PhysicsValues.model(specification));
         }
-        DampedForcedOscillationParameters p = DampedForcedOscillationParameters.from(specification, overrides);
+        DampedForcedOscillationParameters p = DampedForcedOscillationParameters.from(
+                PhysicsValues.bag(specification, overrides));
         if (!(durationSeconds > 0) || !(stepSeconds > 0)
                 || !Double.isFinite(durationSeconds + stepSeconds)) {
             throw new IllegalArgumentException("durationSeconds and stepSeconds must be finite and positive");

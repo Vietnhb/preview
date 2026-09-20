@@ -2,14 +2,13 @@ package com.example.backend.physics.reference.dynamics;
 
 import com.example.backend.physics.reference.ReferenceSolver;
 
-import com.example.backend.physics.model.*;
-import com.example.backend.physics.model.modern.*;
-import com.example.backend.physics.model.electromagnetism.*;
-import com.example.backend.physics.model.dynamics.*;
-import com.example.backend.physics.model.optics.*;
-import com.example.backend.physics.model.thermal.*;
-import com.example.backend.physics.model.waves.*;
-import com.example.backend.physics.model.practical.*;
+import com.example.backend.physics.model.AnalyticalPoint;
+import com.example.backend.physics.model.PhysicsValues;
+import com.example.backend.physics.model.dynamics.CircularMotionParameters;
+import com.example.backend.physics.model.dynamics.GravityOrbitParameters;
+import com.example.backend.physics.model.dynamics.HookeLawParameters;
+import com.example.backend.physics.model.dynamics.HydrostaticsParameters;
+import com.example.backend.physics.model.dynamics.WorkEnergyParameters;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
 import java.util.LinkedHashMap;

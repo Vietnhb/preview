@@ -1,6 +1,7 @@
 package com.example.backend.service.problem;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.InputStream;
@@ -44,6 +45,17 @@ class SchemaVisualizationContractTest {
                 .at("/visualization/presentation/sceneGraph/nodes/0/properties/vector/shapes/0"))
                 .put("x", "values.notProducedBySolver");
         assertThrows(ApiException.class, () -> schemas.validateDefinition(undeclaredBinding, "invalid"));
+    }
+
+    @Test
+    void materializesOnlySchemaOwnedOptionalDefaults() throws Exception {
+        JsonNode definition = mapper.readTree("""
+                {"optionalQuantities":[{"key":"gravitational_acceleration","allowedUnits":["m/s2"],"defaultValue":9.81}]}
+                """);
+        JsonNode input = mapper.readTree("{\"quantities\":[]}");
+        JsonNode materialized = schemas.materializeDefaults(input, definition);
+        assertEquals("gravitational_acceleration", materialized.path("quantities").get(0).path("name").asText());
+        assertEquals(9.81, materialized.path("quantities").get(0).path("normalizedValue").asDouble());
     }
 
     private JsonNode validDefinition() throws Exception {

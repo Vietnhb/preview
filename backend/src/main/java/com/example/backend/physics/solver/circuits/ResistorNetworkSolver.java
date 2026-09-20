@@ -1,6 +1,6 @@
 package com.example.backend.physics.solver.circuits;
 
-import com.example.backend.physics.solver.thermal.TemperatureScaleSolver;
+import com.example.backend.physics.runtime.SimulationTimeline;
 
 import com.example.backend.physics.solver.PhysicsSolver;
 
@@ -25,7 +25,7 @@ public class ResistorNetworkSolver implements PhysicsSolver {
         double totalCurrent = p.voltage() / equivalent;
         double branchCurrent1 = parallel ? p.voltage() / p.resistance1() : totalCurrent;
         double branchCurrent2 = parallel ? p.voltage() / p.resistance2() : totalCurrent;
-        List<Double> time = TemperatureScaleSolver.staticTime(duration, step);
+        List<Double> time = SimulationTimeline.sample(duration, step);
         Map<String,List<Double>> values = new LinkedHashMap<>();
         values.put("equivalentResistance", java.util.Collections.nCopies(time.size(), equivalent));
         values.put("totalCurrent", java.util.Collections.nCopies(time.size(), totalCurrent));

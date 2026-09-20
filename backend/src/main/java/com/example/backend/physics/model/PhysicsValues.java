@@ -13,44 +13,69 @@ import java.util.Map;
  * only; this keeps numerical code deterministic as the catalog grows.
  */
 public final class PhysicsValues {
-    private static final double STANDARD_GRAVITY = 9.81;
-
     private PhysicsValues() {
     }
 
-    private static Double find(JsonNode specification, Map<String, Double> overrides, String canonicalKey) {
-        Double override = overrides == null ? null : overrides.get(canonicalKey);
-        if (override != null)
-            return override;
+    /** @deprecated Use a schema-bound CanonicalQuantityBag in new code. */
+    @Deprecated
+    public static double require(JsonNode specification, Map<String, Double> overrides, String canonicalKey) {
+        return LegacySpecificationAdapter.adapt(specification, overrides).require(canonicalKey);
+    }
+
+    /**
+     * Compiles the already-normalized specification quantities once for a
+     * parameter binder. New model code should prefer this boundary over doing
+     * repeated JsonNode scans for every field.
+     */
+    public static CanonicalQuantityBag bag(JsonNode specification, Map<String, Double> overrides) {
+        Map<String, java.math.BigDecimal> values = new java.util.LinkedHashMap<>();
+        Map<String, String> units = new java.util.LinkedHashMap<>();
         JsonNode quantities = specification == null ? null : specification.get("quantities");
+        // Direct solver calls from pre-canonical replay fixtures may still lack
+        // quantities[]. Keep that migration path explicit and isolated in the
+        // adapter; production specifications always take the branch below.
+        if (quantities == null || !quantities.isArray() || quantities.isEmpty()) {
+            return LegacySpecificationAdapter.adapt(specification, overrides);
+        }
         if (quantities != null && quantities.isArray()) {
             for (JsonNode quantity : quantities) {
-                if (canonicalKey.equals(quantity.path("name").asText()))
-                    return numericValue(quantity);
+                String key = quantity.path("name").asText("").trim();
+                if (key.isBlank()) continue;
+                JsonNode numeric = quantity.path("normalizedValue").isNumber()
+                        ? quantity.path("normalizedValue") : quantity.path("value");
+                if (!numeric.isNumber()) continue;
+                String unit = quantity.path("normalizedUnit").asText(quantity.path("originalUnit").asText("1"));
+                if (values.putIfAbsent(key, numeric.decimalValue()) != null) {
+                    throw new IllegalArgumentException("Duplicate canonical quantity: " + key);
+                }
+                units.put(key, unit);
             }
         }
-        JsonNode direct = specification == null ? null : specification.get(canonicalKey);
-        return direct != null && direct.isNumber() ? direct.asDouble() : null;
-    }
-
-    private static Double numericValue(JsonNode quantity) {
-        if (quantity.path("normalizedValue").isNumber())
-            return quantity.path("normalizedValue").asDouble();
-        if (quantity.path("value").isNumber())
-            return quantity.path("value").asDouble();
-        return null;
-    }
-
-    public static double require(JsonNode specification, Map<String, Double> overrides, String canonicalKey) {
-        Double value = find(specification, overrides, canonicalKey);
-        if (value == null || !Double.isFinite(value)) {
-            throw new IllegalArgumentException("Missing required physical quantity: " + canonicalKey);
+        if (overrides != null) {
+            overrides.forEach((key, value) -> {
+                if (value == null || !Double.isFinite(value)) {
+                    throw new IllegalArgumentException("Override must be finite: " + key);
+                }
+                values.put(key, java.math.BigDecimal.valueOf(value));
+                units.putIfAbsent(key, "1");
+            });
         }
-        return value;
+        return new CanonicalQuantityBag(values, units);
+    }
+
+    public static double require(CanonicalQuantityBag quantities, String canonicalKey) {
+        if (quantities == null) throw new IllegalArgumentException("Canonical quantities are required");
+        return quantities.require(canonicalKey);
+    }
+
+    public static double optional(CanonicalQuantityBag quantities, double fallback, String canonicalKey) {
+        if (quantities == null) return fallback;
+        return quantities.optional(canonicalKey, fallback);
     }
 
     public static double gravitationalAcceleration(JsonNode specification, Map<String, Double> overrides) {
-        double gravity = optional(specification, overrides, STANDARD_GRAVITY, "gravitational_acceleration");
+        double gravity = optional(specification, overrides, PhysicalConstants.STANDARD_GRAVITY,
+                "gravitational_acceleration");
         if (gravity < 0)
             throw new IllegalArgumentException("Gravitational acceleration cannot be negative");
         return gravity;
@@ -58,13 +83,8 @@ public final class PhysicsValues {
 
     public static double optional(JsonNode specification, Map<String, Double> overrides,
             double fallback, String canonicalKey) {
-        Double value = find(specification, overrides, canonicalKey);
-        if (value == null)
-            return fallback;
-        if (!Double.isFinite(value)) {
-            throw new IllegalArgumentException("Optional physical quantity must be finite: " + canonicalKey);
-        }
-        return value;
+        CanonicalQuantityBag bag = LegacySpecificationAdapter.adapt(specification, overrides);
+        return bag.optional(canonicalKey, fallback);
     }
 
     public static String schema(JsonNode specification) {

@@ -12,6 +12,8 @@ import com.example.backend.entity.simulation.SolverVersion;
 import com.example.backend.repository.problem.SchemaVersionRepository;
 import com.example.backend.repository.simulation.SolverVersionRepository;
 import com.example.backend.service.problem.SchemaDefinitionService;
+import com.example.backend.physics.solver.PhysicsSolverRegistry;
+import com.example.backend.physics.reference.ReferenceSolverRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,8 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
     private final SolverVersionRepository solverRepository;
     private final ObjectMapper objectMapper;
     private final SchemaDefinitionService schemaDefinitions;
+    private final PhysicsSolverRegistry numericalSolvers;
+    private final ReferenceSolverRegistry referenceSolvers;
 
     @Override
     @Transactional
@@ -41,6 +45,8 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
         if (validatedDefinition instanceof com.fasterxml.jackson.databind.node.ObjectNode object)
             object.put("model", entry.path("model").asText());
         schemaDefinitions.validateDefinition(validatedDefinition, id);
+        numericalSolvers.get(entry.path("solverId").asText());
+        referenceSolvers.get(entry.path("referenceSolverId").asText());
         if (schemaRepository.findFirstBySchemaIdAndVersion(id, version).isEmpty()) {
             SchemaVersion schema = new SchemaVersion();
             schema.setSchemaId(id);
@@ -48,8 +54,20 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
             schema.setTopic(entry.path("topic").asText());
             schema.setVersion(version);
             schema.setDefinition(validatedDefinition);
+            schema.setDefinitionChecksum(schemaDefinitions.compiledChecksum(validatedDefinition));
             schema.setLifecycleStatus(LifecycleStatus.APPROVED);
             schemaRepository.save(schema);
+        } else {
+            SchemaVersion existing = schemaRepository.findFirstBySchemaIdAndVersion(id, version).orElseThrow();
+            String checksum = schemaDefinitions.compiledChecksum(validatedDefinition);
+            if (existing.getDefinitionChecksum() != null && !existing.getDefinitionChecksum().equals(checksum)) {
+                throw new IllegalStateException("Catalog drift for published schema " + id + "@" + version
+                        + ": create a new schema version instead of mutating the published definition");
+            }
+            if (existing.getDefinitionChecksum() == null) {
+                existing.setDefinitionChecksum(checksum);
+                schemaRepository.save(existing);
+            }
         }
         if (solverRepository.findFirstBySchemaIdAndVersion(id, version).isEmpty()) {
             SolverVersion solver = new SolverVersion();

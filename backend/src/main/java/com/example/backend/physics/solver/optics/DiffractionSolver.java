@@ -1,6 +1,6 @@
 package com.example.backend.physics.solver.optics;
 
-import com.example.backend.physics.solver.thermal.TemperatureScaleSolver;
+import com.example.backend.physics.runtime.SimulationTimeline;
 
 import com.example.backend.physics.solver.PhysicsSolver;
 
@@ -19,7 +19,7 @@ public class DiffractionSolver implements PhysicsSolver {
     @Override public SolverOutput solve(JsonNode specification, Map<String, Double> overrides, double duration, double step) {
         if (!"diffraction_polarization".equals(PhysicsValues.model(specification))) throw new IllegalArgumentException("Unsupported diffraction model: " + PhysicsValues.model(specification));
         DiffractionParameters p = DiffractionParameters.from(specification, overrides);
-        List<Double> time = TemperatureScaleSolver.staticTime(duration, step);
+        List<Double> time = SimulationTimeline.sample(duration, step);
         Map<String,List<Double>> values = new LinkedHashMap<>();
         values.put("diffractionAngle", java.util.Collections.nCopies(time.size(), p.diffractionAngle()));
         values.put("minimumExists", java.util.Collections.nCopies(time.size(), p.minimumExists() ? 1.0 : 0.0));

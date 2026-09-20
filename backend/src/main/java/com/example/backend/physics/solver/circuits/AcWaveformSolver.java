@@ -1,6 +1,6 @@
 package com.example.backend.physics.solver.circuits;
 
-import com.example.backend.physics.solver.thermal.TemperatureScaleSolver;
+import com.example.backend.physics.runtime.SimulationTimeline;
 
 import com.example.backend.physics.solver.PhysicsSolver;
 
@@ -25,8 +25,8 @@ public class AcWaveformSolver implements PhysicsSolver {
     public SolverOutput solve(JsonNode specification, Map<String, Double> overrides, double duration, double step) {
         if (!"ac_waveform".equals(PhysicsValues.model(specification)))
             throw new IllegalArgumentException("Unsupported AC waveform model: " + PhysicsValues.model(specification));
-        AcWaveformParameters p = AcWaveformParameters.from(specification, overrides);
-        List<Double> time = TemperatureScaleSolver.staticTime(duration, step);
+        AcWaveformParameters p = AcWaveformParameters.from(PhysicsValues.bag(specification, overrides));
+        List<Double> time = SimulationTimeline.sample(duration, step);
         List<Double> voltage = new ArrayList<>(time.size());
         for (double t : time)
             voltage.add(p.voltage(t));

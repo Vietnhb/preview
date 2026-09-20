@@ -11,9 +11,9 @@ import org.springframework.util.StringUtils;
 
 import com.example.backend.entity.enums.AmbiguityStatus;
 import com.example.backend.entity.enums.ConfirmationState;
-import com.example.backend.entity.problem.Specification;
 import com.example.backend.entity.problem.AmbiguityCase;
 import com.example.backend.entity.problem.SchemaVersion;
+import com.example.backend.entity.problem.Specification;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -45,17 +45,20 @@ public class SpecificationReadinessService {
         if (!StringUtils.hasText(specification.getSchemaId())) return;
         SchemaVersion schema = schemas.requireApproved(specification.getSchemaId(), specification.getSchemaVersion());
         removeAmbiguousRequiredQuantities(specification, schema.getDefinition());
-        List<SchemaDefinitionService.RequiredGap> gaps = schemas.missingRequiredQuantities(
-                toJson(specification), schema.getDefinition());
+        List<SchemaDefinitionService.RequiredGap> gaps = schemas.missingRequiredQuantities(toJson(specification), schema.getDefinition());
         canonicalizeOpenAmbiguities(specification, gaps);
         for (SchemaDefinitionService.RequiredGap gap : gaps) {
             String code = "schema.required." + gap.key();
             boolean exists = specification.getAmbiguityCases().stream().anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN
                     && item.getCode().equals(code));
             if (exists) continue;
-            AmbiguityCase ambiguity = new AmbiguityCase(); ambiguity.setCode(code); ambiguity.setFieldPath("quantities." + gap.key());
-            ambiguity.setQuestion("Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚Â»Ã‚Â bÃƒÆ’Ã‚Â i chÃƒâ€ Ã‚Â°a xÃƒÆ’Ã‚Â¡c Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹nh " + gap.key() + ". Vui lÃƒÆ’Ã‚Â²ng cung cÃƒÂ¡Ã‚ÂºÃ‚Â¥p giÃƒÆ’Ã‚Â¡ trÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ vÃƒÆ’Ã‚Â  Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â¡n vÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ " + gap.unit() + ".");
-            ambiguity.setOptions(objectMapper.createArrayNode()); ambiguity.setStatus(AmbiguityStatus.OPEN);
+            AmbiguityCase ambiguity = new AmbiguityCase();
+            ambiguity.setCode(code);
+            ambiguity.setFieldPath("quantities." + gap.key());
+            ambiguity.setQuestion("Chưa xác định đại lượng " + gap.key()
+                    + ". Vui lòng cung cấp giá trị và đơn vị " + gap.unit() + ".");
+            ambiguity.setOptions(objectMapper.createArrayNode());
+            ambiguity.setStatus(AmbiguityStatus.OPEN);
             specification.addAmbiguityCase(ambiguity);
         }
         boolean open = specification.getAmbiguityCases().stream().anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
@@ -76,7 +79,6 @@ public class SpecificationReadinessService {
         }
         if (ambiguousKeys.isEmpty() || specification.getQuantities() == null
                 || !specification.getQuantities().isArray()) return;
-
         Set<String> rejectedNames = new HashSet<>();
         for (JsonNode required : definition.path("requiredQuantities")) {
             if (!ambiguousKeys.contains(required.path("key").asText())) continue;
@@ -96,24 +98,19 @@ public class SpecificationReadinessService {
             List<SchemaDefinitionService.RequiredGap> gaps) {
         Set<String> seen = new HashSet<>();
         for (AmbiguityCase ambiguity : specification.getAmbiguityCases()) {
-            if (ambiguity.getStatus() == AmbiguityStatus.OPEN) {
-                SchemaDefinitionService.RequiredGap gap = gaps.stream()
-                        .filter(candidate -> refersTo(ambiguity, candidate.key()))
-                        .findFirst().orElse(null);
-                String code;
-                if (gap != null) {
-                    code = "schema.required." + gap.key();
-                    ambiguity.setFieldPath("quantities." + gap.key());
-                } else {
-                    code = semanticCode(ambiguity);
-                }
-                if (seen.add(code)) {
-                    ambiguity.setCode(code);
-                } else {
-                    ambiguity.setStatus(AmbiguityStatus.RESOLVED);
-                    ambiguity.setResolution("Merged with canonical ambiguity " + code);
-                    ambiguity.setResolvedAt(java.time.Instant.now());
-                }
+            if (ambiguity.getStatus() != AmbiguityStatus.OPEN) continue;
+            SchemaDefinitionService.RequiredGap gap = gaps.stream()
+                    .filter(candidate -> refersTo(ambiguity, candidate.key())).findFirst().orElse(null);
+            String code;
+            if (gap != null) {
+                code = "schema.required." + gap.key();
+                ambiguity.setFieldPath("quantities." + gap.key());
+            } else code = semanticCode(ambiguity);
+            if (seen.add(code)) ambiguity.setCode(code);
+            else {
+                ambiguity.setStatus(AmbiguityStatus.RESOLVED);
+                ambiguity.setResolution("Merged with canonical ambiguity " + code);
+                ambiguity.setResolvedAt(java.time.Instant.now());
             }
         }
     }
@@ -125,8 +122,7 @@ public class SpecificationReadinessService {
     }
 
     private String semanticCode(AmbiguityCase ambiguity) {
-        String identity = StringUtils.hasText(ambiguity.getFieldPath())
-                ? ambiguity.getFieldPath() : ambiguity.getCode();
+        String identity = StringUtils.hasText(ambiguity.getFieldPath()) ? ambiguity.getFieldPath() : ambiguity.getCode();
         String slug = String.join(".", tokens(identity));
         return "ai." + (StringUtils.hasText(slug) ? slug : "unspecified");
     }
@@ -134,16 +130,14 @@ public class SpecificationReadinessService {
     private Set<String> tokens(String value) {
         Set<String> result = new java.util.LinkedHashSet<>();
         for (String token : safe(value).toLowerCase(Locale.ROOT).split("[^a-z0-9]+")) {
-            if (!token.isBlank() && !token.equals("quantities") && !token.equals("objects")
-                    && !token.equals("object")) result.add(token);
+            if (!token.isBlank() && !token.equals("quantities") && !token.equals("objects") && !token.equals("object")) {
+                result.add(token);
+            }
         }
         return result;
     }
 
-    private String safe(String value) {
-        return value == null ? "" : value;
-    }
-
+    private String safe(String value) { return value == null ? "" : value; }
     private record AmbiguityView(String code, String fieldPath, String question, JsonNode options) { }
 
     public JsonNode toJson(Specification specification) {
@@ -160,6 +154,7 @@ public class SpecificationReadinessService {
         node.set("objects", specification.getObjects());
         node.set("quantities", definition == null ? specification.getQuantities()
                 : schemas.canonicalizeQuantities(specification.getQuantities(), definition));
+        if (definition != null) node = (ObjectNode) schemas.materializeDefaults(node, definition);
         node.set("relations", specification.getRelations());
         if (specification.getEndCondition() != null) node.set("endCondition", specification.getEndCondition());
         node.set("ambiguities", specification.getAmbiguity());

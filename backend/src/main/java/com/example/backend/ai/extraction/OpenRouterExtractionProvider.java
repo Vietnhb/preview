@@ -118,6 +118,7 @@ public class OpenRouterExtractionProvider implements ExtractionProvider {
             try {
                 JsonNode json = client.parseJson(completion.content());
                 if (!json.isObject()) throw new IllegalStateException("AI response root must be a JSON object.");
+                StrictSpecificationValidator.validate(json);
                 SpecificationDocument parsed = objectMapper.treeToValue(json, SpecificationDocument.class);
                 if (parsed == null || !StringUtils.hasText(parsed.schemaId())) {
                     throw new IllegalStateException("AI response does not contain a specification.");

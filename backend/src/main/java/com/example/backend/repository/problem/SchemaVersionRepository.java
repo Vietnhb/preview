@@ -10,5 +10,9 @@ import java.util.UUID;
 public interface SchemaVersionRepository extends JpaRepository<SchemaVersion, UUID> {
     List<SchemaVersion> findByLifecycleStatus(LifecycleStatus lifecycleStatus);
     Optional<SchemaVersion> findFirstBySchemaIdAndVersion(String schemaId, String version);
+    Optional<SchemaVersion> findTopBySchemaIdIgnoreCaseAndLifecycleStatusOrderByCreatedAtDesc(
+            String schemaId, LifecycleStatus lifecycleStatus);
+    boolean existsBySchemaIdAndVersion(String schemaId, String version);
+    List<SchemaVersion> findAllByLifecycleStatusOrderByTopicAscSchemaIdAscCreatedAtDesc(LifecycleStatus lifecycleStatus);
     List<SchemaVersion> findAllByOrderByTopicAscNameAscVersionAsc();
 }

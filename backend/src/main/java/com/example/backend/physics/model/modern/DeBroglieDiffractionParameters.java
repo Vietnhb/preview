@@ -1,5 +1,6 @@
 package com.example.backend.physics.model.modern;
 
+import com.example.backend.physics.model.PhysicalConstants;
 import com.example.backend.physics.model.PhysicsValues;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -20,7 +21,7 @@ public record DeBroglieDiffractionParameters(double particleMass, double speed,
         return new DeBroglieDiffractionParameters(mass, speed, spacing, (int) order);
     }
     public double momentum() { return particleMass * speed; }
-    public double wavelength() { return 6.62607015e-34 / momentum(); }
+    public double wavelength() { return PhysicalConstants.PLANCK / momentum(); }
     public double kineticEnergy() { return 0.5 * particleMass * speed * speed; }
     public double sineDiffractionAngle() { return diffractionOrder * wavelength() / latticeSpacing; }
     public double diffractionAngle() {

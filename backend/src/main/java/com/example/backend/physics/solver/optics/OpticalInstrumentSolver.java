@@ -1,17 +1,14 @@
 package com.example.backend.physics.solver.optics;
 
-import com.example.backend.physics.solver.thermal.TemperatureScaleSolver;
+import com.example.backend.physics.runtime.SimulationTimeline;
 
 import com.example.backend.physics.solver.PhysicsSolver;
 
-import com.example.backend.physics.model.*;
-import com.example.backend.physics.model.modern.*;
-import com.example.backend.physics.model.electromagnetism.*;
-import com.example.backend.physics.model.dynamics.*;
-import com.example.backend.physics.model.optics.*;
-import com.example.backend.physics.model.thermal.*;
-import com.example.backend.physics.model.waves.*;
-import com.example.backend.physics.model.practical.*;
+import com.example.backend.physics.model.PhysicsValues;
+import com.example.backend.physics.model.SolverOutput;
+import com.example.backend.physics.model.optics.AstronomicalTelescopeParameters;
+import com.example.backend.physics.model.optics.CompoundMicroscopeParameters;
+import com.example.backend.physics.model.optics.SimpleMagnifierParameters;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +26,7 @@ public class OpticalInstrumentSolver implements PhysicsSolver {
     public SolverOutput solve(JsonNode specification, Map<String, Double> overrides,
                               double durationSeconds, double stepSeconds) {
         String model = PhysicsValues.model(specification);
-        List<Double> time = TemperatureScaleSolver.staticTime(durationSeconds, stepSeconds);
+        List<Double> time = SimulationTimeline.sample(durationSeconds, stepSeconds);
         Map<String, Double> point = evaluate(model, specification, overrides);
         Map<String, List<Double>> values = new LinkedHashMap<>();
         point.forEach((key, value) -> values.put(key, java.util.Collections.nCopies(time.size(), value)));

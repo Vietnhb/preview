@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -31,20 +32,37 @@ public class PhysicsValidationService {
         SchemaVersion schema = schemaDefinitions.requireApproved(schemaId, schemaVersion);
         JsonNode validationDefinition = schema.getDefinition().path("validation");
         double tolerance = validationDefinition.path("tolerance").asDouble();
+        Map<String, OutputTolerance> outputTolerances = outputTolerances(validationDefinition, tolerance);
         List<ValidationCheckpointResponse> checkpoints = new ArrayList<>();
         List<String> errors = new ArrayList<>();
         double duration = numerical.time().isEmpty() ? 0 : numerical.time().get(numerical.time().size() - 1);
         for (double checkpoint : checkpointsFor(validationDefinition, duration)) {
             AnalyticalPoint analytical = solver.solve(specification, overrides, checkpoint);
+            if (analytical == null || analytical.values() == null || analytical.values().isEmpty()) {
+                errors.add("t=" + checkpoint + " reference returned no output");
+                continue;
+            }
             for (Map.Entry<String, Double> expected : analytical.values().entrySet()) {
-                double actual = interpolate(numerical.values().get(expected.getKey()), numerical.time(), checkpoint);
-                double error = relativeError(actual, expected.getValue());
-                boolean passed = error <= tolerance;
+                if (expected.getKey() == null || expected.getKey().isBlank()
+                        || expected.getValue() == null || !Double.isFinite(expected.getValue())) {
+                    errors.add("t=" + checkpoint + " reference returned an invalid output key/value");
+                    continue;
+                }
+                OutputTolerance contract = outputTolerances.getOrDefault(expected.getKey(),
+                        new OutputTolerance(tolerance, tolerance, "numeric"));
+                List<Double> numericalSeries = numerical.values().get(expected.getKey());
+                double actual = interpolate(numericalSeries, numerical.time(), checkpoint);
+                double absoluteError = Math.abs(actual - expected.getValue());
+                double relativeError = relativeError(actual, expected.getValue());
+                boolean passed = compare(actual, expected.getValue(), absoluteError, relativeError, contract);
                 checkpoints.add(new ValidationCheckpointResponse(checkpoint, expected.getKey(), actual,
-                        expected.getValue(), error, tolerance, passed));
+                        expected.getValue(), absoluteError, relativeError, Math.max(contract.absoluteTolerance(),
+                                contract.relativeTolerance()), contract.absoluteTolerance(), contract.relativeTolerance(), passed));
                 if (!passed) {
                     errors.add("t=" + checkpoint + " " + expected.getKey() + " expected="
-                            + expected.getValue() + " computed=" + actual + " relativeError=" + error);
+                            + " computed=" + actual + " absoluteError=" + absoluteError
+                            + " relativeError=" + relativeError + " absoluteTolerance="
+                            + contract.absoluteTolerance() + " relativeTolerance=" + contract.relativeTolerance());
                 }
             }
         }
@@ -67,9 +85,50 @@ public class PhysicsValidationService {
     }
 
     private double relativeError(double actual, double expected) {
+        if (!Double.isFinite(actual) || !Double.isFinite(expected)) return Double.POSITIVE_INFINITY;
         if (Math.abs(expected) > 1e-10) return Math.abs(actual - expected) / Math.abs(expected);
         return Math.abs(actual - expected);
     }
+
+    private boolean compare(double actual, double expected, double absoluteError, double relativeError,
+            OutputTolerance tolerance) {
+        if (!Double.isFinite(actual) || !Double.isFinite(expected)) return false;
+        if ("exact".equals(tolerance.comparison()) || "discrete".equals(tolerance.comparison())) {
+            return Double.doubleToLongBits(actual) == Double.doubleToLongBits(expected);
+        }
+        return absoluteError <= tolerance.absoluteTolerance() || relativeError <= tolerance.relativeTolerance();
+    }
+
+    private Map<String, OutputTolerance> outputTolerances(JsonNode validation, double fallback) {
+        Map<String, OutputTolerance> result = new HashMap<>();
+        JsonNode definitions = validation.path("outputs");
+        if (definitions.isObject()) {
+            definitions.fields().forEachRemaining(entry -> result.put(entry.getKey(), parseTolerance(entry.getValue(), fallback)));
+        } else if (definitions.isArray()) {
+            for (JsonNode definition : definitions) {
+                String key = definition.path("key").asText("").trim();
+                if (!key.isBlank()) result.put(key, parseTolerance(definition, fallback));
+            }
+        }
+        return Map.copyOf(result);
+    }
+
+    private OutputTolerance parseTolerance(JsonNode node, double fallback) {
+        double absolute = node.path("absoluteTolerance").isNumber()
+                ? node.path("absoluteTolerance").asDouble() : fallback;
+        double relative = node.path("relativeTolerance").isNumber()
+                ? node.path("relativeTolerance").asDouble() : fallback;
+        if (!Double.isFinite(absolute) || absolute < 0 || !Double.isFinite(relative) || relative < 0) {
+            throw new IllegalArgumentException("Output tolerances must be finite and non-negative");
+        }
+        String comparison = node.path("comparison").asText("numeric").trim().toLowerCase();
+        if (!List.of("numeric", "exact", "discrete").contains(comparison)) {
+            throw new IllegalArgumentException("Unsupported output comparison: " + comparison);
+        }
+        return new OutputTolerance(absolute, relative, comparison);
+    }
+
+    private record OutputTolerance(double absoluteTolerance, double relativeTolerance, String comparison) { }
 
     private List<Double> checkpointsFor(JsonNode definition, double duration) {
         double end = Math.max(0.01, duration);
