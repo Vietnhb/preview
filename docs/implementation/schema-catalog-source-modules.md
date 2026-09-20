@@ -24,13 +24,14 @@ invalid topic/module paths, path-to-entry identity mismatches, and generated
 artifact differences. `--split` is only for an initial import of an existing
 catalog and refuses to replace a populated source directory.
 
-The active source modules hold 75 current catalog entries. Text corrections and
-solver-binding changes are published as newer versions. The 28 superseded
-versions removed from the active catalog remain byte-for-byte represented in
-`backend/src/main/resources/schemas/history/published-versions.json`. Bootstrap
-loads those versions as retired before loading current entries; they stay out
-of the retrieval index while pinned historical runs can still resolve their
-schema and solver binding. Existing database lifecycle values are preserved.
+The active source modules currently hold 138 version rows for 74 latest schema
+identities. Text corrections and solver-binding changes are published as newer
+versions. An additional 28 older published rows remain byte-for-byte represented
+in `backend/src/main/resources/schemas/history/published-versions.json`.
+Bootstrap loads archived rows as retired before loading active source entries;
+they stay out of the retrieval index while pinned historical runs can still
+resolve their schema and solver binding. Existing database lifecycle values are
+preserved.
 
 At bootstrap, a row with a non-null checksum must match the source checksum as
 before. A row with a null checksum is backfilled only if the stored JSON
