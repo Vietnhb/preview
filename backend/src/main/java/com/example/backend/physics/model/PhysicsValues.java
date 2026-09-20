@@ -20,11 +20,13 @@ public final class PhysicsValues {
 
     private static Double find(JsonNode specification, Map<String, Double> overrides, String canonicalKey) {
         Double override = overrides == null ? null : overrides.get(canonicalKey);
-        if (override != null) return override;
+        if (override != null)
+            return override;
         JsonNode quantities = specification == null ? null : specification.get("quantities");
         if (quantities != null && quantities.isArray()) {
             for (JsonNode quantity : quantities) {
-                if (canonicalKey.equals(quantity.path("name").asText())) return numericValue(quantity);
+                if (canonicalKey.equals(quantity.path("name").asText()))
+                    return numericValue(quantity);
             }
         }
         JsonNode direct = specification == null ? null : specification.get(canonicalKey);
@@ -32,8 +34,10 @@ public final class PhysicsValues {
     }
 
     private static Double numericValue(JsonNode quantity) {
-        if (quantity.path("normalizedValue").isNumber()) return quantity.path("normalizedValue").asDouble();
-        if (quantity.path("value").isNumber()) return quantity.path("value").asDouble();
+        if (quantity.path("normalizedValue").isNumber())
+            return quantity.path("normalizedValue").asDouble();
+        if (quantity.path("value").isNumber())
+            return quantity.path("value").asDouble();
         return null;
     }
 
@@ -47,14 +51,16 @@ public final class PhysicsValues {
 
     public static double gravitationalAcceleration(JsonNode specification, Map<String, Double> overrides) {
         double gravity = optional(specification, overrides, STANDARD_GRAVITY, "gravitational_acceleration");
-        if (gravity < 0) throw new IllegalArgumentException("Gravitational acceleration cannot be negative");
+        if (gravity < 0)
+            throw new IllegalArgumentException("Gravitational acceleration cannot be negative");
         return gravity;
     }
 
     public static double optional(JsonNode specification, Map<String, Double> overrides,
-                                  double fallback, String canonicalKey) {
+            double fallback, String canonicalKey) {
         Double value = find(specification, overrides, canonicalKey);
-        if (value == null) return fallback;
+        if (value == null)
+            return fallback;
         if (!Double.isFinite(value)) {
             throw new IllegalArgumentException("Optional physical quantity must be finite: " + canonicalKey);
         }
@@ -62,9 +68,11 @@ public final class PhysicsValues {
     }
 
     public static String schema(JsonNode specification) {
-        if (specification == null) throw new IllegalArgumentException("Specification is required");
+        if (specification == null)
+            throw new IllegalArgumentException("Specification is required");
         String schemaId = specification.path("schemaId").asText(specification.path("schema_id").asText());
-        if (schemaId == null || schemaId.isBlank()) throw new IllegalArgumentException("Specification schemaId is required");
+        if (schemaId == null || schemaId.isBlank())
+            throw new IllegalArgumentException("Specification schemaId is required");
         return canonicalName(schemaId);
     }
 
@@ -75,9 +83,13 @@ public final class PhysicsValues {
         return canonicalName(specification.path("model").asText());
     }
 
-    /** Accepts historical dimension-suffixed identifiers without exposing them in new contracts. */
+    /**
+     * Accepts historical dimension-suffixed identifiers without exposing them in
+     * new contracts.
+     */
     public static String canonicalName(String value) {
-        if (value == null || value.isBlank()) return value;
+        if (value == null || value.isBlank())
+            return value;
         return value.replaceFirst("(?i)[_-](?:1d|2d)$", "");
     }
 

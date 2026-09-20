@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Map;
 
-/** Canonical parameters for a harmonically forced oscillator in all damping regimes. */
+/**
+ * Canonical parameters for a harmonically forced oscillator in all damping
+ * regimes.
+ */
 public record DampedForcedOscillationParameters(
         double mass,
         double springConstant,
@@ -16,7 +19,7 @@ public record DampedForcedOscillationParameters(
         double initialVelocity) {
 
     public static DampedForcedOscillationParameters from(JsonNode specification,
-                                                         Map<String, Double> overrides) {
+            Map<String, Double> overrides) {
         double mass = PhysicsValues.require(specification, overrides, "mass");
         double spring = PhysicsValues.require(specification, overrides, "spring_constant");
         double damping = PhysicsValues.require(specification, overrides, "damping_coefficient");
@@ -32,18 +35,26 @@ public record DampedForcedOscillationParameters(
                 driveFrequency, x0, v0);
     }
 
-    public double naturalAngularFrequency() { return Math.sqrt(springConstant / mass); }
+    public double naturalAngularFrequency() {
+        return Math.sqrt(springConstant / mass);
+    }
+
     public double dampedAngularFrequency() {
         return Math.sqrt(Math.max(0, naturalAngularFrequency() * naturalAngularFrequency()
                 - dampingCoefficient * dampingCoefficient));
     }
-    public double forceAmplitudePerMass() { return drivingAmplitude / mass; }
+
+    public double forceAmplitudePerMass() {
+        return drivingAmplitude / mass;
+    }
+
     public double steadyStateAmplitude() {
         double w0 = naturalAngularFrequency();
         double w = drivingFrequency;
         return forceAmplitudePerMass() / Math.sqrt(
                 Math.pow(w0 * w0 - w * w, 2) + Math.pow(2 * dampingCoefficient * w, 2));
     }
+
     public double steadyStatePhase() {
         double w0 = naturalAngularFrequency();
         return Math.atan2(2 * dampingCoefficient * drivingFrequency,
@@ -101,5 +112,6 @@ public record DampedForcedOscillationParameters(
         return new State(xParticular + h, vParticular + hVelocity, aParticular + hAcceleration);
     }
 
-    public record State(double displacement, double velocity, double acceleration) {}
+    public record State(double displacement, double velocity, double acceleration) {
+    }
 }
