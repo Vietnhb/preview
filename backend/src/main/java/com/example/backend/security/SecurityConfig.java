@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import com.example.backend.config.properties.SecurityProperties;
-import com.example.backend.entity.enums.RoleName;
 import com.example.backend.dto.common.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
@@ -39,6 +38,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnableWebSecurity
 @AllArgsConstructor
 public class SecurityConfig {
+    private static final String ADMIN = "ADMIN";
+    private static final String CONTENT_REVIEWER = "CONTENT_REVIEWER";
+    private static final String SCHOOL_MANAGER = "SCHOOL_MANAGER";
+    private static final String TEACHER = "TEACHER";
+    private static final String STUDENT = "STUDENT";
+
     private final JwtFilter jwtFilter;
     private final ObjectMapper objectMapper;
     private final SecurityProperties securityProperties;
@@ -74,65 +79,65 @@ public class SecurityConfig {
                         .requestMatchers("/api/user/me", "/api/user/profile/**").authenticated()
 
                         // Platform admin only
-                        .requestMatchers("/api/admin/**").hasRole(RoleName.ADMIN.name())
-                        .requestMatchers("/api/user/all").hasRole(RoleName.ADMIN.name())
-                        .requestMatchers("/api/user/students").hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
-                        .requestMatchers("/api/schools/*/activate", "/api/schools/*/deactivate").hasRole(RoleName.ADMIN.name())
+                        .requestMatchers("/api/admin/**").hasRole(ADMIN)
+                        .requestMatchers("/api/user/all").hasRole(ADMIN)
+                        .requestMatchers("/api/user/students").hasAnyRole(TEACHER, ADMIN)
+                        .requestMatchers("/api/schools/*/activate", "/api/schools/*/deactivate").hasRole(ADMIN)
 
                         // Content Reviewer (platform-level content moderation)
-                        .requestMatchers("/api/reviewer/**").hasAnyRole(RoleName.CONTENT_REVIEWER.name(), RoleName.ADMIN.name())
-                        .requestMatchers("/api/simulations/*/approve", "/api/simulations/*/reject").hasAnyRole(RoleName.CONTENT_REVIEWER.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/reviewer/**").hasAnyRole(CONTENT_REVIEWER, ADMIN)
+                        .requestMatchers("/api/simulations/*/approve", "/api/simulations/*/reject").hasAnyRole(CONTENT_REVIEWER, ADMIN)
 
                         // School Manager (school-level management)
-                        .requestMatchers("/api/schools/*/users/**").hasAnyRole(RoleName.SCHOOL_MANAGER.name(), RoleName.ADMIN.name())
-                        .requestMatchers("/api/schools/*/classes/**").hasAnyRole(RoleName.SCHOOL_MANAGER.name(), RoleName.ADMIN.name())
-                        .requestMatchers("/api/schools/*/reports/**").hasAnyRole(RoleName.SCHOOL_MANAGER.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/schools/*/users/**").hasAnyRole(SCHOOL_MANAGER, ADMIN)
+                        .requestMatchers("/api/schools/*/classes/**").hasAnyRole(SCHOOL_MANAGER, ADMIN)
+                        .requestMatchers("/api/schools/*/reports/**").hasAnyRole(SCHOOL_MANAGER, ADMIN)
 
-                        .requestMatchers("/api/problems/**").hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
+                        .requestMatchers("/api/problems/**").hasAnyRole(TEACHER, ADMIN)
 
                         // Teacher (content creation + teaching)
-                        .requestMatchers("/api/simulations/create").hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
-                        .requestMatchers("/api/assignments/**").hasAnyRole(RoleName.TEACHER.name(), RoleName.STUDENT.name(), RoleName.ADMIN.name())
-                        .requestMatchers("/api/classes/*/students").hasAnyRole(RoleName.TEACHER.name(), RoleName.SCHOOL_MANAGER.name(), RoleName.ADMIN.name())
+                        .requestMatchers(HttpMethod.POST, "/api/simulations", "/api/simulations/adjust", "/api/simulations/create")
+                                .hasAnyRole(TEACHER, ADMIN)
+                        .requestMatchers("/api/classes/*/students").hasAnyRole(TEACHER, SCHOOL_MANAGER, ADMIN)
 
                         // Student (learning + submissions)
-                        .requestMatchers("/api/student/**").hasRole(RoleName.STUDENT.name())
-                        .requestMatchers("/api/support/admin/**").hasRole(RoleName.ADMIN.name())
+                        .requestMatchers("/api/student/**").hasRole(STUDENT)
+                        .requestMatchers("/api/support/admin/**").hasRole(ADMIN)
                         .requestMatchers("/api/support/**").authenticated()
 
                         // School billing
                         .requestMatchers("/api/school/billing", "/api/school/billing/**")
-                                .hasRole(RoleName.SCHOOL_MANAGER.name())
+                                .hasRole(SCHOOL_MANAGER)
 
                         // Assignments: keep teacher and student operations separate.
                         .requestMatchers("/api/assignments/mine/teacher", "/api/assignments/mine/teacher/classes",
                                 "/api/assignments/*/submissions", "/api/assignments/*/report",
                                 "/api/assignments/*/submissions/*/grade", "/api/assignments/*/submissions/*/reopen")
-                                .hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
+                                .hasAnyRole(TEACHER, ADMIN)
                         .requestMatchers("/api/assignments/mine/student", "/api/assignments/*/predictions",
                                 "/api/assignments/*/submit", "/api/assignments/*/simulation",
                                 "/api/assignments/*/simulation/adjust")
-                                .hasRole(RoleName.STUDENT.name())
+                                .hasRole(STUDENT)
                         .requestMatchers("/api/assignments", "/api/assignments/**")
-                                .hasAnyRole(RoleName.TEACHER.name(), RoleName.STUDENT.name(), RoleName.ADMIN.name())
+                                .hasAnyRole(TEACHER, STUDENT, ADMIN)
 
                         // Shared library (view: all auth users, submit: teachers only)
                         .requestMatchers("/api/library/folders", "/api/library/folders/**")
-                                .hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
+                                .hasAnyRole(TEACHER, ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/library", "/api/library/**")
-                                .hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
+                                .hasAnyRole(TEACHER, ADMIN)
                         .requestMatchers(HttpMethod.PATCH, "/api/library", "/api/library/**")
-                                .hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
+                                .hasAnyRole(TEACHER, ADMIN)
                         .requestMatchers(HttpMethod.DELETE, "/api/library", "/api/library/**")
-                                .hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
-                        .requestMatchers("/api/library/mine").hasAnyRole(RoleName.TEACHER.name(), RoleName.ADMIN.name())
+                                .hasAnyRole(TEACHER, ADMIN)
+                        .requestMatchers("/api/library/mine").hasAnyRole(TEACHER, ADMIN)
                         .requestMatchers("/api/library", "/api/library/**").authenticated()
 
                         // Schemas (CONTENT_REVIEWER + ADMIN manage, others view approved only)
                         .requestMatchers(HttpMethod.POST, "/api/schemas", "/api/schemas/**")
-                                .hasAnyRole(RoleName.CONTENT_REVIEWER.name(), RoleName.ADMIN.name())
+                                .hasAnyRole(CONTENT_REVIEWER, ADMIN)
                         .requestMatchers(HttpMethod.PUT, "/api/schemas", "/api/schemas/**")
-                                .hasAnyRole(RoleName.CONTENT_REVIEWER.name(), RoleName.ADMIN.name())
+                                .hasAnyRole(CONTENT_REVIEWER, ADMIN)
                         .requestMatchers("/api/schemas", "/api/schemas/**").authenticated()
 
                         // All other requests require authentication
