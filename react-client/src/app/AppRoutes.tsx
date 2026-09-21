@@ -35,8 +35,13 @@ const SiteInfo = lazy(() => import("../pages/SiteInfo"));
 
 
 export default function AppRoutes({ authReady }: { authReady: boolean }) {
-  const { search } = useLocation();
+  const { pathname, search } = useLocation();
   const user = usePhysliveStore(state => state.user);
+  const managerBillingOnly = authReady
+    && user?.role === ROLE_NAMES.SCHOOL_MANAGER
+    && user.billingRequired === true
+    && pathname !== "/school/billing"
+    && pathname !== "/signup/payment-result";
   const workspaceElement = (element: ReactElement) =>
     <RequireAccess ready={authReady} roles={LEARNING_MANAGER_ROLES}>{element}</RequireAccess>;
   const roleElement = (roles: readonly string[], element: ReactElement) => {
@@ -45,6 +50,8 @@ export default function AppRoutes({ authReady }: { authReady: boolean }) {
   const assignmentsElement =
     roleElement([ROLE_NAMES.TEACHER, ROLE_NAMES.STUDENT, ROLE_NAMES.ADMIN],
       isStudentRole(user?.role) ? <StudentAssignments /> : <AssignmentWorkspace />);
+
+  if (managerBillingOnly) return <Navigate to="/school/billing" replace />;
 
   return <Suspense fallback={<main className="route-loading" aria-busy="true" />}>
         <Routes>

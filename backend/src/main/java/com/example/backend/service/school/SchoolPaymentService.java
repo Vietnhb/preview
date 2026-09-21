@@ -83,10 +83,13 @@ public class SchoolPaymentService {
             throw new ApiException(HttpStatus.CONFLICT, "Trường đã đăng ký. Vui lòng liên hệ người quản lý trường.");
         School school = new School();
         school.setCode(code); school.setName(request.schoolName().trim()); school.setAddress(request.address().trim());
-        school.setContactEmail(email); school.setPhoneNumber(request.phoneNumber().trim()); school.setActive(false);
+        // active is an administrator-controlled suspension flag. A school
+        // without a paid license remains active so its manager can sign in
+        // and finish purchasing a plan.
+        school.setContactEmail(email); school.setPhoneNumber(request.phoneNumber().trim()); school.setActive(true);
         schools.save(school);
         User manager = new User(); manager.setEmail(email); manager.setFullName(request.fullName().trim());
-        manager.setPassword(passwords.encode(request.password())); manager.setSchool(school); manager.setActive(false);
+        manager.setPassword(passwords.encode(request.password())); manager.setSchool(school); manager.setActive(true);
         manager.setRole(roles.findByName(RoleName.SCHOOL_MANAGER.name()).orElseThrow(() -> new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Role quản lý trường chưa được cấu hình.")));
         users.save(manager);
         SchoolPayment payment = new SchoolPayment(); payment.setSchool(school); payment.setManager(manager);
@@ -104,14 +107,18 @@ public class SchoolPaymentService {
     }
 
     String buildUrl(SchoolPayment payment, String ip) {
-        var now = payment.getCreatedAt().atZone(vnpay.zoneId());
+        // Each payment URL gets a fresh 15-minute window. Reusing the
+        // registration record must not reuse the timestamp of an older bill.
+        var now = ZonedDateTime.now(vnpay.zoneId());
         var format = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
         Map<String, String> params = new TreeMap<>();
         params.put("vnp_Version", "2.1.0"); params.put("vnp_Command", "pay"); params.put("vnp_TmnCode", vnpay.tmnCode());
         params.put("vnp_Amount", Long.toString(Math.multiplyExact(payment.getAmountVnd(), 100)));
         params.put("vnp_CurrCode", "VND"); params.put("vnp_Locale", "vn"); params.put("vnp_OrderType", "other");
-        params.put("vnp_TxnRef", payment.getId().toString()); params.put("vnp_OrderInfo", "PhysLive " + payment.getPlanCode());
-        params.put("vnp_ReturnUrl", vnpay.returnUrl()); params.put("vnp_IpAddr", ip);
+        // VNPAY accepts an alphanumeric merchant reference only. Keep the
+        // internal UUID mapping while removing hyphens from the provider ref.
+        params.put("vnp_TxnRef", providerTxnRef(payment.getId())); params.put("vnp_OrderInfo", "PhysLive" + payment.getPlanCode());
+        params.put("vnp_ReturnUrl", vnpay.returnUrl()); params.put("vnp_IpAddr", clientIp(ip));
         params.put("vnp_CreateDate", now.format(format)); params.put("vnp_ExpireDate", now.plusMinutes(15).format(format));
         String query = canonical(params);
         return vnpay.paymentUrl() + "?" + query + "&vnp_SecureHash=" + sign(query);
@@ -121,6 +128,15 @@ public class SchoolPaymentService {
         return new TreeMap<>(fields).entrySet().stream()
             .filter(e -> e.getKey().startsWith("vnp_") && !e.getKey().equals("vnp_SecureHash") && !e.getKey().equals("vnp_SecureHashType") && e.getValue() != null && !e.getValue().isEmpty())
             .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.US_ASCII) + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII))
+            .collect(Collectors.joining("&"));
+    }
+
+    /** VNPAY's Java IPN example hashes decoded request values without URL encoding. */
+    static String canonicalIpn(Map<String, String> fields) {
+        return new TreeMap<>(fields).entrySet().stream()
+            .filter(e -> e.getKey().startsWith("vnp_") && !e.getKey().equals("vnp_SecureHash")
+                && !e.getKey().equals("vnp_SecureHashType") && e.getValue() != null && !e.getValue().isEmpty())
+            .map(e -> e.getKey() + "=" + e.getValue())
             .collect(Collectors.joining("&"));
     }
 
@@ -134,11 +150,11 @@ public class SchoolPaymentService {
 
     @Transactional
     public Map<String, String> ipn(Map<String, String> fields) {
-        if (vnpay.hashSecret().isBlank() || !MessageDigest.isEqual(sign(canonical(fields)).getBytes(StandardCharsets.US_ASCII),
+        if (vnpay.hashSecret().isBlank() || !MessageDigest.isEqual(sign(canonicalIpn(fields)).getBytes(StandardCharsets.US_ASCII),
             fields.getOrDefault("vnp_SecureHash", "").toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII))) return reply("97", "Invalid signature");
         if (!vnpay.tmnCode().equals(fields.get("vnp_TmnCode"))) return reply("97", "Invalid merchant");
-        UUID id;
-        try { id = UUID.fromString(fields.getOrDefault("vnp_TxnRef", "")); } catch (IllegalArgumentException ex) { return reply("01", "Order not found"); }
+        UUID id = parsePaymentId(fields.get("vnp_TxnRef")).orElse(null);
+        if (id == null) return reply("01", "Order not found");
         var reference = payments.findById(id);
         if (reference.isEmpty()) return reply("01", "Order not found");
         lockedSchool(reference.get().getSchool().getId());
@@ -208,7 +224,7 @@ public class SchoolPaymentService {
     Map<String, String> queryProvider(SchoolPayment payment) {
         Map<String,String> fields = new LinkedHashMap<>();
         fields.put("vnp_RequestId", UUID.randomUUID().toString().replace("-", "")); fields.put("vnp_Version", "2.1.0");
-        fields.put("vnp_Command", "querydr"); fields.put("vnp_TmnCode", vnpay.tmnCode()); fields.put("vnp_TxnRef", payment.getId().toString());
+        fields.put("vnp_Command", "querydr"); fields.put("vnp_TmnCode", vnpay.tmnCode()); fields.put("vnp_TxnRef", providerTxnRef(payment.getId()));
         fields.put("vnp_TransactionDate", payment.getCreatedAt().atZone(vnpay.zoneId()).format(DATE_FORMAT));
         fields.put("vnp_CreateDate", ZonedDateTime.now(vnpay.zoneId()).format(DATE_FORMAT)); fields.put("vnp_IpAddr", vnpay.serverIp());
         fields.put("vnp_OrderInfo", "Query PhysLive payment"); fields.put("vnp_SecureHash", sign(String.join("|", fields.values())));
@@ -229,7 +245,8 @@ public class SchoolPaymentService {
         String input = java.util.stream.Stream.of("vnp_ResponseId", "vnp_Command", "vnp_ResponseCode", "vnp_Message", "vnp_TmnCode", "vnp_TxnRef", "vnp_Amount", "vnp_BankCode", "vnp_PayDate", "vnp_TransactionNo", "vnp_TransactionType", "vnp_TransactionStatus", "vnp_OrderInfo", "vnp_PromotionCode", "vnp_PromotionAmount")
             .map(key -> Objects.toString(fields.get(key), "")).collect(Collectors.joining("|"));
         if (!MessageDigest.isEqual(sign(input).getBytes(StandardCharsets.US_ASCII), fields.getOrDefault("vnp_SecureHash", "").toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII))
-            || !vnpay.tmnCode().equals(fields.get("vnp_TmnCode")) || !payment.getId().toString().equals(fields.get("vnp_TxnRef")))
+            || !vnpay.tmnCode().equals(fields.get("vnp_TmnCode"))
+            || !payment.getId().equals(parsePaymentId(fields.get("vnp_TxnRef")).orElse(null)))
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Phản hồi VNPAY không hợp lệ.");
         if ("91".equals(fields.get("vnp_ResponseCode"))) { payment.setStatus("FAILED"); return; }
         if (!"00".equals(fields.get("vnp_ResponseCode")) || !Long.toString(payment.getAmountVnd() * 100).equals(fields.get("vnp_Amount")))
@@ -273,6 +290,32 @@ public class SchoolPaymentService {
     public String status(UUID id) {
         var payment = payments.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy giao dịch."));
         return "PENDING".equals(payment.getStatus()) && !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now()) ? "EXPIRED" : payment.getStatus();
+    }
+
+    @Transactional(readOnly=true)
+    public String status(String providerRef) {
+        UUID id = parsePaymentId(providerRef)
+            .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Mã giao dịch không hợp lệ."));
+        return status(id);
+    }
+
+    static String providerTxnRef(UUID id) {
+        return id.toString().replace("-", "");
+    }
+
+    private static Optional<UUID> parsePaymentId(String raw) {
+        if (raw == null || raw.isBlank()) return Optional.empty();
+        String value = raw.trim();
+        if (value.matches("(?i)[0-9a-f]{32}")) {
+            value = value.replaceFirst("(?i)([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})", "$1-$2-$3-$4-$5");
+        }
+        try { return Optional.of(UUID.fromString(value)); }
+        catch (IllegalArgumentException ex) { return Optional.empty(); }
+    }
+
+    private static String clientIp(String ip) {
+        if (ip == null || ip.isBlank() || "::1".equals(ip) || "0:0:0:0:0:0:0:1".equals(ip)) return "127.0.0.1";
+        return ip;
     }
 
     private User manager() {

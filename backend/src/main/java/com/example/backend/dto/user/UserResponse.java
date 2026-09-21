@@ -14,4 +14,5 @@ public class UserResponse {
     private LocalDate dateOfBirth;
     private String avatarUrl;
     private java.util.UUID schoolId;
+    private boolean billingRequired;
 }

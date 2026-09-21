@@ -1,4 +1,4 @@
-export type User = { id: number; email: string; fullName: string; role: string; active?: boolean; institutionId?: string | null; schoolId?: string | null; schoolName?: string | null; dateOfBirth?: string | null; lastLogin?: string | null; avatarUrl?: string | null };
+export type User = { id: number; email: string; fullName: string; role: string; active?: boolean; institutionId?: string | null; schoolId?: string | null; schoolName?: string | null; dateOfBirth?: string | null; lastLogin?: string | null; avatarUrl?: string | null; billingRequired?: boolean };
 
 export type Quantity = {
   name: string; symbol?: string; value: number; originalValue?: number; originalUnit?: string;

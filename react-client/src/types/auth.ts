@@ -9,6 +9,7 @@ export interface User {
     schoolName?: string | null;
     dateOfBirth?: string | null;
     avatarUrl?: string | null;
+    billingRequired?: boolean;
     isActive?: boolean;
     lastLogin?: string | null;
 }

@@ -11,6 +11,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.account.UserRepository;
 import com.example.backend.repository.school.LicensePlanRepository;
 import com.example.backend.security.JwtUtil;
+import com.example.backend.service.school.LicenseCheckService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +28,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final LicensePlanRepository licensePlanRepository;
+    private final LicenseCheckService licenseCheckService;
 
     @Transactional(readOnly = true)
     public List<LicensePlan> plans() {
@@ -50,21 +52,27 @@ public class AuthService {
             throw new ApiException(HttpStatus.FORBIDDEN, "School account is deactivated. Please contact administrator.");
         }
 
-        // Note: License expiry does NOT block login (grace mode allows read-only access)
-
         if (!matchesPassword(password, user.getPassword())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Email or password is incorrect");
+        }
+
+        String role = user.getRole() == null ? null : user.getRole().getName();
+        RoleName roleName = RoleName.from(role)
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "Account role is not configured"));
+        if ((roleName == RoleName.TEACHER || roleName == RoleName.STUDENT)
+                && !licenseCheckService.isLicenseActive(user)) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Gói của trường chưa có hiệu lực. Vui lòng liên hệ quản lý trường.");
         }
 
         user.setLastLogin(java.time.Instant.now());
         userRepository.save(user);
 
-        String role = user.getRole() == null ? null : user.getRole().getName();
-        if (RoleName.from(role).isEmpty()) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Account role is not configured");
-        }
+        boolean billingRequired = roleName == RoleName.SCHOOL_MANAGER
+                && !licenseCheckService.isLicenseActive(user);
         return new LoginResponse(jwtUtil.generateToken(user.getEmail(), role),
-                new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(), user.getAvatarUrl(), user.getSchool() == null ? null : user.getSchool().getId()));
+                new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(),
+                        user.getAvatarUrl(), user.getSchool() == null ? null : user.getSchool().getId(), billingRequired));
     }
 
     public void signup(SignupRequest request) {

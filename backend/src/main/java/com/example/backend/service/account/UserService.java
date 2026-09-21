@@ -63,7 +63,10 @@ public class UserService {
 
     private UserResponse toResponse(User user) {
         String role = user.getRole() == null ? "UNKNOWN" : user.getRole().getName();
-        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(), user.getAvatarUrl(), user.getSchool() == null ? null : user.getSchool().getId());
+        boolean billingRequired = RoleName.SCHOOL_MANAGER.matches(role)
+                && (user.getSchool() == null || !user.getSchool().isLicenseActive());
+        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(),
+                user.getAvatarUrl(), user.getSchool() == null ? null : user.getSchool().getId(), billingRequired);
     }
 
     private static String normalizeEmail(String email) {

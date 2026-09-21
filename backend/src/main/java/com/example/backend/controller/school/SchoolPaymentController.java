@@ -41,7 +41,7 @@ public class SchoolPaymentController {
     public SchoolPaymentService.Billing nextPlan(@Valid @RequestBody SchoolPaymentPlanChoiceRequest request) { return payments.nextPlan(request.planCode()); }
 
     @GetMapping("/api/auth/payments/{id}")
-    public Map<String, String> status(@PathVariable UUID id) {
+    public Map<String, String> status(@PathVariable String id) {
         return Map.of("status", payments.status(id));
     }
 

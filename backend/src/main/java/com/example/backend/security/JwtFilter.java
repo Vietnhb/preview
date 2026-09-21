@@ -28,6 +28,10 @@ import java.util.List;
 public class JwtFilter extends OncePerRequestFilter {
     private static final String ACCOUNT_LOCKED_MESSAGE =
             "Tài khoản đang bị khóa. Vui lòng liên hệ quản trị viên.";
+    private static final String SCHOOL_DISABLED_MESSAGE =
+            "Trường đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.";
+    private static final String LICENSE_REQUIRED_MESSAGE =
+            "Gói của trường chưa có hiệu lực. Vui lòng liên hệ quản lý trường.";
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
@@ -51,17 +55,29 @@ public class JwtFilter extends OncePerRequestFilter {
             String email = claims.getSubject();
             var currentUser = userRepository.findByEmail(email);
             if (currentUser.isPresent() && !Boolean.TRUE.equals(currentUser.get().getActive())) {
-                writeAccountLocked(response);
+                writeForbidden(response, ACCOUNT_LOCKED_MESSAGE);
                 return;
             }
-            currentUser = currentUser
-                    .filter(user -> user.getSchool() == null || user.getSchool().isActive());
+            if (currentUser.isPresent() && currentUser.get().getSchool() != null
+                    && !currentUser.get().getSchool().isActive()) {
+                writeForbidden(response, SCHOOL_DISABLED_MESSAGE);
+                return;
+            }
             if (currentUser.isPresent() && currentUser.get().getRole() != null) {
                 var user = currentUser.get();
                 String role = user.getRole().getName();
                 boolean schoolRole = RoleName.from(role).map(RoleName::isSchoolRole).orElse(false);
                 boolean write = !List.of("GET", "HEAD", "OPTIONS").contains(request.getMethod());
                 String path = request.getRequestURI().substring(request.getContextPath().length());
+                boolean licenseActive = licenseCheckService.isLicenseActive(user);
+                if ((RoleName.TEACHER.matches(role) || RoleName.STUDENT.matches(role)) && !licenseActive) {
+                    writeForbidden(response, LICENSE_REQUIRED_MESSAGE);
+                    return;
+                }
+                if (RoleName.SCHOOL_MANAGER.matches(role) && !licenseActive && !isManagerBillingPath(path)) {
+                    writeForbidden(response, "Vui lòng mua hoặc gia hạn gói để tiếp tục sử dụng PhysLive.");
+                    return;
+                }
                 boolean managerRenewalRequest = RoleName.SCHOOL_MANAGER.matches(role)
                         && "POST".equals(request.getMethod())
                         && ("/api/school/billing/quote".equals(path)
@@ -69,7 +85,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 if (schoolRole && write && path.startsWith("/api/")
                         && !path.startsWith("/api/auth/") && !path.startsWith("/api/user/me/")
                         && !managerRenewalRequest
-                        && !licenseCheckService.canPerformWriteOperations(user)) {
+                        && !licenseActive) {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType("application/json");
                     response.setCharacterEncoding(StandardCharsets.UTF_8.name());
@@ -87,11 +103,19 @@ public class JwtFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private void writeAccountLocked(HttpServletResponse response) throws IOException {
+    private static boolean isManagerBillingPath(String path) {
+        return path.startsWith("/api/auth/")
+                || "/api/user/me".equals(path)
+                || "/api/user/me/license".equals(path)
+                || "/api/school/billing".equals(path)
+                || path.startsWith("/api/school/billing/");
+    }
+
+    private void writeForbidden(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         objectMapper.writeValue(response.getOutputStream(), new ErrorResponse(
-                HttpServletResponse.SC_FORBIDDEN, ACCOUNT_LOCKED_MESSAGE));
+                HttpServletResponse.SC_FORBIDDEN, message));
     }
 }

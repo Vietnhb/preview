@@ -6,6 +6,7 @@ import { setToken } from "../../utils/token";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import LearningIcon from "../../components/common/LearningIcon";
 import { DotPatternBackground } from "../../components/effects/DotPatternBackground";
+import { ROLE_NAMES } from "../../types/roles";
 import "../../styles/account.css";
 
 export default function Login() {
@@ -18,7 +19,14 @@ export default function Login() {
 
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault(); setError(""); setLoading(true);
-    try { const response = await login(email, password); setToken(response.token); setUser(response.user); navigate("/"); }
+    try {
+      const response = await login(email, password);
+      setToken(response.token);
+      setUser(response.user);
+      if (response.user.role === ROLE_NAMES.SCHOOL_MANAGER) {
+        navigate(response.user.billingRequired ? "/school/billing" : "/school", { replace: true });
+      } else navigate("/", { replace: true });
+    }
     catch (err: unknown) {
       if (axios.isAxiosError<{ message?: string }>(err) && err.response) setError(err.response.data?.message ?? (err.response.status === 401 ? "Email hoặc mật khẩu không đúng." : "Không thể đăng nhập."));
       else setError("Không thể kết nối tới máy chủ.");
