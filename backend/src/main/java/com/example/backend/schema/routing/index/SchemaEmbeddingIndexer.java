@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -32,6 +33,8 @@ public class SchemaEmbeddingIndexer {
     private final PgVectorSchemaEmbeddingStore store;
     private final SchemaRoutingProperties properties;
     private final Bm25SchemaRetriever lexical;
+    @Value("${physlive.schema-routing.legacy-index-startup:false}")
+    private boolean legacyIndexStartup;
 
     public SchemaEmbeddingIndexer(SchemaDefinitionService schemaDefinitions, SchemaSearchDocumentBuilder documents,
             SchemaSearchIndex index, EmbeddingClient embeddings, PgVectorSchemaEmbeddingStore store,
@@ -48,7 +51,7 @@ public class SchemaEmbeddingIndexer {
 
     @EventListener(ApplicationReadyEvent.class)
     public void indexAtStartup() {
-        if (properties.enabled()) rebuild();
+        if (legacyIndexStartup && properties.enabled()) rebuild();
     }
 
     /** Safe to call from an administrative reindex operation; upserts are idempotent. */
@@ -85,7 +88,7 @@ public class SchemaEmbeddingIndexer {
     }
 
     public void refreshAfterCatalogChange() {
-        if (!properties.enabled()) return;
+        if (!legacyIndexStartup || !properties.enabled()) return;
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             rebuild();
             return;

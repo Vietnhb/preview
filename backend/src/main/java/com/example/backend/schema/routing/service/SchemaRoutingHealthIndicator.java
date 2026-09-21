@@ -2,7 +2,6 @@ package com.example.backend.schema.routing.service;
 
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
-import org.springframework.stereotype.Component;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -14,7 +13,8 @@ import com.example.backend.schema.routing.vector.PgVectorSchemaEmbeddingStore;
 import com.example.backend.service.problem.SchemaDefinitionService;
 
 /** Reports whether the configured hybrid route can serve extraction requests. */
-@Component("schemaRouting")
+/** Legacy vector health indicator retained for migration tests; Jev owns runtime health. */
+@Deprecated(forRemoval = true)
 public final class SchemaRoutingHealthIndicator implements HealthIndicator {
     private final SchemaRoutingProperties properties;
     private final EmbeddingClient embeddings;

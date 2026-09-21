@@ -1,0 +1,121 @@
+package com.example.backend.schema.routing.service;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import io.micrometer.core.instrument.MeterRegistry;
+
+import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
+import com.example.backend.config.properties.JevProperties;
+import com.example.backend.config.properties.SchemaRoutingProperties;
+import com.example.backend.entity.problem.SchemaVersion;
+import com.example.backend.exception.SchemaRoutingException;
+import com.example.backend.schema.routing.model.RetrievalScore;
+import com.example.backend.schema.routing.model.SchemaCandidate;
+import com.example.backend.schema.routing.model.SchemaCandidate.VerificationEvidence;
+import com.example.backend.schema.routing.model.SchemaRoutingDecision;
+import com.example.backend.service.problem.SchemaDefinitionService;
+
+/** Jev-only schema routing. The database remains the authority for approved contracts. */
+@Service
+public final class JevSchemaRoutingService {
+    private final SchemaDefinitionService schemas;
+    private final JevSchemaClassifier classifier;
+    private final SchemaRoutingProperties routing;
+    private final JevProperties jev;
+    private final MeterRegistry meters;
+
+    public JevSchemaRoutingService(SchemaDefinitionService schemas, JevSchemaClassifier classifier,
+            SchemaRoutingProperties routing, JevProperties jev, MeterRegistry meters) {
+        this.schemas = schemas;
+        this.classifier = classifier;
+        this.routing = routing;
+        this.jev = jev;
+        this.meters = meters;
+    }
+
+    public SchemaRoutingDecision route(String problemText) {
+        if (!routing.enabled()) throw new SchemaRoutingException("Jev schema routing is disabled.");
+        if (!StringUtils.hasText(problemText)) throw new IllegalArgumentException("Problem text must not be blank");
+        if (problemText.length() > routing.maximumQueryCharacters()) {
+            throw new IllegalArgumentException("Problem text exceeds the configured schema-routing query limit");
+        }
+
+        List<SchemaVersion> approved = schemas.approvedSchemas();
+        if (approved.isEmpty()) throw new SchemaRoutingException("No approved schemas are available for Jev routing.");
+        Map<String, SchemaVersion> byIdentity = new LinkedHashMap<>();
+        Map<String, String> criteria = new LinkedHashMap<>();
+        for (SchemaVersion schema : approved) {
+            byIdentity.put(schema.getSchemaId(), schema);
+            criteria.put(schema.getSchemaId(), description(schema));
+        }
+
+        JevSchemaClassifier.Result result = classifier.classify(problemText, criteria);
+        meters.counter("physlive.schema.routing.jev.requests").increment();
+        List<Map.Entry<String, Double>> ranked = new ArrayList<>(result.probabilities().entrySet());
+        ranked.sort(Map.Entry.<String, Double>comparingByValue().reversed().thenComparing(Map.Entry::getKey));
+        if (!ranked.stream().anyMatch(item -> item.getKey().equals(result.choice()))) {
+            ranked.add(Map.entry(result.choice(), Math.max(result.confidence(), 0d)));
+        }
+
+        List<SchemaCandidate> candidates = ranked.stream()
+                .filter(item -> byIdentity.containsKey(item.getKey()))
+                .limit(routing.candidateTopK())
+                .map(item -> candidate(byIdentity.get(item.getKey()), item.getValue(), ranked.indexOf(item) + 1))
+                .toList();
+        if (candidates.isEmpty()) throw new SchemaRoutingException("Jev returned a schema outside the approved catalog.");
+
+        SchemaCandidate first = candidates.stream()
+                .filter(item -> item.schemaId().equals(result.choice()))
+                .findFirst().orElse(candidates.getFirst());
+        double second = candidates.stream().filter(item -> item != first)
+                .mapToDouble(SchemaCandidate::confidence).max().orElse(0d);
+        double margin = Math.max(0d, first.confidence() - second);
+        boolean selected = result.choice().equals(first.schemaId())
+                && result.inScope() >= 0.5
+                && first.confidence() >= routing.minimumScore()
+                && margin >= routing.minimumMargin();
+        String reason = selected ? "JEV_SCHEMA_SELECTED" :
+                result.inScope() < 0.5 ? "JEV_OUT_OF_SCOPE" :
+                margin < routing.minimumMargin() ? "JEV_LOW_MARGIN" : "JEV_LOW_CONFIDENCE";
+        if (selected) meters.counter("physlive.schema.routing.jev.selected").increment();
+        else meters.counter("physlive.schema.routing.jev.ambiguous").increment();
+        return new SchemaRoutingDecision(selected ? SchemaRoutingDecision.Status.SELECTED
+                : SchemaRoutingDecision.Status.AMBIGUOUS, reason, candidates,
+                clamp(first.confidence()), clamp(margin));
+    }
+
+    private SchemaCandidate candidate(SchemaVersion schema, double probability, int rank) {
+        CandidateContractProjection contract = CandidateContractProjection.from(schema.getSchemaId(),
+                schema.getVersion(), schema.getTopic(), schema.getName(), schema.getDefinition());
+        double confidence = clamp(probability);
+        return new SchemaCandidate(contract,
+                new RetrievalScore(rank, confidence, 0, 0, confidence),
+                new VerificationEvidence(confidence, 1, confidence, 0,
+                        List.of("JEV_CHOICE", "APPROVED_DATABASE_CONTRACT")), confidence);
+    }
+
+    private String description(SchemaVersion schema) {
+        var definition = schema.getDefinition();
+        String quantities = "";
+        if (definition != null && definition.path("requiredQuantities").isArray()) {
+            quantities = java.util.stream.StreamSupport.stream(definition.path("requiredQuantities").spliterator(), false)
+                    .map(item -> item.path("key").asText())
+                    .filter(StringUtils::hasText)
+                    .sorted().limit(16).toList().toString();
+        }
+        return "%s | topic=%s | model=%s | required quantities=%s".formatted(
+                schema.getName(), schema.getTopic(), definition == null ? "" : definition.path("model").asText(schema.getSchemaId()), quantities);
+    }
+
+    private double clamp(double value) {
+        if (!Double.isFinite(value)) return 0;
+        return Math.max(0, Math.min(1, value));
+    }
+}

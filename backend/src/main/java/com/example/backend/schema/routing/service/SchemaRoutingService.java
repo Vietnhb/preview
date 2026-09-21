@@ -33,7 +33,11 @@ import com.example.backend.schema.routing.vector.EmbeddingResult;
 import com.example.backend.schema.routing.vector.SchemaVectorRetriever;
 import com.example.backend.schema.routing.verification.SchemaContractReranker;
 
-@Service
+/**
+ * Legacy vector/BM25 router retained only for migration tests and historical replay.
+ * Runtime extraction uses {@link JevSchemaRoutingService}.
+ */
+@Deprecated(forRemoval = true)
 public final class SchemaRoutingService {
     private final SchemaSearchIndex index;
     private final Bm25SchemaRetriever lexical;
