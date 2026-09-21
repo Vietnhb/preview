@@ -15,9 +15,10 @@
 
 - URL, HTTP method, request fields và response shape hiện tại không đổi.
 - Chuẩn hóa role reviewer thành `REVIEWER`; `V25__rename_content_reviewer_role.sql` chuyển dữ liệu legacy và giữ nguyên tài khoản hiện có.
+- `JwtFilter` chỉ từ chối tài khoản có `active = false`; `V26__backfill_legacy_user_active_flags.sql` chuẩn hóa các tài khoản cũ đang có `active = NULL`.
 - Không đổi schema/version identity, checksum, solver numerical/reference, simulation persistence, replay hoặc output contract.
-- Không sửa migration đã áp dụng; thêm các migration mới `V24` và `V25` cho catalog gói và chuẩn hóa role reviewer.
-- Cập nhật frontend role contract từ `CONTENT_REVIEWER` thành `REVIEWER`, không đổi API shape.
+- Không sửa migration đã áp dụng; thêm các migration mới `V24`, `V25` và `V26` cho catalog gói, chuẩn hóa role reviewer và backfill trạng thái tài khoản.
+- Cập nhật frontend role contract sang `REVIEWER`, không đổi API shape.
 
 ## Lỗi nghiệp vụ/bảo mật đã sửa
 

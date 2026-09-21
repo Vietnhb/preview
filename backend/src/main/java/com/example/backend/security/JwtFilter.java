@@ -47,7 +47,9 @@ public class JwtFilter extends OncePerRequestFilter {
 
             String email = claims.getSubject();
             var currentUser = userRepository.findByEmail(email)
-                    .filter(user -> Boolean.TRUE.equals(user.getActive()))
+                    // Legacy rows may have a null active flag; only an explicit
+                    // false value means that the account has been suspended.
+                    .filter(user -> !Boolean.FALSE.equals(user.getActive()))
                     .filter(user -> user.getSchool() == null || user.getSchool().isActive());
             if (currentUser.isPresent() && currentUser.get().getRole() != null) {
                 var user = currentUser.get();
