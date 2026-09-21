@@ -37,15 +37,12 @@ try (var connection = DriverManager.getConnection(jdbcUrl, username, password);
         result.next(); System.out.println("null_definition_checksums=" + result.getLong(1));
     }
     for (var table : List.of("schema_search_embeddings", "schema_search_index_generations", "schema_search_embedding_views")) {
-        try (var result = statement.executeQuery("SELECT count(*) FROM " + table)) {
-            result.next(); System.out.println(table + "_rows=" + result.getLong(1));
+        try (var result = statement.executeQuery("SELECT to_regclass('" + table + "')")) {
+            result.next(); System.out.println(table + "_present=" + (result.getString(1) != null));
         }
     }
     try (var result = statement.executeQuery("SELECT count(*) FROM schema_versions WHERE definition::text LIKE '%Ã%' OR definition::text LIKE '%Â%' OR definition::text LIKE '%Ä%' OR definition::text LIKE '%Ï%' OR definition::text LIKE '%Î%' OR definition::text LIKE '%â‚%' OR definition::text LIKE '%Ì%' OR definition::text LIKE '%á»%' OR definition::text LIKE '%áº%'")) {
         result.next(); System.out.println("definitions_with_mojibake_markers=" + result.getLong(1));
-    }
-    try (var result = statement.executeQuery("SELECT count(*) FROM schema_search_embedding_views")) {
-        result.next(); System.out.println("semantic_view_rows=" + result.getLong(1));
     }
     try (var result = statement.executeQuery("SELECT count(*) FROM schema_versions WHERE NOT (definition ? 'model')")) {
         result.next(); System.out.println("definitions_missing_model=" + result.getLong(1));
@@ -61,6 +58,9 @@ try (var connection = DriverManager.getConnection(jdbcUrl, username, password);
     }
     try (var result = statement.executeQuery("SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '19'")) {
         result.next(); System.out.println("flyway_v19_success_rows=" + result.getLong(1));
+    }
+    try (var result = statement.executeQuery("SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '20'")) {
+        result.next(); System.out.println("flyway_v20_success_rows=" + result.getLong(1));
     }
 }
 System.out.println("cloud_utf8_readback=ok");

@@ -59,7 +59,7 @@ Restart the backend with:
 | `SQL_INIT_MODE` | `never` |
 | `BOOTSTRAP_CATALOGS_ENABLED` | `true` |
 
-The configured baseline version is `0`. Flyway should record the baseline and apply V1–V13. Check that `flyway_schema_history` records successful versions `1` through `14`, the `vector` extension, `schema_search_embeddings.projection_version`, the `schema_search_embeddings`, `ambiguity_cases`, and `reviewer_decisions` tables, and the `simulation_runs` contract-identity columns/index exist, and the backend readiness health check is healthy.
+The configured baseline version is `0`. Flyway should record the baseline and apply every migration through the current version `20`. Check that `flyway_schema_history` records successful versions `1` through `20`, the `ambiguity_cases` and `reviewer_decisions` tables, and the `simulation_runs` contract-identity columns/index exist. Migration V20 removes the historical schema-search embedding tables; they must not be required by the Jev runtime. The backend readiness health check must be healthy.
 
 After this first successful migration, set `FLYWAY_BASELINE_ON_MIGRATE=false` and keep `FLYWAY_ENABLED=true` and `JPA_DDL_AUTO=validate` for steady-state starts.
 
@@ -70,4 +70,4 @@ deployment from silently mutating a schema outside the migration history.
 rule. The Hibernate mutation modes remain available only while Flyway is
 explicitly disabled for the verified empty-database bootstrap step.
 
-The Testcontainers test `FreshSchemaBootstrapMigrationTest` exercises this sequence by creating the entity schema with the application's Hibernate naming strategy, baselining at `0`, applying every migration, validating the final database against the Hibernate entity model, and checking representative V1/V3 indexes and constraints plus V4–V13 objects. V11's simulation-run identity columns are nullable so rows created before that migration remain readable for historical replay; newly persisted runs populate them from the pinned compiled contract.
+The Testcontainers test `FreshSchemaBootstrapMigrationTest` exercises this sequence by creating the entity schema with the application's Hibernate naming strategy, baselining at `0`, applying every migration, validating the final database against the Hibernate entity model, and checking representative V1/V3 indexes and constraints plus V4–V20 objects. V11's simulation-run identity columns are nullable so rows created before that migration remain readable for historical replay; newly persisted runs populate them from the pinned compiled contract.
