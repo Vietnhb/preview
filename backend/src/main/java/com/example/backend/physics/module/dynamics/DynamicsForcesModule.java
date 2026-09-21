@@ -49,7 +49,7 @@ public final class DynamicsForcesModule implements PhysicsModule<DynamicsForcesM
         double x = p.initialPosition();
         double v = p.initialVelocity();
         for (int i = 0; i < time.size(); i++) {
-            double a = acceleration(p.appliedForce(), frictionForce, p.mass(), v);
+            double a = numericalAcceleration(p.appliedForce(), frictionForce, p.mass(), v);
             requireFinite(time.get(i), x, v, a);
             position.add(x);
             velocity.add(v);
@@ -59,7 +59,7 @@ public final class DynamicsForcesModule implements PhysicsModule<DynamicsForcesM
             effectiveForce.add(force);
             if (i + 1 < time.size()) {
                 double dt = time.get(i + 1) - time.get(i);
-                MotionState next = advance(x, v, p.appliedForce(), frictionForce, p.mass(), dt);
+                MotionState next = numericalAdvance(x, v, p.appliedForce(), frictionForce, p.mass(), dt);
                 requireFinite(next.position(), next.velocity());
                 x = next.position();
                 v = next.velocity();
@@ -79,7 +79,7 @@ public final class DynamicsForcesModule implements PhysicsModule<DynamicsForcesM
         Objects.requireNonNull(p, "parameters");
         requireCheckpoint(timeSeconds);
         double frictionForce = p.frictionCoefficient() * p.mass() * p.gravity();
-        double initialAcceleration = acceleration(p.appliedForce(), frictionForce, p.mass(), p.initialVelocity());
+        double initialAcceleration = referenceAcceleration(p.appliedForce(), frictionForce, p.mass(), p.initialVelocity());
         double x;
         double v;
         double a;
@@ -89,7 +89,7 @@ public final class DynamicsForcesModule implements PhysicsModule<DynamicsForcesM
                 double stopPosition = p.initialPosition()
                         + (p.initialVelocity() + 0.0) * (stoppingTime / 2.0);
                 double remaining = timeSeconds - stoppingTime;
-                a = acceleration(p.appliedForce(), frictionForce, p.mass(), 0.0);
+                a = referenceAcceleration(p.appliedForce(), frictionForce, p.mass(), 0.0);
                 x = stopPosition + 0.5 * a * remaining * remaining;
                 v = a * remaining;
             } else {
@@ -110,7 +110,8 @@ public final class DynamicsForcesModule implements PhysicsModule<DynamicsForcesM
         return new AnalyticalPoint(Map.of("x", x, "vx", v, "ax", a, "force", force));
     }
 
-    private static double acceleration(double appliedForce, double frictionForce, double mass, double velocity) {
+    private static double numericalAcceleration(double appliedForce, double frictionForce,
+                                                double mass, double velocity) {
         if (velocity == 0.0) {
             if (Math.abs(appliedForce) <= frictionForce) return 0.0;
             return Math.copySign((Math.abs(appliedForce) - frictionForce) / mass, appliedForce);
@@ -118,20 +119,34 @@ public final class DynamicsForcesModule implements PhysicsModule<DynamicsForcesM
         return (appliedForce - Math.copySign(frictionForce, velocity)) / mass;
     }
 
-    private static MotionState advance(double position, double velocity, double appliedForce,
-                                       double frictionForce, double mass, double dt) {
-        double a = acceleration(appliedForce, frictionForce, mass, velocity);
+    private static MotionState numericalAdvance(double position, double velocity, double appliedForce,
+                                                double frictionForce, double mass, double dt) {
+        double a = numericalAcceleration(appliedForce, frictionForce, mass, velocity);
         if (velocity != 0.0 && velocity * a < 0.0) {
             double stoppingTime = -velocity / a;
             if (stoppingTime <= dt) {
                 double stoppedPosition = position + (velocity + 0.0) * (stoppingTime / 2.0);
                 double remaining = dt - stoppingTime;
-                double restartAcceleration = acceleration(appliedForce, frictionForce, mass, 0.0);
+                double restartAcceleration = numericalAcceleration(appliedForce, frictionForce, mass, 0.0);
                 return new MotionState(stoppedPosition + 0.5 * restartAcceleration * remaining * remaining,
                         restartAcceleration * remaining);
             }
         }
         return new MotionState(position + velocity * dt + 0.5 * a * dt * dt, velocity + a * dt);
+    }
+
+    /** Reference-only force law. Kept separate from the numerical path so a
+     * mutation in the stepper cannot validate itself through the same helper. */
+    private static double referenceAcceleration(double appliedForce, double frictionForce,
+                                                double mass, double velocity) {
+        if (velocity == 0.0) {
+            double availableForce = Math.abs(appliedForce);
+            if (availableForce <= frictionForce) return 0.0;
+            return (appliedForce < 0.0 ? -1.0 : 1.0)
+                    * (availableForce - frictionForce) / mass;
+        }
+        double opposingFriction = velocity < 0.0 ? frictionForce : -frictionForce;
+        return (appliedForce + opposingFriction) / mass;
     }
 
     private static void requireUnit(CanonicalQuantityBag values, String key, String unit) {
