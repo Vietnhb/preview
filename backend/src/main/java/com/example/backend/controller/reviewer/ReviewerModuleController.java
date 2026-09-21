@@ -5,7 +5,6 @@ import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.repository.problem.SchemaVersionRepository;
 import com.example.backend.service.problem.SchemaService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -19,7 +18,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/reviewer/module-releases")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
 public class ReviewerModuleController {
     private final SchemaVersionRepository schemas;
     private final SchemaService schemaService;

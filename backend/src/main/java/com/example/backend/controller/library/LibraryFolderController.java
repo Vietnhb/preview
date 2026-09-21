@@ -5,7 +5,6 @@ import com.example.backend.dto.library.LibraryFolderResponse;
 import com.example.backend.service.library.LibraryFolderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -21,7 +20,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/library/folders")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
 public class LibraryFolderController {
     private final LibraryFolderService folderService;
 

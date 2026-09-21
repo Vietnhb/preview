@@ -15,13 +15,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController @RequestMapping("/api/reviewer") @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','CONTENT_REVIEWER')")
 public class ReviewerVersionsController {
     private final SchemaService schemas;
     private final SolverVersionRepository solvers;

@@ -5,7 +5,6 @@ import com.example.backend.dto.curriculum.CurriculumTreeResponse;
 import com.example.backend.service.curriculum.CurriculumAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -13,7 +12,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/admin/curriculum")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class CurriculumAdminController {
     private final CurriculumAdminService service;
 

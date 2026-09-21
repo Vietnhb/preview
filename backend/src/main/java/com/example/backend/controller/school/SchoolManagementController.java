@@ -4,7 +4,6 @@ package com.example.backend.controller.school;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.example.backend.dto.admin.CreateManagedUserRequest;
 import com.example.backend.dto.admin.UserStatusResponse;
@@ -18,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/schools/{schoolId}/users")
-@PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL_MANAGER')")
 @RequiredArgsConstructor
 public class SchoolManagementController {
     private final AdminService adminService;

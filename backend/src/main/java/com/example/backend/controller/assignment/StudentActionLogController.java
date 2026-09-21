@@ -12,7 +12,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,7 +19,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/student/action-logs")
-@PreAuthorize("hasRole('STUDENT')")
 @RequiredArgsConstructor
 public class StudentActionLogController {
     private final StudentActionLogRepository logs;

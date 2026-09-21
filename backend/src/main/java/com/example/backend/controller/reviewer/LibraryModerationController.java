@@ -6,7 +6,6 @@ import com.example.backend.service.library.LibraryModerationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -17,7 +16,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/reviewer/library")
-@PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
 @RequiredArgsConstructor
 public class LibraryModerationController {
     private final LibraryModerationService service;

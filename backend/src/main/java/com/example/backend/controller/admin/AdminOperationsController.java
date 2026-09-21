@@ -13,14 +13,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.time.Instant;
 
 @RestController @RequestMapping("/api/admin") @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminOperationsController {
     private final SchoolRepository schools;
     private final SimulationRunRepository simulationRuns;

@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
@@ -37,13 +36,11 @@ public class ReviewerController {
     private final SchemaService schemaService;
 
     @GetMapping("/ambiguities")
-    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public List<ReviewerAmbiguityResponse> openAmbiguities() {
         return reviewerService.openAmbiguities();
     }
 
     @GetMapping("/ambiguities/page")
-    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public ReviewerService.AmbiguityPage openAmbiguitiesPage(
             @RequestParam(required = false) String topic,
             @PageableDefault(size = 25, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -51,33 +48,28 @@ public class ReviewerController {
     }
 
     @PostMapping("/ambiguities/{ambiguityId}/resolve")
-    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public SpecificationResponse resolve(@PathVariable UUID ambiguityId,
                                          @Valid @RequestBody ResolveAmbiguityRequest request) {
         return reviewerService.resolve(ambiguityId, request);
     }
 
     @PostMapping("/ambiguities/{ambiguityId}/claim")
-    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public ReviewerAmbiguityResponse claim(@PathVariable UUID ambiguityId) {
         return reviewerService.claim(ambiguityId);
     }
 
     @PostMapping("/ambiguities/{ambiguityId}/release")
-    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public ResponseEntity<Void> release(@PathVariable UUID ambiguityId) {
         reviewerService.release(ambiguityId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/schemas")
-    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public ResponseEntity<SchemaVersion> createSchema(@Valid @RequestBody SchemaRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(schemaService.create(request));
     }
 
     @PutMapping("/schemas/{schemaId}/lifecycle")
-    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public SchemaVersion changeLifecycle(@PathVariable String schemaId, @RequestParam LifecycleStatus status) {
         return schemaService.changeLifecycle(schemaId, status);
     }

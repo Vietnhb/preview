@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -43,13 +42,11 @@ public class SchemaController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public ResponseEntity<SchemaVersion> create(@Valid @RequestBody SchemaRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(schemaService.create(request));
     }
 
     @PutMapping("/{schemaId}/lifecycle")
-    @PreAuthorize("hasAnyRole('CONTENT_REVIEWER','ADMIN')")
     public SchemaVersion lifecycle(@PathVariable String schemaId, @RequestParam LifecycleStatus status) {
         return schemaService.changeLifecycle(schemaId, status);
     }

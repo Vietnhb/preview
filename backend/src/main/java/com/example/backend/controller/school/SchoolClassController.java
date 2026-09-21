@@ -4,7 +4,6 @@ import com.example.backend.service.school.SchoolClassService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,7 +11,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/schools/{schoolId}/classes")
-@PreAuthorize("hasAnyRole('SCHOOL_MANAGER', 'ADMIN')")
 @RequiredArgsConstructor
 public class SchoolClassController {
     private final SchoolClassService service;
