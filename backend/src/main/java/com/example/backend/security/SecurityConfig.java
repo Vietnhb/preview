@@ -39,7 +39,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @AllArgsConstructor
 public class SecurityConfig {
     private static final String ADMIN = "ADMIN";
-    private static final String CONTENT_REVIEWER = "CONTENT_REVIEWER";
+    private static final String REVIEWER = "CONTENT_REVIEWER";
     private static final String SCHOOL_MANAGER = "SCHOOL_MANAGER";
     private static final String TEACHER = "TEACHER";
     private static final String STUDENT = "STUDENT";
@@ -85,8 +85,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/schools/*/activate", "/api/schools/*/deactivate").hasRole(ADMIN)
 
                         // Content Reviewer (platform-level content moderation)
-                        .requestMatchers("/api/reviewer/**").hasAnyRole(CONTENT_REVIEWER, ADMIN)
-                        .requestMatchers("/api/simulations/*/approve", "/api/simulations/*/reject").hasAnyRole(CONTENT_REVIEWER, ADMIN)
+                        .requestMatchers("/api/reviewer/**").hasAnyRole(REVIEWER, ADMIN)
+                        .requestMatchers("/api/simulations/*/approve", "/api/simulations/*/reject").hasAnyRole(REVIEWER, ADMIN)
 
                         // School Manager (school-level management)
                         .requestMatchers("/api/schools/*/users/**").hasAnyRole(SCHOOL_MANAGER, ADMIN)
@@ -135,9 +135,9 @@ public class SecurityConfig {
 
                         // Schemas (CONTENT_REVIEWER + ADMIN manage, others view approved only)
                         .requestMatchers(HttpMethod.POST, "/api/schemas", "/api/schemas/**")
-                                .hasAnyRole(CONTENT_REVIEWER, ADMIN)
+                                .hasAnyRole(REVIEWER, ADMIN)
                         .requestMatchers(HttpMethod.PUT, "/api/schemas", "/api/schemas/**")
-                                .hasAnyRole(CONTENT_REVIEWER, ADMIN)
+                                .hasAnyRole(REVIEWER, ADMIN)
                         .requestMatchers("/api/schemas", "/api/schemas/**").authenticated()
 
                         // All other requests require authentication
