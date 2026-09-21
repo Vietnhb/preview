@@ -48,7 +48,7 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> 
     @Query("""
             select i from LibraryItem i
             where i.active = true
-              and (:topic is null or lower(i.specification.topic) = lower(:topic))
+              and (coalesce(:topic, '') = '' or lower(i.specification.topic) = lower(:topic))
               and (
                   i.owner.id = :ownerId
                   or (
@@ -76,7 +76,7 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> 
             where i.active = true
               and i.visibility = :publicVisibility
               and i.moderationStatus in :publishedStatuses
-              and (:topic is null or lower(i.specification.topic) = lower(:topic))
+              and (coalesce(:topic, '') = '' or lower(i.specification.topic) = lower(:topic))
             """)
     List<LibraryItem> findCommunityItems(@Param("publicVisibility") Visibility publicVisibility,
                                          @Param("publishedStatuses") Set<LibraryModerationStatus> publishedStatuses,

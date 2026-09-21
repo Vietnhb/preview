@@ -26,6 +26,9 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
+    private static final String ACCOUNT_LOCKED_MESSAGE =
+            "Tài khoản đang bị khóa. Vui lòng liên hệ quản trị viên.";
+
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final com.example.backend.service.school.LicenseCheckService licenseCheckService;
@@ -46,10 +49,12 @@ public class JwtFilter extends OncePerRequestFilter {
             }
 
             String email = claims.getSubject();
-            var currentUser = userRepository.findByEmail(email)
-                    // Legacy rows may have a null active flag; only an explicit
-                    // false value means that the account has been suspended.
-                    .filter(user -> !Boolean.FALSE.equals(user.getActive()))
+            var currentUser = userRepository.findByEmail(email);
+            if (currentUser.isPresent() && !Boolean.TRUE.equals(currentUser.get().getActive())) {
+                writeAccountLocked(response);
+                return;
+            }
+            currentUser = currentUser
                     .filter(user -> user.getSchool() == null || user.getSchool().isActive());
             if (currentUser.isPresent() && currentUser.get().getRole() != null) {
                 var user = currentUser.get();
@@ -80,5 +85,13 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private void writeAccountLocked(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        objectMapper.writeValue(response.getOutputStream(), new ErrorResponse(
+                HttpServletResponse.SC_FORBIDDEN, ACCOUNT_LOCKED_MESSAGE));
     }
 }

@@ -74,6 +74,7 @@ export default function NavBar() {
   const navigate = useNavigate();
   const user = usePhysliveStore((state) => state.user);
   const setUser = usePhysliveStore((state) => state.setUser);
+  const isAdmin = isAdminRole(user?.role);
   const [themeOpen, setThemeOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const logout = () => {
@@ -83,7 +84,7 @@ export default function NavBar() {
     navigate("/login");
   };
   const visibleItems = [...publicNavItems];
-  if (canManageLearning(user?.role)) {
+  if (!isAdmin && canManageLearning(user?.role)) {
     visibleItems.push({ to: "/workspace", label: "Workspace", icon: "grid" });
   }
   if (isStudentRole(user?.role)) visibleItems.push(studentNavItem);
@@ -108,7 +109,7 @@ export default function NavBar() {
             {visibleItems.map((item) => (
               <NavItemLink key={item.to} item={item} />
             ))}
-            {canReviewContent(user?.role) && (
+            {canReviewContent(user?.role) && !isAdmin && (
               <NavItemLink
                 item={{ to: "/reviewer", label: "Kiểm duyệt", icon: "settings" }}
               />
@@ -206,7 +207,7 @@ export default function NavBar() {
               onClick={() => setMobileOpen(false)}
             />
           ))}
-          {canReviewContent(user?.role) ? (
+          {canReviewContent(user?.role) && !isAdmin ? (
             <NavItemLink
               item={{ to: "/reviewer", label: "Kiểm duyệt", icon: "settings" }}
               onClick={() => setMobileOpen(false)}

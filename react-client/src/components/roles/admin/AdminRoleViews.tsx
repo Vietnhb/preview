@@ -139,7 +139,7 @@ export function PlansView() {
   return <div className="admin-content"><PageHeader title="Danh mục gói" description="Giá và quota công khai của PhysLive." action={<Button primary onClick={() => { setEditing(false); setForm({ code: "", name: "", description: "", annualPriceVnd: 0, studentQuota: 0, monthlyTokenQuota: 0, active: false }); }}>Thêm gói</Button>} />
     {error && <ErrorNotice error={error} onRetry={() => void load()} />}
     {form && <Panel title={editing ? "Cập nhật gói" : "Thêm gói"} description="Thay đổi áp dụng cho báo giá mới. Các giao dịch đã tạo giữ số tiền và quota đã chốt."><form className="admin-form-grid" onSubmit={submit}>
-      <label>Mã gói<input required maxLength={40} pattern="[A-Z0-9_-]+" readOnly={editing} value={form.code} onChange={e => setForm({ ...form, code: e.target.value.toUpperCase() })} /></label>
+      <label>Mã gói<input required maxLength={40} pattern={"[A-Z0-9_\\-]+"} readOnly={editing} value={form.code} onChange={e => setForm({ ...form, code: e.target.value.toUpperCase() })} /></label>
       <label>Tên gói<input required maxLength={255} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
       <label>Mô tả<input required maxLength={255} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></label>
       <label>Giá / năm (VND)<input type="number" required min="1" step="1" value={form.annualPriceVnd || ""} onChange={e => setForm({ ...form, annualPriceVnd: Number(e.target.value) })} /></label>

@@ -38,9 +38,11 @@ public class AuthService {
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Email or password is incorrect"));
 
-        // Check if user is deactivated (soft delete)
-        if (Boolean.FALSE.equals(user.getActive())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Account is deactivated");
+        // Only an explicit active flag allows authentication. Legacy null rows
+        // are treated as locked instead of silently bypassing this check.
+        if (!Boolean.TRUE.equals(user.getActive())) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Tài khoản đang bị khóa. Vui lòng liên hệ quản trị viên.");
         }
 
         // Check if school is deactivated

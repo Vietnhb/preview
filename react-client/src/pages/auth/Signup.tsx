@@ -62,7 +62,7 @@ export default function Signup() {
           <h2>Thiết lập nhà trường</h2><p className="school-signup-muted">Thông tin trường và người phụ trách quản lý.</p>
           <fieldset><legend>Thông tin trường</legend><div className="school-signup-fields">
             <label className="school-signup-wide">Tên trường<input required maxLength={200} autoComplete="organization" value={form.schoolName} onChange={e => field("schoolName", e.target.value)} placeholder="Tên đầy đủ của nhà trường" /></label>
-            <label>Mã trường<input required maxLength={80} pattern="[A-Za-z0-9_-]+" title="Chỉ dùng chữ không dấu, số, dấu gạch ngang hoặc gạch dưới" value={form.schoolCode} onChange={e => field("schoolCode", e.target.value.toUpperCase())} placeholder="THPT-NGUYENTRAI" /></label>
+            <label>Mã trường<input required maxLength={80} pattern={"[A-Za-z0-9_\\-]+"} title="Chỉ dùng chữ không dấu, số, dấu gạch ngang hoặc gạch dưới" value={form.schoolCode} onChange={e => field("schoolCode", e.target.value.toUpperCase())} placeholder="THPT-NGUYENTRAI" /></label>
             <label>Số điện thoại liên hệ<input required type="tel" maxLength={20} autoComplete="tel" value={form.phoneNumber} onChange={e => field("phoneNumber", e.target.value)} /></label>
             <label className="school-signup-wide">Địa chỉ<input required maxLength={300} autoComplete="street-address" value={form.address} onChange={e => field("address", e.target.value)} /></label>
           </div></fieldset>

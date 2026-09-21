@@ -69,9 +69,9 @@ class FreshSchemaBootstrapMigrationTest {
 
         assertEquals("0", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
                 "WHERE type = 'BASELINE' AND success", String.class));
-        assertEquals("26", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
+        assertEquals("27", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
                 "WHERE success ORDER BY installed_rank DESC LIMIT 1", String.class));
-        assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26"),
+        assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27"),
                 jdbc.queryForList("SELECT version FROM flyway_schema_history " +
                 "WHERE type = 'SQL' AND success ORDER BY installed_rank", String.class));
 
@@ -141,9 +141,9 @@ class FreshSchemaBootstrapMigrationTest {
         assertColumnExists(jdbc, "schema_versions", "definition_checksum");
         assertTrue(indexExists(jdbc, "uk_schema_versions_identity"));
         assertTrue(indexExists(jdbc, "idx_schema_versions_lifecycle"));
-        assertEquals("26", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
+        assertEquals("27", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
                 "WHERE success ORDER BY installed_rank DESC LIMIT 1", String.class));
-        assertEquals(List.of("7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26"),
+        assertEquals(List.of("7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27"),
                 jdbc.queryForList("SELECT version FROM flyway_schema_history " +
                         "WHERE type = 'SQL' AND success ORDER BY installed_rank", String.class));
         assertTrue(tableExists(jdbc, "ambiguity_cases"));
@@ -181,7 +181,7 @@ class FreshSchemaBootstrapMigrationTest {
         assertTrue(tableExists(jdbc, "reviewer_decisions"));
         assertTrue(indexExists(jdbc, "idx_ambiguity_cases_specification_status"));
         assertTrue(indexExists(jdbc, "idx_reviewer_decisions_ambiguity_case"));
-        assertEquals("26", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
+        assertEquals("27", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
                 "WHERE success ORDER BY installed_rank DESC LIMIT 1", String.class));
         validateHibernateEntitySchema(dataSource);
     }
@@ -215,7 +215,7 @@ class FreshSchemaBootstrapMigrationTest {
         assertTrue(tableExists(jdbc, "ambiguity_cases"));
         assertTrue(tableExists(jdbc, "reviewer_decisions"));
         assertTrue(indexExists(jdbc, "idx_reviewer_decisions_ambiguity_case"));
-        assertEquals("26", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
+        assertEquals("27", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
                 "WHERE success ORDER BY installed_rank DESC LIMIT 1", String.class));
         validateHibernateEntitySchema(dataSource);
     }

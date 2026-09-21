@@ -24,7 +24,8 @@ export function useSessionBootstrap() {
       })
       .catch((error) => {
         if (!active) return;
-        if (getToken() === token && axios.isAxiosError(error) && error.response?.status === 401) {
+        if (getToken() === token && axios.isAxiosError(error)
+          && (error.response?.status === 401 || error.response?.status === 403)) {
           clearToken();
           setUser(null);
         }
