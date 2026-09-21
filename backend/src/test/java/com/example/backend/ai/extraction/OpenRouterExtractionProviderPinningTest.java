@@ -21,9 +21,9 @@ import org.springframework.core.io.DefaultResourceLoader;
 import com.example.backend.ai.client.OpenRouterClient;
 import com.example.backend.ai.normalization.UnitNormalizer;
 import com.example.backend.config.properties.OpenRouterProperties;
-import com.example.backend.config.properties.SchemaRoutingProperties;
+import com.example.backend.config.properties.JevProperties;
 import com.example.backend.entity.problem.SchemaVersion;
-import com.example.backend.schema.routing.model.RetrievalScore;
+import com.example.backend.schema.routing.model.SchemaSelectionScore;
 import com.example.backend.schema.routing.model.SchemaCandidate;
 import com.example.backend.schema.routing.model.SchemaCandidate.VerificationEvidence;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
@@ -76,9 +76,8 @@ class OpenRouterExtractionProviderPinningTest {
                 "ocr-model", Duration.ofSeconds(1), Duration.ofSeconds(1), 1_000,
                 "classpath:prompts/physics-specification-system.txt",
                 "classpath:prompts/physics-specification-system.txt", "", "");
-        var routing = new SchemaRoutingProperties(true, 5, 5, 2, 60, 0.25, 0.08,
-                20_000, 30_000, 64, 1.2, 0.75, 0.15, 0.55, 0.25, 0.20, 0.75,
-                new SchemaRoutingProperties.Embedding("fake", "model-v1", 2, Duration.ofSeconds(1)));
+        var routing = new JevProperties("test-key", URI.create("https://api.typesafe.ai/v1"), "jev-latest",
+                Duration.ofSeconds(1), 2, 0.25, 0.08, 20_000, 30_000);
         return new OpenRouterExtractionProvider(client, mapper, new UnitNormalizer(mapper), schemas,
                 ai, routing, new DefaultResourceLoader(), new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     }
@@ -88,7 +87,7 @@ class OpenRouterExtractionProviderPinningTest {
                 "test_schema", "1.0", "DYNAMICS", "Test schema", mapper.readTree("""
                         {"model":"test_schema","requiredQuantities":[{"key":"mass","aliases":[],"allowedUnits":["kg"]}],"optionalQuantities":[]}
                         """));
-        var candidate = new SchemaCandidate(contract, new RetrievalScore(1, 1, 1, 1, 0.03),
+        var candidate = new SchemaCandidate(contract, new SchemaSelectionScore(1, 1),
                 new VerificationEvidence(1, 1, 1, List.of("fixture")), 1);
         return new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
                 "BACKEND_SELECTED", List.of(candidate), 1, 1);

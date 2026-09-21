@@ -20,14 +20,14 @@ import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 import com.example.backend.ai.extraction.prompt.ExtractionPromptBuilder;
 import com.example.backend.ai.normalization.UnitNormalizer;
 import com.example.backend.config.properties.OpenRouterProperties;
-import com.example.backend.config.properties.SchemaRoutingProperties;
+import com.example.backend.config.properties.JevProperties;
 import com.example.backend.entity.enums.ExtractionPath;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.physics.validation.EndConditionResolver;
-import com.example.backend.schema.routing.model.RetrievalScore;
 import com.example.backend.schema.routing.model.SchemaCandidate;
 import com.example.backend.schema.routing.model.SchemaCandidate.VerificationEvidence;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
+import com.example.backend.schema.routing.model.SchemaSelectionScore;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,7 +49,7 @@ public final class OpenRouterExtractionProvider implements ExtractionProvider {
 
     public OpenRouterExtractionProvider(OpenRouterClient client, ObjectMapper objectMapper,
             UnitNormalizer unitNormalizer, SchemaDefinitionService schemaDefinitions,
-            OpenRouterProperties properties, SchemaRoutingProperties routingProperties,
+            OpenRouterProperties properties, JevProperties routingProperties,
             ResourceLoader resourceLoader, MeterRegistry meters) {
         this.client = client;
         this.objectMapper = objectMapper;
@@ -124,7 +124,7 @@ public final class OpenRouterExtractionProvider implements ExtractionProvider {
             throw new IllegalStateException("Cannot prepare ambiguity resolution request.", exception);
         }
         ExtractionPromptBuilder.PromptMessages messages = prompts.build(List.of(contract), request);
-        SchemaCandidate candidate = new SchemaCandidate(contract, new RetrievalScore(1, 1, 1, 1, 1),
+        SchemaCandidate candidate = new SchemaCandidate(contract, new SchemaSelectionScore(1, 1),
                 new VerificationEvidence(1, 1, 1, List.of("PINNED_SCHEMA_VERSION")), 1);
         SchemaRoutingDecision decision = new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
                 "PINNED_FOR_AMBIGUITY_RESOLUTION", List.of(candidate), 1, 1);

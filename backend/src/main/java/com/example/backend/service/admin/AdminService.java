@@ -19,7 +19,6 @@ import com.example.backend.repository.account.RoleRepository;
 import com.example.backend.repository.curriculum.TopicRepository;
 import com.example.backend.repository.account.UserRepository;
 import com.example.backend.repository.simulation.SimulationRunRepository;
-import com.example.backend.schema.routing.index.SchemaEmbeddingIndexer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,7 +40,6 @@ public class AdminService {
     private final LicenseCheckService licenseCheckService;
     private final com.example.backend.repository.school.SchoolRepository schoolRepository;
     private final jakarta.persistence.EntityManager entityManager;
-    private final SchemaEmbeddingIndexer schemaEmbeddingIndexer;
 
     @Transactional(readOnly = true)
     public List<UserStatusResponse> users() {
@@ -95,7 +93,6 @@ public class AdminService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Topic not found"));
         topic.setEnabled(!topic.isEnabled());
         topicRepository.save(topic);
-        schemaEmbeddingIndexer.refreshAfterCatalogChange();
         return new TopicStatusResponse(topic.getId(), topic.getName(), topic.isEnabled());
     }
 

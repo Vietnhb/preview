@@ -8,12 +8,12 @@ import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 /** One version-pinned candidate with retrieval and contract-verification evidence. */
 public record SchemaCandidate(
         CandidateContractProjection contract,
-        RetrievalScore retrievalScore,
+        SchemaSelectionScore selectionScore,
         VerificationEvidence verificationEvidence,
         double confidence) {
     public SchemaCandidate {
         Objects.requireNonNull(contract, "contract");
-        Objects.requireNonNull(retrievalScore, "retrievalScore");
+        Objects.requireNonNull(selectionScore, "selectionScore");
         Objects.requireNonNull(verificationEvidence, "verificationEvidence");
         if (!Double.isFinite(confidence) || confidence < 0 || confidence > 1) {
             throw new IllegalArgumentException("Candidate confidence must be in [0, 1]");

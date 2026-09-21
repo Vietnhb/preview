@@ -17,7 +17,6 @@ import java.util.List;
 public class SchemaService {
     private final SchemaVersionRepository schemaRepository;
     private final SchemaDefinitionService schemaDefinitions;
-    private final com.example.backend.schema.routing.index.SchemaEmbeddingIndexer searchIndexer;
 
     @Transactional(readOnly = true)
     public List<SchemaVersion> list(boolean enabledOnly) {
@@ -57,7 +56,6 @@ public class SchemaService {
         LifecycleStatus previousStatus = schema.getLifecycleStatus();
         transition(schema, status);
         SchemaVersion saved = schemaRepository.save(schema);
-        if (previousStatus != status) searchIndexer.refreshAfterCatalogChange();
         return saved;
     }
 
@@ -67,7 +65,6 @@ public class SchemaService {
         LifecycleStatus previousStatus = schema.getLifecycleStatus();
         transition(schema, status);
         SchemaVersion saved = schemaRepository.save(schema);
-        if (previousStatus != status) searchIndexer.refreshAfterCatalogChange();
         return saved;
     }
 

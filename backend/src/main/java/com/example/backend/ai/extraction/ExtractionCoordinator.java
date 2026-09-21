@@ -23,14 +23,6 @@ public class ExtractionCoordinator {
         this.schemaRouting = schemaRouting::route;
     }
 
-    /** Source-compatible constructor for historical integration fixtures. */
-    @Deprecated(forRemoval = true)
-    public ExtractionCoordinator(ExtractionProvider provider,
-            com.example.backend.schema.routing.service.SchemaRoutingService schemaRouting) {
-        this.provider = provider;
-        this.schemaRouting = schemaRouting::route;
-    }
-
     public ExtractionResult extract(String text) {
         if (!provider.isAvailable()) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,

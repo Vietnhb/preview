@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 import com.example.backend.ai.normalization.UnitNormalizer;
-import com.example.backend.schema.routing.model.RetrievalScore;
+import com.example.backend.schema.routing.model.SchemaSelectionScore;
 import com.example.backend.schema.routing.model.SchemaCandidate;
 import com.example.backend.schema.routing.model.SchemaCandidate.VerificationEvidence;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
@@ -78,7 +78,7 @@ class StrictSpecificationValidatorTest {
                         {"model":"hooke_law","requiredQuantities":[{"key":"spring_constant",
                          "aliases":["k"],"allowedUnits":["N/m"]}],"optionalQuantities":[]}
                         """));
-        SchemaCandidate candidate = new SchemaCandidate(contract, new RetrievalScore(1, 1, 1, 0.9, 0.03),
+        SchemaCandidate candidate = new SchemaCandidate(contract, new SchemaSelectionScore(1, 1),
                 new VerificationEvidence(1, 1, 1, java.util.List.of("fixture")), 1);
         SchemaRoutingDecision decision = new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
                 "fixture", java.util.List.of(candidate), 1, 1);
@@ -229,7 +229,7 @@ class StrictSpecificationValidatorTest {
             com.fasterxml.jackson.databind.JsonNode definition) {
         CandidateContractProjection contract = CandidateContractProjection.from(
                 schemaId, schemaVersion, topic, name, definition);
-        SchemaCandidate candidate = new SchemaCandidate(contract, new RetrievalScore(1, 1, 1, 0.9, 0.03),
+        SchemaCandidate candidate = new SchemaCandidate(contract, new SchemaSelectionScore(1, 1),
                 new VerificationEvidence(1, 1, 1, java.util.List.of("fixture")), 1);
         return new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED, "fixture",
                 java.util.List.of(candidate), 1, 1);
