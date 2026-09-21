@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.math.BigDecimal;
 
 /** Guards catalog checksum backfills without changing historical schema definitions. */
 public final class SchemaCatalogIntegrity {
@@ -81,6 +82,11 @@ public final class SchemaCatalogIntegrity {
             ArrayNode result = JsonNodeFactory.instance.arrayNode();
             for (JsonNode child : node) result.add(canonicalize(child));
             return result;
+        }
+        if (node.isNumber()) {
+            BigDecimal value = node.decimalValue().stripTrailingZeros();
+            if (value.scale() < 0) value = value.setScale(0);
+            return JsonNodeFactory.instance.numberNode(value);
         }
         return node.deepCopy();
     }

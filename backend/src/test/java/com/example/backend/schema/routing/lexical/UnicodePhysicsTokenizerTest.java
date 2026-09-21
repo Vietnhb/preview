@@ -29,6 +29,38 @@ class UnicodePhysicsTokenizerTest {
     }
 
     @Test
+    void accentFoldedShadowMatchesVietnameseWithoutChangingDecimalValues() {
+        List<String> accented = tokenizer.tokenizeWithAccentShadow("T\u1ee5 \u0111i\u1ec7n 1,25 V; \u0394t = 2 s");
+        List<String> unaccented = tokenizer.tokenizeWithAccentShadow("Tu dien 1,25 V; \u0394t = 2 s");
+
+        org.junit.jupiter.api.Assertions.assertTrue(accented.contains("t\u1ee5"));
+        org.junit.jupiter.api.Assertions.assertTrue(accented.contains("tu"));
+        org.junit.jupiter.api.Assertions.assertTrue(accented.contains("1,25"));
+        org.junit.jupiter.api.Assertions.assertEquals(unaccented, tokenizer.tokenizeWithAccentShadow(
+                java.text.Normalizer.normalize("Tu dien 1,25 V; Δt = 2 s", java.text.Normalizer.Form.NFC)));
+    }
+
+    @Test
+    void normalizesDecomposedVietnameseAndCommonOcrSpacing() {
+        String decomposed = "\u0110ie\u0302\u0323n   tr\u01a1\u0309  qua\u00a0R";
+        List<String> tokens = tokenizer.tokenizeWithAccentShadow(decomposed);
+
+        org.junit.jupiter.api.Assertions.assertTrue(tokens.contains("\u0111i\u1ec7n"));
+        org.junit.jupiter.api.Assertions.assertTrue(tokens.contains("dien"));
+        org.junit.jupiter.api.Assertions.assertTrue(tokens.contains("tr\u1edf"));
+        org.junit.jupiter.api.Assertions.assertTrue(tokens.contains("tro"));
+        org.junit.jupiter.api.Assertions.assertTrue(tokens.contains("R"));
+    }
+
+    @Test
+    void keepsPhysicsUnitsAndDecimalSeparatorsAsSearchableTokens() {
+        List<String> tokens = tokenizer.tokenizeWithAccentShadow("12,5 N; 3.2 V; 4 A; 5 ohm; 6 Ω; 7 F; 8 Hz; 9 rad");
+
+        org.junit.jupiter.api.Assertions.assertTrue(tokens.containsAll(List.of(
+                "12,5", "3.2", "N", "V", "A", "ohm", "Ω", "F", "hz", "rad")));
+    }
+
+    @Test
     void foldsOrdinaryProseButPreservesCaseDistinctSymbols() {
         org.junit.jupiter.api.Assertions.assertEquals(tokenizer.tokenize("mass"), tokenizer.tokenize("Mass"));
         org.junit.jupiter.api.Assertions.assertEquals(List.of("R"), tokenizer.tokenize("R"));

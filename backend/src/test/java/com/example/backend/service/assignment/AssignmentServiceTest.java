@@ -10,6 +10,8 @@ import com.example.backend.entity.assignment.AssignmentSubmission;
 import com.example.backend.entity.enums.AssignmentStatus;
 import com.example.backend.entity.enums.GradingStatus;
 import com.example.backend.entity.problem.Specification;
+import com.example.backend.entity.library.LibraryItem;
+import com.example.backend.entity.simulation.Simulation;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.assignment.AssignmentRepository;
 import com.example.backend.repository.assignment.AssignmentSubmissionRepository;
@@ -19,6 +21,7 @@ import com.example.backend.entity.school.ClassEnrollment;
 import com.example.backend.entity.school.ClassTeacherAssignment;
 import com.example.backend.entity.school.SchoolClass;
 import com.example.backend.service.account.CurrentUserService;
+import com.example.backend.service.simulation.SimulationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -172,5 +175,46 @@ class AssignmentServiceTest {
                 UUID.randomUUID(), "Test", null, question, Set.of(7), null,
                 json.createObjectNode().put("expectedValue", 10).put("tolerance", -1), BigDecimal.TEN, true)));
         verify(assignments, never()).save(any());
+    }
+
+    @Test
+    void studentReplayUsesTheAssignmentPinnedRunInsteadOfTheLatestRun() {
+        SimulationService replay = mock(SimulationService.class);
+        AssignmentService replayService = new AssignmentService(assignments, submissions, null, null,
+                currentUser, replay, null, null);
+        UUID pinnedRun = UUID.randomUUID();
+        Simulation simulation = new Simulation();
+        LibraryItem libraryItem = new LibraryItem();
+        libraryItem.setSimulation(simulation);
+        assignment.setQuestions(json.createObjectNode().put("activityType", "FREE_EXPLORATION"));
+        assignment.setLibraryItem(libraryItem);
+        assignment.setAssignedSimulationRunId(pinnedRun);
+
+        replayService.simulationForStudent(id);
+
+        verify(replay).replay(simulation, pinnedRun);
+        verify(replay, never()).latestFor(any());
+        verify(replay, never()).runIdAtOrBefore(any(), any());
+    }
+
+    @Test
+    void legacyAssignmentResolvesTheRunAtAssignmentTimeWhenNoPinnedRunExists() {
+        SimulationService replay = mock(SimulationService.class);
+        AssignmentService replayService = new AssignmentService(assignments, submissions, null, null,
+                currentUser, replay, null, null);
+        Simulation simulation = new Simulation();
+        LibraryItem libraryItem = new LibraryItem();
+        libraryItem.setSimulation(simulation);
+        assignment.setQuestions(json.createObjectNode().put("activityType", "FREE_EXPLORATION"));
+        assignment.setLibraryItem(libraryItem);
+        Instant assignedAt = Instant.parse("2026-01-01T00:00:00Z");
+        assignment.setAssignedAt(assignedAt);
+        UUID historicalRun = UUID.randomUUID();
+        when(replay.runIdAtOrBefore(simulation, assignedAt)).thenReturn(historicalRun);
+
+        replayService.simulationForStudent(id);
+
+        verify(replay).runIdAtOrBefore(simulation, assignedAt);
+        verify(replay).replay(simulation, historicalRun);
     }
 }

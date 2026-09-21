@@ -1,0 +1,127 @@
+{
+  "schemaId": "capacitor_basic",
+  "model": "capacitor_basic",
+  "name": "Capacitor charge and energy",
+  "topic": "CIRCUITS",
+  "version": "1.1",
+  "solverId": "capacitor_solver",
+  "referenceSolverId": "capacitor_reference",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "capacitance",
+        "aliases": [
+          "C"
+        ],
+        "allowedUnits": [
+          "F"
+        ],
+        "positive": true
+      },
+      {
+        "key": "voltage",
+        "aliases": [
+          "V"
+        ],
+        "allowedUnits": [
+          "V"
+        ]
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "voltage",
+        "label": "Voltage",
+        "symbol": "V",
+        "unit": "V",
+        "min": -1000,
+        "max": 1000,
+        "step": 1
+      }
+    ],
+    "visualization": {
+      "scene": "capacitor_basic",
+      "series": [
+        {
+          "key": "charge",
+          "source": "values.charge",
+          "label": "Charge",
+          "symbol": "Q",
+          "unit": "C",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "energy",
+          "source": "values.energy",
+          "label": "Stored energy",
+          "symbol": "U",
+          "unit": "J",
+          "color": "#fb923c"
+        }
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "board.circuit",
+        "sceneGraph": {
+          "nodes": [
+            {
+              "id": "background",
+              "type": "background",
+              "layer": "static"
+            },
+            {
+              "id": "graph",
+              "type": "graph",
+              "layer": "dynamic",
+              "properties": {
+                "source": "values.energy"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "charge",
+        "energy",
+        "voltage"
+      ],
+      "definitions": [
+        {
+          "key": "charge",
+          "kind": "time_series",
+          "unit": "C",
+          "required": true
+        },
+        {
+          "key": "energy",
+          "kind": "time_series",
+          "unit": "J",
+          "required": true
+        },
+        {
+          "key": "voltage",
+          "kind": "time_series",
+          "unit": "V",
+          "required": true
+        }
+      ]
+    }
+  }
+}

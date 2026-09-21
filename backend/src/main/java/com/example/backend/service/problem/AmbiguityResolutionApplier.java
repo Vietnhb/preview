@@ -49,8 +49,10 @@ public class AmbiguityResolutionApplier {
     private ObjectNode currentDocument(Specification specification) {
         ObjectNode current = objectMapper.createObjectNode();
         current.put("contractVersion", specification.getContractVersion());
-        current.put("schemaVersion", specification.getSchemaVersion()); current.put("topic", specification.getTopic());
-        current.put("schemaId", specification.getSchemaId()); current.set("objects", specification.getObjects());
+        current.put("schemaVersion", specification.getSchemaVersion());
+        current.put("topic", specification.getTopic());
+        current.put("schemaId", specification.getSchemaId());
+        current.set("objects", specification.getObjects());
         com.fasterxml.jackson.databind.node.ArrayNode quantities = objectMapper.createArrayNode();
         if (specification.getQuantities() != null && specification.getQuantities().isArray()) {
             specification.getQuantities().forEach(source -> {
@@ -59,9 +61,12 @@ public class AmbiguityResolutionApplier {
                 quantities.add(quantity);
             });
         }
-        current.set("quantities", quantities); current.set("relations", specification.getRelations());
-        if (specification.getEndCondition() != null) current.set("endCondition", specification.getEndCondition());
-        current.put("confidence", specification.getConfidence()); current.set("ambiguities", specification.getAmbiguity());
+        current.set("quantities", quantities);
+        current.set("relations", specification.getRelations());
+        if (specification.getEndCondition() != null)
+            current.set("endCondition", specification.getEndCondition());
+        current.put("confidence", specification.getConfidence());
+        current.set("ambiguities", specification.getAmbiguity());
         return current;
     }
 
@@ -76,21 +81,31 @@ public class AmbiguityResolutionApplier {
             existingIdentities.add(identity);
             AmbiguityItem updated = returned.get(identity);
             if (updated != null) {
-                existing.setQuestion(updated.question()); existing.setFieldPath(updated.fieldPath());
-                existing.setOptions(objectMapper.valueToTree(updated.options())); existing.setStatus(AmbiguityStatus.OPEN);
-                existing.setResolution(null); existing.setResolvedAt(null);
+                existing.setQuestion(updated.question());
+                existing.setFieldPath(updated.fieldPath());
+                existing.setOptions(objectMapper.valueToTree(updated.options()));
+                existing.setStatus(AmbiguityStatus.OPEN);
+                existing.setResolution(null);
+                existing.setResolvedAt(null);
             } else if (answers.containsKey(existing.getCode()) && existing.getStatus() == AmbiguityStatus.OPEN) {
                 existing.setResolution(answers.get(existing.getCode()).trim());
-                existing.setStatus(AmbiguityStatus.RESOLVED); existing.setResolvedAt(now);
+                existing.setStatus(AmbiguityStatus.RESOLVED);
+                existing.setResolvedAt(now);
             }
         }
         for (AmbiguityItem item : document.ambiguities()) {
-            if (existingIdentities.contains(identity(item.fieldPath(), item.code()))) continue;
-            AmbiguityCase created = new AmbiguityCase(); created.setCode(item.code()); created.setFieldPath(item.fieldPath());
-            created.setQuestion(item.question()); created.setOptions(objectMapper.valueToTree(item.options()));
-            created.setStatus(AmbiguityStatus.OPEN); specification.addAmbiguityCase(created);
+            if (existingIdentities.contains(identity(item.fieldPath(), item.code())))
+                continue;
+            AmbiguityCase created = new AmbiguityCase();
+            created.setCode(item.code());
+            created.setFieldPath(item.fieldPath());
+            created.setQuestion(item.question());
+            created.setOptions(objectMapper.valueToTree(item.options()));
+            created.setStatus(AmbiguityStatus.OPEN);
+            specification.addAmbiguityCase(created);
         }
-        boolean open = specification.getAmbiguityCases().stream().anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
+        boolean open = specification.getAmbiguityCases().stream()
+                .anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
         specification.setConfirmationState(open ? ConfirmationState.UNRESOLVED : ConfirmationState.CONFIRMED);
     }
 
@@ -104,10 +119,12 @@ public class AmbiguityResolutionApplier {
         var schema = schemaDefinitions.requireCurrentApproved(document.schemaId(), document.schemaVersion());
         specification.setSchemaVersion(schema.getVersion());
         specification.setTopic(document.topic());
-        specification.setSchemaId(document.schemaId()); specification.setObjects(objectMapper.valueToTree(document.objects()));
+        specification.setSchemaId(document.schemaId());
+        specification.setObjects(objectMapper.valueToTree(document.objects()));
         specification.setQuantities(schemaDefinitions.canonicalizeQuantities(
                 objectMapper.valueToTree(document.quantities()), schema.getDefinition()));
-        specification.setRelations(objectMapper.valueToTree(document.relations())); specification.setConfidence(document.confidence());
+        specification.setRelations(objectMapper.valueToTree(document.relations()));
+        specification.setConfidence(document.confidence());
         specification.setEndCondition(document.endCondition());
         specification.setAmbiguity(objectMapper.valueToTree(document.ambiguities()));
     }

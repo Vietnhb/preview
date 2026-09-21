@@ -1,8 +1,8 @@
 package com.example.backend.physics;
 
 import com.example.backend.physics.model.SolverOutput;
-import com.example.backend.physics.reference.optics.ThinLensReferenceSolver;
-import com.example.backend.physics.solver.optics.ThinLensSolver;
+import com.example.backend.physics.compatibility.legacy.reference.optics.ThinLensReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.solver.optics.ThinLensSolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;

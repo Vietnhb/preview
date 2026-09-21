@@ -1,0 +1,1421 @@
+{
+  "manifestVersion": "1",
+  "sourceCatalog": "backend/src/main/resources/schemas/catalog.json",
+  "evidenceKinds": [
+    "golden",
+    "boundary",
+    "invalidDomain",
+    "invariant",
+    "output",
+    "faultDetection"
+  ],
+  "evidencePolicy": "PARTIAL entries may contain catalog-wide structural evidence while golden, boundary-domain, invariant, independent-reference, and fault evidence remain empty until reviewed per model; VERIFIED is never inferred from structural coverage.",
+  "entries": [
+    {
+      "schemaId": "ac_rlc_circuit",
+      "schemaVersion": "1.2",
+      "modelId": "ac_rlc_circuit",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "ac_waveform",
+      "schemaVersion": "1.1",
+      "modelId": "ac_waveform",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "adiabatic_gas",
+      "schemaVersion": "1.3",
+      "modelId": "adiabatic_gas",
+      "topic": "THERMAL",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "astronomical_telescope",
+      "schemaVersion": "1.2",
+      "modelId": "astronomical_telescope",
+      "topic": "OPTICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "atomic_spectra",
+      "schemaVersion": "1.2",
+      "modelId": "atomic_spectra",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "calorimetry_mixing",
+      "schemaVersion": "1.3",
+      "modelId": "calorimetry_mixing",
+      "topic": "THERMAL",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "capacitor_basic",
+      "schemaVersion": "1.1",
+      "modelId": "capacitor_basic",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "circuits_rc_charging",
+      "schemaVersion": "1.11",
+      "modelId": "rc_charging",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "circuits_rc_discharging",
+      "schemaVersion": "1.11",
+      "modelId": "rc_discharging",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "circular_motion",
+      "schemaVersion": "1.2",
+      "modelId": "circular_motion",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "compound_microscope",
+      "schemaVersion": "1.2",
+      "modelId": "compound_microscope",
+      "topic": "OPTICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "ct_reconstruction",
+      "schemaVersion": "1.1",
+      "modelId": "ct_reconstruction",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "damped_forced_oscillation",
+      "schemaVersion": "1.1",
+      "modelId": "damped_forced_oscillation",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "de_broglie_diffraction",
+      "schemaVersion": "1.2",
+      "modelId": "de_broglie_diffraction",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "diffraction_polarization",
+      "schemaVersion": "1.3",
+      "modelId": "diffraction_polarization",
+      "topic": "OPTICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "diode_characteristic",
+      "schemaVersion": "1.2",
+      "modelId": "diode_characteristic",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "dynamics_collision",
+      "schemaVersion": "2.0",
+      "modelId": "elastic_collision",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "dynamics_forces",
+      "schemaVersion": "2.0",
+      "modelId": "forces",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "eclipse_geometry",
+      "schemaVersion": "1.1",
+      "modelId": "eclipse_geometry",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "electromagnetic_induction",
+      "schemaVersion": "1.2",
+      "modelId": "electromagnetic_induction",
+      "topic": "ELECTROMAGNETISM",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "energy_band_transition",
+      "schemaVersion": "1.1",
+      "modelId": "energy_band_transition",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "energy_environment",
+      "schemaVersion": "1.1",
+      "modelId": "energy_environment",
+      "topic": "PRACTICAL_AND_DATA",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "experimental_data_graph",
+      "schemaVersion": "1.1",
+      "modelId": "experimental_data_graph",
+      "topic": "PRACTICAL_AND_DATA",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "first_law_thermodynamics",
+      "schemaVersion": "1.3",
+      "modelId": "first_law_thermodynamics",
+      "topic": "THERMAL",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "gravity_orbit",
+      "schemaVersion": "1.2",
+      "modelId": "gravity_orbit",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "hooke_law",
+      "schemaVersion": "1.2",
+      "modelId": "hooke_law",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "hydrostatics",
+      "schemaVersion": "1.2",
+      "modelId": "hydrostatics",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "ideal_gas_isobaric",
+      "schemaVersion": "1.2",
+      "modelId": "ideal_gas_isobaric",
+      "topic": "THERMAL",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "ideal_gas_isochoric",
+      "schemaVersion": "1.2",
+      "modelId": "ideal_gas_isochoric",
+      "topic": "THERMAL",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "ideal_gas_isothermal",
+      "schemaVersion": "1.2",
+      "modelId": "ideal_gas_isothermal",
+      "topic": "THERMAL",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "ideal_transformer",
+      "schemaVersion": "1.1",
+      "modelId": "ideal_transformer",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "kinematics",
+      "schemaVersion": "1.11",
+      "modelId": "uniform_acceleration",
+      "topic": "KINEMATICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "kinematics_acceleration_time_graph",
+      "schemaVersion": "1.1",
+      "modelId": "acceleration_time_graph",
+      "topic": "KINEMATICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "kinematics_position_time_graph",
+      "schemaVersion": "1.1",
+      "modelId": "position_time_graph",
+      "topic": "KINEMATICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "kinematics_projectile",
+      "schemaVersion": "1.11",
+      "modelId": "projectile",
+      "topic": "KINEMATICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "kinematics_velocity_time_graph",
+      "schemaVersion": "1.1",
+      "modelId": "velocity_time_graph",
+      "topic": "KINEMATICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "light_interference",
+      "schemaVersion": "1.3",
+      "modelId": "light_interference",
+      "topic": "OPTICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "linear_drag_motion",
+      "schemaVersion": "1.2",
+      "modelId": "linear_drag_motion",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "magnetic_force",
+      "schemaVersion": "1.2",
+      "modelId": "magnetic_force",
+      "topic": "ELECTROMAGNETISM",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "measurement_uncertainty",
+      "schemaVersion": "1.3",
+      "modelId": "measurement_uncertainty",
+      "topic": "PRACTICAL_AND_DATA",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "moment_equilibrium",
+      "schemaVersion": "1.2",
+      "modelId": "moment_equilibrium",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "mri_relaxation",
+      "schemaVersion": "1.1",
+      "modelId": "mri_relaxation",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "nuclear_energy",
+      "schemaVersion": "1.3",
+      "modelId": "nuclear_energy",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "nuclear_reaction_energy",
+      "schemaVersion": "1.1",
+      "modelId": "nuclear_reaction_energy",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "ohms_law",
+      "schemaVersion": "1.1",
+      "modelId": "ohms_law",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "oscillations_spring",
+      "schemaVersion": "2.0",
+      "modelId": "spring",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "phase_change",
+      "schemaVersion": "1.2",
+      "modelId": "phase_change",
+      "topic": "THERMAL",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "photoelectric_effect",
+      "schemaVersion": "1.3",
+      "modelId": "photoelectric_effect",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "point_charge_field",
+      "schemaVersion": "1.1",
+      "modelId": "point_charge_field",
+      "topic": "ELECTROMAGNETISM",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "radiation_safety",
+      "schemaVersion": "1.1",
+      "modelId": "radiation_safety",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "radio_communication",
+      "schemaVersion": "1.1",
+      "modelId": "radio_communication",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "radio_signal_chain",
+      "schemaVersion": "1.1",
+      "modelId": "radio_signal_chain",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "radioactive_decay",
+      "schemaVersion": "1.2",
+      "modelId": "radioactive_decay",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "resistors_parallel",
+      "schemaVersion": "1.3",
+      "modelId": "resistors_parallel",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "resistors_series",
+      "schemaVersion": "1.2",
+      "modelId": "resistors_series",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "sensor_op_amp",
+      "schemaVersion": "1.1",
+      "modelId": "sensor_op_amp",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "simple_magnifier",
+      "schemaVersion": "1.2",
+      "modelId": "simple_magnifier",
+      "topic": "OPTICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "snell_refraction",
+      "schemaVersion": "1.2",
+      "modelId": "snell_refraction",
+      "topic": "OPTICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "sound_wave",
+      "schemaVersion": "1.2",
+      "modelId": "sound_wave",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "source_internal_resistance",
+      "schemaVersion": "1.1",
+      "modelId": "source_internal_resistance",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "standing_wave",
+      "schemaVersion": "1.3",
+      "modelId": "standing_wave",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "string_wave",
+      "schemaVersion": "1.3",
+      "modelId": "string_wave",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "temperature_scales",
+      "schemaVersion": "1.3",
+      "modelId": "temperature_scales",
+      "topic": "THERMAL",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "thermal_expansion",
+      "schemaVersion": "1.3",
+      "modelId": "thermal_expansion",
+      "topic": "THERMAL",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "thermistor_response",
+      "schemaVersion": "1.1",
+      "modelId": "thermistor_response",
+      "topic": "CIRCUITS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "thin_lens_imaging",
+      "schemaVersion": "1.1",
+      "modelId": "thin_lens_imaging",
+      "topic": "OPTICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "ultrasound_imaging",
+      "schemaVersion": "1.1",
+      "modelId": "ultrasound_imaging",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "uniform_electric_field",
+      "schemaVersion": "1.2",
+      "modelId": "uniform_electric_field",
+      "topic": "ELECTROMAGNETISM",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "water_surface_interference",
+      "schemaVersion": "1.1",
+      "modelId": "water_surface_interference",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "wave_pulse",
+      "schemaVersion": "1.3",
+      "modelId": "wave_pulse",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "wave_reflection",
+      "schemaVersion": "1.2",
+      "modelId": "wave_reflection",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "wave_superposition",
+      "schemaVersion": "1.2",
+      "modelId": "wave_superposition",
+      "topic": "WAVES",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "work_energy_power",
+      "schemaVersion": "1.2",
+      "modelId": "work_energy_power",
+      "topic": "DYNAMICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    },
+    {
+      "schemaId": "xray_imaging",
+      "schemaVersion": "1.1",
+      "modelId": "xray_imaging",
+      "topic": "MODERN_PHYSICS",
+      "status": "PARTIAL",
+      "evidence": {
+        "golden": [],
+        "boundary": [
+          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
+        ],
+        "invalidDomain": [],
+        "invariant": [],
+        "output": [
+          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
+        ],
+        "faultDetection": []
+      }
+    }
+  ]
+}

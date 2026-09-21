@@ -4,8 +4,8 @@ import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.physics.model.AnalyticalPoint;
 import com.example.backend.physics.model.SolverOutput;
 import com.example.backend.physics.compatibility.LegacyPhysicsExecutionAdapterV1;
-import com.example.backend.physics.reference.ReferenceSolver;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import com.example.backend.service.problem.CompiledSchema;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -64,7 +64,7 @@ class PhysicsValidationServiceFaultInjectionTest {
         when(schemaDefinitions.requireSolverBinding("faulty-model", "1")).thenReturn(binding);
         when(schemaDefinitions.requirePublishedVersion("faulty-model", "1")).thenReturn(schema);
         when(schemaDefinitions.compiled(schema)).thenReturn(new CompiledSchema("faulty-model", "1", "TEST",
-                "faulty-model", Map.of(), Map.of(), Map.of(), java.util.Set.of(), Map.of(),
+                "faulty-model", Map.of(), Map.of(), Map.of(), java.util.Set.of("position"), Map.of(),
                 new CompiledSchema.ExecutionDefinition(1, 0.5),
                 new CompiledSchema.ValidationDefinition(0.000001, List.of(0.5), Map.of("position",
                         new CompiledSchema.OutputValidationDefinition(0.000001, 0.000001, "numeric"))),

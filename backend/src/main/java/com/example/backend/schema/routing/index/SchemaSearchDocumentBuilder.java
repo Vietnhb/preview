@@ -5,15 +5,29 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.schema.routing.model.SchemaSearchDocument;
+import com.example.backend.schema.routing.model.SchemaRetrievalMetadata;
 import com.example.backend.service.problem.CompiledSchema;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /** Projects approved schema metadata into deterministic retrieval fields and text. */
 @Component
 public final class SchemaSearchDocumentBuilder {
+    private final SchemaRetrievalMetadataCatalog retrievalMetadata;
+
+    /** Source-compatible constructor for focused projection tests without the metadata resource. */
+    public SchemaSearchDocumentBuilder() {
+        this.retrievalMetadata = null;
+    }
+
+    @Autowired
+    public SchemaSearchDocumentBuilder(SchemaRetrievalMetadataCatalog retrievalMetadata) {
+        this.retrievalMetadata = retrievalMetadata;
+    }
+
     public SchemaSearchDocument build(SchemaVersion schema, CompiledSchema compiled) {
         if (schema == null || schema.getDefinition() == null || compiled == null) {
             throw new IllegalArgumentException("Approved schema identity, compiled schema, and definition are required");
@@ -50,6 +64,16 @@ public final class SchemaSearchDocumentBuilder {
         TreeSet<String> relationTypes = relationTypes(definition);
         TreeSet<String> endConditionCapabilities = endConditionCapabilities(definition);
         TreeSet<String> curriculumLabels = curriculumLabels(definition);
+        SchemaRetrievalMetadata localized = retrievalMetadata == null ? null
+                : retrievalMetadata.find(schema.getSchemaId(), schema.getVersion()).orElse(null);
+        if (localized == null && retrievalMetadata != null && retrievalMetadata.isMvpTopic(schema.getTopic())) {
+            throw new IllegalStateException("Missing multilingual retrieval metadata for approved MVP schema "
+                    + schema.getSchemaId() + "@" + schema.getVersion());
+        }
+        if (localized != null) {
+            localized.aliases().values().forEach(aliases::addAll);
+            localized.curriculumLabels().values().forEach(curriculumLabels::addAll);
+        }
         TreeSet<String> metadata = new TreeSet<>();
         add(metadata, schema.getSchemaId());
         add(metadata, schema.getVersion());
@@ -65,12 +89,21 @@ public final class SchemaSearchDocumentBuilder {
         metadata.addAll(relationTypes);
         metadata.addAll(endConditionCapabilities);
         metadata.addAll(curriculumLabels);
+        if (localized != null) {
+            metadata.addAll(localized.localizedNames().values());
+            localized.aliases().values().forEach(metadata::addAll);
+            localized.curriculumLabels().values().forEach(metadata::addAll);
+        }
 
         String searchText = Normalizer.normalize(String.join(" ", metadata), Normalizer.Form.NFKC);
+        String projectionVersion = localized == null ? SchemaSearchDocument.CURRENT_PROJECTION_VERSION
+                : SchemaSearchDocument.MULTILINGUAL_PROJECTION_VERSION;
+        String metadataChecksum = localized == null ? checksum : localized.metadataChecksum();
         return new SchemaSearchDocument(schema.getSchemaId(), schema.getVersion(), schema.getTopic(),
                 schema.getName(), compiled.modelId(), description, learningOutcomes, canonicalKeys, aliases,
                 symbols, allowedUnits, relationTypes, endConditionCapabilities, curriculumLabels,
-                searchText, checksum);
+                searchText, projectionVersion, checksum,
+                localized == null ? java.util.List.of() : localized.semanticViews(), metadataChecksum);
     }
 
     private TreeSet<String> relationTypes(JsonNode definition) {

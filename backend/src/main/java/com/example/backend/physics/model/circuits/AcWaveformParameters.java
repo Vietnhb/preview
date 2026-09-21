@@ -1,18 +1,11 @@
 package com.example.backend.physics.model.circuits;
 
-import com.example.backend.physics.model.PhysicsValues;
+import com.example.backend.physics.compatibility.legacy.PhysicsValues;
 import com.example.backend.physics.model.CanonicalQuantityBag;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import java.util.Map;
 
 /** Ideal sinusoidal AC voltage source. */
 public record AcWaveformParameters(double peakVoltage, double frequency, double phase) {
-    /** @deprecated Use {@link #from(CanonicalQuantityBag)} after schema-bound ingress. */
-    @Deprecated
-    public static AcWaveformParameters from(JsonNode specification, Map<String, Double> overrides) {
-        return from(PhysicsValues.bag(specification, overrides));
-    }
 
     public static AcWaveformParameters from(CanonicalQuantityBag quantities) {
         double peak = quantities.require("peak_voltage");

@@ -20,7 +20,9 @@ services:
       SUPABASE_DB_USERNAME: physlive
       SUPABASE_DB_PASSWORD: ${POSTGRES_PASSWORD:-physlive-dev}
       JWT_SECRET: ${JWT_SECRET:-local-only-change-this-secret-32bytes}
-      JPA_DDL_AUTO: update
+      # Steady-state startup is migration-owned. Use the documented
+      # empty-database bootstrap sequence before bringing up a new volume.
+      JPA_DDL_AUTO: validate
     ports: ["8080:8080"]
     depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_started } }
   problem-understanding:

@@ -33,6 +33,13 @@ kept here; Git history is the archive for superseded documentation.
 - `curriculum/registry-ids.json` and `curriculum/source-catalog.json` are inputs
   used by the curriculum scripts.
 
+## Machine-readable physics evidence
+
+- `physics/model-evidence-manifest.json` is generated from the latest schema
+  catalog and records the six required evidence kinds for every active model.
+  Run `node scripts/check-physics-evidence-manifest.mjs --check` for the
+  structural gate and `--release` for the strict production gate.
+
 Do not add another checkpoint report for the same production effort. Update the
 single production report or curriculum audit above, or add an ADR/runbook when
 the document has a distinct long-lived purpose.

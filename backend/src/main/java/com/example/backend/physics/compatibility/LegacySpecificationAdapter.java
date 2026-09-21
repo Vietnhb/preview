@@ -1,7 +1,7 @@
 package com.example.backend.physics.compatibility;
 
 import com.example.backend.physics.model.CanonicalQuantityBag;
-import com.example.backend.physics.model.PhysicsValues;
+import com.example.backend.physics.compatibility.legacy.PhysicsValues;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.micrometer.core.instrument.Metrics;
 

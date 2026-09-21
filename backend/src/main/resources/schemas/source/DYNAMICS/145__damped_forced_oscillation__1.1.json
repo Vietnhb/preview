@@ -1,0 +1,177 @@
+{
+  "schemaId": "damped_forced_oscillation",
+  "model": "damped_forced_oscillation",
+  "name": "Damped and forced oscillation",
+  "topic": "DYNAMICS",
+  "version": "1.1",
+  "solverId": "advanced_oscillation_solver",
+  "referenceSolverId": "advanced_oscillation_reference",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "mass",
+        "aliases": [
+          "m"
+        ],
+        "allowedUnits": [
+          "kg"
+        ],
+        "positive": true
+      },
+      {
+        "key": "spring_constant",
+        "aliases": [
+          "k"
+        ],
+        "allowedUnits": [
+          "N/m"
+        ],
+        "positive": true
+      },
+      {
+        "key": "damping_coefficient",
+        "aliases": [
+          "c"
+        ],
+        "allowedUnits": [
+          "kg/s"
+        ],
+        "nonNegative": true
+      },
+      {
+        "key": "driving_force_amplitude",
+        "aliases": [
+          "F0"
+        ],
+        "allowedUnits": [
+          "N"
+        ],
+        "nonNegative": true
+      },
+      {
+        "key": "driving_frequency",
+        "aliases": [
+          "omega"
+        ],
+        "allowedUnits": [
+          "rad/s"
+        ],
+        "nonNegative": true
+      },
+      {
+        "key": "initial_displacement",
+        "aliases": [
+          "x0"
+        ],
+        "allowedUnits": [
+          "m"
+        ]
+      },
+      {
+        "key": "initial_velocity",
+        "aliases": [
+          "v0"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ]
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "driving_frequency",
+        "label": "Driving angular frequency",
+        "symbol": "omega",
+        "unit": "rad/s",
+        "min": 0,
+        "max": 100,
+        "step": 0.01
+      }
+    ],
+    "visualization": {
+      "scene": "damped_forced_oscillation",
+      "series": [
+        {
+          "key": "displacement",
+          "source": "values.displacement",
+          "label": "Displacement",
+          "symbol": "x(t)",
+          "unit": "m",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "mechanicalEnergy",
+          "source": "values.mechanicalEnergy",
+          "label": "Mechanical energy",
+          "symbol": "E",
+          "unit": "J",
+          "color": "#fb923c"
+        },
+        {
+          "key": "drivingForce",
+          "source": "values.drivingForce",
+          "label": "Driving force",
+          "symbol": "F(t)",
+          "unit": "N",
+          "color": "#34d399"
+        }
+      ]
+    },
+    "execution": {
+      "durationSeconds": 10,
+      "stepSeconds": 0.02,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "displacement",
+        "velocity",
+        "acceleration",
+        "mechanicalEnergy",
+        "drivingForce"
+      ],
+      "definitions": [
+        {
+          "key": "displacement",
+          "kind": "time_series",
+          "unit": "m",
+          "required": true
+        },
+        {
+          "key": "velocity",
+          "kind": "time_series",
+          "unit": "m/s",
+          "required": true
+        },
+        {
+          "key": "acceleration",
+          "kind": "time_series",
+          "unit": "m/s2",
+          "required": true
+        },
+        {
+          "key": "mechanicalEnergy",
+          "kind": "time_series",
+          "unit": "J",
+          "required": true
+        },
+        {
+          "key": "drivingForce",
+          "kind": "time_series",
+          "unit": "N",
+          "required": true
+        }
+      ]
+    }
+  }
+}

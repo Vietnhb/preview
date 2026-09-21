@@ -87,6 +87,23 @@ class OutputContractValidatorTest {
     }
 
     @Test
+    void adapterCollapsesIdenticalValuesAndGroupProjectionsButRejectsConflicts() {
+        List<Double> time = List.of(0.0, 1.0);
+        List<Double> position = List.of(2.0, 3.0);
+        SolverOutput repeatedProjection = new SolverOutput(time,
+                Map.of("x", position), Map.of(), Map.of(), Map.of("x", position));
+
+        var frame = LegacySolverOutputAdapter.adapt(repeatedProjection, Map.of("x", "m"));
+        assertEquals(1, frame.outputs().size());
+        assertEquals("x", frame.outputs().getFirst().key());
+
+        SolverOutput conflictingProjection = new SolverOutput(time,
+                Map.of("x", List.of(2.0, 4.0)), Map.of(), Map.of(), Map.of("x", position));
+        assertThrows(IllegalArgumentException.class,
+                () -> LegacySolverOutputAdapter.adapt(conflictingProjection, Map.of("x", "m")));
+    }
+
+    @Test
     void solverOutputCopiesAndValidatesStandaloneScalarValues() {
         Map<String, Double> source = new LinkedHashMap<>();
         source.put("doseRate", 2.0);

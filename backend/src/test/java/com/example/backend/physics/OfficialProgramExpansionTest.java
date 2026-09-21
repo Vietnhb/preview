@@ -1,16 +1,16 @@
 package com.example.backend.physics;
 
 import com.example.backend.physics.model.SolverOutput;
-import com.example.backend.physics.reference.dynamics.AdvancedOscillationReferenceSolver;
-import com.example.backend.physics.reference.dynamics.MomentEquilibriumReferenceSolver;
-import com.example.backend.physics.reference.medical.MedicalImagingReferenceSolver;
-import com.example.backend.physics.reference.modern.QuantumExtensionReferenceSolver;
-import com.example.backend.physics.reference.thermal.PhaseChangeReferenceSolver;
-import com.example.backend.physics.solver.dynamics.AdvancedOscillationSolver;
-import com.example.backend.physics.solver.dynamics.MomentEquilibriumSolver;
-import com.example.backend.physics.solver.medical.MedicalImagingSolver;
-import com.example.backend.physics.solver.modern.QuantumExtensionSolver;
-import com.example.backend.physics.solver.thermal.PhaseChangeSolver;
+import com.example.backend.physics.compatibility.legacy.reference.dynamics.AdvancedOscillationReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.reference.dynamics.MomentEquilibriumReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.reference.medical.MedicalImagingReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.reference.modern.QuantumExtensionReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.reference.thermal.PhaseChangeReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.solver.dynamics.AdvancedOscillationSolver;
+import com.example.backend.physics.compatibility.legacy.solver.dynamics.MomentEquilibriumSolver;
+import com.example.backend.physics.compatibility.legacy.solver.medical.MedicalImagingSolver;
+import com.example.backend.physics.compatibility.legacy.solver.modern.QuantumExtensionSolver;
+import com.example.backend.physics.compatibility.legacy.solver.thermal.PhaseChangeSolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ class OfficialProgramExpansionTest {
                                 .put("driving_force_amplitude", 0).put("driving_frequency", 1)
                                 .put("initial_displacement", 1).put("initial_velocity", 0);
                 var parameters = com.example.backend.physics.model.dynamics.DampedForcedOscillationParameters
-                                .from(specification, Map.of());
+                                .from(com.example.backend.physics.compatibility.legacy.PhysicsValues.bag(specification, Map.of()));
                 assertEquals(2, parameters.dampingRate(), 1e-12);
                 assertEquals(2, parameters.naturalAngularFrequency(), 1e-12);
                 assertEquals(0, parameters.dampedAngularFrequency(), 1e-12);
@@ -119,11 +119,11 @@ class OfficialProgramExpansionTest {
                 ObjectNode sensor = mapper.createObjectNode().put("model", "sensor_op_amp")
                                 .put("supply_voltage", 5).put("sensor_resistance", 1000)
                                 .put("reference_resistance", 1000).put("op_amp_gain", 10).put("threshold_voltage", 2);
-                SolverOutput sensorOutput = new com.example.backend.physics.solver.electromagnetism.ApplicationsSolver()
+                SolverOutput sensorOutput = new com.example.backend.physics.compatibility.legacy.solver.electromagnetism.ApplicationsSolver()
                                 .solve(sensor, Map.of(), 1, .25);
                 assertEquals(2.5, sensorOutput.values().get("sensorVoltage").get(0), 1e-12);
                 assertEquals(sensorOutput.values().get("ledState").get(0),
-                                new com.example.backend.physics.reference.electromagnetism.ApplicationsReferenceSolver()
+                                new com.example.backend.physics.compatibility.legacy.reference.electromagnetism.ApplicationsReferenceSolver()
                                                 .solve(sensor, Map.of(), 0).values().get("ledState"),
                                 1e-12);
 
@@ -132,11 +132,11 @@ class OfficialProgramExpansionTest {
                                 .put("frequency_deviation", 2e4).put("modulation_index", .5)
                                 .put("signal_amplitude", 10).put("path_length", 100)
                                 .put("attenuation_db_per_meter", .01);
-                var radioOutput = new com.example.backend.physics.solver.electromagnetism.ApplicationsSolver()
+                var radioOutput = new com.example.backend.physics.compatibility.legacy.solver.electromagnetism.ApplicationsSolver()
                                 .solve(radio, Map.of(), 1, .25);
                 assertEquals(2, radioOutput.values().get("fmModulationIndex").get(0), 1e-12);
                 assertEquals(radioOutput.values().get("receivedAmplitude").get(0),
-                                new com.example.backend.physics.reference.electromagnetism.ApplicationsReferenceSolver()
+                                new com.example.backend.physics.compatibility.legacy.reference.electromagnetism.ApplicationsReferenceSolver()
                                                 .solve(radio, Map.of(), 0).values().get("receivedAmplitude"),
                                 1e-12);
         }
@@ -158,31 +158,31 @@ class OfficialProgramExpansionTest {
         void sourceEnergyBandsAndNuclearReactionMatchReferences() {
                 ObjectNode source = mapper.createObjectNode().put("model", "source_internal_resistance")
                                 .put("emf", 12).put("internal_resistance", 1).put("load_resistance", 5);
-                var sourceOutput = new com.example.backend.physics.solver.circuits.SourceInternalResistanceSolver()
+                var sourceOutput = new com.example.backend.physics.compatibility.legacy.solver.circuits.SourceInternalResistanceSolver()
                                 .solve(source, Map.of(), 1, .1);
                 assertEquals(2, sourceOutput.values().get("current").get(0), 1e-12);
                 assertEquals(sourceOutput.values().get("terminalVoltage").get(0),
-                                new com.example.backend.physics.reference.circuits.SourceInternalResistanceReferenceSolver()
+                                new com.example.backend.physics.compatibility.legacy.reference.circuits.SourceInternalResistanceReferenceSolver()
                                                 .solve(source, Map.of(), 0).values().get("terminalVoltage"),
                                 1e-12);
 
                 ObjectNode bands = mapper.createObjectNode().put("model", "energy_band_transition")
                                 .put("valence_band_energy", 0).put("conduction_band_energy", 3e-19)
                                 .put("photon_frequency", 1e15);
-                var bandOutput = new com.example.backend.physics.solver.modern.EnergyBandSolver()
+                var bandOutput = new com.example.backend.physics.compatibility.legacy.solver.modern.EnergyBandSolver()
                                 .solve(bands, Map.of(), 1, .1);
                 assertEquals(3e-19, bandOutput.values().get("bandGap").get(0), 1e-30);
                 assertEquals(bandOutput.values().get("transitionAllowed").get(0),
-                                new com.example.backend.physics.reference.modern.EnergyBandReferenceSolver()
+                                new com.example.backend.physics.compatibility.legacy.reference.modern.EnergyBandReferenceSolver()
                                                 .solve(bands, Map.of(), 0).values().get("transitionAllowed"),
                                 1e-12);
 
                 ObjectNode reaction = mapper.createObjectNode().put("model", "nuclear_reaction_energy")
                                 .put("reactant_mass", 5e-27).put("product_mass", 4.99e-27).put("reaction_count", 2);
-                var reactionOutput = new com.example.backend.physics.solver.modern.NuclearReactionSolver()
+                var reactionOutput = new com.example.backend.physics.compatibility.legacy.solver.modern.NuclearReactionSolver()
                                 .solve(reaction, Map.of(), 1, .1);
                 assertEquals(reactionOutput.values().get("totalReleasedEnergy").get(0),
-                                new com.example.backend.physics.reference.modern.NuclearReactionReferenceSolver()
+                                new com.example.backend.physics.compatibility.legacy.reference.modern.NuclearReactionReferenceSolver()
                                                 .solve(reaction, Map.of(), 0).values().get("totalReleasedEnergy"),
                                 1e-12);
         }
@@ -193,11 +193,11 @@ class OfficialProgramExpansionTest {
                                 .put("star_radius", 1).put("star_distance", 100)
                                 .put("occluder_radius", 1).put("occluder_distance", 100)
                                 .put("alignment_angle", 0);
-                var eclipseOutput = new com.example.backend.physics.solver.electromagnetism.ApplicationsSolver()
+                var eclipseOutput = new com.example.backend.physics.compatibility.legacy.solver.electromagnetism.ApplicationsSolver()
                                 .solve(eclipse, Map.of(), 1, .1);
                 assertEquals(1, eclipseOutput.values().get("totality").get(0), 1e-12);
                 assertEquals(eclipseOutput.values().get("alignmentMargin").get(0),
-                                new com.example.backend.physics.reference.electromagnetism.ApplicationsReferenceSolver()
+                                new com.example.backend.physics.compatibility.legacy.reference.electromagnetism.ApplicationsReferenceSolver()
                                                 .solve(eclipse, Map.of(), 0).values().get("alignmentMargin"),
                                 1e-12);
 
@@ -205,11 +205,11 @@ class OfficialProgramExpansionTest {
                                 .put("energy_demand", 100).put("renewable_fraction", .4)
                                 .put("fossil_emission_factor", 2).put("renewable_emission_factor", .1)
                                 .put("conversion_efficiency", .8);
-                var environmentOutput = new com.example.backend.physics.solver.electromagnetism.ApplicationsSolver()
+                var environmentOutput = new com.example.backend.physics.compatibility.legacy.solver.electromagnetism.ApplicationsSolver()
                                 .solve(environment, Map.of(), 1, .1);
                 assertEquals(40, environmentOutput.values().get("renewableEnergy").get(0), 1e-12);
                 assertEquals(environmentOutput.values().get("emissions").get(0),
-                                new com.example.backend.physics.reference.electromagnetism.ApplicationsReferenceSolver()
+                                new com.example.backend.physics.compatibility.legacy.reference.electromagnetism.ApplicationsReferenceSolver()
                                                 .solve(environment, Map.of(), 0).values().get("emissions"),
                                 1e-12);
         }
@@ -219,22 +219,22 @@ class OfficialProgramExpansionTest {
                 ObjectNode drag = mapper.createObjectNode().put("model", "linear_drag_motion")
                                 .put("mass", 2).put("initial_position", 0).put("initial_velocity", 0)
                                 .put("constant_force", 10).put("drag_coefficient", 2);
-                var dragOutput = new com.example.backend.physics.solver.dynamics.LinearDragSolver()
+                var dragOutput = new com.example.backend.physics.compatibility.legacy.solver.dynamics.LinearDragSolver()
                                 .solve(drag, Map.of(), 2, .1);
                 assertEquals(5 * (1 - Math.exp(-2)), dragOutput.values().get("velocity").get(20), 1e-12);
                 assertEquals(dragOutput.values().get("position").get(13),
-                                new com.example.backend.physics.reference.dynamics.LinearDragReferenceSolver()
+                                new com.example.backend.physics.compatibility.legacy.reference.dynamics.LinearDragReferenceSolver()
                                                 .solve(drag, Map.of(), 1.3).values().get("position"),
                                 1e-12);
 
                 ObjectNode field = mapper.createObjectNode().put("model", "uniform_electric_field")
                                 .put("charge", 2).put("mass", 4).put("potential_difference", 10)
                                 .put("plate_separation", 2).put("initial_velocity", 3).put("travel_time", 2);
-                var fieldOutput = new com.example.backend.physics.solver.electromagnetism.UniformElectricFieldSolver()
+                var fieldOutput = new com.example.backend.physics.compatibility.legacy.solver.electromagnetism.UniformElectricFieldSolver()
                                 .solve(field, Map.of(), 1, .1);
                 assertEquals(5, fieldOutput.values().get("fieldStrength").get(0), 1e-12);
                 assertEquals(fieldOutput.values().get("transverseDisplacement").get(0),
-                                new com.example.backend.physics.reference.electromagnetism.UniformElectricFieldReferenceSolver()
+                                new com.example.backend.physics.compatibility.legacy.reference.electromagnetism.UniformElectricFieldReferenceSolver()
                                                 .solve(field, Map.of(), 0).values().get("transverseDisplacement"),
                                 1e-12);
 
@@ -242,7 +242,7 @@ class OfficialProgramExpansionTest {
                                 .put("reference_resistance", 10000).put("reference_temperature", 298.15)
                                 .put("beta_constant", 3950).put("temperature", 25).put("supply_voltage", 5)
                                 .put("divider_resistance", 10000);
-                var thermistorOutput = new com.example.backend.physics.solver.electromagnetism.ApplicationsSolver()
+                var thermistorOutput = new com.example.backend.physics.compatibility.legacy.solver.electromagnetism.ApplicationsSolver()
                                 .solve(thermistor, Map.of(), 1, .1);
                 assertEquals(10000, thermistorOutput.values().get("resistance").get(0), 1e-9);
         }

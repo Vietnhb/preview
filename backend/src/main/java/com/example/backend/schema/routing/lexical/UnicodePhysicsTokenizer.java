@@ -1,10 +1,11 @@
 package com.example.backend.schema.routing.lexical;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A schema-agnostic Unicode tokenizer for physics search text.
@@ -18,7 +19,29 @@ public final class UnicodePhysicsTokenizer {
 
     public List<String> tokenize(String text) {
         Objects.requireNonNull(text, "text");
-        String normalized = Normalizer.normalize(text, Normalizer.Form.NFKC);
+        return tokenizeNormalized(UnicodePhysicsNormalizer.normalize(text));
+    }
+
+    /**
+     * Tokenizes canonical text and its accent-folded shadow. Shadow tokens are
+     * added only when they are not already present, so plain English BM25
+     * scores retain their historical term-frequency behavior.
+     */
+    public List<String> tokenizeWithAccentShadow(String text) {
+        Objects.requireNonNull(text, "text");
+        String normalized = UnicodePhysicsNormalizer.normalize(text);
+        List<String> original = tokenizeNormalized(normalized);
+        String folded = UnicodePhysicsNormalizer.accentFold(normalized);
+        if (folded.equals(normalized)) return original;
+        Set<String> originalTerms = new HashSet<>(original);
+        List<String> result = new ArrayList<>(original);
+        for (String token : tokenizeNormalized(folded)) {
+            if (!originalTerms.contains(token)) result.add(token);
+        }
+        return List.copyOf(result);
+    }
+
+    private List<String> tokenizeNormalized(String normalized) {
 
         List<String> tokens = new ArrayList<>();
         StringBuilder word = new StringBuilder();

@@ -1,0 +1,134 @@
+{
+  "schemaId": "ohms_law",
+  "model": "ohms_law",
+  "name": "Ohm's law",
+  "topic": "CIRCUITS",
+  "version": "1.1",
+  "solverId": "ohms_law_solver",
+  "referenceSolverId": "ohms_law_reference",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "voltage",
+        "aliases": [
+          "V"
+        ],
+        "allowedUnits": [
+          "V"
+        ]
+      },
+      {
+        "key": "resistance",
+        "aliases": [
+          "R"
+        ],
+        "allowedUnits": [
+          "ohm"
+        ],
+        "positive": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "voltage",
+        "label": "Voltage",
+        "symbol": "V",
+        "unit": "V",
+        "min": -1000,
+        "max": 1000,
+        "step": 1
+      }
+    ],
+    "visualization": {
+      "scene": "ohms_law",
+      "series": [
+        {
+          "key": "current",
+          "source": "values.current",
+          "label": "Current",
+          "symbol": "I",
+          "unit": "A",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "power",
+          "source": "values.power",
+          "label": "Power",
+          "symbol": "P",
+          "unit": "W",
+          "color": "#fb923c"
+        }
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "board.circuit",
+        "sceneGraph": {
+          "nodes": [
+            {
+              "id": "background",
+              "type": "background",
+              "layer": "static"
+            },
+            {
+              "id": "graph",
+              "type": "graph",
+              "layer": "dynamic",
+              "properties": {
+                "source": "values.current"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "voltage",
+        "resistance",
+        "current",
+        "power"
+      ],
+      "definitions": [
+        {
+          "key": "voltage",
+          "kind": "time_series",
+          "unit": "V",
+          "required": true
+        },
+        {
+          "key": "resistance",
+          "kind": "time_series",
+          "unit": "ohm",
+          "required": true
+        },
+        {
+          "key": "current",
+          "kind": "time_series",
+          "unit": "A",
+          "required": true
+        },
+        {
+          "key": "power",
+          "kind": "time_series",
+          "unit": "W",
+          "required": true
+        }
+      ]
+    }
+  }
+}

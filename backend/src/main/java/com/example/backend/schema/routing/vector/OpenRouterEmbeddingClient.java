@@ -9,6 +9,12 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
+
+import java.time.Duration;
 
 import com.example.backend.config.properties.OpenRouterProperties;
 import com.example.backend.config.properties.SchemaRoutingProperties;
@@ -21,11 +27,13 @@ public final class OpenRouterEmbeddingClient implements EmbeddingClient {
     private final RestClient restClient;
     private final OpenRouterProperties openRouter;
     private final SchemaRoutingProperties.Embedding settings;
+    private final EmbeddingRetryPolicy retryPolicy;
 
     public OpenRouterEmbeddingClient(RestClient.Builder builder, OpenRouterProperties openRouter,
             SchemaRoutingProperties routing) {
         this.openRouter = openRouter;
         this.settings = routing.embedding();
+        this.retryPolicy = new EmbeddingRetryPolicy(settings.maxAttempts(), settings.retryBackoff());
         requireSupportedProvider(settings.provider());
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(settings.timeout());
@@ -40,6 +48,17 @@ public final class OpenRouterEmbeddingClient implements EmbeddingClient {
             throw new IllegalStateException("Schema routing needs OPENROUTER_API_KEY to generate embeddings");
         }
         try {
+            return retryPolicy.execute(() -> requestEmbedding(text), OpenRouterEmbeddingClient::isRetryable,
+                    this::retryDelay);
+        } catch (RuntimeException failure) {
+            if (failure instanceof IllegalStateException state
+                    && state.getMessage() != null && state.getMessage().startsWith("Embedding provider ")) throw state;
+            throw new IllegalStateException("Embedding request failed for provider=" + settings.provider()
+                    + ", model=" + settings.model(), failure);
+        }
+    }
+
+    private EmbeddingResult requestEmbedding(String text) {
             JsonNode response = restClient.post().uri("/embeddings")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + openRouter.apiKey())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -62,12 +81,51 @@ public final class OpenRouterEmbeddingClient implements EmbeddingClient {
                         + ", returned=" + values.size());
             }
             return new EmbeddingResult(values);
-        } catch (RuntimeException failure) {
-            if (failure instanceof IllegalStateException state
-                    && state.getMessage() != null && state.getMessage().startsWith("Embedding ")) throw state;
-            throw new IllegalStateException("Embedding request failed for provider=" + settings.provider()
-                    + ", model=" + settings.model(), failure);
+    }
+
+    static boolean isRetryable(RuntimeException failure) {
+        Throwable current = failure;
+        while (current != null) {
+            if (current instanceof ResourceAccessException) return true;
+            if (current instanceof HttpServerErrorException) return true;
+            if (current instanceof HttpClientErrorException client
+                    && client.getStatusCode().value() == 429) return true;
+            if (current instanceof RestClientResponseException response
+                    && (response.getStatusCode().value() == 429 || response.getStatusCode().is5xxServerError())) {
+                return true;
+            }
+            current = current.getCause();
         }
+        return false;
+    }
+
+    private Duration retryDelay(RuntimeException failure, int attempt) {
+        return retryAfterDelay(failure, settings.retryBackoff(), attempt);
+    }
+
+    static Duration retryAfterDelay(RuntimeException failure, Duration configuredBackoff, int attempt) {
+        if (configuredBackoff == null || configuredBackoff.isNegative()) {
+            throw new IllegalArgumentException("configuredBackoff must be non-negative");
+        }
+        Throwable current = failure;
+        while (current != null) {
+            if (current instanceof RestClientResponseException response) {
+                String retryAfter = response.getResponseHeaders().getFirst("Retry-After");
+                if (retryAfter != null) {
+                    try {
+                        long seconds = Long.parseLong(retryAfter.trim());
+                        if (seconds >= 0) {
+                            return Duration.ofSeconds(Math.min(seconds,
+                                    SchemaRoutingProperties.Embedding.MAX_RETRY_AFTER.toSeconds()));
+                        }
+                    } catch (NumberFormatException ignored) {
+                        // Date-form values are ignored; the configured bounded backoff remains safe.
+                    }
+                }
+            }
+            current = current.getCause();
+        }
+        return configuredBackoff.multipliedBy(attempt);
     }
 
     static void requireSupportedProvider(String provider) {

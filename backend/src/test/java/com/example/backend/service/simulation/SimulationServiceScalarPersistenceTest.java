@@ -12,8 +12,8 @@ import com.example.backend.physics.binding.CanonicalQuantityCompiler;
 import com.example.backend.physics.compatibility.LegacyPhysicsExecutionAdapterV1;
 import com.example.backend.physics.module.PhysicsModuleRegistry;
 import com.example.backend.physics.module.modern.RadiationSafetyModule;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
-import com.example.backend.physics.solver.PhysicsSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolverRegistry;
 import com.example.backend.repository.library.LibraryItemRepository;
 import com.example.backend.repository.problem.SpecificationRepository;
 import com.example.backend.repository.simulation.SimulationRepository;
@@ -140,6 +140,13 @@ class SimulationServiceScalarPersistenceTest {
         assertEquals(List.of(1.0, 1.0, 1.0, 1.0, 1.0), response.values().get("doseRate"));
         assertEquals(5, response.time().size());
         assertEquals(1.0, persisted.getDurationSeconds(), 0.0);
+        assertEquals("radiation_safety", persisted.getSchemaId());
+        assertEquals("1.1", persisted.getSchemaVersion());
+        assertEquals("1.1", persisted.getBindingVersion());
+        assertEquals(RadiationSafetyModule.NUMERICAL_SOLVER_ID, persisted.getNumericalSolverId());
+        assertEquals(RadiationSafetyModule.REFERENCE_SOLVER_ID, persisted.getReferenceSolverId());
+        assertEquals("1.1", persisted.getOutputContractVersion());
+        assertEquals(compiled.checksum(), persisted.getOutputContractChecksum());
         assertEquals(1.0, persisted.getResult().path("scalarOutputs").path("doseRate").asDouble(), 0.0);
         assertTrue(persisted.getResult().path("values").isEmpty());
 

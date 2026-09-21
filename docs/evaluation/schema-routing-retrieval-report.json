@@ -1,0 +1,1427 @@
+{
+  "fixtureVersion": "1",
+  "evaluationMode": "offline_deterministic_embedding_fake",
+  "providerQualityGate": {
+    "status": "BLOCKED",
+    "reason": "No real embedding-provider credentials/evidence supplied to this offline command."
+  },
+  "corpusSize": 74,
+  "caseCounts": {
+    "calibration": 59,
+    "heldOutAnswerable": 15,
+    "challenge": 5,
+    "answerableTotal": 74
+  },
+  "heldOut": {
+    "candidateRecallAtK": 1,
+    "candidateRecallConfidence95": {
+      "lower95": 0.7961166989641515,
+      "upper95": 1
+    },
+    "confidentSelectionPrecision": 1,
+    "confidentSelectionPrecisionConfidence95": {
+      "lower95": 0.7719046276458016,
+      "upper95": 0.9999999999999999
+    },
+    "unambiguousCoverage": 0.8666666666666667,
+    "confidentSelections": 13
+  },
+  "challenge": {
+    "confidentGuesses": 0,
+    "total": 5
+  },
+  "byTopic": {
+    "CIRCUITS": {
+      "total": 4,
+      "recalled": 4,
+      "confident": 4,
+      "confidentCorrect": 4
+    },
+    "THERMAL": {
+      "total": 1,
+      "recalled": 1,
+      "confident": 1,
+      "confidentCorrect": 1
+    },
+    "OPTICS": {
+      "total": 2,
+      "recalled": 2,
+      "confident": 2,
+      "confidentCorrect": 2
+    },
+    "MODERN_PHYSICS": {
+      "total": 1,
+      "recalled": 1,
+      "confident": 1,
+      "confidentCorrect": 1
+    },
+    "DYNAMICS": {
+      "total": 3,
+      "recalled": 3,
+      "confident": 3,
+      "confidentCorrect": 3
+    },
+    "KINEMATICS": {
+      "total": 1,
+      "recalled": 1,
+      "confident": 0,
+      "confidentCorrect": 0
+    },
+    "WAVES": {
+      "total": 3,
+      "recalled": 3,
+      "confident": 2,
+      "confidentCorrect": 2
+    }
+  },
+  "releaseGate": {
+    "offlineAlgorithmGate": true,
+    "providerQualityGate": false,
+    "heldOutThresholdsMet": true,
+    "status": "BLOCKED_EXTERNAL_PROVIDER"
+  },
+  "cases": [
+    {
+      "id": "answerable-001",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "ac_rlc_circuit@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.3225806451612903,
+      "selectedIdentity": "ac_rlc_circuit@1.2",
+      "lexicalTop": "ac_rlc_circuit@1.2",
+      "vectorTop": "ac_rlc_circuit@1.2"
+    },
+    {
+      "id": "answerable-002",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "ac_waveform@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.6062500000000001,
+      "selectedIdentity": "ac_waveform@1.1",
+      "lexicalTop": "ac_waveform@1.1",
+      "vectorTop": "ac_rlc_circuit@1.2"
+    },
+    {
+      "id": "answerable-003",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "adiabatic_gas@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.20134730538922163,
+      "selectedIdentity": "adiabatic_gas@1.3",
+      "lexicalTop": "adiabatic_gas@1.3",
+      "vectorTop": "atomic_spectra@1.2"
+    },
+    {
+      "id": "answerable-004",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "OPTICS",
+      "acceptableIdentities": [
+        "astronomical_telescope@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.4226190476190476,
+      "selectedIdentity": "astronomical_telescope@1.2",
+      "lexicalTop": "astronomical_telescope@1.2",
+      "vectorTop": "astronomical_telescope@1.2"
+    },
+    {
+      "id": "answerable-005",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "atomic_spectra@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.8609625668449198,
+      "selectedIdentity": "atomic_spectra@1.2",
+      "lexicalTop": "atomic_spectra@1.2",
+      "vectorTop": "atomic_spectra@1.2"
+    },
+    {
+      "id": "answerable-006",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "calorimetry_mixing@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.6954545454545454,
+      "selectedIdentity": "calorimetry_mixing@1.3",
+      "lexicalTop": "calorimetry_mixing@1.3",
+      "vectorTop": "calorimetry_mixing@1.3"
+    },
+    {
+      "id": "answerable-007",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "capacitor_basic@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.4961538461538463,
+      "selectedIdentity": "capacitor_basic@1.1",
+      "lexicalTop": "capacitor_basic@1.1",
+      "vectorTop": "ac_rlc_circuit@1.2"
+    },
+    {
+      "id": "answerable-008",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "circuits_rc_charging@1.11"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.03975155279503106,
+      "selectedIdentity": null,
+      "lexicalTop": "circuits_rc_charging@1.11",
+      "vectorTop": "circuits_rc_discharging@1.11"
+    },
+    {
+      "id": "answerable-009",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "circuits_rc_discharging@1.11"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.038186157517899624,
+      "selectedIdentity": null,
+      "lexicalTop": "circuits_rc_discharging@1.11",
+      "vectorTop": "circuits_rc_discharging@1.11"
+    },
+    {
+      "id": "answerable-010",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "circular_motion@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.3313868613138686,
+      "selectedIdentity": "circular_motion@1.2",
+      "lexicalTop": "circular_motion@1.2",
+      "vectorTop": "circular_motion@1.2"
+    },
+    {
+      "id": "answerable-011",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "OPTICS",
+      "acceptableIdentities": [
+        "compound_microscope@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.15533980582524282,
+      "selectedIdentity": "compound_microscope@1.2",
+      "lexicalTop": "compound_microscope@1.2",
+      "vectorTop": "astronomical_telescope@1.2"
+    },
+    {
+      "id": "answerable-012",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "ct_reconstruction@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.27623456790123463,
+      "selectedIdentity": "ct_reconstruction@1.1",
+      "lexicalTop": "ct_reconstruction@1.1",
+      "vectorTop": "ct_reconstruction@1.1"
+    },
+    {
+      "id": "answerable-013",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "damped_forced_oscillation@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.3971360381861575,
+      "selectedIdentity": "damped_forced_oscillation@1.1",
+      "lexicalTop": "damped_forced_oscillation@1.1",
+      "vectorTop": "work_energy_power@1.2"
+    },
+    {
+      "id": "answerable-014",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "de_broglie_diffraction@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.35795954265611263,
+      "selectedIdentity": "de_broglie_diffraction@1.2",
+      "lexicalTop": "de_broglie_diffraction@1.2",
+      "vectorTop": "de_broglie_diffraction@1.2"
+    },
+    {
+      "id": "answerable-015",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "OPTICS",
+      "acceptableIdentities": [
+        "diffraction_polarization@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5184986595174264,
+      "selectedIdentity": "diffraction_polarization@1.3",
+      "lexicalTop": "diffraction_polarization@1.3",
+      "vectorTop": "thin_lens_imaging@1.1"
+    },
+    {
+      "id": "answerable-016",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "diode_characteristic@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5699658703071672,
+      "selectedIdentity": "diode_characteristic@1.2",
+      "lexicalTop": "diode_characteristic@1.2",
+      "vectorTop": "diode_characteristic@1.2"
+    },
+    {
+      "id": "answerable-017",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "dynamics_collision@2.0"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.38032416132679997,
+      "selectedIdentity": "dynamics_collision@2.0",
+      "lexicalTop": "dynamics_collision@2.0",
+      "vectorTop": "astronomical_telescope@1.2"
+    },
+    {
+      "id": "answerable-018",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "dynamics_forces@2.0"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.21669024045261684,
+      "selectedIdentity": "dynamics_forces@2.0",
+      "lexicalTop": "dynamics_forces@2.0",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-019",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "eclipse_geometry@1.1"
+      ],
+      "candidateRecallAtK": false,
+      "top1Correct": false,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.37692307692307686,
+      "selectedIdentity": null,
+      "lexicalTop": "eclipse_geometry@1.1",
+      "vectorTop": "astronomical_telescope@1.2"
+    },
+    {
+      "id": "answerable-020",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "ELECTROMAGNETISM",
+      "acceptableIdentities": [
+        "electromagnetic_induction@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.46795366795366783,
+      "selectedIdentity": "electromagnetic_induction@1.2",
+      "lexicalTop": "electromagnetic_induction@1.2",
+      "vectorTop": "electromagnetic_induction@1.2"
+    },
+    {
+      "id": "answerable-021",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "energy_band_transition@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.7130434782608696,
+      "selectedIdentity": "energy_band_transition@1.1",
+      "lexicalTop": "energy_band_transition@1.1",
+      "vectorTop": "energy_band_transition@1.1"
+    },
+    {
+      "id": "answerable-022",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "PRACTICAL_AND_DATA",
+      "acceptableIdentities": [
+        "energy_environment@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.7839335180055402,
+      "selectedIdentity": "energy_environment@1.1",
+      "lexicalTop": "energy_environment@1.1",
+      "vectorTop": "energy_environment@1.1"
+    },
+    {
+      "id": "answerable-023",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "PRACTICAL_AND_DATA",
+      "acceptableIdentities": [
+        "experimental_data_graph@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.32033898305084746,
+      "selectedIdentity": "experimental_data_graph@1.1",
+      "lexicalTop": "experimental_data_graph@1.1",
+      "vectorTop": "ohms_law@1.1"
+    },
+    {
+      "id": "answerable-024",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "first_law_thermodynamics@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.9210526315789473,
+      "selectedIdentity": "first_law_thermodynamics@1.3",
+      "lexicalTop": "first_law_thermodynamics@1.3",
+      "vectorTop": "ohms_law@1.1"
+    },
+    {
+      "id": "answerable-025",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "gravity_orbit@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.24741602067183463,
+      "selectedIdentity": "gravity_orbit@1.2",
+      "lexicalTop": "gravity_orbit@1.2",
+      "vectorTop": "gravity_orbit@1.2"
+    },
+    {
+      "id": "answerable-026",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "hooke_law@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5860676426047452,
+      "selectedIdentity": "hooke_law@1.2",
+      "lexicalTop": "hooke_law@1.2",
+      "vectorTop": "hooke_law@1.2"
+    },
+    {
+      "id": "answerable-027",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "hydrostatics@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.46539379474940334,
+      "selectedIdentity": "hydrostatics@1.2",
+      "lexicalTop": "hydrostatics@1.2",
+      "vectorTop": "hydrostatics@1.2"
+    },
+    {
+      "id": "answerable-028",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "ideal_gas_isobaric@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.024922118380062332,
+      "selectedIdentity": null,
+      "lexicalTop": "ideal_gas_isobaric@1.2",
+      "vectorTop": "ideal_gas_isobaric@1.2"
+    },
+    {
+      "id": "answerable-029",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "ideal_gas_isochoric@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.024922118380062332,
+      "selectedIdentity": null,
+      "lexicalTop": "ideal_gas_isochoric@1.2",
+      "vectorTop": "ideal_gas_isochoric@1.2"
+    },
+    {
+      "id": "answerable-030",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "ideal_gas_isothermal@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.6121242236024845,
+      "selectedIdentity": "ideal_gas_isothermal@1.2",
+      "lexicalTop": "ideal_gas_isothermal@1.2",
+      "vectorTop": "ideal_gas_isothermal@1.2"
+    },
+    {
+      "id": "answerable-031",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "ideal_transformer@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.7057291666666666,
+      "selectedIdentity": "ideal_transformer@1.1",
+      "lexicalTop": "ideal_transformer@1.1",
+      "vectorTop": "moment_equilibrium@1.2"
+    },
+    {
+      "id": "answerable-032",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "KINEMATICS",
+      "acceptableIdentities": [
+        "kinematics_acceleration_time_graph@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0,
+      "selectedIdentity": null,
+      "lexicalTop": "kinematics_acceleration_time_graph@1.1",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-033",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "KINEMATICS",
+      "acceptableIdentities": [
+        "kinematics_position_time_graph@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.025396825396825307,
+      "selectedIdentity": null,
+      "lexicalTop": "kinematics_position_time_graph@1.1",
+      "vectorTop": "kinematics_position_time_graph@1.1"
+    },
+    {
+      "id": "answerable-034",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "KINEMATICS",
+      "acceptableIdentities": [
+        "kinematics_projectile@1.11"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.17634908339788274,
+      "selectedIdentity": "kinematics_projectile@1.11",
+      "lexicalTop": "kinematics_projectile@1.11",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-035",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "KINEMATICS",
+      "acceptableIdentities": [
+        "kinematics_velocity_time_graph@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.026315789473684233,
+      "selectedIdentity": null,
+      "lexicalTop": "kinematics_velocity_time_graph@1.1",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-036",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "KINEMATICS",
+      "acceptableIdentities": [
+        "kinematics@1.11"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": false,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0,
+      "selectedIdentity": null,
+      "lexicalTop": "kinematics@1.11",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-037",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "OPTICS",
+      "acceptableIdentities": [
+        "light_interference@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.7601593625498009,
+      "selectedIdentity": "light_interference@1.3",
+      "lexicalTop": "light_interference@1.3",
+      "vectorTop": "light_interference@1.3"
+    },
+    {
+      "id": "answerable-038",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "linear_drag_motion@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.32886468370339333,
+      "selectedIdentity": "linear_drag_motion@1.2",
+      "lexicalTop": "linear_drag_motion@1.2",
+      "vectorTop": "linear_drag_motion@1.2"
+    },
+    {
+      "id": "answerable-039",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "ELECTROMAGNETISM",
+      "acceptableIdentities": [
+        "magnetic_force@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.4084772370486656,
+      "selectedIdentity": "magnetic_force@1.2",
+      "lexicalTop": "magnetic_force@1.2",
+      "vectorTop": "moment_equilibrium@1.2"
+    },
+    {
+      "id": "answerable-040",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "PRACTICAL_AND_DATA",
+      "acceptableIdentities": [
+        "measurement_uncertainty@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.8571428571428572,
+      "selectedIdentity": "measurement_uncertainty@1.3",
+      "lexicalTop": "measurement_uncertainty@1.3",
+      "vectorTop": "compound_microscope@1.2"
+    },
+    {
+      "id": "answerable-041",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "moment_equilibrium@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.6873949579831934,
+      "selectedIdentity": "moment_equilibrium@1.2",
+      "lexicalTop": "moment_equilibrium@1.2",
+      "vectorTop": "moment_equilibrium@1.2"
+    },
+    {
+      "id": "answerable-042",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "mri_relaxation@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.7399515738498789,
+      "selectedIdentity": "mri_relaxation@1.1",
+      "lexicalTop": "mri_relaxation@1.1",
+      "vectorTop": "nuclear_energy@1.3"
+    },
+    {
+      "id": "answerable-043",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "nuclear_energy@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5074349442379184,
+      "selectedIdentity": "nuclear_energy@1.3",
+      "lexicalTop": "nuclear_energy@1.3",
+      "vectorTop": "nuclear_energy@1.3"
+    },
+    {
+      "id": "answerable-044",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "nuclear_reaction_energy@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.505691056910569,
+      "selectedIdentity": "nuclear_reaction_energy@1.1",
+      "lexicalTop": "nuclear_reaction_energy@1.1",
+      "vectorTop": "snell_refraction@1.2"
+    },
+    {
+      "id": "answerable-045",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "ohms_law@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5160000000000001,
+      "selectedIdentity": "ohms_law@1.1",
+      "lexicalTop": "ohms_law@1.1",
+      "vectorTop": "ohms_law@1.1"
+    },
+    {
+      "id": "answerable-046",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "oscillations_spring@2.0"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.4966996699669967,
+      "selectedIdentity": "oscillations_spring@2.0",
+      "lexicalTop": "oscillations_spring@2.0",
+      "vectorTop": "oscillations_spring@2.0"
+    },
+    {
+      "id": "answerable-047",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "phase_change@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.7827586206896552,
+      "selectedIdentity": "phase_change@1.2",
+      "lexicalTop": "phase_change@1.2",
+      "vectorTop": "phase_change@1.2"
+    },
+    {
+      "id": "answerable-048",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "photoelectric_effect@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.39528023598820045,
+      "selectedIdentity": "photoelectric_effect@1.3",
+      "lexicalTop": "photoelectric_effect@1.3",
+      "vectorTop": "ac_rlc_circuit@1.2"
+    },
+    {
+      "id": "answerable-049",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "ELECTROMAGNETISM",
+      "acceptableIdentities": [
+        "point_charge_field@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.48709677419354835,
+      "selectedIdentity": "point_charge_field@1.1",
+      "lexicalTop": "point_charge_field@1.1",
+      "vectorTop": "point_charge_field@1.1"
+    },
+    {
+      "id": "answerable-050",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "radiation_safety@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.3973168214654283,
+      "selectedIdentity": "radiation_safety@1.1",
+      "lexicalTop": "radiation_safety@1.1",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-051",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "radio_communication@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5927536231884057,
+      "selectedIdentity": "radio_communication@1.1",
+      "lexicalTop": "radio_communication@1.1",
+      "vectorTop": "radio_communication@1.1"
+    },
+    {
+      "id": "answerable-052",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "radio_signal_chain@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.545662100456621,
+      "selectedIdentity": "radio_signal_chain@1.1",
+      "lexicalTop": "radio_signal_chain@1.1",
+      "vectorTop": "astronomical_telescope@1.2"
+    },
+    {
+      "id": "answerable-053",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "radioactive_decay@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5294401544401545,
+      "selectedIdentity": "radioactive_decay@1.2",
+      "lexicalTop": "radioactive_decay@1.2",
+      "vectorTop": "radioactive_decay@1.2"
+    },
+    {
+      "id": "answerable-054",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "resistors_parallel@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": false,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0,
+      "selectedIdentity": null,
+      "lexicalTop": "resistors_parallel@1.3",
+      "vectorTop": "ohms_law@1.1"
+    },
+    {
+      "id": "answerable-055",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "resistors_series@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.08121827411167515,
+      "selectedIdentity": "resistors_series@1.2",
+      "lexicalTop": "resistors_series@1.2",
+      "vectorTop": "resistors_series@1.2"
+    },
+    {
+      "id": "answerable-056",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "sensor_op_amp@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5837837837837838,
+      "selectedIdentity": "sensor_op_amp@1.1",
+      "lexicalTop": "sensor_op_amp@1.1",
+      "vectorTop": "ohms_law@1.1"
+    },
+    {
+      "id": "answerable-057",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "OPTICS",
+      "acceptableIdentities": [
+        "simple_magnifier@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.4949494949494949,
+      "selectedIdentity": "simple_magnifier@1.2",
+      "lexicalTop": "simple_magnifier@1.2",
+      "vectorTop": "simple_magnifier@1.2"
+    },
+    {
+      "id": "answerable-058",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "OPTICS",
+      "acceptableIdentities": [
+        "snell_refraction@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.8055555555555556,
+      "selectedIdentity": "snell_refraction@1.2",
+      "lexicalTop": "snell_refraction@1.2",
+      "vectorTop": "snell_refraction@1.2"
+    },
+    {
+      "id": "answerable-059",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "sound_wave@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.29964912280701755,
+      "selectedIdentity": "sound_wave@1.2",
+      "lexicalTop": "sound_wave@1.2",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-060",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "source_internal_resistance@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": false,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.05017667844522968,
+      "selectedIdentity": null,
+      "lexicalTop": "source_internal_resistance@1.1",
+      "vectorTop": "source_internal_resistance@1.1"
+    },
+    {
+      "id": "answerable-061",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "standing_wave@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.05989832535885169,
+      "selectedIdentity": null,
+      "lexicalTop": "standing_wave@1.3",
+      "vectorTop": "astronomical_telescope@1.2"
+    },
+    {
+      "id": "answerable-062",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "string_wave@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.11213665352690451,
+      "selectedIdentity": "string_wave@1.3",
+      "lexicalTop": "string_wave@1.3",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-063",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "temperature_scales@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5546448087431695,
+      "selectedIdentity": "temperature_scales@1.3",
+      "lexicalTop": "temperature_scales@1.3",
+      "vectorTop": "atomic_spectra@1.2"
+    },
+    {
+      "id": "answerable-064",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "thermal_expansion@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.4796875,
+      "selectedIdentity": "thermal_expansion@1.3",
+      "lexicalTop": "thermal_expansion@1.3",
+      "vectorTop": "atomic_spectra@1.2"
+    },
+    {
+      "id": "answerable-065",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "thermistor_response@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5990712074303407,
+      "selectedIdentity": "thermistor_response@1.1",
+      "lexicalTop": "thermistor_response@1.1",
+      "vectorTop": "snell_refraction@1.2"
+    },
+    {
+      "id": "answerable-066",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "OPTICS",
+      "acceptableIdentities": [
+        "thin_lens_imaging@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.261239368165249,
+      "selectedIdentity": "thin_lens_imaging@1.1",
+      "lexicalTop": "thin_lens_imaging@1.1",
+      "vectorTop": "thin_lens_imaging@1.1"
+    },
+    {
+      "id": "answerable-067",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "ultrasound_imaging@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5103936311366652,
+      "selectedIdentity": "ultrasound_imaging@1.1",
+      "lexicalTop": "ultrasound_imaging@1.1",
+      "vectorTop": "ultrasound_imaging@1.1"
+    },
+    {
+      "id": "answerable-068",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "ELECTROMAGNETISM",
+      "acceptableIdentities": [
+        "uniform_electric_field@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.3856209150326797,
+      "selectedIdentity": "uniform_electric_field@1.2",
+      "lexicalTop": "uniform_electric_field@1.2",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-069",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "water_surface_interference@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.15609756097560967,
+      "selectedIdentity": "water_surface_interference@1.1",
+      "lexicalTop": "water_surface_interference@1.1",
+      "vectorTop": "water_surface_interference@1.1"
+    },
+    {
+      "id": "answerable-070",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "wave_pulse@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.30897388519339725,
+      "selectedIdentity": "wave_pulse@1.3",
+      "lexicalTop": "wave_pulse@1.3",
+      "vectorTop": "dynamics_forces@2.0"
+    },
+    {
+      "id": "answerable-071",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "wave_reflection@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.13678817444169358,
+      "selectedIdentity": "wave_reflection@1.2",
+      "lexicalTop": "wave_reflection@1.2",
+      "vectorTop": "astronomical_telescope@1.2"
+    },
+    {
+      "id": "answerable-072",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "WAVES",
+      "acceptableIdentities": [
+        "wave_superposition@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.38133259911894274,
+      "selectedIdentity": "wave_superposition@1.2",
+      "lexicalTop": "wave_superposition@1.2",
+      "vectorTop": "work_energy_power@1.2"
+    },
+    {
+      "id": "answerable-073",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "DYNAMICS",
+      "acceptableIdentities": [
+        "work_energy_power@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.4086538461538462,
+      "selectedIdentity": "work_energy_power@1.2",
+      "lexicalTop": "work_energy_power@1.2",
+      "vectorTop": "work_energy_power@1.2"
+    },
+    {
+      "id": "answerable-074",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "topic": "MODERN_PHYSICS",
+      "acceptableIdentities": [
+        "xray_imaging@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": true,
+      "confidentCorrect": true,
+      "marginRatio": 0.5045112781954887,
+      "selectedIdentity": "xray_imaging@1.1",
+      "lexicalTop": "xray_imaging@1.1",
+      "vectorTop": "xray_imaging@1.1"
+    },
+    {
+      "id": "ambiguous-001",
+      "split": "challenge",
+      "label": "AMBIGUOUS",
+      "topic": "CIRCUITS",
+      "acceptableIdentities": [
+        "ac_rlc_circuit@1.2",
+        "ac_waveform@1.1"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0,
+      "selectedIdentity": null,
+      "lexicalTop": "ac_waveform@1.1",
+      "vectorTop": "ac_rlc_circuit@1.2"
+    },
+    {
+      "id": "ambiguous-002",
+      "split": "challenge",
+      "label": "AMBIGUOUS",
+      "topic": "THERMAL",
+      "acceptableIdentities": [
+        "adiabatic_gas@1.3",
+        "calorimetry_mixing@1.3"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0.2499999999999999,
+      "selectedIdentity": null,
+      "lexicalTop": "adiabatic_gas@1.3",
+      "vectorTop": "kinematics_projectile@1.11"
+    },
+    {
+      "id": "ambiguous-003",
+      "split": "challenge",
+      "label": "AMBIGUOUS",
+      "topic": "OPTICS",
+      "acceptableIdentities": [
+        "astronomical_telescope@1.2",
+        "compound_microscope@1.2"
+      ],
+      "candidateRecallAtK": true,
+      "top1Correct": true,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0,
+      "selectedIdentity": null,
+      "lexicalTop": "astronomical_telescope@1.2",
+      "vectorTop": "radioactive_decay@1.2"
+    },
+    {
+      "id": "out-of-scope-001",
+      "split": "challenge",
+      "label": "OUT_OF_SCOPE",
+      "topic": null,
+      "acceptableIdentities": [],
+      "candidateRecallAtK": false,
+      "top1Correct": false,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0,
+      "selectedIdentity": null,
+      "lexicalTop": null,
+      "vectorTop": "capacitor_basic@1.1"
+    },
+    {
+      "id": "out-of-scope-002",
+      "split": "challenge",
+      "label": "OUT_OF_SCOPE",
+      "topic": null,
+      "acceptableIdentities": [],
+      "candidateRecallAtK": false,
+      "top1Correct": false,
+      "confident": false,
+      "confidentCorrect": false,
+      "marginRatio": 0,
+      "selectedIdentity": null,
+      "lexicalTop": null,
+      "vectorTop": "uniform_electric_field@1.2"
+    }
+  ]
+}

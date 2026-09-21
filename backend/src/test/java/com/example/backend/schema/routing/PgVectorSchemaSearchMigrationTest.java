@@ -52,6 +52,13 @@ class PgVectorSchemaSearchMigrationTest {
             assertEquals(1, count(connection, "SELECT count(*) FROM information_schema.columns " +
                     "WHERE table_schema = 'public' AND table_name = 'schema_search_embeddings' " +
                     "AND column_name = 'embedding' AND udt_name = 'vector'"));
+            assertEquals(1, count(connection, "SELECT count(*) FROM information_schema.columns " +
+                    "WHERE table_schema = 'public' AND table_name = 'schema_search_embeddings' " +
+                    "AND column_name = 'projection_version'"));
+            assertEquals(1, count(connection, "SELECT count(*) FROM information_schema.tables " +
+                    "WHERE table_schema = 'public' AND table_name = 'schema_search_index_generations'"));
+            assertEquals(1, count(connection, "SELECT count(*) FROM information_schema.tables " +
+                    "WHERE table_schema = 'public' AND table_name = 'schema_search_embedding_views'"));
             assertEquals(1, count(connection, "SELECT count(*) FROM pg_extension WHERE extname = 'vector'"));
 
             statement.executeUpdate("INSERT INTO schema_search_embeddings " +
@@ -81,6 +88,10 @@ class PgVectorSchemaSearchMigrationTest {
                     "length displacement duration", "checksum-a");
             Assertions.assertFalse(store.hasCurrentEmbedding(changedProjection, "fake", "test-model", 3),
                     "changed search projection must trigger re-embedding despite unchanged schema checksum");
+            var changedProjectionFormat = new SchemaSearchDocument("schema_a", "1.0", "kinematics", "A", "model-a",
+                    "length time", "v2", "checksum-a");
+            Assertions.assertFalse(store.hasCurrentEmbedding(changedProjectionFormat, "fake", "test-model", 3),
+                    "changed projection format must not reuse a v1 embedding");
 
             statement.execute("CREATE TABLE schema_versions (schema_id varchar(80), version varchar(24), "
                     + "topic varchar(80), lifecycle_status varchar(16), definition_checksum varchar(64), "
@@ -111,6 +122,12 @@ class PgVectorSchemaSearchMigrationTest {
                     "WHERE version = '8' AND success"));
             assertEquals(1, count(connection, "SELECT count(*) FROM flyway_schema_history " +
                     "WHERE version = '9' AND success"));
+            assertEquals(1, count(connection, "SELECT count(*) FROM flyway_schema_history " +
+                    "WHERE version = '10' AND success"));
+            assertEquals(1, count(connection, "SELECT count(*) FROM flyway_schema_history " +
+                    "WHERE version = '11' AND success"));
+            assertEquals(1, count(connection, "SELECT count(*) FROM flyway_schema_history " +
+                    "WHERE version = '15' AND success"));
         }
     }
 
@@ -137,6 +154,10 @@ class PgVectorSchemaSearchMigrationTest {
                     "WHERE version = '8' AND success"));
             assertEquals(1, count(connection, "SELECT count(*) FROM flyway_schema_history " +
                     "WHERE version = '9' AND success"));
+            assertEquals(1, count(connection, "SELECT count(*) FROM flyway_schema_history " +
+                    "WHERE version = '10' AND success"));
+            assertEquals(1, count(connection, "SELECT count(*) FROM flyway_schema_history " +
+                    "WHERE version = '11' AND success"));
             assertEquals(1, count(connection, "SELECT count(*) FROM information_schema.columns " +
                     "WHERE table_schema = 'public' AND table_name = 'solver_versions' " +
                     "AND column_name = 'binding_checksum'"));

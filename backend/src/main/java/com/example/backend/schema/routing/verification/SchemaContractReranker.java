@@ -39,7 +39,7 @@ public final class SchemaContractReranker {
     }
 
     public Result verify(String query, IndexedSchemaCandidate candidate) {
-        Set<String> queryTerms = new HashSet<>(tokenizer.tokenize(query));
+        Set<String> queryTerms = new HashSet<>(tokenizer.tokenizeWithAccentShadow(query));
         CandidateContractProjection contract = candidate.contract();
         double quantityCoverage = quantityCoverage(queryTerms, contract.requiredQuantities());
         double unitCompatibility = unitCompatibility(query, contract);
@@ -59,6 +59,15 @@ public final class SchemaContractReranker {
         if (contradiction > 0) evidence.add("CONTRACT_CONTRADICTION");
         return new Result(confidence, new VerificationEvidence(quantityCoverage, unitCompatibility,
                 metadataOverlap, contradiction, evidence));
+    }
+
+    /** Units, numbers, and isolated one-letter tokens are never independent concept evidence. */
+    public boolean hasIndependentQueryEvidence(String query) {
+        return tokenizer.tokenizeWithAccentShadow(query).stream().anyMatch(token -> {
+            if (token.codePointCount(0, token.length()) <= 1) return false;
+            if (token.matches("[+\\-]?(?:\\d+(?:[.,]\\d+)?|[.,]\\d+)(?:[eE][+\\-]?\\d+)?")) return false;
+            return !units.normalize(BigDecimal.ONE, token).knownUnit();
+        });
     }
 
     private double quantityCoverage(Set<String> queryTerms, List<QuantityProjection> required) {
@@ -253,7 +262,7 @@ public final class SchemaContractReranker {
 
     private double metadataOverlap(Set<String> queryTerms, String searchText) {
         if (queryTerms.isEmpty()) return 0;
-        Set<String> documentTerms = new HashSet<>(tokenizer.tokenize(searchText));
+        Set<String> documentTerms = new HashSet<>(tokenizer.tokenizeWithAccentShadow(searchText));
         long matches = queryTerms.stream().filter(documentTerms::contains).count();
         return (double) matches / queryTerms.size();
     }

@@ -8,9 +8,11 @@ import com.example.backend.physics.module.SimulationClock;
 import com.example.backend.physics.module.circuits.AcWaveformModule;
 import com.example.backend.physics.module.kinematics.KinematicsProjectileModule;
 import com.example.backend.physics.compatibility.LegacyPhysicsExecutionAdapterV1;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import com.example.backend.service.problem.CompiledSchema;
+import com.example.backend.physics.output.PhysicsOutput;
+import com.example.backend.physics.output.PhysicsOutputContract;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
@@ -50,7 +52,7 @@ class PhysicsValidationServiceTypedModuleTest {
                 """));
         when(schemaDefinitions.requirePublishedVersion("ac_waveform", "1.0")).thenReturn(schema);
         when(schemaDefinitions.compiled(schema)).thenReturn(new CompiledSchema("ac_waveform", "1.0", "CIRCUITS",
-                "ac_waveform", Map.of(), Map.of(), Map.of(), Set.of(), Map.of(),
+                "ac_waveform", Map.of(), Map.of(), Map.of(), Set.of("voltage", "rmsVoltage"), Map.of(),
                 new CompiledSchema.ExecutionDefinition(1, 0.5),
                 new CompiledSchema.ValidationDefinition(0.000001, List.of(0.5)), "test-checksum"));
 
@@ -60,14 +62,23 @@ class PhysicsValidationServiceTypedModuleTest {
         BoundPhysicsModule typedModule = new PhysicsModuleRegistry(List.of(new AcWaveformModule())).bind(
                 AcWaveformModule.NUMERICAL_SOLVER_ID, AcWaveformModule.REFERENCE_SOLVER_ID, quantities);
         var numerical = typedModule.solve(new SimulationClock(1, 0.5));
+        var typed = typedModule.solve(new PhysicsOutputContract("ac_waveform", "1.0", "ac_waveform",
+                Map.of("voltage", new PhysicsOutputContract.OutputDefinition(
+                                PhysicsOutput.OutputKind.TIME_SERIES, "V", true),
+                        "rmsVoltage", new PhysicsOutputContract.OutputDefinition(
+                                PhysicsOutput.OutputKind.TIME_SERIES, "V", true)), 100),
+                new SimulationClock(1, 0.5));
+        assertEquals(Set.of("voltage", "rmsVoltage"), typed.typed().outputs().stream()
+                .map(PhysicsOutput::key).collect(Collectors.toSet()));
+        assertEquals(3, typed.typed().timeSeconds().size());
 
         // The empty registry would reject lookup; success proves the pinned module's
         // independent reference operation handled every validation checkpoint.
         PhysicsValidationService service = new PhysicsValidationService(
                 new ReferenceSolverRegistry(List.of()), schemaDefinitions,
                 new LegacyPhysicsExecutionAdapterV1(List.of()));
-        var validation = service.validate(objectMapper.readTree("{}"), "ac_waveform", "1.0",
-                numerical, Map.of(), typedModule);
+        var validation = service.validateTyped(objectMapper.readTree("{}"), "ac_waveform", "1.0",
+                typed.typed(), Map.of(), typedModule);
 
         assertTrue(validation.passed(), () -> String.join("; ", validation.errors()));
         assertEquals(2, validation.checkpoints().size());
@@ -98,7 +109,8 @@ class PhysicsValidationServiceTypedModuleTest {
         when(schemaDefinitions.requirePublishedVersion("kinematics_projectile", "1.0")).thenReturn(schema);
         when(schemaDefinitions.compiled(schema)).thenReturn(new CompiledSchema(
                 "kinematics_projectile", "1.0", "KINEMATICS", "kinematics_projectile",
-                Map.of(), Map.of(), Map.of(), Set.of(), Map.of(),
+                Map.of(), Map.of(), Map.of(),
+                Set.of("x", "displacement", "y", "vx", "vy", "ax", "ay"), Map.of(),
                 new CompiledSchema.ExecutionDefinition(1, 0.5),
                 new CompiledSchema.ValidationDefinition(0.000001, List.of(0.5)), "test-checksum"));
 

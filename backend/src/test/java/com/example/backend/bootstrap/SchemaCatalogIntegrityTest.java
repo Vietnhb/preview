@@ -68,8 +68,8 @@ import com.example.backend.physics.module.waves.WaterSurfaceInterferenceModule;
 import com.example.backend.physics.module.waves.RadioCommunicationModule;
 import com.example.backend.physics.module.waves.RadioSignalChainModule;
 import com.example.backend.physics.module.waves.UltrasoundImagingModule;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
-import com.example.backend.physics.solver.PhysicsSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolverRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import com.example.backend.ai.normalization.UnitNormalizer;
@@ -698,7 +698,7 @@ class SchemaCatalogIntegrityTest {
         SchemaCompiler compiler = new SchemaCompiler(objectMapper);
         assertTrue(compiler.checksum(source).equals(SchemaCatalogIntegrity.checksumForVerifiedStoredDefinition(
                 "orbit", "1.0", stored, source, compiler::checksum)));
-        assertFalse(compiler.checksum(stored).equals(compiler.checksum(source)));
+        assertEquals(compiler.checksum(stored), compiler.checksum(source));
     }
 
     @Test
@@ -711,7 +711,7 @@ class SchemaCatalogIntegrityTest {
 
         assertFalse(SchemaCatalogIntegrity.definitionsMatch(stored, changedOrder));
         assertFalse(SchemaCatalogIntegrity.definitionsMatch(stored, changedValue));
-        assertFalse(SchemaCatalogIntegrity.definitionsMatch(integerValue, decimalValue));
+        assertTrue(SchemaCatalogIntegrity.definitionsMatch(integerValue, decimalValue));
         IllegalStateException failure = assertThrows(IllegalStateException.class,
                 () -> SchemaCatalogIntegrity.requireDefinitionsMatch("orbit", "2.1", stored, changedValue));
         assertTrue(failure.getMessage().contains("orbit@2.1"));

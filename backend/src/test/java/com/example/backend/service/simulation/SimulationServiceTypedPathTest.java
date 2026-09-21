@@ -11,8 +11,8 @@ import com.example.backend.physics.binding.CanonicalQuantityCompiler;
 import com.example.backend.physics.compatibility.LegacyPhysicsExecutionAdapterV1;
 import com.example.backend.physics.module.PhysicsModuleRegistry;
 import com.example.backend.physics.module.circuits.AcWaveformModule;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
-import com.example.backend.physics.solver.PhysicsSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolverRegistry;
 import com.example.backend.repository.library.LibraryItemRepository;
 import com.example.backend.repository.problem.SpecificationRepository;
 import com.example.backend.repository.simulation.SimulationRepository;
@@ -71,7 +71,10 @@ class SimulationServiceTypedPathTest {
                   ],
                   "execution":{"durationSeconds":1,"stepSeconds":0.25},
                   "validation":{"tolerance":1e-12,"checkpointFractions":[0.25,0.5,0.75,1]},
-                  "output":{"type":"timeseries","probeSeries":["voltage","rmsVoltage"]},
+                  "output":{"type":"timeseries","probeSeries":["voltage","rmsVoltage"],"definitions":[
+                    {"key":"voltage","kind":"time_series","unit":"V","required":true},
+                    {"key":"rmsVoltage","kind":"time_series","unit":"V","required":true}
+                  ]},
                   "visualization":{"series":[
                     {"source":"values.voltage","unit":"V"},
                     {"source":"values.rmsVoltage","unit":"V"}
@@ -140,7 +143,16 @@ class SimulationServiceTypedPathTest {
                 .map(com.example.backend.dto.simulation.ValidationCheckpointResponse::time)
                 .distinct().count());
         assertEquals("time_limit", response.rawResult().path("resolvedEnd").path("reason").asText());
-        verify(runs).save(any(SimulationRun.class));
+        var captor = org.mockito.ArgumentCaptor.forClass(SimulationRun.class);
+        verify(runs).save(captor.capture());
+        SimulationRun persisted = captor.getValue();
+        assertEquals("ac_waveform", persisted.getSchemaId());
+        assertEquals("1.0", persisted.getSchemaVersion());
+        assertEquals("1.0", persisted.getBindingVersion());
+        assertEquals("ac_waveform_solver", persisted.getNumericalSolverId());
+        assertEquals("ac_waveform_reference", persisted.getReferenceSolverId());
+        assertEquals("1.0", persisted.getOutputContractVersion());
+        assertEquals(compiled.checksum(), persisted.getOutputContractChecksum());
         verify(legacySolvers, never()).get(anyString());
     }
 }

@@ -2,7 +2,11 @@ package com.example.backend.physics.module.kinematics;
 
 import com.example.backend.physics.model.CanonicalQuantityBag;
 import com.example.backend.physics.model.SolverOutput;
+import com.example.backend.physics.module.PhysicsModuleRegistry;
 import com.example.backend.physics.module.SimulationClock;
+import com.example.backend.physics.output.PhysicsOutput;
+import com.example.backend.physics.output.PhysicsOutputContract;
+import com.example.backend.physics.validation.OutputSourceBinding;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -113,6 +117,40 @@ class KinematicsProjectileModuleTest {
         assertThrows(ArithmeticException.class,
                 () -> module.solve(extreme, new SimulationClock(1.0, 1.0)));
         assertThrows(ArithmeticException.class, () -> module.referenceAt(extreme, 2.0));
+    }
+
+    @Test
+    void nativeTypedFrameUsesContractUnitsAndRetainsCompiledApiGroups() {
+        var bound = new PhysicsModuleRegistry(List.of(module)).bind(
+                KinematicsProjectileModule.NUMERICAL_SOLVER_ID,
+                KinematicsProjectileModule.REFERENCE_SOLVER_ID,
+                quantities(0.0, 0.0, 10.0, Math.PI / 4.0, 9.81));
+        Map<String, PhysicsOutputContract.OutputDefinition> definitions = new LinkedHashMap<>();
+        definitions.put("x", new PhysicsOutputContract.OutputDefinition(PhysicsOutput.OutputKind.TIME_SERIES, "m", true));
+        definitions.put("displacement", new PhysicsOutputContract.OutputDefinition(PhysicsOutput.OutputKind.TIME_SERIES, "m", true));
+        definitions.put("y", new PhysicsOutputContract.OutputDefinition(PhysicsOutput.OutputKind.TIME_SERIES, "m", true));
+        definitions.put("vx", new PhysicsOutputContract.OutputDefinition(PhysicsOutput.OutputKind.TIME_SERIES, "m/s", true));
+        definitions.put("vy", new PhysicsOutputContract.OutputDefinition(PhysicsOutput.OutputKind.TIME_SERIES, "m/s", true));
+        definitions.put("ax", new PhysicsOutputContract.OutputDefinition(PhysicsOutput.OutputKind.TIME_SERIES, "m/s2", true));
+        definitions.put("ay", new PhysicsOutputContract.OutputDefinition(PhysicsOutput.OutputKind.TIME_SERIES, "m/s2", true));
+        var contract = new PhysicsOutputContract(KinematicsProjectileModule.MODULE_ID, "1.0",
+                KinematicsProjectileModule.MODULE_ID, definitions, 100);
+        var solved = bound.solve(contract, new SimulationClock(1.0, 0.5));
+
+        assertEquals(OUTPUT_KEYS, solved.typed().outputs().stream()
+                .map(PhysicsOutput::key).collect(java.util.stream.Collectors.toSet()));
+        assertEquals("m/s2", solved.typed().outputs().stream()
+                .filter(output -> output.key().equals("ay")).findFirst().orElseThrow().unit().orElseThrow());
+        var sources = Map.of(
+                "x", List.of(OutputSourceBinding.declared(OutputSourceBinding.Group.POSITIONS, "x")),
+                "y", List.of(OutputSourceBinding.declared(OutputSourceBinding.Group.POSITIONS, "y")),
+                "vx", List.of(OutputSourceBinding.declared(OutputSourceBinding.Group.VELOCITIES, "x")),
+                "vy", List.of(OutputSourceBinding.declared(OutputSourceBinding.Group.VELOCITIES, "y")));
+        var projected = com.example.backend.physics.output.PhysicsOutputFrameMapper
+                .toSolverOutput(solved.typed(), sources);
+        assertEquals(java.util.Set.of("x", "y"), projected.positions().keySet());
+        assertEquals(java.util.Set.of("x", "y"), projected.velocities().keySet());
+        assertEquals(OUTPUT_KEYS, projected.values().keySet());
     }
 
     private static void assertSeries(SolverOutput output, String key, double... expected) {

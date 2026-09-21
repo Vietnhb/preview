@@ -12,8 +12,8 @@ import com.example.backend.entity.simulation.SolverVersion;
 import com.example.backend.repository.problem.SchemaVersionRepository;
 import com.example.backend.repository.simulation.SolverVersionRepository;
 import com.example.backend.service.problem.SchemaDefinitionService;
-import com.example.backend.physics.solver.PhysicsSolverRegistry;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
 import com.example.backend.physics.module.PhysicsModuleRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,13 +75,13 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
                     entry.path("name").asText(), entry.path("topic").asText());
             SchemaCatalogIntegrity.requireDefinitionsMatch(id, version, existing.getDefinition(), validatedDefinition);
             String checksum = schemaDefinitions.compiledChecksum(validatedDefinition);
-            if (existing.getDefinitionChecksum() != null && !existing.getDefinitionChecksum().equals(checksum)) {
-                throw new IllegalStateException("Catalog drift for published schema " + id + "@" + version
-                        + ": create a new schema version instead of mutating the published definition");
-            }
-            if (existing.getDefinitionChecksum() == null) {
-                existing.setDefinitionChecksum(SchemaCatalogIntegrity.checksumForVerifiedStoredDefinition(id, version,
-                        existing.getDefinition(), validatedDefinition, schemaDefinitions::compiledChecksum));
+            // The structural equality check above is the guard. Once it has
+            // passed, writing the deterministic checksum is metadata repair
+            // only: PostgreSQL JSONB may reorder object keys and older builds
+            // hashed the pre-storage representation. Published definition
+            // bytes and lifecycle identity are never rewritten here.
+            if (!checksum.equals(existing.getDefinitionChecksum())) {
+                existing.setDefinitionChecksum(checksum);
                 schemaRepository.save(existing);
             }
         }
@@ -104,12 +104,11 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
             String verifiedChecksum = SchemaCatalogIntegrity.checksumForVerifiedSolverBinding(id, version,
                     existing.getSolverId(), existing.getOutputDefinition(), solverId, binding,
                     schemaDefinitions::compiledChecksum);
-            if (existing.getBindingChecksum() != null
-                    && !existing.getBindingChecksum().equals(verifiedChecksum)) {
-                throw new IllegalStateException("Solver binding checksum drift for " + id + "@" + version
-                        + ": create a new schema version instead of mutating the published solver binding");
-            }
-            if (existing.getBindingChecksum() == null) {
+            // checksumForVerifiedSolverBinding has already established that
+            // the stored solver ID and output contract are structurally equal
+            // to the checked-in catalog. Updating a legacy representation
+            // checksum is therefore metadata repair, not a binding mutation.
+            if (!verifiedChecksum.equals(existing.getBindingChecksum())) {
                 existing.setBindingChecksum(verifiedChecksum);
                 solverRepository.save(existing);
             }

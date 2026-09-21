@@ -2,6 +2,7 @@ package com.example.backend.service.problem;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -117,6 +118,36 @@ class SchemaIdentityResolutionTest {
         verify(solvers, never()).findFirstBySchemaIdAndVersion("motion", "2.0");
         verify(solvers, never()).findFirstBySchemaIdAndLifecycleStatusOrderByCreatedAtDesc(
                 "motion", LifecycleStatus.APPROVED);
+    }
+
+    @Test
+    void historicalLookupSurvivesDisabledTopicWhenStoredChecksumMatches() throws Exception {
+        SchemaVersionRepository schemas = mock(SchemaVersionRepository.class);
+        TopicRepository topics = mock(TopicRepository.class);
+        SchemaVersion historical = schema("retired-motion", "1.0", LifecycleStatus.RETIRED);
+        historical.setTopic("RETIRED_TOPIC");
+        historical.setDefinitionChecksum(new SchemaCompiler(mapper).checksum(historical.getDefinition()));
+        when(schemas.findFirstBySchemaIdAndVersion("retired-motion", "1.0"))
+                .thenReturn(Optional.of(historical));
+        SchemaDefinitionService service = new SchemaDefinitionService(
+                schemas, mock(SolverVersionRepository.class), topics);
+
+        assertSame(historical, service.requireHistorical("retired-motion", "1.0"));
+        verify(topics, never()).existsByNameIgnoreCaseAndEnabledTrue("RETIRED_TOPIC");
+    }
+
+    @Test
+    void historicalLookupRejectsDefinitionChecksumDriftBeforeReplay() throws Exception {
+        SchemaVersionRepository schemas = mock(SchemaVersionRepository.class);
+        SchemaVersion historical = schema("retired-motion", "1.0", LifecycleStatus.RETIRED);
+        historical.setDefinitionChecksum("0".repeat(64));
+        when(schemas.findFirstBySchemaIdAndVersion("retired-motion", "1.0"))
+                .thenReturn(Optional.of(historical));
+        SchemaDefinitionService service = new SchemaDefinitionService(
+                schemas, mock(SolverVersionRepository.class), mock(TopicRepository.class));
+
+        assertThrows(com.example.backend.exception.SchemaCompilationException.class,
+                () -> service.requireHistorical("retired-motion", "1.0"));
     }
 
     private SchemaVersion schema(String id, String version, LifecycleStatus status) throws Exception {

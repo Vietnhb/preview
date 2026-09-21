@@ -1,0 +1,884 @@
+{
+  "fixtureVersion": "1",
+  "generatedBy": "scripts/evaluate-schema-routing-retrieval.mjs",
+  "sourceCatalog": "backend/src/main/resources/schemas/catalog.json",
+  "sourceIdentityRule": "latest approved version per schemaId, sorted by schemaId@version",
+  "provenancePolicy": "Synthetic catalog-derived examples are not textbook evidence.",
+  "splitPolicy": "Every active identity has one answerable case; every fifth sorted identity is held out.",
+  "thresholds": {
+    "candidateRecallAtK": 0.95,
+    "confidentSelectionPrecision": 0.99,
+    "unambiguousCoverage": 0.8,
+    "ambiguousAndOutOfScopeConfidentGuesses": 0
+  },
+  "cases": [
+    {
+      "id": "answerable-001",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Series AC RLC: R 2 ohm, L 2 H, C 2 F, f 2 Hz, Vrms 2 V",
+      "acceptableIdentities": [
+        "ac_rlc_circuit@1.2"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-002",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán sinusoidal ac waveform với V0 2 V, f 2 Hz, phi 2 rad",
+      "acceptableIdentities": [
+        "ac_waveform@1.1"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-003",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Reversible adiabatic gas process; dữ kiện P1 2 Pa, V1 2 m3, V2 2 m3, T1 2 K, gamma 2 1",
+      "acceptableIdentities": [
+        "adiabatic_gas@1.3"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "answerable-004",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Astronomical telescope: f_o 2 m, f_e 2 m",
+      "acceptableIdentities": [
+        "astronomical_telescope@1.2"
+      ],
+      "topic": "OPTICS"
+    },
+    {
+      "id": "answerable-005",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán hydrogen atomic spectrum với ni 2 1, nf 2 1",
+      "acceptableIdentities": [
+        "atomic_spectra@1.2"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-006",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Ideal calorimetry mixing; dữ kiện m1 2 kg, c1 2 J/(kg*K), T1 2 K, m2 2 kg, c2 2 J/(kg*K), T2 2 K",
+      "acceptableIdentities": [
+        "calorimetry_mixing@1.3"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "answerable-007",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Capacitor charge and energy: C 2 F, V 2 V",
+      "acceptableIdentities": [
+        "capacitor_basic@1.1"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-008",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán rc charging với source_voltage 2 V, r 2 ohm, c 2 F",
+      "acceptableIdentities": [
+        "circuits_rc_charging@1.11"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-009",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính RC discharging; dữ kiện source_voltage 2 V, r 2 ohm, c 2 F",
+      "acceptableIdentities": [
+        "circuits_rc_discharging@1.11"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-010",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Uniform circular motion: m 2 kg, r 2 m, v 2 m/s",
+      "acceptableIdentities": [
+        "circular_motion@1.2"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-011",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán compound microscope với f_o 2 m, f_e 2 m, L 2 m, D 2 m",
+      "acceptableIdentities": [
+        "compound_microscope@1.2"
+      ],
+      "topic": "OPTICS"
+    },
+    {
+      "id": "answerable-012",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính CT projection and line integral; dữ kiện I0 2 1, mu 2 1/m, x 2 m, N 2 1",
+      "acceptableIdentities": [
+        "ct_reconstruction@1.1"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-013",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Damped and forced oscillation: m 2 kg, k 2 N/m, c 2 kg/s, F0 2 N, omega 2 rad/s, x0 2 m, v0 2 m/s",
+      "acceptableIdentities": [
+        "damped_forced_oscillation@1.1"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-014",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán de broglie wavelength and electron diffraction với m 2 kg, v 2 m/s, d 2 m, n 2 1",
+      "acceptableIdentities": [
+        "de_broglie_diffraction@1.2"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-015",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Diffraction and polarization; dữ kiện lambda 2 m, a 2 m, m 2 1, I0 2 W/m2, theta 2 rad",
+      "acceptableIdentities": [
+        "diffraction_polarization@1.3"
+      ],
+      "topic": "OPTICS"
+    },
+    {
+      "id": "answerable-016",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Semiconductor diode characteristic: V 2 V, I_s 2 A, n 2 1, T 2 K",
+      "acceptableIdentities": [
+        "diode_characteristic@1.2"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-017",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán elastic collision với m1 2 kg, m2 2 kg, x1_0 2 m, x2_0 2 m, v1 2 m/s, v2 2 m/s",
+      "acceptableIdentities": [
+        "dynamics_collision@2.0"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-018",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Dynamics forces; dữ kiện m 2 kg, force 2 N, mu 2 1, x0 2 m, v0 2 m/s, gravity 2 m/s2",
+      "acceptableIdentities": [
+        "dynamics_forces@2.0"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-019",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Eclipse geometry: Rstar 2 m, Dstar 2 m, Rmoon 2 m, Dmoon 2 m, theta 2 rad",
+      "acceptableIdentities": [
+        "eclipse_geometry@1.1"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-020",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán faraday induction với N 2 1, B 2 T, A 2 m2, dB_dt 2 T/s, theta 2 rad",
+      "acceptableIdentities": [
+        "electromagnetic_induction@1.2"
+      ],
+      "topic": "ELECTROMAGNETISM"
+    },
+    {
+      "id": "answerable-021",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Energy-band photon transition; dữ kiện Ev 2 J, Ec 2 J, f 2 Hz",
+      "acceptableIdentities": [
+        "energy_band_transition@1.1"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-022",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Energy mix and environmental impact: E 2 J, f_renewable 2 1, e_fossil 2 kg/J, e_renewable 2 kg/J, eta 2 1",
+      "acceptableIdentities": [
+        "energy_environment@1.1"
+      ],
+      "topic": "PRACTICAL_AND_DATA"
+    },
+    {
+      "id": "answerable-023",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán experimental data graph với x0 2 1, x1 2 1, m 2 1, b 2 1, N 2 1",
+      "acceptableIdentities": [
+        "experimental_data_graph@1.1"
+      ],
+      "topic": "PRACTICAL_AND_DATA"
+    },
+    {
+      "id": "answerable-024",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính First law of thermodynamics; dữ kiện U0 2 J, Q 2 J, W 2 J",
+      "acceptableIdentities": [
+        "first_law_thermodynamics@1.3"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "answerable-025",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Gravity field and circular orbit: M 2 kg, m 2 kg, r 2 m",
+      "acceptableIdentities": [
+        "gravity_orbit@1.2"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-026",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán hooke law and elastic energy với k 2 N/m, x 2 m",
+      "acceptableIdentities": [
+        "hooke_law@1.2"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-027",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Hydrostatic pressure and buoyancy; dữ kiện rho 2 kg/m3, h 2 m, V 2 m3, g 2 m/s2, p_atm 2 Pa",
+      "acceptableIdentities": [
+        "hydrostatics@1.2"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-028",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Isobaric ideal-gas process: P1 2 Pa, V1 2 m3, T1 2 K, T2 2 K",
+      "acceptableIdentities": [
+        "ideal_gas_isobaric@1.2"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "answerable-029",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán isochoric ideal-gas process với P1 2 Pa, V1 2 m3, T1 2 K, T2 2 K",
+      "acceptableIdentities": [
+        "ideal_gas_isochoric@1.2"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "answerable-030",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Isothermal ideal-gas process; dữ kiện amount 2 mol, T 2 K, V0 2 m3, dV_dt 2 m3/s, R 2 J/(mol*K)",
+      "acceptableIdentities": [
+        "ideal_gas_isothermal@1.2"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "answerable-031",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Ideal transformer: Np 2 1, Ns 2 1, Vp 2 V, Is 2 A",
+      "acceptableIdentities": [
+        "ideal_transformer@1.1"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-032",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán acceleration-time graph với x0 2 m, v0 2 m/s, a 2 m/s2",
+      "acceptableIdentities": [
+        "kinematics_acceleration_time_graph@1.1"
+      ],
+      "topic": "KINEMATICS"
+    },
+    {
+      "id": "answerable-033",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Position-time graph; dữ kiện x0 2 m, v0 2 m/s, a 2 m/s2",
+      "acceptableIdentities": [
+        "kinematics_position_time_graph@1.1"
+      ],
+      "topic": "KINEMATICS"
+    },
+    {
+      "id": "answerable-034",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Projectile motion: x0 2 m, y0 2 m, v0 2 m/s, angle 2 rad, gravity 2 m/s2",
+      "acceptableIdentities": [
+        "kinematics_projectile@1.11"
+      ],
+      "topic": "KINEMATICS"
+    },
+    {
+      "id": "answerable-035",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán velocity-time graph với x0 2 m, v0 2 m/s, a 2 m/s2",
+      "acceptableIdentities": [
+        "kinematics_velocity_time_graph@1.1"
+      ],
+      "topic": "KINEMATICS"
+    },
+    {
+      "id": "answerable-036",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Kinematics; dữ kiện x0 2 m, v0 2 m/s, a 2 m/s2",
+      "acceptableIdentities": [
+        "kinematics@1.11"
+      ],
+      "topic": "KINEMATICS"
+    },
+    {
+      "id": "answerable-037",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Two-source light interference: λ 2 m, Δ 2 m, I₀ 2 W/m2, dΔ/dt 2 m/s",
+      "acceptableIdentities": [
+        "light_interference@1.3"
+      ],
+      "topic": "OPTICS"
+    },
+    {
+      "id": "answerable-038",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán linear air resistance với m 2 kg, x0 2 m, v0 2 m/s, F 2 N, b 2 kg/s",
+      "acceptableIdentities": [
+        "linear_drag_motion@1.2"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-039",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Magnetic force on charge; dữ kiện q 2 C, v 2 m/s, B 2 T, theta 2 rad",
+      "acceptableIdentities": [
+        "magnetic_force@1.2"
+      ],
+      "topic": "ELECTROMAGNETISM"
+    },
+    {
+      "id": "answerable-040",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Measurement uncertainty: x 2 1, delta_x 2 1",
+      "acceptableIdentities": [
+        "measurement_uncertainty@1.3"
+      ],
+      "topic": "PRACTICAL_AND_DATA"
+    },
+    {
+      "id": "answerable-041",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán moment and rotational equilibrium với F1 2 N, r1 2 m, theta1 2 rad, F2 2 N, r2 2 m, theta2 2 rad",
+      "acceptableIdentities": [
+        "moment_equilibrium@1.2"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-042",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính MRI longitudinal and transverse relaxation; dữ kiện M0 2 1, T1 2 s, T2 2 s, TE 2 s",
+      "acceptableIdentities": [
+        "mri_relaxation@1.1"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-043",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Mass defect and nuclear energy: delta_m 2 kg, N 2 1",
+      "acceptableIdentities": [
+        "nuclear_energy@1.3"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-044",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán nuclear reaction mass balance với mReactants 2 kg, mProducts 2 kg, N 2 1",
+      "acceptableIdentities": [
+        "nuclear_reaction_energy@1.1"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-045",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Ohm's law; dữ kiện V 2 V, R 2 ohm",
+      "acceptableIdentities": [
+        "ohms_law@1.1"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-046",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Spring oscillation: a 2 m, m 2 kg, k 2 N/m, phi 2 rad",
+      "acceptableIdentities": [
+        "oscillations_spring@2.0"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-047",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán heating curve and phase changes với m 2 kg, T0 2 K, Tm 2 K, Tb 2 K, cs 2 J/(kg*K), cl 2 J/(kg*K), cg 2 J/(kg*K), Lf 2 J/kg, Lv 2 J/kg, P 2 W",
+      "acceptableIdentities": [
+        "phase_change@1.2"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "answerable-048",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Photoelectric effect; dữ kiện f 2 Hz, phi 2 J, e 2 C",
+      "acceptableIdentities": [
+        "photoelectric_effect@1.3"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-049",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Point-charge electric field and potential: q 2 C, r 2 m",
+      "acceptableIdentities": [
+        "point_charge_field@1.1"
+      ],
+      "topic": "ELECTROMAGNETISM"
+    },
+    {
+      "id": "answerable-050",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán inverse-square radiation safety với D0 2 Gy/s, r0 2 m, r 2 m",
+      "acceptableIdentities": [
+        "radiation_safety@1.1"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-051",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Radio carrier and AM sidebands; dữ kiện f_c 2 Hz, f_m 2 Hz, m 2 1",
+      "acceptableIdentities": [
+        "radio_communication@1.1"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-052",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng AM FM modulation and signal attenuation: fc 2 Hz, fm 2 Hz, delta_f 2 Hz, m 2 1, A 2 V, d 2 m, alpha_db 2 dB/m",
+      "acceptableIdentities": [
+        "radio_signal_chain@1.1"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-053",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán radioactive exponential decay với N0 2 1, lambda 2 1/s",
+      "acceptableIdentities": [
+        "radioactive_decay@1.2"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "answerable-054",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Parallel resistors; dữ kiện V 2 V, R1 2 ohm, R2 2 ohm",
+      "acceptableIdentities": [
+        "resistors_parallel@1.3"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-055",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Series resistors: V 2 V, R1 2 ohm, R2 2 ohm",
+      "acceptableIdentities": [
+        "resistors_series@1.2"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-056",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán sensor divider and op-amp output với Vs 2 V, Rs 2 ohm, Rref 2 ohm, G 2 1, Vth 2 V",
+      "acceptableIdentities": [
+        "sensor_op_amp@1.1"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-057",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Simple magnifier; dữ kiện f 2 m, d_o 2 m, D 2 m",
+      "acceptableIdentities": [
+        "simple_magnifier@1.2"
+      ],
+      "topic": "OPTICS"
+    },
+    {
+      "id": "answerable-058",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Snell refraction: n1 2 1, n2 2 1, theta_i 2 rad",
+      "acceptableIdentities": [
+        "snell_refraction@1.2"
+      ],
+      "topic": "OPTICS"
+    },
+    {
+      "id": "answerable-059",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán acoustic pressure wave với p0 2 Pa, f 2 Hz, speed 2 m/s, x_probe 2 m, phi 2 rad, x_min 2 m, x_max 2 m, x_samples 2 1",
+      "acceptableIdentities": [
+        "sound_wave@1.2"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-060",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính EMF and internal resistance; dữ kiện E 2 V, r 2 ohm, R 2 ohm",
+      "acceptableIdentities": [
+        "source_internal_resistance@1.1"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-061",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Standing-wave interference on a string: a 2 m, f 2 Hz, speed 2 m/s, domain_length 2 m, x_probe 2 m, phi 2 rad, x_min 2 m, x_samples 2 1",
+      "acceptableIdentities": [
+        "standing_wave@1.3"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-062",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán periodic transverse wave on a string với a 2 m, f 2 Hz, speed 2 m/s, string_length 2 m, phi 2 rad, x_probe 2 m, x_samples 2 1",
+      "acceptableIdentities": [
+        "string_wave@1.3"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-063",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Temperature scales; dữ kiện celsius 2 degC",
+      "acceptableIdentities": [
+        "temperature_scales@1.3"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "answerable-064",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Linear thermal expansion: L0 2 m, alpha 2 1/K, T0 2 K, T1 2 K",
+      "acceptableIdentities": [
+        "thermal_expansion@1.3"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "answerable-065",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán thermistor response với R0 2 ohm, T0 2 K, B 2 K, T 2 degC, Vs 2 V, Rref 2 ohm",
+      "acceptableIdentities": [
+        "thermistor_response@1.1"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "answerable-066",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Paraxial thin-lens imaging; dữ kiện f 2 m, d_o 2 m, h_o 2 m",
+      "acceptableIdentities": [
+        "thin_lens_imaging@1.1"
+      ],
+      "topic": "OPTICS"
+    },
+    {
+      "id": "answerable-067",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Pulse-echo ultrasound imaging: v 2 m/s, f 2 Hz, t_echo 2 s",
+      "acceptableIdentities": [
+        "ultrasound_imaging@1.1"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-068",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán uniform electric field motion với q 2 C, m 2 kg, U 2 V, d 2 m, v0 2 m/s, t 2 s",
+      "acceptableIdentities": [
+        "uniform_electric_field@1.2"
+      ],
+      "topic": "ELECTROMAGNETISM"
+    },
+    {
+      "id": "answerable-069",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Two-source water-surface interference; dữ kiện lambda 2 m, v 2 m/s, d 2 m, A 2 m, L 2 m, N 2 1",
+      "acceptableIdentities": [
+        "water_surface_interference@1.1"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-070",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Travelling Gaussian pulse on a string: a 2 m, speed 2 m/s, width 2 m, x_probe 2 m, x0 2 m, x_min 2 m, x_max 2 m, x_samples 2 1",
+      "acceptableIdentities": [
+        "wave_pulse@1.3"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-071",
+      "split": "heldOut",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán gaussian pulse reflection at a boundary với a 2 m, speed 2 m/s, width 2 m, x0 2 m, boundary 2 m, x_min 2 m, x_probe 2 m, x_samples 2 1, reflectivity 2 1",
+      "acceptableIdentities": [
+        "wave_reflection@1.2"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-072",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Tính Superposition of two coherent waves; dữ kiện a1 2 m, a2 2 m, f 2 Hz, speed 2 m/s, phi1 2 rad, phi2 2 rad, x_min 2 m, x_max 2 m, x_probe 2 m, x_samples 2 1",
+      "acceptableIdentities": [
+        "wave_superposition@1.2"
+      ],
+      "topic": "WAVES"
+    },
+    {
+      "id": "answerable-073",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Mô phỏng Work, energy and power: m 2 kg, v0 2 m/s, v1 2 m/s, F 2 N, s 2 m, theta 2 rad, t 2 s",
+      "acceptableIdentities": [
+        "work_energy_power@1.2"
+      ],
+      "topic": "DYNAMICS"
+    },
+    {
+      "id": "answerable-074",
+      "split": "calibration",
+      "label": "ANSWERABLE",
+      "provenance": "synthetic catalog-derived query; no official textbook attribution",
+      "query": "Bài toán x-ray attenuation and diagnostic image contrast với I0 2 1, mu 2 1/m, x 2 m, t 2 s",
+      "acceptableIdentities": [
+        "xray_imaging@1.1"
+      ],
+      "topic": "MODERN_PHYSICS"
+    },
+    {
+      "id": "ambiguous-001",
+      "split": "challenge",
+      "label": "AMBIGUOUS",
+      "provenance": "synthetic confuser query combining two approved identities",
+      "query": "So sánh Series AC RLC và Sinusoidal AC waveform trong cùng một bài toán",
+      "acceptableIdentities": [
+        "ac_rlc_circuit@1.2",
+        "ac_waveform@1.1"
+      ],
+      "topic": "CIRCUITS"
+    },
+    {
+      "id": "ambiguous-002",
+      "split": "challenge",
+      "label": "AMBIGUOUS",
+      "provenance": "synthetic confuser query combining two approved identities",
+      "query": "So sánh Reversible adiabatic gas process và Ideal calorimetry mixing trong cùng một bài toán",
+      "acceptableIdentities": [
+        "adiabatic_gas@1.3",
+        "calorimetry_mixing@1.3"
+      ],
+      "topic": "THERMAL"
+    },
+    {
+      "id": "ambiguous-003",
+      "split": "challenge",
+      "label": "AMBIGUOUS",
+      "provenance": "synthetic confuser query combining two approved identities",
+      "query": "So sánh Astronomical telescope và Compound microscope trong cùng một bài toán",
+      "acceptableIdentities": [
+        "astronomical_telescope@1.2",
+        "compound_microscope@1.2"
+      ],
+      "topic": "OPTICS"
+    },
+    {
+      "id": "out-of-scope-001",
+      "split": "challenge",
+      "label": "OUT_OF_SCOPE",
+      "provenance": "synthetic out-of-scope challenge; no approved physics identity",
+      "query": "Dự báo thời tiết và lượng mưa ngày mai",
+      "acceptableIdentities": [],
+      "topic": null
+    },
+    {
+      "id": "out-of-scope-002",
+      "split": "challenge",
+      "label": "OUT_OF_SCOPE",
+      "provenance": "synthetic out-of-scope challenge; no approved physics identity",
+      "query": "Viết chương trình quản lý học phí cho trường học",
+      "acceptableIdentities": [],
+      "topic": null
+    }
+  ]
+}

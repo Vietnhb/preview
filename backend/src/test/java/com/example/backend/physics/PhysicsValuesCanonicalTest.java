@@ -1,7 +1,7 @@
 package com.example.backend.physics;
 
 import com.example.backend.physics.compatibility.LegacySpecificationAdapter;
-import com.example.backend.physics.model.PhysicsValues;
+import com.example.backend.physics.compatibility.legacy.PhysicsValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;

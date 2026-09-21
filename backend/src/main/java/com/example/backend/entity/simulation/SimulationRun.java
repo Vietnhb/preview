@@ -26,6 +26,32 @@ public class SimulationRun extends AuditedEntity {
     @Column(nullable = false, length = 24)
     private String runType;
 
+    /**
+     * Immutable execution identity captured with the run. These columns are
+     * nullable only for pre-migration historical rows; newly persisted runs
+     * are populated from the pinned compiled schema and binding.
+     */
+    @Column(name = "schema_id", length = 80)
+    private String schemaId;
+
+    @Column(name = "schema_version", length = 24)
+    private String schemaVersion;
+
+    @Column(name = "binding_version", length = 24)
+    private String bindingVersion;
+
+    @Column(name = "numerical_solver_id", length = 120)
+    private String numericalSolverId;
+
+    @Column(name = "reference_solver_id", length = 120)
+    private String referenceSolverId;
+
+    @Column(name = "output_contract_version", length = 40)
+    private String outputContractVersion;
+
+    @Column(name = "output_contract_checksum", length = 64)
+    private String outputContractChecksum;
+
     @Column(nullable = false)
     private boolean validationPassed;
 

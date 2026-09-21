@@ -1,6 +1,5 @@
 package com.example.backend.schema.routing.service;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -23,12 +22,14 @@ import com.example.backend.schema.routing.fusion.ReciprocalRankFusion;
 import com.example.backend.schema.routing.index.IndexedSchemaCandidate;
 import com.example.backend.schema.routing.index.SchemaSearchIndex;
 import com.example.backend.schema.routing.lexical.Bm25SchemaRetriever;
+import com.example.backend.schema.routing.lexical.UnicodePhysicsNormalizer;
 import com.example.backend.schema.routing.model.RetrievalScore;
 import com.example.backend.schema.routing.model.SchemaCandidate;
 import com.example.backend.schema.routing.model.SchemaCandidate.VerificationEvidence;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
 import com.example.backend.schema.routing.model.SchemaIdentity;
 import com.example.backend.schema.routing.vector.EmbeddingClient;
+import com.example.backend.schema.routing.vector.EmbeddingResult;
 import com.example.backend.schema.routing.vector.SchemaVectorRetriever;
 import com.example.backend.schema.routing.verification.SchemaContractReranker;
 
@@ -69,7 +70,7 @@ public final class SchemaRoutingService {
         if (problemText.length() > properties.maximumQueryCharacters()) {
             throw new IllegalArgumentException("Problem text exceeds the configured schema-routing query limit");
         }
-        String query = Normalizer.normalize(problemText.trim(), Normalizer.Form.NFKC);
+        String query = UnicodePhysicsNormalizer.normalize(problemText);
         SchemaSearchIndex.Snapshot snapshot;
         try {
             snapshot = index.snapshot();
@@ -77,43 +78,70 @@ public final class SchemaRoutingService {
             throw new EmbeddingUnavailableException("The approved-schema search index is not ready; reindex schema embeddings.");
         }
 
+        List<Bm25SchemaRetriever.RankedDocument> lexicalMatches = measure("physlive.schema.routing.lexical", () ->
+                lexical.rank(query, snapshot.bm25Index(), properties.lexicalTopK()));
+        var queryVector = embedQuery(query);
+        List<SchemaVectorRetriever.RankedVector> vectorMatches = retrieveVectors(queryVector, snapshot);
+
+        // Candidate verification and fusion are application logic. Keep their failures visible as
+        // routing/contract failures instead of misreporting them as an embedding outage.
+        SchemaRoutingDecision decision;
         try {
-            List<Bm25SchemaRetriever.RankedDocument> lexicalMatches = measure("physlive.schema.routing.lexical", () ->
-                    lexical.rank(query, snapshot.bm25Index(), properties.lexicalTopK()));
-            var queryVector = measure("physlive.schema.routing.embedding", () -> {
-                try {
-                    return embeddings.embed(query);
-                } catch (RuntimeException failure) {
-                    meters.counter("physlive.schema.routing.embedding.failures").increment();
-                    throw failure;
-                }
-            });
-            List<SchemaVectorRetriever.RankedVector> vectorMatches = measure("physlive.schema.routing.vector", () ->
-                    vector.rank(queryVector, embeddings.providerId(), embeddings.modelId(), embeddings.dimension(),
-                            properties.vectorTopK(), snapshot.byIdentity().keySet()));
-            SchemaRoutingDecision decision = decide(query, snapshot, lexicalMatches, vectorMatches);
-            meters.summary("physlive.schema.routing.candidate_count").record(decision.candidates().size());
-            decision.selectedCandidate().ifPresent(selected -> {
-                meters.counter("physlive.schema.routing.selected").increment();
-                meters.summary("physlive.schema.routing.selected_rank").record(1);
-                meters.summary("physlive.schema.routing.selected_lexical_rank").record(
-                        Math.max(1, selected.retrievalScore().lexicalRank()));
-                meters.summary("physlive.schema.routing.selected_vector_rank").record(
-                        Math.max(1, selected.retrievalScore().vectorRank()));
-            });
-            if (decision.status() == SchemaRoutingDecision.Status.AMBIGUOUS) {
-                meters.counter("physlive.schema.routing.ambiguous", "reason", decision.reasonCode()).increment();
-            }
-            return decision;
-        } catch (EmbeddingUnavailableException failure) {
-            meters.counter("physlive.schema.routing.failures").increment();
-            throw failure;
-        } catch (SchemaRoutingException failure) {
+            decision = decide(query, snapshot, lexicalMatches, vectorMatches);
+        } catch (EmbeddingUnavailableException | SchemaRoutingException failure) {
             meters.counter("physlive.schema.routing.failures").increment();
             throw failure;
         } catch (RuntimeException failure) {
             meters.counter("physlive.schema.routing.failures").increment();
-            throw new EmbeddingUnavailableException("Check embedding provider/model configuration and PostgreSQL pgvector readiness.");
+            throw new SchemaRoutingException("Schema candidate verification failed for the approved index.", failure);
+        }
+        meters.summary("physlive.schema.routing.candidate_count").record(decision.candidates().size());
+        decision.selectedCandidate().ifPresent(selected -> {
+            meters.counter("physlive.schema.routing.selected").increment();
+            int lexicalRank = selected.retrievalScore().lexicalRank();
+            int vectorRank = selected.retrievalScore().vectorRank();
+            int selectedRank = firstPresentRank(lexicalRank, vectorRank);
+            meters.summary("physlive.schema.routing.selected_rank").record(selectedRank);
+            meters.summary("physlive.schema.routing.selected_lexical_rank").record(
+                    Math.max(1, selected.retrievalScore().lexicalRank()));
+            meters.summary("physlive.schema.routing.selected_vector_rank").record(
+                    Math.max(1, selected.retrievalScore().vectorRank()));
+        });
+        if (decision.status() == SchemaRoutingDecision.Status.AMBIGUOUS) {
+            meters.counter("physlive.schema.routing.ambiguous", "reason", decision.reasonCode()).increment();
+        }
+        return decision;
+    }
+
+    private EmbeddingResult embedQuery(String query) {
+        try {
+            return measure("physlive.schema.routing.embedding", () -> embeddings.embed(query));
+        } catch (EmbeddingUnavailableException failure) {
+            meters.counter("physlive.schema.routing.embedding.failures").increment();
+            meters.counter("physlive.schema.routing.failures").increment();
+            throw failure;
+        } catch (RuntimeException failure) {
+            meters.counter("physlive.schema.routing.embedding.failures").increment();
+            meters.counter("physlive.schema.routing.failures").increment();
+            throw new EmbeddingUnavailableException(
+                    "Check embedding provider/model configuration and credentials.");
+        }
+    }
+
+    private List<SchemaVectorRetriever.RankedVector> retrieveVectors(
+            EmbeddingResult queryVector,
+            SchemaSearchIndex.Snapshot snapshot) {
+        try {
+            return measure("physlive.schema.routing.vector", () -> vector.rank(queryVector,
+                    embeddings.providerId(), embeddings.modelId(), embeddings.dimension(),
+                    properties.vectorTopK(), snapshot.byIdentity().keySet()));
+        } catch (EmbeddingUnavailableException failure) {
+            meters.counter("physlive.schema.routing.failures").increment();
+            throw failure;
+        } catch (RuntimeException failure) {
+            meters.counter("physlive.schema.routing.failures").increment();
+            throw new EmbeddingUnavailableException(
+                    "Check PostgreSQL pgvector readiness and the current embedding index.");
         }
     }
 
@@ -127,14 +155,20 @@ public final class SchemaRoutingService {
                 item.schemaId(), item.schemaVersion(), item.rank())).toList());
         List<ReciprocalRankFusion.FusedCandidate> fused = measure("physlive.schema.routing.fusion",
                 () -> fusion.fuse(rankings, properties.candidateTopK()));
-        if (fused.isEmpty()) {
-            throw new SchemaRoutingException("No approved schema candidates match this problem. Add relevant details or ask a teacher to choose a schema.");
+        boolean noRetrievalEvidence = fused.isEmpty();
+        if (noRetrievalEvidence) {
+            fused = snapshot.candidates().stream().limit(properties.candidateTopK())
+                    .map(item -> new ReciprocalRankFusion.FusedCandidate(
+                            item.document().schemaId(), item.document().schemaVersion(), Double.MIN_VALUE))
+                    .toList();
         }
 
         Map<SchemaIdentity, Bm25SchemaRetriever.RankedDocument> lexicalByIdentity = new HashMap<>();
-        lexicalMatches.forEach(item -> lexicalByIdentity.put(identity(item.document().schemaId(), item.document().schemaVersion()), item));
+        lexicalMatches.forEach(item -> lexicalByIdentity.putIfAbsent(
+                identity(item.document().schemaId(), item.document().schemaVersion()), item));
         Map<SchemaIdentity, SchemaVectorRetriever.RankedVector> vectorByIdentity = new HashMap<>();
-        vectorMatches.forEach(item -> vectorByIdentity.put(identity(item.schemaId(), item.schemaVersion()), item));
+        vectorMatches.forEach(item -> vectorByIdentity.putIfAbsent(
+                identity(item.schemaId(), item.schemaVersion()), item));
 
         List<SchemaCandidate> candidates = new ArrayList<>();
         for (ReciprocalRankFusion.FusedCandidate item : fused) {
@@ -154,18 +188,26 @@ public final class SchemaRoutingService {
         candidates.sort(Comparator.comparingDouble(SchemaCandidate::confidence).reversed()
                 .thenComparing(Comparator.comparingDouble((SchemaCandidate candidate) -> candidate.retrievalScore().rrfScore()).reversed())
                 .thenComparing(SchemaCandidate::schemaId).thenComparing(SchemaCandidate::schemaVersion));
-        if (candidates.isEmpty()) {
-            throw new SchemaRoutingException("No current approved schema candidates match this problem. Add relevant details or ask a teacher to choose a schema.");
-        }
+        if (candidates.isEmpty()) throw new SchemaRoutingException(
+                "The approved schema index contains no contracts for bounded ambiguity handling.");
 
         SchemaCandidate first = candidates.getFirst();
         double secondScore = candidates.size() > 1 ? candidates.get(1).confidence() : 0;
         double margin = Math.max(0, first.confidence() - secondScore);
         double bestEvidence = Math.max(first.verificationEvidence().requiredQuantityCoverage(),
                 Math.max(first.verificationEvidence().unitCompatibility(), first.verificationEvidence().metadataOverlap()));
+        boolean independentContractEvidence = verifier.hasIndependentQueryEvidence(query)
+                && (first.verificationEvidence().requiredQuantityCoverage() > 0
+                || first.verificationEvidence().metadataOverlap() > 0);
         String reason;
         SchemaRoutingDecision.Status status;
-        if (bestEvidence < properties.minimumEvidenceScore()) {
+        if (noRetrievalEvidence) {
+            status = SchemaRoutingDecision.Status.AMBIGUOUS;
+            reason = "NO_RETRIEVAL_EVIDENCE";
+        } else if (!independentContractEvidence && first.verificationEvidence().unitCompatibility() > 0) {
+            status = SchemaRoutingDecision.Status.AMBIGUOUS;
+            reason = "UNIT_ONLY_EVIDENCE";
+        } else if (bestEvidence < properties.minimumEvidenceScore()) {
             status = SchemaRoutingDecision.Status.AMBIGUOUS;
             reason = "INSUFFICIENT_CONTRACT_EVIDENCE";
         } else if (first.confidence() < properties.minimumScore()) {
@@ -192,5 +234,13 @@ public final class SchemaRoutingService {
         } finally {
             meters.timer(name).record(System.nanoTime() - started, TimeUnit.NANOSECONDS);
         }
+    }
+
+    /** Keeps the rank metric meaningful when one retriever did not return the selected identity. */
+    private static int firstPresentRank(int first, int second) {
+        if (first > 0 && second > 0) return Math.min(first, second);
+        if (first > 0) return first;
+        if (second > 0) return second;
+        return 0;
     }
 }

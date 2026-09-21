@@ -3,9 +3,11 @@ package com.example.backend.ai.extraction;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection.QuantityProjection;
+import com.example.backend.ai.normalization.UnitNormalizer;
 import com.example.backend.schema.routing.model.SchemaCandidate;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
 
+import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +58,17 @@ public final class StrictSpecificationValidator {
 
     /** Verify catalog-version membership and quantity vocabulary before Jackson binding. */
     public static SchemaCandidate validateCandidateMembership(JsonNode root, SchemaRoutingDecision decision) {
+        return validateCandidateMembership(root, decision, null);
+    }
+
+    /**
+     * Verify candidate membership and, when a unit catalog is supplied, reject
+     * units before the JSON tree is bound to extraction POJOs.  The two-argument
+     * overload remains structural for callers that do not own the application
+     * unit catalog; production provider paths must use this overload.
+     */
+    public static SchemaCandidate validateCandidateMembership(JsonNode root, SchemaRoutingDecision decision,
+            UnitNormalizer unitNormalizer) {
         if (root == null || !root.isObject() || decision == null) fail("candidate routing decision is required");
         String schemaId = requiredTextValue(root, "schemaId");
         String schemaVersion = requiredTextValue(root, "schemaVersion");
@@ -92,6 +105,7 @@ public final class StrictSpecificationValidator {
             if (!canonicalQuantityNames.add(canonicalName)) {
                 fail("duplicate quantity resolves to the same canonical schema key");
             }
+            if (unitNormalizer != null) validateQuantityUnit(quantity, canonicalName, contract, unitNormalizer);
         }
         for (JsonNode relation : root.path("relations")) {
             String type = relation.path("type").asText("");
@@ -125,6 +139,30 @@ public final class StrictSpecificationValidator {
             }
         }
         return candidate;
+    }
+
+    private static void validateQuantityUnit(JsonNode quantity, String canonicalName,
+            CandidateContractProjection contract, UnitNormalizer unitNormalizer) {
+        JsonNode originalUnit = quantity.get("originalUnit");
+        if (originalUnit == null || !originalUnit.isTextual() || originalUnit.asText().isBlank()) {
+            fail("quantity originalUnit must be a non-empty text value");
+        }
+        UnitNormalizer.NormalizedQuantity normalized = unitNormalizer.normalize(BigDecimal.ONE,
+                originalUnit.asText());
+        if (!normalized.knownUnit()) fail("quantity unit is outside the unit catalog");
+        QuantityProjection projection = quantityProjection(contract, canonicalName);
+        if (projection == null || projection.acceptedInputUnits().stream()
+                .map(allowed -> unitNormalizer.normalize(BigDecimal.ONE, allowed))
+                .filter(UnitNormalizer.NormalizedQuantity::knownUnit)
+                .noneMatch(allowed -> allowed.normalizedUnit().equals(normalized.normalizedUnit()))) {
+            fail("quantity unit is outside the selected candidate contract");
+        }
+    }
+
+    private static QuantityProjection quantityProjection(CandidateContractProjection contract, String key) {
+        return java.util.stream.Stream.concat(contract.requiredQuantities().stream(),
+                        contract.optionalQuantities().stream())
+                .filter(item -> item.key().equals(key)).findFirst().orElse(null);
     }
 
     private static void addAcceptedNames(QuantityProjection quantity, Set<String> accepted) {

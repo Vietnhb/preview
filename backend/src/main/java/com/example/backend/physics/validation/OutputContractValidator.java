@@ -17,9 +17,10 @@ import java.util.stream.Collectors;
 
 /** Validates legacy solver transport output through the typed output boundary. */
 public final class OutputContractValidator {
-    private static final int MAX_SAMPLES = 1_000_001;
 
     private OutputContractValidator() { }
+
+    public static final int MAX_SAMPLES = 1_000_001;
 
     /** Validates a compiled per-output contract when the schema version declares one. */
     public static void validate(CompiledSchema schema, JsonNode definition, SolverOutput output) {
@@ -34,6 +35,24 @@ public final class OutputContractValidator {
         schema.outputDefinitions().forEach((key, value) -> units.put(key, value.unit()));
         try {
             PhysicsOutputFrame frame = LegacySolverOutputAdapter.adapt(output, units);
+            PhysicsOutputValidator.validate(contract, frame);
+        } catch (OutputContractException failure) {
+            throw failure;
+        } catch (IllegalArgumentException failure) {
+            throw new OutputContractException("Output contract failed for schemaId=" + schema.schemaId()
+                    + " schemaVersion=" + schema.version() + ": " + failure.getMessage(), failure);
+        }
+    }
+
+    /** Validates a frame already emitted by the typed module boundary. */
+    public static void validate(CompiledSchema schema, PhysicsOutputFrame frame) {
+        if (schema == null) throw new IllegalArgumentException("Compiled schema is required for output validation");
+        PhysicsOutputContract contract = schema.outputContract(MAX_SAMPLES);
+        if (contract == null) {
+            throw new OutputContractException("Output contract is missing for schemaId=" + schema.schemaId()
+                    + " schemaVersion=" + schema.version());
+        }
+        try {
             PhysicsOutputValidator.validate(contract, frame);
         } catch (OutputContractException failure) {
             throw failure;

@@ -3,6 +3,7 @@ package com.example.backend.config.properties;
 import java.time.Duration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /** Validated runtime limits for schema retrieval and candidate projection. */
 @ConfigurationProperties(prefix = "physlive.schema-routing")
@@ -24,7 +25,7 @@ public record SchemaRoutingProperties(
         double unitCompatibilityWeight,
         double metadataWeight,
         double contradictionPenaltyWeight,
-        Embedding embedding) {
+        @NestedConfigurationProperty Embedding embedding) {
 
     public SchemaRoutingProperties {
         if (lexicalTopK < 1 || lexicalTopK > 500) throw invalid("lexical-top-k must be in [1, 500]");
@@ -58,6 +59,7 @@ public record SchemaRoutingProperties(
             throw invalid("contradiction-penalty-weight must be in [0, 1]");
         }
         if (embedding == null) throw invalid("embedding configuration is required");
+        embedding.validate();
     }
 
     private static boolean unitInterval(double value) {
@@ -68,8 +70,37 @@ public record SchemaRoutingProperties(
         return new IllegalArgumentException("Invalid physlive.schema-routing configuration: " + message);
     }
 
-    public record Embedding(String provider, String model, int dimension, Duration timeout) {
-        public Embedding {
+    public static final class Embedding {
+        public static final Duration MAX_RETRY_AFTER = Duration.ofSeconds(5);
+
+        private String provider;
+        private String model;
+        private int dimension;
+        private Duration timeout;
+        private int maxAttempts;
+        private Duration retryBackoff;
+
+        public Embedding() {
+            // Spring Boot binds nested configuration through JavaBean setters.
+        }
+
+        public Embedding(String provider, String model, int dimension, Duration timeout,
+                         int maxAttempts, Duration retryBackoff) {
+            this.provider = provider;
+            this.model = model;
+            this.dimension = dimension;
+            this.timeout = timeout;
+            this.maxAttempts = maxAttempts;
+            this.retryBackoff = retryBackoff;
+            validate();
+        }
+
+        /** Keeps programmatic fixtures source-compatible while using the bounded default policy. */
+        public Embedding(String provider, String model, int dimension, Duration timeout) {
+            this(provider, model, dimension, timeout, 2, Duration.ofMillis(100));
+        }
+
+        private void validate() {
             provider = provider == null ? "" : provider.trim();
             model = model == null ? "" : model.trim();
             if (provider.isEmpty()) throw invalid("embedding.provider is required");
@@ -78,6 +109,38 @@ public record SchemaRoutingProperties(
             if (timeout == null || timeout.isZero() || timeout.isNegative()) {
                 throw invalid("embedding.timeout must be positive");
             }
+            if (maxAttempts < 1 || maxAttempts > 5) {
+                throw invalid("embedding.max-attempts must be in [1, 5]");
+            }
+            if (retryBackoff == null || retryBackoff.isNegative() || retryBackoff.compareTo(Duration.ofSeconds(5)) > 0) {
+                throw invalid("embedding.retry-backoff must be in [0, 5s]");
+            }
+            Duration retryWindow;
+            try {
+                Duration maximumDelay = retryBackoff.compareTo(MAX_RETRY_AFTER) > 0
+                        ? retryBackoff : MAX_RETRY_AFTER;
+                retryWindow = timeout.multipliedBy(maxAttempts)
+                        .plus(maximumDelay.multipliedBy(maxAttempts - 1L));
+            } catch (ArithmeticException overflow) {
+                throw invalid("embedding retry window is too large");
+            }
+            if (retryWindow.compareTo(Duration.ofMinutes(2)) > 0) {
+                throw invalid("embedding timeout and retry policy exceed the 2 minute request budget");
+            }
         }
+
+        public String provider() { return provider; }
+        public String model() { return model; }
+        public int dimension() { return dimension; }
+        public Duration timeout() { return timeout; }
+        public int maxAttempts() { return maxAttempts; }
+        public Duration retryBackoff() { return retryBackoff; }
+
+        public void setProvider(String provider) { this.provider = provider; }
+        public void setModel(String model) { this.model = model; }
+        public void setDimension(int dimension) { this.dimension = dimension; }
+        public void setTimeout(Duration timeout) { this.timeout = timeout; }
+        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+        public void setRetryBackoff(Duration retryBackoff) { this.retryBackoff = retryBackoff; }
     }
 }

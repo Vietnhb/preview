@@ -32,6 +32,22 @@ class Bm25SchemaRetrieverTest {
     }
 
     @Test
+    void matchesThePromptHandCalculationWhenOnlyOneDocumentContainsTheQueryTerm() {
+        Bm25SchemaRetriever retriever = new Bm25SchemaRetriever(1.2, 0.75);
+        Bm25SchemaRetriever.Index index = retriever.buildIndex(List.of(
+                document("alpha-document", "1", "alpha alpha"),
+                document("beta-document", "1", "beta beta")));
+
+        List<Bm25SchemaRetriever.RankedDocument> ranked = retriever.rank("alpha", index, 10);
+
+        double expected = 1.375 * Math.log(2.0);
+        assertEquals(1, ranked.size());
+        assertEquals("alpha-document", ranked.getFirst().document().schemaId());
+        assertEquals(expected, ranked.getFirst().score(), 1.0e-12);
+        assertEquals(1, ranked.getFirst().rank());
+    }
+
+    @Test
     void breaksEqualScoresBySchemaIdThenVersion() {
         Bm25SchemaRetriever retriever = new Bm25SchemaRetriever(1.2, 0.75);
         List<SchemaSearchDocument> corpus = List.of(
@@ -60,6 +76,17 @@ class Bm25SchemaRetrieverTest {
                 .rank("mass", List.of(document("other", "1", "speed")), 5);
 
         assertTrue(ranked.isEmpty());
+    }
+
+    @Test
+    void appliesGlobalStopWordsButKeepsPhysicsSymbolsAndUnitsSearchable() {
+        Bm25SchemaRetriever retriever = new Bm25SchemaRetriever(1.2, 0.75);
+        List<SchemaSearchDocument> corpus = List.of(
+                document("physics", "1", "the voltage is 2 V"),
+                document("other", "1", "the current is 2 A"));
+
+        assertTrue(retriever.rank("the is", retriever.buildIndex(corpus), 10).isEmpty());
+        assertEquals("physics", retriever.rank("V", retriever.buildIndex(corpus), 10).getFirst().document().schemaId());
     }
 
     @Test

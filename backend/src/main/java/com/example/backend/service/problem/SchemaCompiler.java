@@ -2,6 +2,9 @@ package com.example.backend.service.problem;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.example.backend.ai.normalization.UnitNormalizer;
 import com.example.backend.exception.SchemaCompilationException;
 import com.example.backend.physics.output.PhysicsOutput;
@@ -10,7 +13,9 @@ import com.example.backend.physics.validation.OutputSourceBinding;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HexFormat;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -139,10 +144,12 @@ public final class SchemaCompiler {
                 int separator = source.lastIndexOf('.');
                 if (separator <= 0 || separator == source.length() - 1) continue;
                 OutputSourceBinding.Group group = sourceGroup(source.substring(0, separator));
-                String key = source.substring(separator + 1).trim();
-                if (group != null && declaredOutputs.contains(key)) {
-                    sources.computeIfAbsent(key, ignored -> new java.util.LinkedHashSet<>())
-                            .add(OutputSourceBinding.declared(group, key));
+                String sourceKey = source.substring(separator + 1).trim();
+                String outputKey = series.path("key").asText("").trim();
+                if (!declaredOutputs.contains(outputKey)) outputKey = sourceKey;
+                if (group != null && declaredOutputs.contains(outputKey)) {
+                    sources.computeIfAbsent(outputKey, ignored -> new java.util.LinkedHashSet<>())
+                            .add(OutputSourceBinding.declared(group, sourceKey));
                 }
             }
         }
@@ -263,11 +270,39 @@ public final class SchemaCompiler {
 
     public String checksum(JsonNode definition) {
         try {
-            byte[] bytes = objectMapper.writeValueAsBytes(definition);
+            // PostgreSQL JSONB does not preserve object-key order. Hash a
+            // deterministic structural projection so a published checksum
+            // remains stable after a database round trip. Array order is
+            // preserved; numeric lexical/type differences such as 1 and 1.0
+            // normalize to the same mathematical value.
+            byte[] bytes = objectMapper.writeValueAsBytes(canonicalize(definition));
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
         } catch (Exception exception) {
             throw new IllegalStateException("Cannot checksum compiled schema", exception);
         }
+    }
+
+    private JsonNode canonicalize(JsonNode node) {
+        if (node == null || node.isNull()) return JsonNodeFactory.instance.nullNode();
+        if (node.isObject()) {
+            ObjectNode result = JsonNodeFactory.instance.objectNode();
+            List<String> names = new ArrayList<>();
+            node.fieldNames().forEachRemaining(names::add);
+            Collections.sort(names);
+            for (String name : names) result.set(name, canonicalize(node.get(name)));
+            return result;
+        }
+        if (node.isArray()) {
+            ArrayNode result = JsonNodeFactory.instance.arrayNode();
+            for (JsonNode child : node) result.add(canonicalize(child));
+            return result;
+        }
+        if (node.isNumber()) {
+            BigDecimal value = node.decimalValue().stripTrailingZeros();
+            if (value.scale() < 0) value = value.setScale(0);
+            return JsonNodeFactory.instance.numberNode(value);
+        }
+        return node.deepCopy();
     }
 
     private boolean finite(double value) { return Double.isFinite(value); }

@@ -1,8 +1,8 @@
 package com.example.backend.physics;
 
 import com.example.backend.physics.model.SolverOutput;
-import com.example.backend.physics.reference.modern.RadioactiveDecayReferenceSolver;
-import com.example.backend.physics.solver.modern.RadioactiveDecaySolver;
+import com.example.backend.physics.compatibility.legacy.reference.modern.RadioactiveDecayReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.solver.modern.RadioactiveDecaySolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;

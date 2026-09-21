@@ -144,7 +144,8 @@ public final class OpenRouterExtractionProvider implements ExtractionProvider {
                 JsonNode json = client.parseJson(completion.content());
                 if (!json.isObject()) throw new IllegalStateException("AI response root must be a JSON object.");
                 StrictSpecificationValidator.validate(json);
-                SchemaCandidate candidate = StrictSpecificationValidator.validateCandidateMembership(json, routingDecision);
+                SchemaCandidate candidate = StrictSpecificationValidator.validateCandidateMembership(json, routingDecision,
+                        unitNormalizer);
                 SchemaVersion pinned = schemaDefinitions.requireCurrentApproved(candidate.schemaId(), candidate.schemaVersion());
                 SpecificationDocument parsed = objectMapper.treeToValue(json, SpecificationDocument.class);
                 if (parsed == null) throw new IllegalStateException("AI response does not contain a specification.");

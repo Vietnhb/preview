@@ -3,6 +3,7 @@ package com.example.backend.ai.extraction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
+import com.example.backend.ai.normalization.UnitNormalizer;
 import com.example.backend.schema.routing.model.RetrievalScore;
 import com.example.backend.schema.routing.model.SchemaCandidate;
 import com.example.backend.schema.routing.model.SchemaCandidate.VerificationEvidence;
@@ -101,6 +102,28 @@ class StrictSpecificationValidatorTest {
                 .putArray("options").add("unrouted_schema@9.9");
         assertThrows(IllegalArgumentException.class,
                 () -> StrictSpecificationValidator.validateCandidateMembership(root, decision));
+    }
+
+    @Test
+    void rejectsUnknownAndCandidateDisallowedUnitsBeforeJacksonBinding() throws Exception {
+        SchemaRoutingDecision decision = decisionFor("hooke_law", "4.2", "DYNAMICS", "Hooke law", mapper.readTree("""
+                {"model":"hooke_law","requiredQuantities":[{"key":"spring_constant",
+                 "aliases":["k"],"allowedUnits":["N/m"]}],"optionalQuantities":[]}
+                """));
+        ObjectNode root = (ObjectNode) mapper.readTree("""
+                {"contractVersion":"1.0","schemaVersion":"4.2","topic":"DYNAMICS","schemaId":"hooke_law",
+                 "objects":[],"quantities":[{"name":"k","value":2,"originalUnit":"s"}],"relations":[],
+                 "endCondition":{"type":"time_limit","duration":1},"confidence":1,"ambiguities":[]}
+                """);
+        UnitNormalizer units = new UnitNormalizer(mapper);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> StrictSpecificationValidator.validateCandidateMembership(root, decision, units));
+        ((ObjectNode) root.withArray("quantities").get(0)).put("originalUnit", "unknown-unit");
+        assertThrows(IllegalArgumentException.class,
+                () -> StrictSpecificationValidator.validateCandidateMembership(root, decision, units));
+        ((ObjectNode) root.withArray("quantities").get(0)).put("originalUnit", "N / m");
+        assertDoesNotThrow(() -> StrictSpecificationValidator.validateCandidateMembership(root, decision, units));
     }
 
     @Test

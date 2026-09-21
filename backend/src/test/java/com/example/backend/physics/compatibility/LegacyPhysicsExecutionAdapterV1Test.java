@@ -3,17 +3,22 @@ package com.example.backend.physics.compatibility;
 import com.example.backend.exception.SolverBindingException;
 import com.example.backend.physics.model.AnalyticalPoint;
 import com.example.backend.physics.model.SolverOutput;
-import com.example.backend.physics.reference.ReferenceSolver;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
-import com.example.backend.physics.solver.PhysicsSolver;
-import com.example.backend.physics.solver.PhysicsSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.kinematics.KinematicsReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolver;
+import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.solver.kinematics.KinematicsSolver;
+import com.example.backend.physics.compatibility.legacy.model.kinematics.KinematicsParameters;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -129,8 +134,38 @@ class LegacyPhysicsExecutionAdapterV1Test {
                 "kinematics", "1.9", "1.9", "kinematics_solver", "kinematics_reference")));
         assertTrue(adapter.permits(new LegacyPhysicsExecutionAdapterV1.PinnedExecution(
                 "kinematics", "1.8", "1.8", "kinematics_solver", "kinematics_reference")));
-        assertFalse(adapter.permits(new LegacyPhysicsExecutionAdapterV1.PinnedExecution(
+        assertTrue(adapter.permits(new LegacyPhysicsExecutionAdapterV1.PinnedExecution(
                 "kinematics", "1.10", "1.10", "uniform_acceleration_solver_v2",
                 "uniform_acceleration_reference_v2")));
+        assertFalse(adapter.permits(new LegacyPhysicsExecutionAdapterV1.PinnedExecution(
+                "kinematics", "1.11", "1.11", "uniform_acceleration_solver_v2",
+                "uniform_acceleration_reference_v2")));
+    }
+
+    @Test
+    void historicalPermitExecutesConcreteNumericalAndReferencePairWithoutOpeningLatestRouting() throws Exception {
+        var pin = new LegacyPhysicsExecutionAdapterV1.PinnedExecution(
+                "kinematics", "1.9", "1.9", "kinematics_solver", "kinematics_reference");
+        var adapter = new LegacyPhysicsExecutionAdapterV1(List.of(new LegacyPhysicsExecutionAdapterV1.Permit(
+                "kinematics", "1.9", "1.9", "kinematics_solver", "kinematics_reference")));
+        var numerical = adapter.authorizeNumerical(LegacyPhysicsExecutionAdapterV1.VERSION, pin, false,
+                new PhysicsSolverRegistry(List.of(new KinematicsSolver())));
+        var reference = adapter.authorizeReference(LegacyPhysicsExecutionAdapterV1.VERSION, pin, false,
+                new ReferenceSolverRegistry(List.of(new KinematicsReferenceSolver())));
+        JsonNode specification = mapper.readTree("""
+                {"model":"projectile","initial_position":0,"initial_velocity":10,
+                 "initial_height":1,"launch_angle":0,"gravitational_acceleration":10}
+                """);
+        KinematicsParameters parsed = KinematicsParameters.from(specification, Map.of());
+        assertEquals(1.0, parsed.initialHeight(), 1e-9);
+        assertEquals(10.0, parsed.gravity(), 1e-9);
+
+        SolverOutput output = numerical.solve(specification, Map.of(), 1.0, 0.5);
+        AnalyticalPoint point = reference.solve(specification, Map.of(), 1.0);
+
+        assertEquals(List.of(0.0, 0.2, 0.4, 0.6000000000000001, 0.8, 1.0), output.time());
+        assertEquals(10.0, output.values().get("x").getLast(), 1e-9);
+        assertEquals(-10.0, point.values().get("vy"), 1e-9);
+        assertEquals(-4.0, point.values().get("y"), 1e-9);
     }
 }

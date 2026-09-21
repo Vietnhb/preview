@@ -2,8 +2,8 @@ package com.example.backend.controller.reviewer;
 
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.entity.simulation.SolverVersion;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
-import com.example.backend.physics.solver.PhysicsSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolverRegistry;
 import com.example.backend.entity.enums.LifecycleStatus;
 
 import com.example.backend.repository.simulation.SolverVersionRepository;

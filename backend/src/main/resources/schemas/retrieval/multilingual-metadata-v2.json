@@ -1,0 +1,297 @@
+{
+  "projectionVersion": "v2",
+  "metadataVersion": "2026-09-21",
+  "provenance": "Reviewed curriculum retrieval metadata; no formulas, solver details, samples, or user text.",
+  "schemas": [
+    {
+      "schemaId": "ac_rlc_circuit", "schemaVersion": "1.2", "topic": "CIRCUITS",
+      "localizedNames": {"en": "series AC RLC circuit", "vi": "mạch RLC xoay chiều nối tiếp"},
+      "aliases": {"en": ["RLC circuit", "alternating current circuit", "impedance circuit"], "vi": ["mạch RLC", "mạch xoay chiều RLC", "cảm kháng và dung kháng"]},
+      "curriculumLabels": {"en": ["alternating current circuits", "impedance"], "vi": ["mạch điện xoay chiều", "tổng trở"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "An alternating-current series circuit contains a resistor, inductor, and capacitor. The problem usually gives circuit component values and frequency and investigates current, voltage, phase, or impedance."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Mạch xoay chiều nối tiếp gồm điện trở, cuộn cảm và tụ điện. Đề bài thường cho các đại lượng của linh kiện và tần số để tìm dòng điện, điện áp, độ lệch pha hoặc tổng trở."}
+      ]
+    },
+    {
+      "schemaId": "ac_waveform", "schemaVersion": "1.1", "topic": "CIRCUITS",
+      "localizedNames": {"en": "sinusoidal AC waveform", "vi": "dạng sóng xoay chiều hình sin"},
+      "aliases": {"en": ["sine voltage", "AC signal", "sinusoidal voltage"], "vi": ["điện áp hình sin", "tín hiệu xoay chiều", "dạng sóng sin"]},
+      "curriculumLabels": {"en": ["AC waveform", "phase"], "vi": ["dạng sóng xoay chiều", "pha"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A periodic sinusoidal electrical signal is described by amplitude, frequency, phase, and time. The problem investigates instantaneous voltage or current and waveform timing."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Tín hiệu điện xoay chiều tuần hoàn hình sin được mô tả bởi biên độ, tần số, pha và thời gian. Bài toán tìm điện áp hoặc dòng điện tức thời và sự lệch thời gian của dạng sóng."}
+      ]
+    },
+    {
+      "schemaId": "capacitor_basic", "schemaVersion": "1.1", "topic": "CIRCUITS",
+      "localizedNames": {"en": "capacitor charge and energy", "vi": "điện tích và năng lượng của tụ điện"},
+      "aliases": {"en": ["capacitor", "capacitance", "stored charge"], "vi": ["tụ điện", "điện dung", "điện tích tích trữ"]},
+      "curriculumLabels": {"en": ["capacitors", "electrostatic energy"], "vi": ["tụ điện", "năng lượng điện trường"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A capacitor stores electric charge and energy when a voltage is applied. The problem normally gives capacitance and voltage and investigates charge or stored energy."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Tụ điện tích trữ điện tích và năng lượng khi có điện áp. Đề bài thường cho điện dung và điện áp để tìm điện tích hoặc năng lượng tích trữ."}
+      ]
+    },
+    {
+      "schemaId": "circuits_rc_charging", "schemaVersion": "1.11", "topic": "CIRCUITS",
+      "localizedNames": {"en": "RC charging", "vi": "quá trình nạp mạch RC"},
+      "aliases": {"en": ["capacitor charging through resistor", "RC charge", "charging time"], "vi": ["tụ nạp qua điện trở", "nạp RC", "thời gian nạp"]},
+      "curriculumLabels": {"en": ["transient circuits", "RC circuit"], "vi": ["mạch quá độ", "mạch RC"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A capacitor charges from a source through a resistor. The problem gives source voltage, resistance, capacitance, or time and investigates capacitor voltage and charging current."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Tụ điện được nạp từ nguồn qua điện trở. Bài toán cho điện áp nguồn, điện trở, điện dung hoặc thời gian để tìm điện áp trên tụ và dòng nạp."}
+      ]
+    },
+    {
+      "schemaId": "circuits_rc_discharging", "schemaVersion": "1.11", "topic": "CIRCUITS",
+      "localizedNames": {"en": "RC discharging", "vi": "quá trình phóng điện mạch RC"},
+      "aliases": {"en": ["capacitor discharges through resistor", "RC discharge", "capacitor discharge"], "vi": ["tụ điện phóng điện qua điện trở", "phóng điện RC", "tụ xả điện"]},
+      "curriculumLabels": {"en": ["transient circuits", "RC time constant"], "vi": ["mạch quá độ", "hằng số thời gian RC"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A charged capacitor discharges through a resistor. The problem gives initial voltage, resistance, capacitance, or time and investigates the decreasing capacitor voltage or discharge current."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Tụ điện đã tích điện phóng qua điện trở. Đề bài cho điện áp ban đầu, điện trở, điện dung hoặc thời gian để tìm điện áp giảm dần trên tụ hay dòng phóng điện."}
+      ]
+    },
+    {
+      "schemaId": "diode_characteristic", "schemaVersion": "1.2", "topic": "CIRCUITS",
+      "localizedNames": {"en": "semiconductor diode characteristic", "vi": "đặc tuyến diode bán dẫn"},
+      "aliases": {"en": ["diode current voltage curve", "diode I-V", "Shockley diode"], "vi": ["đặc tuyến dòng áp diode", "đường cong I-V diode", "diode bán dẫn"]},
+      "curriculumLabels": {"en": ["semiconductor devices", "diode"], "vi": ["linh kiện bán dẫn", "điốt"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A semiconductor diode relates applied voltage to current and temperature. The problem gives diode parameters and investigates current, forward response, or the current-voltage characteristic."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Diode bán dẫn liên hệ điện áp đặt vào với dòng điện và nhiệt độ. Bài toán cho tham số diode để tìm dòng điện, đáp ứng thuận hoặc đặc tuyến dòng điện - điện áp."}
+      ]
+    },
+    {
+      "schemaId": "ideal_transformer", "schemaVersion": "1.1", "topic": "CIRCUITS",
+      "localizedNames": {"en": "ideal transformer", "vi": "máy biến áp lý tưởng"},
+      "aliases": {"en": ["transformer turns ratio", "primary secondary voltage", "ideal transformer"], "vi": ["máy biến áp", "tỉ số vòng dây", "điện áp sơ cấp thứ cấp"]},
+      "curriculumLabels": {"en": ["electromagnetic induction", "transformers"], "vi": ["cảm ứng điện từ", "máy biến áp"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "An ideal transformer transfers alternating voltage and current between primary and secondary coils. The problem gives turns, voltage, or current and investigates the transformed electrical quantities."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Máy biến áp lý tưởng truyền điện áp và dòng điện xoay chiều giữa cuộn sơ cấp và thứ cấp. Đề bài cho số vòng dây, điện áp hoặc dòng điện để tìm đại lượng biến đổi."}
+      ]
+    },
+    {
+      "schemaId": "ohms_law", "schemaVersion": "1.1", "topic": "CIRCUITS",
+      "localizedNames": {"en": "Ohm's law", "vi": "định luật Ohm"},
+      "aliases": {"en": ["voltage current resistance", "resistor law", "Ohm law"], "vi": ["điện áp dòng điện điện trở", "định luật ôm", "quan hệ U I R"]},
+      "curriculumLabels": {"en": ["DC circuits", "resistance"], "vi": ["mạch điện một chiều", "điện trở"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A resistive electrical element relates voltage, current, and resistance. The problem provides two of these quantities and investigates the missing electrical quantity."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Phần tử điện trở liên hệ điện áp, dòng điện và điện trở. Bài toán cho hai đại lượng để tìm đại lượng điện còn thiếu."}
+      ]
+    },
+    {
+      "schemaId": "resistors_parallel", "schemaVersion": "1.3", "topic": "CIRCUITS",
+      "localizedNames": {"en": "parallel resistors", "vi": "các điện trở mắc song song"},
+      "aliases": {"en": ["resistors in parallel", "parallel resistance", "parallel network"], "vi": ["điện trở song song", "mắc song song", "điện trở tương đương song song"]},
+      "curriculumLabels": {"en": ["resistor networks", "equivalent resistance"], "vi": ["mạng điện trở", "điện trở tương đương"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "Several resistors share the same two circuit nodes in a parallel network. The problem gives resistor values and investigates equivalent resistance or branch current."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Nhiều điện trở cùng nối vào hai nút trong mạch song song. Đề bài cho giá trị điện trở để tìm điện trở tương đương hoặc dòng điện qua nhánh."}
+      ]
+    },
+    {
+      "schemaId": "resistors_series", "schemaVersion": "1.2", "topic": "CIRCUITS",
+      "localizedNames": {"en": "series resistors", "vi": "các điện trở mắc nối tiếp"},
+      "aliases": {"en": ["resistors in series", "series resistance", "series network"], "vi": ["điện trở nối tiếp", "mắc nối tiếp", "điện trở tương đương nối tiếp"]},
+      "curriculumLabels": {"en": ["resistor networks", "equivalent resistance"], "vi": ["mạng điện trở", "điện trở tương đương"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "Several resistors lie in one series path and carry the same current. The problem gives resistor values and investigates equivalent resistance, voltage drop, or current."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Nhiều điện trở nằm trên cùng một nhánh nối tiếp và có cùng dòng điện. Bài toán cho giá trị điện trở để tìm điện trở tương đương, độ giảm điện áp hoặc dòng điện."}
+      ]
+    },
+    {
+      "schemaId": "sensor_op_amp", "schemaVersion": "1.1", "topic": "CIRCUITS",
+      "localizedNames": {"en": "sensor divider and op-amp output", "vi": "mạch cảm biến chia áp và khuếch đại thuật toán"},
+      "aliases": {"en": ["sensor voltage divider", "op amp sensor", "instrumentation amplifier"], "vi": ["cảm biến chia áp", "khuếch đại thuật toán", "mạch đo cảm biến"]},
+      "curriculumLabels": {"en": ["sensors", "operational amplifiers"], "vi": ["cảm biến", "op-amp"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A sensor resistance forms a voltage divider and may feed an operational amplifier. The problem gives supply and resistor values and investigates sensor voltage or amplifier output."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Điện trở cảm biến tạo thành mạch chia áp và có thể đưa vào bộ khuếch đại thuật toán. Đề bài cho nguồn và các điện trở để tìm điện áp cảm biến hoặc đầu ra khuếch đại."}
+      ]
+    },
+    {
+      "schemaId": "source_internal_resistance", "schemaVersion": "1.1", "topic": "CIRCUITS",
+      "localizedNames": {"en": "source with internal resistance", "vi": "nguồn điện có điện trở trong"},
+      "aliases": {"en": ["EMF internal resistance", "terminal voltage", "real voltage source"], "vi": ["suất điện động điện trở trong", "hiệu điện thế mạch ngoài", "nguồn thực"]},
+      "curriculumLabels": {"en": ["real sources", "internal resistance"], "vi": ["nguồn điện thực", "điện trở trong"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A real voltage source has electromotive force and internal resistance connected to a load. The problem investigates terminal voltage, current, or power delivered to the load."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Nguồn điện thực có suất điện động và điện trở trong nối với tải. Bài toán tìm điện áp mạch ngoài, dòng điện hoặc công suất cung cấp cho tải."}
+      ]
+    },
+    {
+      "schemaId": "thermistor_response", "schemaVersion": "1.1", "topic": "CIRCUITS",
+      "localizedNames": {"en": "thermistor response", "vi": "đáp ứng nhiệt điện trở"},
+      "aliases": {"en": ["temperature dependent resistor", "thermistor circuit", "NTC sensor"], "vi": ["điện trở phụ thuộc nhiệt độ", "mạch nhiệt điện trở", "cảm biến NTC"]},
+      "curriculumLabels": {"en": ["electronic sensors", "temperature measurement"], "vi": ["cảm biến điện tử", "đo nhiệt độ"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A thermistor changes resistance with temperature and is used in a voltage-divider circuit. The problem gives thermistor parameters and investigates resistance, voltage, or sensor response."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Nhiệt điện trở thay đổi điện trở theo nhiệt độ và được dùng trong mạch chia áp. Đề bài cho tham số nhiệt điện trở để tìm điện trở, điện áp hoặc đáp ứng cảm biến."}
+      ]
+    },
+    {
+      "schemaId": "circular_motion", "schemaVersion": "1.2", "topic": "DYNAMICS",
+      "localizedNames": {"en": "uniform circular motion", "vi": "chuyển động tròn đều"},
+      "aliases": {"en": ["centripetal motion", "circular path", "centripetal acceleration"], "vi": ["chuyển động tròn", "gia tốc hướng tâm", "lực hướng tâm"]},
+      "curriculumLabels": {"en": ["circular motion", "centripetal force"], "vi": ["chuyển động tròn", "lực hướng tâm"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A body moves around a circular path with mass, radius, and speed or angular rate. The problem investigates centripetal acceleration, force, or period."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Một vật chuyển động theo quỹ đạo tròn với khối lượng, bán kính và vận tốc hoặc tốc độ góc. Bài toán tìm gia tốc hướng tâm, lực hướng tâm hoặc chu kỳ."}
+      ]
+    },
+    {
+      "schemaId": "damped_forced_oscillation", "schemaVersion": "1.1", "topic": "DYNAMICS",
+      "localizedNames": {"en": "damped and forced oscillation", "vi": "dao động tắt dần và cưỡng bức"},
+      "aliases": {"en": ["damped oscillator", "driven spring mass", "forced vibration"], "vi": ["dao động có lực cản", "dao động cưỡng bức", "hệ khối lượng lò xo giảm chấn"]},
+      "curriculumLabels": {"en": ["mechanical oscillations", "resonance"], "vi": ["dao động cơ", "cộng hưởng"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A mass-spring oscillator is affected by damping and an external periodic force. The problem gives mass, stiffness, damping, forcing, and initial data and investigates displacement or velocity over time."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Hệ vật - lò xo chịu lực cản và lực ngoài tuần hoàn. Đề bài cho khối lượng, độ cứng, lực cản, lực cưỡng bức và điều kiện đầu để tìm li độ hoặc vận tốc theo thời gian."}
+      ]
+    },
+    {
+      "schemaId": "dynamics_collision", "schemaVersion": "2.0", "topic": "DYNAMICS",
+      "localizedNames": {"en": "elastic collision", "vi": "va chạm đàn hồi"},
+      "aliases": {"en": ["one-dimensional collision", "elastic impact", "colliding bodies"], "vi": ["va chạm một chiều", "va chạm xuyên tâm", "hai vật va chạm"]},
+      "curriculumLabels": {"en": ["momentum conservation", "collisions"], "vi": ["bảo toàn động lượng", "va chạm"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "Two bodies collide elastically along a line. The problem gives masses, positions, and initial velocities and investigates their positions or velocities after the interaction."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Hai vật va chạm đàn hồi trên một đường thẳng. Bài toán cho khối lượng, vị trí và vận tốc ban đầu để tìm vị trí hoặc vận tốc sau tương tác."}
+      ]
+    },
+    {
+      "schemaId": "dynamics_forces", "schemaVersion": "2.0", "topic": "DYNAMICS",
+      "localizedNames": {"en": "motion under forces", "vi": "chuyển động dưới tác dụng của lực"},
+      "aliases": {"en": ["Newton's second law", "net force motion", "friction motion"], "vi": ["định luật II Newton", "chuyển động do hợp lực", "chuyển động có ma sát"]},
+      "curriculumLabels": {"en": ["Newtonian dynamics", "friction"], "vi": ["động lực học Newton", "ma sát"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A body moves under gravity, applied force, friction, or another net force. The problem gives mass and force data with initial position or velocity and investigates motion."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Một vật chuyển động dưới tác dụng của trọng lực, lực kéo, ma sát hoặc hợp lực. Đề bài cho khối lượng và các lực cùng vị trí hoặc vận tốc đầu để tìm chuyển động."}
+      ]
+    },
+    {
+      "schemaId": "gravity_orbit", "schemaVersion": "1.2", "topic": "DYNAMICS",
+      "localizedNames": {"en": "gravity field and circular orbit", "vi": "trường hấp dẫn và quỹ đạo tròn"},
+      "aliases": {"en": ["gravitational orbit", "satellite orbit", "gravity field"], "vi": ["quỹ đạo vệ tinh", "chuyển động quỹ đạo", "trường trọng lực"]},
+      "curriculumLabels": {"en": ["gravitation", "satellite motion"], "vi": ["lực hấp dẫn", "chuyển động vệ tinh"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A mass moves in a gravitational field or circular orbit around a central body. The problem gives masses, radius, or orbital speed and investigates gravity, period, or orbit motion."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Một vật chuyển động trong trường hấp dẫn hoặc trên quỹ đạo tròn quanh thiên thể trung tâm. Bài toán cho khối lượng, bán kính hoặc tốc độ quỹ đạo để tìm lực, chu kỳ hoặc chuyển động."}
+      ]
+    },
+    {
+      "schemaId": "hooke_law", "schemaVersion": "1.2", "topic": "DYNAMICS",
+      "localizedNames": {"en": "Hooke's law and elastic energy", "vi": "định luật Hooke và năng lượng đàn hồi"},
+      "aliases": {"en": ["stretched spring restoring force", "spring stiffness", "elastic potential energy"], "vi": ["lò xo bị kéo dãn", "độ cứng lò xo", "lực đàn hồi"]},
+      "curriculumLabels": {"en": ["elastic force", "spring energy"], "vi": ["lực đàn hồi", "năng lượng đàn hồi"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A spring with stiffness is stretched or compressed from equilibrium. The problem gives spring constant and displacement and investigates restoring force or elastic potential energy."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Lò xo có độ cứng bị kéo dãn hoặc nén khỏi vị trí cân bằng. Đề bài cho độ cứng và độ biến dạng để tìm lực đàn hồi hoặc thế năng đàn hồi."}
+      ]
+    },
+    {
+      "schemaId": "hydrostatics", "schemaVersion": "1.2", "topic": "DYNAMICS",
+      "localizedNames": {"en": "hydrostatic pressure and buoyancy", "vi": "áp suất chất lỏng và lực đẩy nổi"},
+      "aliases": {"en": ["fluid pressure", "buoyant force", "Archimedes force"], "vi": ["áp suất thủy tĩnh", "lực đẩy Archimedes", "vật nổi trong chất lỏng"]},
+      "curriculumLabels": {"en": ["fluids", "buoyancy"], "vi": ["chất lỏng", "lực đẩy"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A fluid at rest exerts pressure and can produce buoyancy on an immersed body. The problem gives fluid density, depth, volume, or mass and investigates pressure or buoyant force."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Chất lỏng đứng yên gây áp suất và lực đẩy lên vật nhúng trong chất lỏng. Bài toán cho khối lượng riêng, độ sâu, thể tích hoặc khối lượng để tìm áp suất hay lực đẩy."}
+      ]
+    },
+    {
+      "schemaId": "linear_drag_motion", "schemaVersion": "1.2", "topic": "DYNAMICS",
+      "localizedNames": {"en": "linear drag motion", "vi": "chuyển động có lực cản tuyến tính"},
+      "aliases": {"en": ["air resistance proportional to speed", "viscous drag", "linear resistance"], "vi": ["lực cản tỉ lệ vận tốc", "lực cản nhớt", "sức cản tuyến tính"]},
+      "curriculumLabels": {"en": ["resistive force", "terminal motion"], "vi": ["lực cản", "chuyển động giới hạn"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A moving body experiences a resistive force proportional to velocity, often with gravity or an applied force. The problem gives mass, drag, and initial velocity and investigates position or speed over time."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Vật chuyển động chịu lực cản tỉ lệ với vận tốc, có thể cùng trọng lực hoặc lực tác dụng. Đề bài cho khối lượng, hệ số cản và vận tốc đầu để tìm vị trí hoặc tốc độ theo thời gian."}
+      ]
+    },
+    {
+      "schemaId": "moment_equilibrium", "schemaVersion": "1.2", "topic": "DYNAMICS",
+      "localizedNames": {"en": "moment and rotational equilibrium", "vi": "mômen lực và cân bằng quay"},
+      "aliases": {"en": ["torque balance", "lever equilibrium", "rotational balance"], "vi": ["cân bằng mômen", "đòn bẩy cân bằng", "mômen lực"]},
+      "curriculumLabels": {"en": ["torque", "static equilibrium"], "vi": ["mômen", "cân bằng tĩnh"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "Forces act at distances from a pivot or axis and a body is in rotational equilibrium. The problem gives force magnitudes and lever arms and investigates torque or balance."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Các lực tác dụng cách trục quay một khoảng và vật cân bằng quay. Bài toán cho độ lớn lực và cánh tay đòn để tìm mômen hoặc điều kiện cân bằng."}
+      ]
+    },
+    {
+      "schemaId": "oscillations_spring", "schemaVersion": "2.0", "topic": "DYNAMICS",
+      "localizedNames": {"en": "spring oscillation", "vi": "dao động của hệ lò xo"},
+      "aliases": {"en": ["mass spring oscillation", "simple harmonic spring", "spring period"], "vi": ["dao động lò xo", "con lắc lò xo", "chu kỳ lò xo"]},
+      "curriculumLabels": {"en": ["simple harmonic motion", "spring oscillator"], "vi": ["dao động điều hòa", "con lắc lò xo"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A mass attached to a spring oscillates around equilibrium. The problem gives mass, stiffness, displacement, or initial velocity and investigates position, speed, or period."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Vật gắn với lò xo dao động quanh vị trí cân bằng. Đề bài cho khối lượng, độ cứng, li độ hoặc vận tốc đầu để tìm vị trí, tốc độ hoặc chu kỳ."}
+      ]
+    },
+    {
+      "schemaId": "work_energy_power", "schemaVersion": "1.2", "topic": "DYNAMICS",
+      "localizedNames": {"en": "work, energy, and power", "vi": "công, năng lượng và công suất"},
+      "aliases": {"en": ["work energy theorem", "mechanical power", "force does work"], "vi": ["định lý công động năng", "công cơ học", "công suất cơ"]},
+      "curriculumLabels": {"en": ["work and energy", "power"], "vi": ["công và năng lượng", "công suất"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A force acts through a displacement or during a time interval. The problem gives force, distance, speed, angle, or time and investigates work, kinetic energy, or power."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Lực tác dụng trong một quãng đường hoặc khoảng thời gian. Bài toán cho lực, quãng đường, vận tốc, góc hoặc thời gian để tìm công, động năng hoặc công suất."}
+      ]
+    },
+    {
+      "schemaId": "kinematics", "schemaVersion": "1.11", "topic": "KINEMATICS",
+      "localizedNames": {"en": "one-dimensional kinematics", "vi": "động học một chiều"},
+      "aliases": {"en": ["uniform acceleration", "constant acceleration motion", "straight-line motion"], "vi": ["chuyển động thẳng biến đổi đều", "gia tốc không đổi", "chuyển động một chiều"]},
+      "curriculumLabels": {"en": ["kinematics", "constant acceleration"], "vi": ["động học", "gia tốc không đổi"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A body moves along one dimension with initial position or velocity and constant acceleration. The problem investigates position, velocity, or acceleration as a function of time."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Một vật chuyển động một chiều với vị trí hoặc vận tốc ban đầu và gia tốc không đổi. Đề bài tìm vị trí, vận tốc hoặc gia tốc theo thời gian."}
+      ]
+    },
+    {
+      "schemaId": "kinematics_acceleration_time_graph", "schemaVersion": "1.1", "topic": "KINEMATICS",
+      "localizedNames": {"en": "acceleration-time graph", "vi": "đồ thị gia tốc theo thời gian"},
+      "aliases": {"en": ["a-t graph", "acceleration versus time", "integrate acceleration"], "vi": ["đồ thị a t", "gia tốc theo thời gian", "đồ thị gia tốc"]},
+      "curriculumLabels": {"en": ["kinematics graphs", "acceleration graph"], "vi": ["đồ thị động học", "đồ thị gia tốc"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "Acceleration is specified as a function or graph of time. The problem gives initial velocity or position and investigates velocity or position obtained from the acceleration history."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Gia tốc được cho dưới dạng hàm hoặc đồ thị theo thời gian. Bài toán cho vận tốc hoặc vị trí đầu để tìm vận tốc hay vị trí từ diễn biến gia tốc."}
+      ]
+    },
+    {
+      "schemaId": "kinematics_position_time_graph", "schemaVersion": "1.1", "topic": "KINEMATICS",
+      "localizedNames": {"en": "position-time graph", "vi": "đồ thị vị trí theo thời gian"},
+      "aliases": {"en": ["x-t graph", "position versus time", "displacement graph"], "vi": ["đồ thị x t", "vị trí theo thời gian", "đồ thị tọa độ thời gian"]},
+      "curriculumLabels": {"en": ["kinematics graphs", "position graph"], "vi": ["đồ thị động học", "đồ thị vị trí"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "Position or displacement is given as a function or graph of time. The problem investigates velocity, acceleration, or turning points from the position history."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Vị trí hoặc độ dịch chuyển được cho theo hàm hoặc đồ thị thời gian. Bài toán tìm vận tốc, gia tốc hoặc thời điểm đổi chiều từ diễn biến vị trí."}
+      ]
+    },
+    {
+      "schemaId": "kinematics_projectile", "schemaVersion": "1.11", "topic": "KINEMATICS",
+      "localizedNames": {"en": "projectile motion", "vi": "chuyển động ném xiên"},
+      "aliases": {"en": ["body launched at an angle", "angled launch", "projectile trajectory"], "vi": ["vật ném xiên", "ném vật với góc ném", "quỹ đạo parabol"]},
+      "curriculumLabels": {"en": ["two-dimensional kinematics", "projectiles"], "vi": ["động học hai chiều", "chuyển động ném"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "A body is launched with an initial speed at an angle and then follows projectile motion under gravity. The problem gives launch speed, angle, height, or time and investigates trajectory, range, height, or velocity."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Một vật được ném xiên với vận tốc ban đầu và góc ném rồi chuyển động dưới trọng lực. Đề bài cho vận tốc, góc, độ cao hoặc thời gian để tìm quỹ đạo, tầm xa, độ cao hoặc vận tốc."}
+      ]
+    },
+    {
+      "schemaId": "kinematics_velocity_time_graph", "schemaVersion": "1.1", "topic": "KINEMATICS",
+      "localizedNames": {"en": "velocity-time graph", "vi": "đồ thị vận tốc theo thời gian"},
+      "aliases": {"en": ["v-t graph", "velocity versus time", "speed-time graph"], "vi": ["đồ thị v t", "vận tốc theo thời gian", "đồ thị vận tốc"]},
+      "curriculumLabels": {"en": ["kinematics graphs", "velocity graph"], "vi": ["đồ thị động học", "đồ thị vận tốc"]},
+      "semanticViews": [
+        {"locale": "en", "viewType": "phenomenon", "viewVersion": "v1", "text": "Velocity is specified as a function or graph of time. The problem gives an initial position when needed and investigates displacement, distance, or acceleration from the velocity history."},
+        {"locale": "vi", "viewType": "phenomenon", "viewVersion": "v1", "text": "Vận tốc được cho dưới dạng hàm hoặc đồ thị theo thời gian. Bài toán có thể cho vị trí đầu và tìm độ dịch chuyển, quãng đường hoặc gia tốc từ đồ thị vận tốc."}
+      ]
+    }
+  ]
+}

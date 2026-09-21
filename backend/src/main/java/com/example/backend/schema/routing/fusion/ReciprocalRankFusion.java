@@ -52,10 +52,10 @@ public final class ReciprocalRankFusion {
                 }
                 priorRank = item.rank();
                 Identity identity = new Identity(item.schemaId(), item.schemaVersion());
-                if (!seen.add(identity)) {
-                    throw new IllegalArgumentException("duplicate candidate in ranking "
-                            + retrieverName + ": " + item.schemaId() + "@" + item.schemaVersion());
-                }
+                // A provider can accidentally repeat an identity. RRF is defined over a
+                // ranking of identities, so keep the first (best-ranked) occurrence and
+                // ignore later duplicates without changing the rank validation above.
+                if (!seen.add(identity)) continue;
                 scores.merge(identity, 1.0 / (k + (double) item.rank()), Double::sum);
             }
         }

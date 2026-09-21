@@ -32,11 +32,11 @@ Primary code is under `backend/src/main/java/com/example/backend/schema/routing/
 
 ## Known gaps
 
-- This ADR records the intended routing boundary; it does not assert production readiness. A Testcontainers PostgreSQL/pgvector test now covers the store and V8/V9 migrations from a V7 baseline, but both tests were skipped locally because Docker was unavailable. The legacy V1–V7 chain still cannot start from a truly empty database.
-- `OpenRouterEmbeddingClient` is the only production embedding implementation. There is no bounded retry/circuit-breaker policy or query-embedding cache.
+- This ADR records the intended routing boundary; it does not assert production readiness. Testcontainers PostgreSQL/pgvector tests cover the store and V8–V11 migrations from a V7 baseline in the current Docker-enabled environment. The legacy V1–V7 chain still requires the documented Hibernate-first bootstrap sequence before a truly empty database can be migrated.
+- `OpenRouterEmbeddingClient` is the only production embedding implementation. It uses a validated bounded attempt/backoff policy for rate-limit, server, and transport failures; malformed vectors and non-retryable client responses fail closed. A circuit breaker and query-embedding cache are not enabled because no production failure/latency measurements justify their additional state yet.
 - Startup indexing may make one external embedding request for each schema version needing an embedding. A standalone dry-run/reindex administration command and automatic catalog-publish trigger are not yet wired; callers must invoke the refresh method after an in-process catalog change.
 - The contract verifier is a configurable lexical/metadata heuristic, not a calibrated probability model. Its thresholds need evaluation against a labeled curriculum query set before being treated as a reliable confidence estimate.
 - The search-document builder currently projects fields directly from the stored schema definition. Comprehensive compiler-level validation of every search field, unit, alias, and relation remains part of the wider schema compiler work.
-- The embedding freshness check also compares stored search text with the newly projected document, so projection changes trigger re-embedding when the schema-definition checksum is unchanged. A formal projection-format version may still help with lifecycle observability.
+- The embedding freshness check compares stored search text and the projection-format version with the newly projected document, so projection changes trigger re-embedding even when the schema-definition checksum is unchanged.
 
 Until these gaps and the required migration, runtime, and end-to-end gates are closed, the backend must not be described as production ready.

@@ -5,4 +5,8 @@ public final class SchemaRoutingException extends IllegalArgumentException {
     public SchemaRoutingException(String message) {
         super(message);
     }
+
+    public SchemaRoutingException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

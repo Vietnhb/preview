@@ -46,8 +46,8 @@
       "adjustableParameters": [
         {
           "key": "initial_velocity",
-          "label": "Váº­n tá»‘c ban Ä‘áº§u",
-          "symbol": "vâ‚€",
+          "label": "Vận tốc ban đầu",
+          "symbol": "v₀",
           "unit": "m/s",
           "min": -40,
           "max": 60,
@@ -55,9 +55,9 @@
         },
         {
           "key": "acceleration",
-          "label": "Gia tá»‘c",
+          "label": "Gia tốc",
           "symbol": "a",
-          "unit": "m/sÂ²",
+          "unit": "m/s²",
           "min": -10,
           "max": 10,
           "step": 0.1
@@ -69,7 +69,7 @@
           {
             "key": "x",
             "source": "positions.x",
-            "label": "Vá»‹ trÃ­",
+            "label": "Vị trí",
             "symbol": "x",
             "unit": "m",
             "color": "#2563eb"
@@ -77,7 +77,7 @@
           {
             "key": "vx",
             "source": "velocities.x",
-            "label": "Váº­n tá»‘c",
+            "label": "Vận tốc",
             "symbol": "v",
             "unit": "m/s",
             "color": "#087e68"
@@ -85,9 +85,9 @@
           {
             "key": "ax",
             "source": "accelerations.x",
-            "label": "Gia tá»‘c",
+            "label": "Gia tốc",
             "symbol": "a",
-            "unit": "m/sÂ²",
+            "unit": "m/s²",
             "color": "#d16a25"
           }
         ],
@@ -199,8 +199,8 @@
       "adjustableParameters": [
         {
           "key": "initial_velocity",
-          "label": "Váº­n tá»‘c ban Ä‘áº§u",
-          "symbol": "vâ‚€",
+          "label": "Vận tốc ban đầu",
+          "symbol": "v₀",
           "unit": "m/s",
           "min": 0,
           "max": 100,
@@ -208,8 +208,8 @@
         },
         {
           "key": "launch_angle",
-          "label": "GÃ³c phÃ³ng",
-          "symbol": "Î¸",
+          "label": "Góc phóng",
+          "symbol": "θ",
           "unit": "rad",
           "min": 0,
           "max": 3.1415926536,
@@ -217,9 +217,9 @@
         },
         {
           "key": "gravitational_acceleration",
-          "label": "Gia tá»‘c trá»ng trÆ°á»ng",
+          "label": "Gia tốc trọng trường",
           "symbol": "g",
-          "unit": "m/sÂ²",
+          "unit": "m/s²",
           "min": 0,
           "max": 30,
           "step": 0.1
@@ -231,7 +231,7 @@
           {
             "key": "x",
             "source": "positions.x",
-            "label": "Vá»‹ trÃ­ ngang",
+            "label": "Vị trí ngang",
             "symbol": "x",
             "unit": "m",
             "color": "#2563eb"
@@ -239,7 +239,7 @@
           {
             "key": "y",
             "source": "positions.y",
-            "label": "Äá»™ cao",
+            "label": "Độ cao",
             "symbol": "y",
             "unit": "m",
             "color": "#7c3aed"
@@ -247,16 +247,16 @@
           {
             "key": "vx",
             "source": "velocities.x",
-            "label": "Váº­n tá»‘c ngang",
-            "symbol": "vâ‚“",
+            "label": "Vận tốc ngang",
+            "symbol": "vₓ",
             "unit": "m/s",
             "color": "#087e68"
           },
           {
             "key": "vy",
             "source": "velocities.y",
-            "label": "Váº­n tá»‘c Ä‘á»©ng",
-            "symbol": "váµ§",
+            "label": "Vận tốc đứng",
+            "symbol": "vᵧ",
             "unit": "m/s",
             "color": "#d16a25"
           }
@@ -395,7 +395,7 @@
       "adjustableParameters": [
         {
           "key": "net_force",
-          "label": "Há»£p lá»±c",
+          "label": "Hợp lực",
           "symbol": "F",
           "unit": "N",
           "min": -100,
@@ -404,7 +404,7 @@
         },
         {
           "key": "mass",
-          "label": "Khá»‘i lÆ°á»£ng",
+          "label": "Khối lượng",
           "symbol": "m",
           "unit": "kg",
           "min": 0.1,
@@ -413,9 +413,9 @@
         },
         {
           "key": "gravitational_acceleration",
-          "label": "Gia tá»‘c trá»ng trÆ°á»ng",
+          "label": "Gia tốc trọng trường",
           "symbol": "g",
-          "unit": "m/sÂ²",
+          "unit": "m/s²",
           "min": 0,
           "max": 30,
           "step": 0.1
@@ -427,7 +427,7 @@
           {
             "key": "x",
             "source": "positions.x",
-            "label": "Vá»‹ trÃ­",
+            "label": "Vị trí",
             "symbol": "x",
             "unit": "m",
             "color": "#2563eb"
@@ -435,7 +435,7 @@
           {
             "key": "vx",
             "source": "velocities.x",
-            "label": "Váº­n tá»‘c",
+            "label": "Vận tốc",
             "symbol": "v",
             "unit": "m/s",
             "color": "#087e68"
@@ -443,9 +443,9 @@
           {
             "key": "ax",
             "source": "accelerations.x",
-            "label": "Gia tá»‘c",
+            "label": "Gia tốc",
             "symbol": "a",
-            "unit": "m/sÂ²",
+            "unit": "m/s²",
             "color": "#d16a25"
           }
         ],
@@ -585,8 +585,8 @@
       "adjustableParameters": [
         {
           "key": "velocity_1",
-          "label": "Váº­n tá»‘c váº­t 1",
-          "symbol": "vâ‚",
+          "label": "Vận tốc vật 1",
+          "symbol": "v₁",
           "unit": "m/s",
           "min": -50,
           "max": 50,
@@ -594,8 +594,8 @@
         },
         {
           "key": "velocity_2",
-          "label": "Váº­n tá»‘c váº­t 2",
-          "symbol": "vâ‚‚",
+          "label": "Vận tốc vật 2",
+          "symbol": "v₂",
           "unit": "m/s",
           "min": -50,
           "max": 50,
@@ -608,32 +608,32 @@
           {
             "key": "x1",
             "source": "positions.x1",
-            "label": "Vá»‹ trÃ­ váº­t 1",
-            "symbol": "xâ‚",
+            "label": "Vị trí vật 1",
+            "symbol": "x₁",
             "unit": "m",
             "color": "#2563eb"
           },
           {
             "key": "x2",
             "source": "positions.x2",
-            "label": "Vá»‹ trÃ­ váº­t 2",
-            "symbol": "xâ‚‚",
+            "label": "Vị trí vật 2",
+            "symbol": "x₂",
             "unit": "m",
             "color": "#d16a25"
           },
           {
             "key": "v1",
             "source": "velocities.v1",
-            "label": "Váº­n tá»‘c váº­t 1",
-            "symbol": "vâ‚",
+            "label": "Vận tốc vật 1",
+            "symbol": "v₁",
             "unit": "m/s",
             "color": "#087e68"
           },
           {
             "key": "v2",
             "source": "velocities.v2",
-            "label": "Váº­n tá»‘c váº­t 2",
-            "symbol": "vâ‚‚",
+            "label": "Vận tốc vật 2",
+            "symbol": "v₂",
             "unit": "m/s",
             "color": "#ea580c"
           }
@@ -746,7 +746,7 @@
       "adjustableParameters": [
         {
           "key": "amplitude",
-          "label": "BiÃªn Ä‘á»™",
+          "label": "Biên độ",
           "symbol": "A",
           "unit": "m",
           "min": 0.001,
@@ -755,7 +755,7 @@
         },
         {
           "key": "spring_constant",
-          "label": "Äá»™ cá»©ng",
+          "label": "Độ cứng",
           "symbol": "k",
           "unit": "N/m",
           "min": 0.1,
@@ -769,7 +769,7 @@
           {
             "key": "x",
             "source": "positions.x",
-            "label": "Li Ä‘á»™",
+            "label": "Li độ",
             "symbol": "x",
             "unit": "m",
             "color": "#2563eb"
@@ -777,7 +777,7 @@
           {
             "key": "vx",
             "source": "velocities.x",
-            "label": "Váº­n tá»‘c",
+            "label": "Vận tốc",
             "symbol": "v",
             "unit": "m/s",
             "color": "#087e68"
@@ -785,9 +785,9 @@
           {
             "key": "ax",
             "source": "accelerations.x",
-            "label": "Gia tá»‘c",
+            "label": "Gia tốc",
             "symbol": "a",
-            "unit": "m/sÂ²",
+            "unit": "m/s²",
             "color": "#d16a25"
           }
         ],
@@ -885,8 +885,8 @@
       "adjustableParameters": [
         {
           "key": "voltage",
-          "label": "Äiá»‡n Ã¡p",
-          "symbol": "Uâ‚€",
+          "label": "Điện áp",
+          "symbol": "U₀",
           "unit": "V",
           "min": 0,
           "max": 100,
@@ -894,9 +894,9 @@
         },
         {
           "key": "resistance",
-          "label": "Äiá»‡n trá»Ÿ",
+          "label": "Điện trở",
           "symbol": "R",
-          "unit": "Î©",
+          "unit": "Ω",
           "min": 0.1,
           "max": 100000,
           "step": 1
@@ -908,7 +908,7 @@
           {
             "key": "voltage",
             "source": "values.voltage",
-            "label": "Äiá»‡n Ã¡p trÃªn tá»¥",
+            "label": "Điện áp trên tụ",
             "symbol": "Uêœ€",
             "unit": "V",
             "color": "#2563eb"
@@ -916,7 +916,7 @@
           {
             "key": "current",
             "source": "values.current",
-            "label": "DÃ²ng Ä‘iá»‡n",
+            "label": "Dòng điện",
             "symbol": "I",
             "unit": "A",
             "color": "#087e68"
@@ -1004,8 +1004,8 @@
       "adjustableParameters": [
         {
           "key": "voltage",
-          "label": "Äiá»‡n Ã¡p ban Ä‘áº§u",
-          "symbol": "Uâ‚€",
+          "label": "Điện áp ban đầu",
+          "symbol": "U₀",
           "unit": "V",
           "min": 0,
           "max": 100,
@@ -1013,9 +1013,9 @@
         },
         {
           "key": "resistance",
-          "label": "Äiá»‡n trá»Ÿ",
+          "label": "Điện trở",
           "symbol": "R",
-          "unit": "Î©",
+          "unit": "Ω",
           "min": 0.1,
           "max": 100000,
           "step": 1
@@ -1027,7 +1027,7 @@
           {
             "key": "voltage",
             "source": "values.voltage",
-            "label": "Äiá»‡n Ã¡p trÃªn tá»¥",
+            "label": "Điện áp trên tụ",
             "symbol": "Uêœ€",
             "unit": "V",
             "color": "#2563eb"
@@ -1035,7 +1035,7 @@
           {
             "key": "current",
             "source": "values.current",
-            "label": "DÃ²ng Ä‘iá»‡n",
+            "label": "Dòng điện",
             "symbol": "I",
             "unit": "A",
             "color": "#087e68"
@@ -1195,7 +1195,7 @@
       "adjustableParameters": [
         {
           "key": "amplitude",
-          "label": "BiÃªn Ä‘á»™",
+          "label": "Biên độ",
           "symbol": "A",
           "unit": "m",
           "min": 0,
@@ -1204,7 +1204,7 @@
         },
         {
           "key": "frequency",
-          "label": "Táº§n sá»‘",
+          "label": "Tần số",
           "symbol": "f",
           "unit": "Hz",
           "min": 0.01,
@@ -1213,7 +1213,7 @@
         },
         {
           "key": "wave_speed",
-          "label": "Tá»‘c Ä‘á»™ truyá»n sÃ³ng",
+          "label": "Tốc độ truyền sóng",
           "symbol": "c",
           "unit": "m/s",
           "min": 0.01,
@@ -1222,8 +1222,8 @@
         },
         {
           "key": "phase",
-          "label": "Pha ban Ä‘áº§u",
-          "symbol": "Ï†",
+          "label": "Pha ban đầu",
+          "symbol": "φ",
           "unit": "rad",
           "min": -6.2831853072,
           "max": 6.2831853072,
@@ -1236,7 +1236,7 @@
           {
             "key": "displacement",
             "source": "values.displacement",
-            "label": "Li Ä‘á»™ táº¡i probe",
+            "label": "Li độ tại probe",
             "symbol": "u",
             "unit": "m",
             "color": "#38bdf8"
@@ -1244,17 +1244,17 @@
           {
             "key": "particleVelocity",
             "source": "values.particleVelocity",
-            "label": "Váº­n tá»‘c pháº§n tá»­",
-            "symbol": "uÌ‡",
+            "label": "Vận tốc phần tử",
+            "symbol": "u̇",
             "unit": "m/s",
             "color": "#34d399"
           },
           {
             "key": "particleAcceleration",
             "source": "values.particleAcceleration",
-            "label": "Gia tá»‘c pháº§n tá»­",
-            "symbol": "uÌˆ",
-            "unit": "m/sÂ²",
+            "label": "Gia tốc phần tử",
+            "symbol": "ü",
+            "unit": "m/s²",
             "color": "#fb923c"
           }
         ],
@@ -1437,7 +1437,7 @@
       "adjustableParameters": [
         {
           "key": "amplitude",
-          "label": "BiÃƒÂªn Ã„â€˜Ã¡Â»â„¢ xung",
+          "label": "Biên độ xung",
           "symbol": "A",
           "unit": "m",
           "min": 0,
@@ -1446,7 +1446,7 @@
         },
         {
           "key": "wave_speed",
-          "label": "TÃ¡Â»â€˜c Ã„â€˜Ã¡Â»â„¢ truyÃ¡Â»Ân",
+          "label": "Tốc độ truyền",
           "symbol": "c",
           "unit": "m/s",
           "min": 0.01,
@@ -1455,8 +1455,8 @@
         },
         {
           "key": "pulse_width",
-          "label": "Ã„ÂÃ¡Â»â„¢ rÃ¡Â»â„¢ng xung",
-          "symbol": "ÃÆ’",
+          "label": "Độ rộng xung",
+          "symbol": "σ",
           "unit": "m",
           "min": 0.001,
           "max": 10,
@@ -1469,7 +1469,7 @@
           {
             "key": "displacement",
             "source": "values.displacement",
-            "label": "Li Ã„â€˜Ã¡Â»â„¢ tÃ¡ÂºÂ¡i probe",
+            "label": "Li độ tại probe",
             "symbol": "u",
             "unit": "m",
             "color": "#38bdf8"
@@ -1477,17 +1477,17 @@
           {
             "key": "particleVelocity",
             "source": "values.particleVelocity",
-            "label": "VÃ¡ÂºÂ­n tÃ¡Â»â€˜c phÃ¡ÂºÂ§n tÃ¡Â»Â­",
-            "symbol": "uÃŒâ€¡",
+            "label": "Vận tốc phần tử",
+            "symbol": "u̇",
             "unit": "m/s",
             "color": "#34d399"
           },
           {
             "key": "particleAcceleration",
             "source": "values.particleAcceleration",
-            "label": "Gia tÃ¡Â»â€˜c phÃ¡ÂºÂ§n tÃ¡Â»Â­",
-            "symbol": "uÃŒË†",
-            "unit": "m/sÃ‚Â²",
+            "label": "Gia tốc phần tử",
+            "symbol": "ü",
+            "unit": "m/s²",
             "color": "#fb923c"
           }
         ],
@@ -1659,7 +1659,7 @@
       "adjustableParameters": [
         {
           "key": "amplitude",
-          "label": "BiÃƒÂªn Ã„â€˜Ã¡Â»â„¢",
+          "label": "Biên độ",
           "symbol": "A",
           "unit": "m",
           "min": 0,
@@ -1668,7 +1668,7 @@
         },
         {
           "key": "frequency",
-          "label": "TÃ¡ÂºÂ§n sÃ¡Â»â€˜",
+          "label": "Tần số",
           "symbol": "f",
           "unit": "Hz",
           "min": 0.01,
@@ -1677,7 +1677,7 @@
         },
         {
           "key": "wave_speed",
-          "label": "TÃ¡Â»â€˜c Ã„â€˜Ã¡Â»â„¢ truyÃ¡Â»Ân",
+          "label": "Tốc độ truyền",
           "symbol": "c",
           "unit": "m/s",
           "min": 0.01,
@@ -1686,7 +1686,7 @@
         },
         {
           "key": "string_length",
-          "label": "ChiÃ¡Â»Âu dÃƒÂ i dÃƒÂ¢y",
+          "label": "Chiều dài dây",
           "symbol": "L",
           "unit": "m",
           "min": 0.1,
@@ -1700,7 +1700,7 @@
           {
             "key": "displacement",
             "source": "values.displacement",
-            "label": "Li Ã„â€˜Ã¡Â»â„¢ tÃ¡ÂºÂ¡i probe",
+            "label": "Li độ tại probe",
             "symbol": "u",
             "unit": "m",
             "color": "#38bdf8"
@@ -1708,17 +1708,17 @@
           {
             "key": "particleVelocity",
             "source": "values.particleVelocity",
-            "label": "VÃ¡ÂºÂ­n tÃ¡Â»â€˜c phÃ¡ÂºÂ§n tÃ¡Â»Â­",
-            "symbol": "uÃŒâ€¡",
+            "label": "Vận tốc phần tử",
+            "symbol": "u̇",
             "unit": "m/s",
             "color": "#34d399"
           },
           {
             "key": "particleAcceleration",
             "source": "values.particleAcceleration",
-            "label": "Gia tÃ¡Â»â€˜c phÃ¡ÂºÂ§n tÃ¡Â»Â­",
-            "symbol": "uÃŒË†",
-            "unit": "m/sÃ‚Â²",
+            "label": "Gia tốc phần tử",
+            "symbol": "ü",
+            "unit": "m/s²",
             "color": "#fb923c"
           }
         ],
@@ -1870,7 +1870,7 @@
         {
           "key": "initial_temperature_1",
           "label": "Initial temperature 1",
-          "symbol": "Tâ‚",
+          "symbol": "T₁",
           "unit": "K",
           "min": 1,
           "max": 2000,
@@ -1879,7 +1879,7 @@
         {
           "key": "initial_temperature_2",
           "label": "Initial temperature 2",
-          "symbol": "Tâ‚‚",
+          "symbol": "T₂",
           "unit": "K",
           "min": 1,
           "max": 2000,
@@ -1893,7 +1893,7 @@
             "key": "temperature1",
             "source": "values.temperature1",
             "label": "Temperature 1",
-            "symbol": "Tâ‚",
+            "symbol": "T₁",
             "unit": "K",
             "color": "#38bdf8"
           },
@@ -1901,7 +1901,7 @@
             "key": "temperature2",
             "source": "values.temperature2",
             "label": "Temperature 2",
-            "symbol": "Tâ‚‚",
+            "symbol": "T₂",
             "unit": "K",
             "color": "#fb923c"
           },
@@ -2043,7 +2043,7 @@
             "key": "deltaInternalEnergy",
             "source": "values.deltaInternalEnergy",
             "label": "Delta U",
-            "symbol": "Î”U",
+            "symbol": "ΔU",
             "unit": "J",
             "color": "#34d399"
           }
@@ -2148,7 +2148,7 @@
         {
           "key": "incident_angle",
           "label": "Incident angle",
-          "symbol": "Î¸_i",
+          "symbol": "θ_i",
           "unit": "rad",
           "min": 0,
           "max": 1.570796,
@@ -2162,7 +2162,7 @@
             "key": "refractedAngle",
             "source": "values.refractedAngle",
             "label": "Refracted angle",
-            "symbol": "Î¸_r",
+            "symbol": "θ_r",
             "unit": "rad",
             "color": "#38bdf8"
           },
@@ -2316,7 +2316,7 @@
             "key": "magneticFlux",
             "source": "values.magneticFlux",
             "label": "Magnetic flux",
-            "symbol": "Î¦",
+            "symbol": "Φ",
             "unit": "Wb",
             "color": "#38bdf8"
           },
@@ -2324,7 +2324,7 @@
             "key": "inducedEmf",
             "source": "values.inducedEmf",
             "label": "Induced emf",
-            "symbol": "Îµ",
+            "symbol": "ε",
             "unit": "V",
             "color": "#fb923c"
           }
@@ -2457,7 +2457,7 @@
         {
           "key": "rms_voltage",
           "label": "RMS voltage",
-          "symbol": "Váµ£â‚˜â‚›",
+          "symbol": "Vᵣₘₛ",
           "unit": "V",
           "min": 0,
           "max": 10000,
@@ -2487,7 +2487,7 @@
             "key": "powerFactor",
             "source": "values.powerFactor",
             "label": "Power factor",
-            "symbol": "cosÏ†",
+            "symbol": "cosφ",
             "unit": "1",
             "color": "#fb923c"
           }
@@ -2572,7 +2572,7 @@
           "key": "work_function",
           "aliases": [
             "phi",
-            "Î¦"
+            "Φ"
           ],
           "allowedUnits": [
             "J"
@@ -2618,7 +2618,7 @@
             "key": "maximumKineticEnergy",
             "source": "values.maximumKineticEnergy",
             "label": "Maximum kinetic energy",
-            "symbol": "Kâ‚˜â‚â‚“",
+            "symbol": "Kₘₐₓ",
             "unit": "J",
             "color": "#34d399"
           },
@@ -2626,7 +2626,7 @@
             "key": "stoppingPotential",
             "source": "values.stoppingPotential",
             "label": "Stopping potential",
-            "symbol": "Vâ‚€",
+            "symbol": "V₀",
             "unit": "V",
             "color": "#fb923c"
           },
@@ -2709,7 +2709,7 @@
           "key": "mass_defect",
           "aliases": [
             "delta_m",
-            "Î”m"
+            "Δm"
           ],
           "allowedUnits": [
             "kg"
@@ -2733,7 +2733,7 @@
         {
           "key": "mass_defect",
           "label": "Mass defect",
-          "symbol": "Î”m",
+          "symbol": "Δm",
           "unit": "kg",
           "min": 0,
           "max": 1,
@@ -2868,7 +2868,7 @@
         {
           "key": "velocity_field_angle",
           "label": "Field angle",
-          "symbol": "Î¸",
+          "symbol": "θ",
           "unit": "rad",
           "min": 0,
           "max": 3.141593,
@@ -2996,7 +2996,7 @@
         {
           "key": "absolute_uncertainty",
           "label": "Absolute uncertainty",
-          "symbol": "Î”x",
+          "symbol": "Δx",
           "unit": "1",
           "min": 0,
           "max": 1000000,
@@ -3018,7 +3018,7 @@
             "key": "lowerBound",
             "source": "values.lowerBound",
             "label": "Lower bound",
-            "symbol": "x-Î”x",
+            "symbol": "x-Δx",
             "unit": "1",
             "color": "#fb923c"
           },
@@ -3026,7 +3026,7 @@
             "key": "upperBound",
             "source": "values.upperBound",
             "label": "Upper bound",
-            "symbol": "x+Î”x",
+            "symbol": "x+Δx",
             "unit": "1",
             "color": "#34d399"
           }
@@ -3099,7 +3099,7 @@
           "key": "temperature_celsius",
           "aliases": [
             "celsius",
-            "Â°C"
+            "°C"
           ],
           "allowedUnits": [
             "degC"
@@ -3110,7 +3110,7 @@
         {
           "key": "temperature_celsius",
           "label": "Celsius value",
-          "symbol": "Â°C",
+          "symbol": "°C",
           "unit": "degC",
           "min": -273.15,
           "max": 5000,
@@ -3132,7 +3132,7 @@
             "key": "fahrenheit",
             "source": "values.fahrenheit",
             "label": "Fahrenheit",
-            "symbol": "Â°F",
+            "symbol": "°F",
             "unit": "1",
             "color": "#fb923c"
           }
@@ -3207,7 +3207,7 @@
           "key": "linear_expansion_coefficient",
           "aliases": [
             "alpha",
-            "Î±"
+            "α"
           ],
           "allowedUnits": [
             "1/K"
@@ -3237,7 +3237,7 @@
         {
           "key": "final_temperature",
           "label": "Final temperature",
-          "symbol": "Tâ‚",
+          "symbol": "T₁",
           "unit": "K",
           "min": 1,
           "max": 3000,
@@ -3251,7 +3251,7 @@
             "key": "extension",
             "source": "values.extension",
             "label": "Extension",
-            "symbol": "Î”L",
+            "symbol": "ΔL",
             "unit": "m",
             "color": "#fb923c"
           },
@@ -3376,7 +3376,7 @@
             "key": "branchCurrent1",
             "source": "values.branchCurrent1",
             "label": "Branch current 1",
-            "symbol": "Iâ‚",
+            "symbol": "I₁",
             "unit": "A",
             "color": "#fb923c"
           }
@@ -3472,7 +3472,7 @@
         {
           "key": "path_difference",
           "label": "Path difference",
-          "symbol": "Î”",
+          "symbol": "Δ",
           "unit": "m",
           "min": -1,
           "max": 1,
@@ -3601,7 +3601,7 @@
         {
           "key": "analyzer_angle",
           "label": "Analyzer angle",
-          "symbol": "Î¸",
+          "symbol": "θ",
           "unit": "rad",
           "min": 0,
           "max": 3.141593,
@@ -3615,7 +3615,7 @@
             "key": "diffractionAngle",
             "source": "values.diffractionAngle",
             "label": "Diffraction angle",
-            "symbol": "Î¸_m",
+            "symbol": "θ_m",
             "unit": "rad",
             "color": "#38bdf8"
           },
@@ -3725,7 +3725,7 @@
             "key": "wavelength",
             "source": "values.wavelength",
             "label": "Wavelength",
-            "symbol": "Î»",
+            "symbol": "λ",
             "unit": "m",
             "color": "#38bdf8"
           },
@@ -3838,7 +3838,7 @@
           "key": "heat_capacity_ratio",
           "aliases": [
             "gamma",
-            "Î³"
+            "γ"
           ],
           "allowedUnits": [
             "1"
@@ -3850,7 +3850,7 @@
         {
           "key": "final_volume",
           "label": "Final volume",
-          "symbol": "Vâ‚‚",
+          "symbol": "V₂",
           "unit": "m3",
           "min": 0.0001,
           "max": 100,
@@ -3864,7 +3864,7 @@
             "key": "finalPressure",
             "source": "values.finalPressure",
             "label": "Final pressure",
-            "symbol": "Pâ‚‚",
+            "symbol": "P₂",
             "unit": "Pa",
             "color": "#38bdf8"
           },
@@ -3872,7 +3872,7 @@
             "key": "finalTemperature",
             "source": "values.finalTemperature",
             "label": "Final temperature",
-            "symbol": "Tâ‚‚",
+            "symbol": "T₂",
             "unit": "K",
             "color": "#fb923c"
           }

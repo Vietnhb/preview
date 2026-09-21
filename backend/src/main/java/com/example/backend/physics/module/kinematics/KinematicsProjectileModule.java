@@ -5,6 +5,10 @@ import com.example.backend.physics.model.CanonicalQuantityBag;
 import com.example.backend.physics.model.SolverOutput;
 import com.example.backend.physics.module.PhysicsModule;
 import com.example.backend.physics.module.SimulationClock;
+import com.example.backend.physics.output.PhysicsOutput;
+import com.example.backend.physics.output.PhysicsOutputContract;
+import com.example.backend.physics.output.PhysicsOutputFrame;
+import com.example.backend.physics.output.TimeSeriesOutput;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,6 +32,11 @@ public final class KinematicsProjectileModule implements PhysicsModule<Kinematic
     @Override public String referenceSolverId() { return REFERENCE_SOLVER_ID; }
 
     @Override
+    public boolean nativeTypedOutput() {
+        return true;
+    }
+
+    @Override
     public Parameters bind(CanonicalQuantityBag quantities) {
         Objects.requireNonNull(quantities, "quantities");
         return new Parameters(
@@ -40,6 +49,46 @@ public final class KinematicsProjectileModule implements PhysicsModule<Kinematic
 
     @Override
     public SolverOutput solve(Parameters parameters, SimulationClock clock) {
+        Samples samples = sample(parameters, clock);
+        Map<String, List<Double>> positions = Map.of("x", samples.x(), "y", samples.y());
+        Map<String, List<Double>> velocities = Map.of("x", samples.vx(), "y", samples.vy());
+        Map<String, List<Double>> accelerations = Map.of("x", samples.ax(), "y", samples.ay());
+        Map<String, List<Double>> values = values(samples);
+        return new SolverOutput(samples.time(), positions, velocities, accelerations, values);
+    }
+
+    @Override
+    public PhysicsOutputFrame solveTyped(Parameters parameters, SimulationClock clock,
+                                         PhysicsOutputContract contract) {
+        Samples samples = sample(parameters, clock);
+        List<PhysicsOutput> outputs = new ArrayList<>();
+        for (Map.Entry<String, List<Double>> entry : values(samples).entrySet()) {
+            outputs.add(new TimeSeriesOutput(entry.getKey(), requiredUnit(contract, entry.getKey()),
+                    samples.time(), entry.getValue()));
+        }
+        return new PhysicsOutputFrame(samples.time(), outputs);
+    }
+
+    private static Map<String, List<Double>> values(Samples samples) {
+        Map<String, List<Double>> values = new LinkedHashMap<>();
+        values.put("x", samples.x());
+        values.put("displacement", samples.displacement());
+        values.put("y", samples.y());
+        values.put("vx", samples.vx());
+        values.put("vy", samples.vy());
+        values.put("ax", samples.ax());
+        values.put("ay", samples.ay());
+        return values;
+    }
+
+    private static String requiredUnit(PhysicsOutputContract contract, String key) {
+        if (contract == null || contract.outputs().get(key) == null) {
+            throw new IllegalArgumentException("Typed output contract is missing " + key);
+        }
+        return contract.outputs().get(key).unit();
+    }
+
+    private static Samples sample(Parameters parameters, SimulationClock clock) {
         Objects.requireNonNull(parameters, "parameters");
         Objects.requireNonNull(clock, "clock");
         validateClock(clock);
@@ -98,19 +147,7 @@ public final class KinematicsProjectileModule implements PhysicsModule<Kinematic
                 currentVerticalVelocity = nextVerticalVelocity;
             }
         }
-
-        Map<String, List<Double>> positions = Map.of("x", x, "y", y);
-        Map<String, List<Double>> velocities = Map.of("x", vx, "y", vy);
-        Map<String, List<Double>> accelerations = Map.of("x", ax, "y", ay);
-        Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("x", x);
-        values.put("displacement", displacement);
-        values.put("y", y);
-        values.put("vx", vx);
-        values.put("vy", vy);
-        values.put("ax", ax);
-        values.put("ay", ay);
-        return new SolverOutput(time, positions, velocities, accelerations, values);
+        return new Samples(time, x, y, displacement, vx, vy, ax, ay);
     }
 
     @Override
@@ -184,6 +221,10 @@ public final class KinematicsProjectileModule implements PhysicsModule<Kinematic
     private static void requireFinite(double... values) {
         for (double value : values) requireFinite(value, "result");
     }
+
+    private record Samples(List<Double> time, List<Double> x, List<Double> y,
+                           List<Double> displacement, List<Double> vx, List<Double> vy,
+                           List<Double> ax, List<Double> ay) { }
 
     /** SI-valued projectile inputs after schema defaults and unit normalization. */
     public record Parameters(double initialPosition, double initialHeight, double initialVelocity,

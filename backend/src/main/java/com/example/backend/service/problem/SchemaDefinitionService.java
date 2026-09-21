@@ -164,9 +164,26 @@ public class SchemaDefinitionService {
         if (!StringUtils.hasText(schemaId) || !StringUtils.hasText(version)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Historical schema version not found");
         }
-        return findPublishedIdentityForReplay(schemaId.trim(), version.trim())
+        SchemaVersion historical = findPublishedIdentityForReplay(schemaId.trim(), version.trim())
                 .filter(item -> item.getLifecycleStatus() != LifecycleStatus.DRAFT)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Historical schema version not found"));
+        // Historical rendering/replay is allowed when a topic has since been
+        // disabled, but the stored definition must still be the exact
+        // definition that was published.  A checksum mismatch is evidence of
+        // unsafe mutation and must stop replay rather than silently compiling
+        // a different contract.
+        verifyStoredDefinitionChecksum(historical);
+        return historical;
+    }
+
+    private void verifyStoredDefinitionChecksum(SchemaVersion schema) {
+        String stored = schema.getDefinitionChecksum();
+        if (!StringUtils.hasText(stored)) return;
+        String actual = schemaCompiler.checksum(schema.getDefinition());
+        if (!stored.equals(actual)) {
+            throw new SchemaCompilationException("Stored historical schema checksum does not match definition for "
+                    + schema.getSchemaId() + "@" + schema.getVersion());
+        }
     }
 
     private java.util.Optional<SchemaVersion> findPublishedIdentityForReplay(String schemaId, String version) {

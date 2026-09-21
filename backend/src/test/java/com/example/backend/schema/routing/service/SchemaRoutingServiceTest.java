@@ -97,6 +97,90 @@ class SchemaRoutingServiceTest {
                 .map(item -> item.schemaId() + "@" + item.schemaVersion()).toList());
     }
 
+    @Test
+    void unitOnlyOverlapCannotProduceAConfidentSelection() throws Exception {
+        IndexedSchemaCandidate source = candidate("mechanics_a", "2.1", "Mechanics A");
+        IndexedSchemaCandidate only = new IndexedSchemaCandidate(new SchemaSearchDocument(
+                "mechanics_a", "2.1", "DYNAMICS", "Mechanics A", "mechanics_family",
+                "mechanics family", "checksum-mechanics_a"), source.contract());
+        SchemaSearchIndex index = new SchemaSearchIndex();
+        index.replace(List.of(only), new Bm25SchemaRetriever(1.2, 0.75).buildIndex(List.of(only.document())));
+        EmbeddingClient embeddings = new EmbeddingClient() {
+            @Override public EmbeddingResult embed(String text) { return new EmbeddingResult(List.of(0.25, 0.75)); }
+            @Override public String providerId() { return "fake"; }
+            @Override public String modelId() { return "fixture-v1"; }
+            @Override public int dimension() { return 2; }
+        };
+        SchemaVectorRetriever vector = (query, provider, model, dimension, topK, eligibleSchemaVersions) ->
+                List.of(new SchemaVectorRetriever.RankedVector("mechanics_a", "2.1", "DYNAMICS", 0.9, 1));
+        SchemaRoutingProperties properties = new SchemaRoutingProperties(true, 20, 20, 1, 60,
+                0.25, 0.08, 20_000, 30_000, 64, 1.2, 0.75, 0.15,
+                0.55, 0.25, 0.20, 0.75,
+                new SchemaRoutingProperties.Embedding("fake", "fixture-v1", 2, Duration.ofSeconds(2)));
+
+        SchemaRoutingDecision decision = new SchemaRoutingService(index, embeddings, vector,
+                new SchemaContractReranker(new UnitNormalizer(mapper), properties), properties)
+                .route("12 kg");
+
+        assertEquals(SchemaRoutingDecision.Status.AMBIGUOUS, decision.status());
+        assertEquals("UNIT_ONLY_EVIDENCE", decision.reasonCode());
+    }
+
+    @Test
+    void noRetrieverHitProducesBoundedExplicitAmbiguity() throws Exception {
+        IndexedSchemaCandidate only = candidate("mechanics_a", "2.1", "Mechanics A");
+        SchemaSearchIndex index = new SchemaSearchIndex();
+        index.replace(List.of(only), new Bm25SchemaRetriever(1.2, 0.75).buildIndex(List.of(only.document())));
+        EmbeddingClient embeddings = new EmbeddingClient() {
+            @Override public EmbeddingResult embed(String text) { return new EmbeddingResult(List.of(0.25, 0.75)); }
+            @Override public String providerId() { return "fake"; }
+            @Override public String modelId() { return "fixture-v1"; }
+            @Override public int dimension() { return 2; }
+        };
+        SchemaRoutingProperties properties = new SchemaRoutingProperties(true, 20, 20, 1, 60,
+                0.25, 0.08, 20_000, 30_000, 64, 1.2, 0.75, 0.15,
+                0.55, 0.25, 0.20, 0.75,
+                new SchemaRoutingProperties.Embedding("fake", "fixture-v1", 2, Duration.ofSeconds(2)));
+
+        SchemaRoutingDecision decision = new SchemaRoutingService(index, embeddings,
+                (query, provider, model, dimension, topK, eligible) -> List.of(),
+                new SchemaContractReranker(new UnitNormalizer(mapper), properties), properties)
+                .route("unrelated words");
+
+        assertEquals(SchemaRoutingDecision.Status.AMBIGUOUS, decision.status());
+        assertEquals("NO_RETRIEVAL_EVIDENCE", decision.reasonCode());
+        assertEquals(1, decision.candidates().size());
+    }
+
+    @Test
+    void repeatedVectorIdentityIsDeduplicatedBeforeCandidateVerification() throws Exception {
+        IndexedSchemaCandidate only = candidate("mechanics_a", "2.1", "Mechanics A");
+        SchemaSearchIndex index = new SchemaSearchIndex();
+        index.replace(List.of(only), new Bm25SchemaRetriever(1.2, 0.75).buildIndex(List.of(only.document())));
+        EmbeddingClient embeddings = new EmbeddingClient() {
+            @Override public EmbeddingResult embed(String text) { return new EmbeddingResult(List.of(0.25, 0.75)); }
+            @Override public String providerId() { return "fake"; }
+            @Override public String modelId() { return "fixture-v1"; }
+            @Override public int dimension() { return 2; }
+        };
+        SchemaVectorRetriever vector = (query, provider, model, dimension, topK, eligibleSchemaVersions) ->
+                List.of(
+                        new SchemaVectorRetriever.RankedVector("mechanics_a", "2.1", "DYNAMICS", 0.9, 1),
+                        new SchemaVectorRetriever.RankedVector("mechanics_a", "2.1", "DYNAMICS", 0.8, 2));
+        SchemaRoutingProperties properties = new SchemaRoutingProperties(true, 20, 20, 1, 60,
+                0.25, 0.08, 20_000, 30_000, 64, 1.2, 0.75, 0.15,
+                0.55, 0.25, 0.20, 0.75,
+                new SchemaRoutingProperties.Embedding("fake", "fixture-v1", 2, Duration.ofSeconds(2)));
+        SchemaContractReranker reranker = new SchemaContractReranker(new UnitNormalizer(mapper), properties);
+
+        SchemaRoutingDecision decision = new SchemaRoutingService(index, embeddings, vector, reranker, properties)
+                .route("mass distance");
+
+        assertEquals(SchemaRoutingDecision.Status.SELECTED, decision.status());
+        assertEquals(List.of("mechanics_a@2.1"), decision.candidates().stream()
+                .map(item -> item.schemaId() + "@" + item.schemaVersion()).toList());
+    }
+
     private IndexedSchemaCandidate candidate(String id, String version, String name) throws Exception {
         JsonNode definition = mapper.readTree("""
                 {"model":"mechanics_family","requiredQuantities":[

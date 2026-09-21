@@ -6,6 +6,9 @@ import com.example.backend.physics.model.SolverOutput;
 import com.example.backend.physics.model.circuits.AcWaveformParameters;
 import com.example.backend.physics.module.PhysicsModule;
 import com.example.backend.physics.module.SimulationClock;
+import com.example.backend.physics.output.PhysicsOutputContract;
+import com.example.backend.physics.output.PhysicsOutputFrame;
+import com.example.backend.physics.output.TimeSeriesOutput;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -51,6 +54,33 @@ public final class AcWaveformModule implements PhysicsModule<AcWaveformParameter
         values.put("voltage", List.copyOf(voltage));
         values.put("rmsVoltage", List.copyOf(rmsVoltage));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
+    }
+
+    @Override
+    public boolean nativeTypedOutput() {
+        return true;
+    }
+
+    @Override
+    public PhysicsOutputFrame solveTyped(AcWaveformParameters parameters, SimulationClock clock,
+                                         PhysicsOutputContract contract) {
+        List<Double> time = clock.sampleTimes();
+        List<Double> voltage = new ArrayList<>(time.size());
+        List<Double> rmsVoltage = new ArrayList<>(time.size());
+        for (double t : time) {
+            voltage.add(parameters.voltage(t));
+            rmsVoltage.add(parameters.rmsVoltage());
+        }
+        return new PhysicsOutputFrame(time, List.of(
+                new TimeSeriesOutput("voltage", requiredUnit(contract, "voltage"), time, voltage),
+                new TimeSeriesOutput("rmsVoltage", requiredUnit(contract, "rmsVoltage"), time, rmsVoltage)));
+    }
+
+    private static String requiredUnit(PhysicsOutputContract contract, String key) {
+        if (contract == null || contract.outputs().get(key) == null) {
+            throw new IllegalArgumentException("Typed output contract is missing " + key);
+        }
+        return contract.outputs().get(key).unit();
     }
 
     @Override

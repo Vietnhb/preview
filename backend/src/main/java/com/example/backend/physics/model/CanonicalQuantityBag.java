@@ -10,9 +10,9 @@ import java.util.Set;
  * canonicalization and unit normalization.
  *
  * <p>Physics code should consume this object (or a typed parameter object
- * created from it), never aliases or raw JSON. The legacy JsonNode bridge is
- * intentionally kept in {@link PhysicsValues} until all persisted payloads
- * have passed through the versioned adapter.</p>
+ * created from it), never aliases or raw JSON. The legacy bridge is kept only
+ * in the versioned compatibility package until all persisted payloads have
+ * passed through the adapter.</p>
  */
 public final class CanonicalQuantityBag {
     private final Map<String, BigDecimal> values;

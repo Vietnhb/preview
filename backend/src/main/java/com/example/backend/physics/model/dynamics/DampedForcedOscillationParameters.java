@@ -1,11 +1,9 @@
 package com.example.backend.physics.model.dynamics;
 
-import com.example.backend.physics.model.PhysicsValues;
+import com.example.backend.physics.compatibility.legacy.PhysicsValues;
 import com.example.backend.physics.model.CanonicalQuantityBag;
 import com.example.backend.physics.model.PhysicalChecks;
-import com.fasterxml.jackson.databind.JsonNode;
 
-import java.util.Map;
 
 /**
  * Canonical parameters for a harmonically forced oscillator in all damping
@@ -21,13 +19,6 @@ public record DampedForcedOscillationParameters(
         double initialVelocity) {
 
     private static final double CRITICAL_ROOT_RELATIVE_TOLERANCE = 1.0e-12;
-
-    /** @deprecated Use {@link #from(CanonicalQuantityBag)} after schema-bound ingress. */
-    @Deprecated
-    public static DampedForcedOscillationParameters from(JsonNode specification,
-            Map<String, Double> overrides) {
-        return from(PhysicsValues.bag(specification, overrides));
-    }
 
     public static DampedForcedOscillationParameters from(CanonicalQuantityBag quantities) {
         double mass = quantities.require("mass");

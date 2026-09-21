@@ -9,10 +9,16 @@ import com.example.backend.dto.simulation.ValidationCheckpointResponse;
 import com.example.backend.dto.simulation.ValidationResponse;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.physics.model.AnalyticalPoint;
-import com.example.backend.physics.reference.ReferenceSolver;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
 import com.example.backend.physics.model.SolverOutput;
 import com.example.backend.physics.module.BoundPhysicsModule;
+import com.example.backend.physics.output.PhysicsOutput;
+import com.example.backend.physics.output.PhysicsOutputFrame;
+import com.example.backend.physics.output.ScalarOutput;
+import com.example.backend.physics.output.ScalarFieldOutput;
+import com.example.backend.physics.output.TimeSeriesOutput;
+import com.example.backend.physics.output.VectorSeriesOutput;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,6 +42,24 @@ public class PhysicsValidationService {
     public ValidationResponse validate(JsonNode specification, String schemaId, String schemaVersion,
                                        SolverOutput numerical, Map<String, Double> overrides,
                                        BoundPhysicsModule typedModule) {
+        return validateInternal(specification, schemaId, schemaVersion, numerical, null, overrides, typedModule);
+    }
+
+    /**
+     * Validates a typed module frame directly.  This is the current runtime
+     * boundary for modules that have already produced a contract-shaped
+     * result; the grouped SolverOutput overload above remains only for the
+     * explicit legacy/HTTP compatibility path.
+     */
+    public ValidationResponse validateTyped(JsonNode specification, String schemaId, String schemaVersion,
+                                            PhysicsOutputFrame numerical, Map<String, Double> overrides,
+                                            BoundPhysicsModule typedModule) {
+        return validateInternal(specification, schemaId, schemaVersion, null, numerical, overrides, typedModule);
+    }
+
+    private ValidationResponse validateInternal(JsonNode specification, String schemaId, String schemaVersion,
+                                                 SolverOutput legacyNumerical, PhysicsOutputFrame typedNumerical,
+                                                 Map<String, Double> overrides, BoundPhysicsModule typedModule) {
         long started = System.nanoTime();
         SchemaVersion schema = schemaDefinitions.requirePublishedVersion(schemaId, schemaVersion);
         SchemaDefinitionService.SolverBinding binding = schemaDefinitions.requireSolverBinding(schema.getSchemaId(), schemaVersion);
@@ -54,17 +78,22 @@ public class PhysicsValidationService {
             legacySolver = legacyPhysicsExecution.authorizeReference(
                     LegacyPhysicsExecutionAdapterV1.VERSION, pinned, latestApproved, referenceSolvers);
         }
-        CompiledSchema.ValidationDefinition validationDefinition = schemaDefinitions.compiled(schema).validation();
+        CompiledSchema compiled = schemaDefinitions.compiled(schema);
+        PhysicsOutputFrame numericalFrame = typedNumerical;
+        if (numericalFrame == null && legacyNumerical == null)
+            throw new IllegalArgumentException("Numerical output is required");
+        CompiledSchema.ValidationDefinition validationDefinition = compiled.validation();
         double tolerance = validationDefinition.tolerance();
         Map<String, CompiledSchema.OutputValidationDefinition> outputTolerances =
                 validationDefinition.outputTolerances();
         List<ValidationCheckpointResponse> checkpoints = new ArrayList<>();
         List<String> errors = new ArrayList<>();
-        double duration = numerical.time().isEmpty() ? 0 : numerical.time().get(numerical.time().size() - 1);
+        List<Double> numericalTimes = numericalFrame == null ? legacyNumerical.time() : numericalFrame.timeSeconds();
+        double duration = numericalTimes.isEmpty() ? 0 : numericalTimes.get(numericalTimes.size() - 1);
         for (double checkpoint : checkpointsFor(validationDefinition, duration)) {
             AnalyticalPoint analytical = typedModule == null
                     ? legacySolver.solve(specification, overrides, checkpoint)
-                    : typedModule.reference(checkpoint);
+                    : typedModule.closedFormReference(checkpoint);
             if (analytical == null || analytical.values() == null || analytical.values().isEmpty()) {
                 errors.add("t=" + checkpoint + " reference returned no output");
                 continue;
@@ -75,12 +104,15 @@ public class PhysicsValidationService {
                     errors.add("t=" + checkpoint + " reference returned an invalid output key/value");
                     continue;
                 }
+                if (!compiled.outputKeys().contains(expected.getKey())) {
+                    errors.add("t=" + checkpoint + " reference returned undeclared output: " + expected.getKey());
+                    continue;
+                }
                 CompiledSchema.OutputValidationDefinition contract = outputTolerances.getOrDefault(expected.getKey(),
                         new CompiledSchema.OutputValidationDefinition(tolerance, tolerance, "numeric"));
-                Double scalarActual = numerical.scalarOutputs().get(expected.getKey());
-                List<Double> numericalSeries = numerical.values().get(expected.getKey());
-                double actual = scalarActual != null ? scalarActual
-                        : interpolate(numericalSeries, numerical.time(), checkpoint);
+                double actual = numericalFrame == null
+                        ? actualAtLegacy(legacyNumerical, expected.getKey(), checkpoint)
+                        : actualAt(numericalFrame, expected.getKey(), checkpoint);
                 double absoluteError = Math.abs(actual - expected.getValue());
                 double relativeError = relativeError(actual, expected.getValue());
                 boolean passed = compare(actual, expected.getValue(), absoluteError, relativeError, contract);
@@ -98,6 +130,34 @@ public class PhysicsValidationService {
         boolean passed = errors.isEmpty();
         return new ValidationResponse(null, passed, schemaId, tolerance, List.copyOf(checkpoints),
                 List.copyOf(errors), elapsedMillis(started));
+    }
+
+    private double actualAt(PhysicsOutputFrame frame, String key, double targetTime) {
+        PhysicsOutput output = frame.outputs().stream()
+                .filter(candidate -> candidate.key().equals(key))
+                .findFirst().orElse(null);
+        if (output instanceof ScalarOutput scalar) return scalar.value();
+        if (output instanceof TimeSeriesOutput series)
+            return interpolate(series.values(), series.timeSeconds(), targetTime);
+        if (output instanceof VectorSeriesOutput vector) {
+            int component = vector.componentKeys().indexOf(key);
+            if (component >= 0) {
+                List<Double> values = vector.values().stream().map(sample -> sample.get(component)).toList();
+                return interpolate(values, vector.timeSeconds(), targetTime);
+            }
+        }
+        if (output instanceof ScalarFieldOutput) {
+            // A field is not a scalar checkpoint. The contract must expose a
+            // scalar probe when an independent reference publishes one.
+            return Double.NaN;
+        }
+        return Double.NaN;
+    }
+
+    private double actualAtLegacy(SolverOutput output, String key, double targetTime) {
+        Double scalar = output.scalarOutputs().get(key);
+        if (scalar != null) return scalar;
+        return interpolate(output.values().get(key), output.time(), targetTime);
     }
 
     private double interpolate(List<Double> values, List<Double> times, double target) {

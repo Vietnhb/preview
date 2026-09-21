@@ -54,5 +54,8 @@
   {"canonical":"1/K","factor":1,"aliases":["1/K","K^-1"]},
   {"canonical":"W/m2","factor":1,"aliases":["W/m2","W/m^2"]},
   {"canonical":"Gy/s","factor":1,"aliases":["Gy/s"]},
-  {"canonical":"kg/m3","factor":1,"aliases":["kg/m3","kg/m^3","kg/m³"]}
+  {"canonical":"kg/m3","factor":1,"aliases":["kg/m3","kg/m^3","kg/m³"]},
+  {"canonical":"N*m","factor":1,"aliases":["N*m","Nm"]},
+  {"canonical":"Pa/s","factor":1,"aliases":["Pa/s"]},
+  {"canonical":"Pa/s2","factor":1,"aliases":["Pa/s2","Pa/s^2"]}
 ]

@@ -1,0 +1,99 @@
+{
+  "schemaId": "hooke_law",
+  "model": "hooke_law",
+  "name": "Hooke law and elastic energy",
+  "topic": "DYNAMICS",
+  "version": "1.2",
+  "solverId": "hooke_law_solver",
+  "referenceSolverId": "hooke_law_reference",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "spring_constant",
+        "aliases": [
+          "k"
+        ],
+        "allowedUnits": [
+          "N/m"
+        ],
+        "positive": true
+      },
+      {
+        "key": "displacement",
+        "aliases": [
+          "x"
+        ],
+        "allowedUnits": [
+          "m"
+        ]
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "displacement",
+        "label": "Displacement",
+        "symbol": "x",
+        "unit": "m",
+        "min": -1,
+        "max": 1,
+        "step": 0.001
+      }
+    ],
+    "visualization": {
+      "scene": "hooke_law",
+      "series": [
+        {
+          "key": "restoringForce",
+          "source": "values.restoringForce",
+          "label": "Restoring force",
+          "symbol": "F",
+          "unit": "N",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "elasticPotentialEnergy",
+          "source": "values.elasticPotentialEnergy",
+          "label": "Elastic potential energy",
+          "symbol": "U",
+          "unit": "J",
+          "color": "#fb923c"
+        }
+      ]
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "restoringForce",
+        "elasticPotentialEnergy"
+      ],
+      "definitions": [
+        {
+          "key": "restoringForce",
+          "kind": "time_series",
+          "unit": "N",
+          "required": true
+        },
+        {
+          "key": "elasticPotentialEnergy",
+          "kind": "time_series",
+          "unit": "J",
+          "required": true
+        }
+      ]
+    }
+  }
+}

@@ -11,7 +11,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 import com.example.backend.config.properties.SchemaRoutingProperties;
 import com.example.backend.entity.problem.SchemaVersion;
+import com.example.backend.exception.EmbeddingUnavailableException;
 import com.example.backend.schema.routing.vector.EmbeddingClient;
+import com.example.backend.schema.routing.vector.EmbeddingResult;
 import com.example.backend.schema.routing.vector.PgVectorSchemaEmbeddingStore;
 import com.example.backend.schema.routing.lexical.Bm25SchemaRetriever;
 import com.example.backend.service.problem.SchemaDefinitionService;
@@ -51,12 +53,23 @@ public class SchemaEmbeddingIndexer {
 
     /** Safe to call from an administrative reindex operation; upserts are idempotent. */
     public synchronized void rebuild() {
-        if (!properties.enabled()) throw new IllegalStateException("Schema routing is disabled by configuration");
+        requireEnabled();
         index.invalidate();
         try {
             List<IndexedSchemaCandidate> approved = schemaDefinitions.approvedSchemas().stream()
                     .map(this::indexOne)
                     .toList();
+            String semanticGeneration = null;
+            if (approved.stream().anyMatch(item -> !item.document().semanticViews().isEmpty())) {
+                semanticGeneration = store.startGeneration(SchemaRetrievalMetadataCatalog.PROJECTION_VERSION,
+                        embeddings.providerId(), embeddings.modelId(), embeddings.dimension());
+                if (semanticGeneration == null || semanticGeneration.isBlank()) {
+                    throw new IllegalStateException("Semantic retrieval generation could not be created");
+                }
+                indexSemanticViews(approved, semanticGeneration);
+                store.activateGeneration(semanticGeneration, SchemaRetrievalMetadataCatalog.PROJECTION_VERSION,
+                        embeddings.providerId(), embeddings.modelId(), embeddings.dimension());
+            }
             index.replace(approved, lexical.buildIndex(approved.stream().map(IndexedSchemaCandidate::document).toList()));
         } catch (RuntimeException failure) {
             index.invalidate();
@@ -66,7 +79,7 @@ public class SchemaEmbeddingIndexer {
 
     /** Reindexes idempotently, or reports the work without embedding or writing when dryRun is true. */
     public synchronized ReindexResult reindex(boolean dryRun) {
-        if (!properties.enabled()) throw new IllegalStateException("Schema routing is disabled by configuration");
+        requireEnabled();
         if (!dryRun) rebuild();
         return inspectCurrentEmbeddings(dryRun);
     }
@@ -88,7 +101,15 @@ public class SchemaEmbeddingIndexer {
     private IndexedSchemaCandidate indexOne(SchemaVersion schema) {
         var document = verifiedDocument(schema);
         if (!store.hasCurrentEmbedding(document, embeddings.providerId(), embeddings.modelId(), embeddings.dimension())) {
-            var result = embeddings.embed(document.searchText());
+            EmbeddingResult result;
+            try {
+                result = embeddings.embed(document.searchText());
+            } catch (EmbeddingUnavailableException failure) {
+                throw failure;
+            } catch (RuntimeException failure) {
+                throw new EmbeddingUnavailableException(
+                        "Check embedding provider/model configuration and credentials before reindexing the schema search index.");
+            }
             if (result.values().size() != embeddings.dimension()) {
                 throw new IllegalStateException("Embedding client returned an unexpected dimension for schema search index");
             }
@@ -97,6 +118,24 @@ public class SchemaEmbeddingIndexer {
         var contract = CandidateContractProjection.from(schema.getSchemaId(), schema.getVersion(), schema.getTopic(),
                 schema.getName(), schema.getDefinition());
         return new IndexedSchemaCandidate(document, contract);
+    }
+
+    private void indexSemanticViews(List<IndexedSchemaCandidate> candidates, String generationId) {
+        for (IndexedSchemaCandidate candidate : candidates) {
+            for (var view : candidate.document().semanticViews()) {
+                EmbeddingResult result;
+                try {
+                    result = embeddings.embed(view.text());
+                } catch (EmbeddingUnavailableException failure) {
+                    throw failure;
+                } catch (RuntimeException failure) {
+                    throw new EmbeddingUnavailableException(
+                            "Check embedding provider/model configuration and credentials before semantic reindexing.");
+                }
+                store.upsertSemanticView(generationId, candidate.document(), view,
+                        embeddings.providerId(), embeddings.modelId(), embeddings.dimension(), result);
+            }
+        }
     }
 
     private ReindexResult inspectCurrentEmbeddings(boolean dryRun) {
@@ -127,6 +166,13 @@ public class SchemaEmbeddingIndexer {
                 || !embeddings.modelId().equals(configured.model())
                 || embeddings.dimension() != configured.dimension()) {
             throw new IllegalStateException("Embedding client identity does not match physlive.schema-routing.embedding configuration");
+        }
+    }
+
+    private void requireEnabled() {
+        if (!properties.enabled()) {
+            throw new EmbeddingUnavailableException(
+                    "Enable physlive.schema-routing.enabled before rebuilding the schema search index.");
         }
     }
 }

@@ -73,7 +73,7 @@ public final class Bm25SchemaRetriever {
             throw new IllegalArgumentException("topK must be at least 1");
         }
 
-        List<String> queryTokens = tokenizer.tokenize(query);
+        List<String> queryTokens = retrievalTokens(query);
         if (queryTokens.isEmpty() || index.documents.isEmpty()) {
             return List.of();
         }
@@ -125,7 +125,7 @@ public final class Bm25SchemaRetriever {
                 throw new IllegalArgumentException("duplicate schema ID/version in corpus: "
                         + document.schemaId() + "@" + document.schemaVersion());
             }
-            List<String> terms = tokenizer.tokenize(document.searchText());
+            List<String> terms = retrievalTokens(document.searchText());
             Map<String, Integer> frequencies = new TreeMap<>();
             for (String term : terms) {
                 frequencies.merge(term, 1, Integer::sum);
@@ -134,6 +134,12 @@ public final class Bm25SchemaRetriever {
             documents.add(new DocumentTerms(document, frequencies, length));
         }
         return List.copyOf(documents);
+    }
+
+    private List<String> retrievalTokens(String text) {
+        return tokenizer.tokenizeWithAccentShadow(text).stream()
+                .filter(token -> !UnicodePhysicsStopWords.isStopWord(token))
+                .toList();
     }
 
     private static Map<String, Integer> documentFrequencies(List<DocumentTerms> documents) {

@@ -9,6 +9,13 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21' }
       - run: ./mvnw test
+  physics-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/check-physics-runtime-boundary.mjs
   web:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: react-client } }
@@ -33,6 +40,9 @@ jobs:
       - run: node scripts/attach-curriculum-sources.mjs
       - run: node scripts/check-curriculum-coverage.mjs
       - run: node scripts/report-topic-coverage.mjs
+      - run: node scripts/check-physics-evidence-manifest.mjs --check
+      - run: node scripts/evaluate-schema-routing-retrieval.mjs --check
+      - run: node scripts/evaluate-mvp-multilingual-retrieval.mjs --check
       - run: git diff --exit-code -- docs/curriculum/coverage.csv
   python:
     runs-on: ubuntu-latest

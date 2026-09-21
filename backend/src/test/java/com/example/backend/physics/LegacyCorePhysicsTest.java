@@ -1,11 +1,11 @@
 package com.example.backend.physics;
 
-import com.example.backend.physics.reference.circuits.CircuitReferenceSolver;
-import com.example.backend.physics.reference.dynamics.DynamicsReferenceSolver;
-import com.example.backend.physics.reference.kinematics.KinematicsReferenceSolver;
-import com.example.backend.physics.solver.circuits.CircuitSolver;
-import com.example.backend.physics.solver.dynamics.DynamicsSolver;
-import com.example.backend.physics.solver.kinematics.KinematicsSolver;
+import com.example.backend.physics.compatibility.legacy.reference.circuits.CircuitReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.reference.dynamics.DynamicsReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.reference.kinematics.KinematicsReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.solver.circuits.CircuitSolver;
+import com.example.backend.physics.compatibility.legacy.solver.dynamics.DynamicsSolver;
+import com.example.backend.physics.compatibility.legacy.solver.kinematics.KinematicsSolver;
 import com.example.backend.physics.model.SolverOutput;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;

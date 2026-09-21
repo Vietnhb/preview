@@ -1,8 +1,8 @@
 package com.example.backend.physics;
 
 import com.example.backend.physics.model.SolverOutput;
-import com.example.backend.physics.reference.thermal.IdealGasReferenceSolver;
-import com.example.backend.physics.solver.thermal.IdealGasSolver;
+import com.example.backend.physics.compatibility.legacy.reference.thermal.IdealGasReferenceSolver;
+import com.example.backend.physics.compatibility.legacy.solver.thermal.IdealGasSolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;

@@ -28,6 +28,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.example.backend.config.properties.SchemaRoutingProperties;
+import com.example.backend.exception.EmbeddingUnavailableException;
 import com.example.backend.entity.enums.LifecycleStatus;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.schema.routing.index.SchemaEmbeddingIndexer;
@@ -138,7 +139,7 @@ class PgVectorSchemaLifecycleIndexIntegrationTest {
         insertSchema(jdbc, "failure_schema", "1.0", "KINEMATICS", "APPROVED", "failure-v1",
                 "rebuild_failure_trigger", 1);
         failRebuild.set(true);
-        assertThrows(IllegalStateException.class, indexer::rebuild);
+        assertThrows(EmbeddingUnavailableException.class, indexer::rebuild);
         assertThrows(IllegalStateException.class, index::snapshot,
                 "a failed lifecycle rebuild must discard the previously ready index");
         assertEquals(Status.DOWN, health.health().getStatus(),

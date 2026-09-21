@@ -24,8 +24,8 @@ import com.example.backend.physics.binding.CanonicalQuantityCompiler;
 import com.example.backend.physics.compatibility.LegacyPhysicsExecutionAdapterV1;
 import com.example.backend.physics.module.PhysicsModuleRegistry;
 import com.example.backend.physics.module.circuits.AcWaveformModule;
-import com.example.backend.physics.reference.ReferenceSolverRegistry;
-import com.example.backend.physics.solver.PhysicsSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
+import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolverRegistry;
 import com.example.backend.repository.curriculum.TopicRepository;
 import com.example.backend.repository.library.LibraryItemRepository;
 import com.example.backend.repository.problem.SchemaVersionRepository;
@@ -78,7 +78,7 @@ import org.mockito.ArgumentCaptor;
 /** Composes real routing, strict candidate extraction, typed execution and run snapshot creation. */
 class SchemaRoutingSimulationPersistenceIntegrationTest {
     private static final String SCHEMA_ID = "ac_waveform";
-    private static final String SCHEMA_VERSION = "1.0";
+    private static final String SCHEMA_VERSION = "1.1";
     private static final String TOPIC = "CIRCUITS";
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -87,7 +87,7 @@ class SchemaRoutingSimulationPersistenceIntegrationTest {
     void candidateBoundRawExtractionRunsThroughTypedRuntimeAndPersistsValidatedSnapshot() throws Exception {
         JsonNode source;
         try (var input = new ClassPathResource(
-                "schemas/source/CIRCUITS/043__ac_waveform__1.0.json").getInputStream()) {
+                "schemas/source/CIRCUITS/138__ac_waveform__1.1.json").getInputStream()) {
             source = mapper.readTree(input);
         }
         JsonNode definition = source.path("definition").deepCopy();
@@ -302,6 +302,7 @@ class SchemaRoutingSimulationPersistenceIntegrationTest {
                           "ambiguities":[]
                         }
                         """);
+                ((com.fasterxml.jackson.databind.node.ObjectNode) raw).put("schemaVersion", SCHEMA_VERSION);
                 StrictSpecificationValidator.validate(raw);
                 var selected = StrictSpecificationValidator.validateCandidateMembership(raw, decision);
                 if (decision.status() != SchemaRoutingDecision.Status.SELECTED) {

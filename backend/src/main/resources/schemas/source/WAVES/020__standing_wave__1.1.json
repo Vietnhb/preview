@@ -143,7 +143,7 @@
           "key": "particleVelocity",
           "source": "values.particleVelocity",
           "label": "Vận tốc phần tử",
-          "symbol": "uÌ‡",
+          "symbol": "u̇",
           "unit": "m/s",
           "color": "#34d399"
         },
@@ -151,7 +151,7 @@
           "key": "particleAcceleration",
           "source": "values.particleAcceleration",
           "label": "Gia tốc phần tử",
-          "symbol": "uÌˆ",
+          "symbol": "ü",
           "unit": "m/s²",
           "color": "#fb923c"
         }

@@ -1,6 +1,7 @@
 package com.example.backend.schema.routing.index;
 
 import com.example.backend.entity.problem.SchemaVersion;
+import com.example.backend.schema.routing.model.SchemaSearchDocument;
 import com.example.backend.service.problem.SchemaCompiler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,7 @@ class SchemaSearchDocumentBuilderTest {
         var second = builder.build(schema, compiled);
 
         assertEquals(first, second);
+        assertEquals(SchemaSearchDocument.CURRENT_PROJECTION_VERSION, first.projectionVersion());
         assertTrue(first.searchText().contains("initial_velocity"));
         assertTrue(first.searchText().contains("starting speed"));
         assertTrue(first.searchText().contains("v0"));

@@ -2,6 +2,12 @@ package com.example.backend.physics.validation;
 
 import com.example.backend.physics.model.SolverOutput;
 import com.example.backend.physics.model.ScalarField;
+import com.example.backend.physics.output.PhysicsOutput;
+import com.example.backend.physics.output.PhysicsOutputFrame;
+import com.example.backend.physics.output.ScalarFieldOutput;
+import com.example.backend.physics.output.ScalarOutput;
+import com.example.backend.physics.output.TimeSeriesOutput;
+import com.example.backend.physics.output.VectorSeriesOutput;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -217,6 +223,23 @@ public final class EndConditionResolver {
         return STRATEGIES.resolve(condition, output, limit);
     }
 
+    /**
+     * Resolves a typed frame without routing it through request JSON or the
+     * legacy grouped container at the caller boundary. End-condition source
+     * bindings are already compiled, so the projection only supplies the
+     * generic timeline operations used by the existing strategies.
+     */
+    public static ResolvedEnd resolve(EndConditionContract condition, PhysicsOutputFrame output) {
+        return resolve(condition, output, Map.of());
+    }
+
+    /** Resolves a typed frame using its compiled output-to-source bindings. */
+    public static ResolvedEnd resolve(EndConditionContract condition, PhysicsOutputFrame output,
+                                      Map<String, List<OutputSourceBinding>> sourceBindings) {
+        if (output == null) throw new IllegalArgumentException("Typed output frame is required");
+        return resolve(condition, typedConditionView(output, sourceBindings));
+    }
+
     private static double outputHorizon(SolverOutput output) {
         return output == null || output.time() == null || output.time().isEmpty()
                 ? 0 : output.time().get(output.time().size() - 1);
@@ -254,6 +277,138 @@ public final class EndConditionResolver {
                 trimGroup(output.accelerations(), sourceTimes, last, target, append),
                 trimGroup(output.values(), sourceTimes, last, target, append),
                 trimFields(output.scalarFields(), endTime), output.scalarOutputs());
+    }
+
+    /** Trims a typed frame while preserving each declared output kind and shape. */
+    public static PhysicsOutputFrame trim(PhysicsOutputFrame output, double endTime) {
+        if (output == null || output.timeSeconds().isEmpty()) return output;
+        double target = Math.max(output.timeSeconds().getFirst(),
+                Math.min(endTime, output.timeSeconds().getLast()));
+        List<Double> times = trimTimes(output.timeSeconds(), target);
+        List<PhysicsOutput> trimmed = output.outputs().stream().map(value -> trimTypedOutput(value, target)).toList();
+        return new PhysicsOutputFrame(times, trimmed);
+    }
+
+    private static PhysicsOutput trimTypedOutput(PhysicsOutput output, double target) {
+        if (output instanceof ScalarOutput) return output;
+        if (output instanceof TimeSeriesOutput series) {
+            TrimmedSeries values = trimSeries(series.timeSeconds(), series.values(), target);
+            List<Double> scalarValues = values.values().stream().map(sample -> sample.getFirst()).toList();
+            return new TimeSeriesOutput(series.key(), series.unit(), values.times(), scalarValues);
+        }
+        if (output instanceof VectorSeriesOutput vector) {
+            TrimmedSeries shape = trimSeries(vector.timeSeconds(), vector.values(), target);
+            List<List<Double>> samples = new ArrayList<>(shape.values().size());
+            for (List<Double> sample : shape.values()) samples.add(List.copyOf(sample));
+            return new VectorSeriesOutput(vector.key(), vector.unit(), shape.times(),
+                    vector.componentKeys(), samples);
+        }
+        if (output instanceof ScalarFieldOutput field) {
+            return new ScalarFieldOutput(field.key(), trimField(field.field(), target));
+        }
+        throw new IllegalArgumentException("Unsupported typed output kind: " + output.kind());
+    }
+
+    private static List<Double> trimTimes(List<Double> source, double target) {
+        int last = 0;
+        while (last + 1 < source.size() && source.get(last + 1) <= target + EPSILON) last++;
+        List<Double> times = new ArrayList<>(source.subList(0, last + 1));
+        if (source.get(last) < target - EPSILON) times.add(target);
+        return List.copyOf(times);
+    }
+
+    private static TrimmedSeries trimSeries(List<Double> sourceTimes, List<?> sourceValues, double target) {
+        int last = 0;
+        while (last + 1 < sourceTimes.size() && sourceTimes.get(last + 1) <= target + EPSILON) last++;
+        boolean append = sourceTimes.get(last) < target - EPSILON;
+        List<Double> times = new ArrayList<>(sourceTimes.subList(0, last + 1));
+        List<List<Double>> values = new ArrayList<>();
+        for (int index = 0; index <= last; index++) values.add(asValues(sourceValues.get(index)));
+        if (append) {
+            times.add(target);
+            List<Double> before = asValues(sourceValues.get(last));
+            List<Double> after = asValues(sourceValues.get(Math.min(last + 1, sourceValues.size() - 1)));
+            double ratio = (target - sourceTimes.get(last))
+                    / (sourceTimes.get(Math.min(last + 1, sourceTimes.size() - 1)) - sourceTimes.get(last));
+            List<Double> interpolated = new ArrayList<>(before.size());
+            for (int index = 0; index < before.size(); index++)
+                interpolated.add(before.get(index) + ratio * (after.get(index) - before.get(index)));
+            values.add(List.copyOf(interpolated));
+        }
+        return new TrimmedSeries(List.copyOf(times), List.copyOf(values));
+    }
+
+    private static List<Double> asValues(Object value) {
+        if (value instanceof Number number) return List.of(number.doubleValue());
+        if (value instanceof List<?> list) {
+            List<Double> values = new ArrayList<>(list.size());
+            for (Object item : list) {
+                if (!(item instanceof Number number)) throw new IllegalArgumentException("Typed output sample must be numeric");
+                values.add(number.doubleValue());
+            }
+            return List.copyOf(values);
+        }
+        throw new IllegalArgumentException("Typed output sample must be numeric");
+    }
+
+    private record TrimmedSeries(List<Double> times, List<List<Double>> values) { }
+
+    private static SolverOutput typedConditionView(PhysicsOutputFrame output,
+                                                   Map<String, List<OutputSourceBinding>> sourceBindings) {
+        Map<String, List<Double>> values = new LinkedHashMap<>();
+        Map<String, List<Double>> positions = new LinkedHashMap<>();
+        Map<String, List<Double>> velocities = new LinkedHashMap<>();
+        Map<String, List<Double>> accelerations = new LinkedHashMap<>();
+        Map<String, ScalarField> fields = new LinkedHashMap<>();
+        Map<String, Double> scalars = new LinkedHashMap<>();
+        for (PhysicsOutput item : output.outputs()) {
+            if (item instanceof ScalarOutput scalar) {
+                scalars.put(item.key(), scalar.value());
+            } else if (item instanceof TimeSeriesOutput series) {
+                values.put(item.key(), series.values());
+                projectTypedSeries(item.key(), series.values(), sourceBindings,
+                        positions, velocities, accelerations);
+            } else if (item instanceof VectorSeriesOutput vector) {
+                for (int component = 0; component < vector.componentKeys().size(); component++) {
+                    int componentIndex = component;
+                    String key = vector.componentKeys().get(component);
+                    List<Double> componentValues = vector.values().stream()
+                            .map(sample -> sample.get(componentIndex)).toList();
+                    values.put(key, componentValues);
+                    projectTypedSeries(key, componentValues, sourceBindings,
+                            positions, velocities, accelerations);
+                }
+            } else if (item instanceof ScalarFieldOutput field) {
+                fields.put(item.key(), field.field());
+            }
+        }
+        return new SolverOutput(output.timeSeconds(), positions, velocities, accelerations, values, fields, scalars);
+    }
+
+    private static void projectTypedSeries(String outputKey, List<Double> values,
+                                           Map<String, List<OutputSourceBinding>> sourceBindings,
+                                           Map<String, List<Double>> positions,
+                                           Map<String, List<Double>> velocities,
+                                           Map<String, List<Double>> accelerations) {
+        List<OutputSourceBinding> bindings = sourceBindings == null
+                ? List.of() : sourceBindings.getOrDefault(outputKey, List.of());
+        if (bindings.isEmpty()) {
+            // Older compiled fixtures have no visualization source metadata;
+            // preserve their generic behavior without inferring a group from a
+            // field name.
+            positions.put(outputKey, values);
+            velocities.put(outputKey, values);
+            accelerations.put(outputKey, values);
+            return;
+        }
+        for (OutputSourceBinding binding : bindings) {
+            switch (binding.group()) {
+                case POSITIONS, LEGACY_ENTITY_POSITION -> positions.put(binding.key(), values);
+                case VELOCITIES -> velocities.put(binding.key(), values);
+                case ACCELERATIONS -> accelerations.put(binding.key(), values);
+                case VALUES, LEGACY_AUTO -> { }
+            }
+        }
     }
 
     private static Map<String, List<Double>> trimGroup(Map<String, List<Double>> group, List<Double> times,

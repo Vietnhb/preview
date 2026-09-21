@@ -1,11 +1,11 @@
 package com.example.backend.physics.module;
 
-import com.example.backend.physics.model.AnalyticalPoint;
 import com.example.backend.physics.model.CanonicalQuantityBag;
-import com.example.backend.physics.model.SolverOutput;
+import com.example.backend.physics.numerical.NumericalSolver;
+import com.example.backend.physics.reference.ClosedFormReferenceSolver;
 
-/** Typed owner of one model's parameter binding, numerical solver and reference oracle. */
-public interface PhysicsModule<P> {
+/** Typed physics binding composed of a numerical solver and a closed-form reference solver. */
+public interface PhysicsModule<P> extends NumericalSolver<P>, ClosedFormReferenceSolver<P> {
     String moduleId();
 
     String numericalSolverId();
@@ -14,7 +14,4 @@ public interface PhysicsModule<P> {
 
     P bind(CanonicalQuantityBag quantities);
 
-    SolverOutput solve(P parameters, SimulationClock clock);
-
-    AnalyticalPoint referenceAt(P parameters, double timeSeconds);
 }

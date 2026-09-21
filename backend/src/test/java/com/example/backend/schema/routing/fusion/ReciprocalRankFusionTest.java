@@ -27,6 +27,23 @@ class ReciprocalRankFusionTest {
     }
 
     @Test
+    void matchesThePromptRrfFixtureWithOneCandidateMissingFromBothRankPositions() {
+        ReciprocalRankFusion fusion = new ReciprocalRankFusion(60);
+        Map<String, List<ReciprocalRankFusion.RankedItem>> rankings = Map.of(
+                "lexical", List.of(item("alpha", "1", 1), item("beta", "1", 2)),
+                "vector", List.of(item("beta", "1", 1), item("alpha", "1", 2), item("gamma", "1", 3)));
+
+        List<ReciprocalRankFusion.FusedCandidate> fused = fusion.fuse(rankings, 10);
+
+        double shared = 1.0 / 61.0 + 1.0 / 62.0;
+        assertEquals(List.of("alpha", "beta", "gamma"), fused.stream()
+                .map(ReciprocalRankFusion.FusedCandidate::schemaId).toList());
+        assertEquals(shared, fused.get(0).rrfScore(), 1.0e-15);
+        assertEquals(shared, fused.get(1).rrfScore(), 1.0e-15);
+        assertEquals(1.0 / 63.0, fused.get(2).rrfScore(), 1.0e-15);
+    }
+
+    @Test
     void deterministicallyBreaksTiesBySchemaIdAndVersionRegardlessOfMapOrder() {
         ReciprocalRankFusion fusion = new ReciprocalRankFusion(60);
         Map<String, List<ReciprocalRankFusion.RankedItem>> firstOrder = new LinkedHashMap<>();
@@ -49,6 +66,17 @@ class ReciprocalRankFusionTest {
         assertThrows(IllegalArgumentException.class, () -> new ReciprocalRankFusion(0));
         assertThrows(IllegalArgumentException.class, () -> new ReciprocalRankFusion(60)
                 .fuse(Map.of("lexical", List.of(item("alpha", "1", 2), item("beta", "1", 1))), 10));
+    }
+
+    @Test
+    void deduplicatesRepeatedIdentityWithinOneRetrieverUsingBestRank() {
+        ReciprocalRankFusion fusion = new ReciprocalRankFusion(60);
+        List<ReciprocalRankFusion.FusedCandidate> fused = fusion.fuse(Map.of(
+                "vector", List.of(item("alpha", "1", 1), item("alpha", "1", 2), item("beta", "1", 3))), 10);
+
+        assertEquals(List.of("alpha", "beta"), fused.stream()
+                .map(ReciprocalRankFusion.FusedCandidate::schemaId).toList());
+        assertEquals(1.0 / 61.0, fused.getFirst().rrfScore(), 1.0e-15);
     }
 
     private static ReciprocalRankFusion.RankedItem item(String id, String version, int rank) {

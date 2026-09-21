@@ -17,9 +17,11 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Exercises the documented Hibernate-first bootstrap for a verified empty database. */
@@ -67,11 +69,11 @@ class FreshSchemaBootstrapMigrationTest {
 
         assertEquals("0", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
                 "WHERE type = 'BASELINE' AND success", String.class));
-        assertEquals("9", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
+        assertEquals("14", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
                 "WHERE success ORDER BY installed_rank DESC LIMIT 1", String.class));
-        assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9"),
+        assertEquals(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"),
                 jdbc.queryForList("SELECT version FROM flyway_schema_history " +
-                        "WHERE type = 'SQL' AND success ORDER BY installed_rank", String.class));
+                "WHERE type = 'SQL' AND success ORDER BY installed_rank", String.class));
 
         // V1/V3 repair work must see Hibernate's tables and apply its named indexes and FKs.
         for (String index : List.of(
@@ -96,7 +98,179 @@ class FreshSchemaBootstrapMigrationTest {
         assertColumnExists(jdbc, "assignments", "school_class_id");
         assertConstraintExists(jdbc, "assignments", "fk_assignments_school_class");
         assertColumnExists(jdbc, "schema_versions", "definition_checksum");
+        assertColumnExists(jdbc, "simulation_runs", "schema_id");
+        assertColumnExists(jdbc, "simulation_runs", "schema_version");
+        assertColumnExists(jdbc, "simulation_runs", "binding_version");
+        assertColumnExists(jdbc, "simulation_runs", "output_contract_checksum");
+        assertTrue(indexExists(jdbc, "idx_simulation_runs_contract_identity"));
+        assertTrue(tableExists(jdbc, "ambiguity_cases"));
+        assertTrue(tableExists(jdbc, "reviewer_decisions"));
+        assertTrue(indexExists(jdbc, "idx_reviewer_decisions_ambiguity_case"));
         assertTrue(migrationApplied(jdbc, "5"), "V5 backfill migration must run");
+    }
+
+    @Test
+    void versionSixDatabaseMissingSchemaVersionsIsRepairedBeforeVersionSeven() throws Exception {
+        String database = "physlive_v6_repair_" + UUID.randomUUID().toString().replace("-", "");
+        createDatabase(database);
+        String jdbcUrl = jdbcUrl(database);
+        DataSource dataSource = new DriverManagerDataSource(jdbcUrl, POSTGRES.getUsername(), POSTGRES.getPassword());
+        createHibernateEntitySchema(dataSource);
+
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, POSTGRES.getUsername(),
+                POSTGRES.getPassword()); var statement = connection.createStatement()) {
+            statement.execute("DROP TABLE schema_versions");
+            statement.execute("CREATE TABLE legacy_marker (id integer PRIMARY KEY, payload text NOT NULL)");
+            statement.executeUpdate("INSERT INTO legacy_marker VALUES (1, 'preserve-me')");
+        }
+
+        Flyway flyway = Flyway.configure()
+                .dataSource(jdbcUrl, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration")
+                .schemas("public")
+                .defaultSchema("public")
+                .baselineVersion(MigrationVersion.fromVersion("6"))
+                .load();
+        flyway.baseline();
+        flyway.migrate();
+
+        JdbcTemplate jdbc = new JdbcTemplate(new DriverManagerDataSource(jdbcUrl,
+                POSTGRES.getUsername(), POSTGRES.getPassword()));
+        assertEquals("preserve-me", jdbc.queryForObject(
+                "SELECT payload FROM legacy_marker WHERE id = 1", String.class));
+        assertColumnExists(jdbc, "schema_versions", "definition_checksum");
+        assertTrue(indexExists(jdbc, "uk_schema_versions_identity"));
+        assertTrue(indexExists(jdbc, "idx_schema_versions_lifecycle"));
+        assertEquals("14", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
+                "WHERE success ORDER BY installed_rank DESC LIMIT 1", String.class));
+        assertEquals(List.of("7", "8", "9", "10", "11", "12", "13", "14"),
+                jdbc.queryForList("SELECT version FROM flyway_schema_history " +
+                        "WHERE type = 'SQL' AND success ORDER BY installed_rank", String.class));
+        assertTrue(tableExists(jdbc, "ambiguity_cases"));
+        assertTrue(tableExists(jdbc, "reviewer_decisions"));
+        validateHibernateEntitySchema(dataSource);
+    }
+
+    @Test
+    void versionElevenDatabaseMissingAmbiguityTablesIsRepairedByVersionTwelve() throws Exception {
+        String database = "physlive_v11_ambiguity_repair_" + UUID.randomUUID().toString().replace("-", "");
+        createDatabase(database);
+        String jdbcUrl = jdbcUrl(database);
+        DataSource dataSource = new DriverManagerDataSource(jdbcUrl, POSTGRES.getUsername(), POSTGRES.getPassword());
+        createHibernateEntitySchema(dataSource);
+
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, POSTGRES.getUsername(),
+                POSTGRES.getPassword()); var statement = connection.createStatement()) {
+            statement.execute("DROP TABLE reviewer_decisions");
+            statement.execute("DROP TABLE ambiguity_cases");
+        }
+
+        Flyway flyway = Flyway.configure()
+                .dataSource(jdbcUrl, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration")
+                .schemas("public")
+                .defaultSchema("public")
+                .baselineVersion(MigrationVersion.fromVersion("11"))
+                .load();
+        flyway.baseline();
+        flyway.migrate();
+
+        JdbcTemplate jdbc = new JdbcTemplate(new DriverManagerDataSource(jdbcUrl,
+                POSTGRES.getUsername(), POSTGRES.getPassword()));
+        assertTrue(tableExists(jdbc, "ambiguity_cases"));
+        assertTrue(tableExists(jdbc, "reviewer_decisions"));
+        assertTrue(indexExists(jdbc, "idx_ambiguity_cases_specification_status"));
+        assertTrue(indexExists(jdbc, "idx_reviewer_decisions_ambiguity_case"));
+        assertEquals("14", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
+                "WHERE success ORDER BY installed_rank DESC LIMIT 1", String.class));
+        validateHibernateEntitySchema(dataSource);
+    }
+
+    @Test
+    void versionTwelveDatabaseMissingAmbiguityTablesIsRepairedByVersionThirteen() throws Exception {
+        String database = "physlive_v12_ambiguity_repair_" + UUID.randomUUID().toString().replace("-", "");
+        createDatabase(database);
+        String jdbcUrl = jdbcUrl(database);
+        DataSource dataSource = new DriverManagerDataSource(jdbcUrl, POSTGRES.getUsername(), POSTGRES.getPassword());
+        createHibernateEntitySchema(dataSource);
+
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, POSTGRES.getUsername(),
+                POSTGRES.getPassword()); var statement = connection.createStatement()) {
+            statement.execute("DROP TABLE reviewer_decisions");
+            statement.execute("DROP TABLE ambiguity_cases");
+        }
+
+        Flyway flyway = Flyway.configure()
+                .dataSource(jdbcUrl, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration")
+                .schemas("public")
+                .defaultSchema("public")
+                .baselineVersion(MigrationVersion.fromVersion("12"))
+                .load();
+        flyway.baseline();
+        flyway.migrate();
+
+        JdbcTemplate jdbc = new JdbcTemplate(new DriverManagerDataSource(jdbcUrl,
+                POSTGRES.getUsername(), POSTGRES.getPassword()));
+        assertTrue(tableExists(jdbc, "ambiguity_cases"));
+        assertTrue(tableExists(jdbc, "reviewer_decisions"));
+        assertTrue(indexExists(jdbc, "idx_reviewer_decisions_ambiguity_case"));
+        assertEquals("14", jdbc.queryForObject("SELECT version FROM flyway_schema_history " +
+                "WHERE success ORDER BY installed_rank DESC LIMIT 1", String.class));
+        validateHibernateEntitySchema(dataSource);
+    }
+
+    @Test
+    void versionSixDatabaseWithSchemaVersionsPreservesPublishedRows() throws Exception {
+        String database = "physlive_v6_existing_" + UUID.randomUUID().toString().replace("-", "");
+        createDatabase(database);
+        String jdbcUrl = jdbcUrl(database);
+        UUID existingId = UUID.randomUUID();
+
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, POSTGRES.getUsername(),
+                POSTGRES.getPassword()); var statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE schema_versions (
+                        id uuid PRIMARY KEY,
+                        created_at timestamp(6) with time zone NOT NULL,
+                        updated_at timestamp(6) with time zone NOT NULL,
+                        schema_id varchar(80) NOT NULL,
+                        name varchar(120) NOT NULL,
+                        topic varchar(80) NOT NULL,
+                        version varchar(24) NOT NULL,
+                        definition jsonb NOT NULL,
+                        lifecycle_status varchar(16) NOT NULL
+                    )
+                    """);
+            statement.execute("CREATE UNIQUE INDEX uk_schema_versions_identity " +
+                    "ON schema_versions (schema_id, version)");
+            statement.executeUpdate("INSERT INTO schema_versions " +
+                    "(id, created_at, updated_at, schema_id, name, topic, version, definition, lifecycle_status) " +
+                    "VALUES ('" + existingId + "', now(), now(), 'legacy_schema', 'Legacy schema', " +
+                    "'KINEMATICS', '1.0', '{\"preserved\":true}'::jsonb, 'APPROVED')");
+        }
+
+        Flyway flyway = Flyway.configure()
+                .dataSource(jdbcUrl, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration")
+                .schemas("public")
+                .defaultSchema("public")
+                .baselineVersion(MigrationVersion.fromVersion("6"))
+                .load();
+        flyway.baseline();
+        flyway.migrate();
+
+        JdbcTemplate jdbc = new JdbcTemplate(new DriverManagerDataSource(jdbcUrl,
+                POSTGRES.getUsername(), POSTGRES.getPassword()));
+        assertEquals(existingId, jdbc.queryForObject(
+                "SELECT id FROM schema_versions WHERE schema_id = 'legacy_schema' AND version = '1.0'",
+                UUID.class));
+        assertEquals(true, jdbc.queryForObject(
+                "SELECT definition ->> 'preserved' = 'true' FROM schema_versions WHERE id = ?",
+                Boolean.class, existingId));
+        assertColumnExists(jdbc, "schema_versions", "definition_checksum");
+        assertNull(jdbc.queryForObject(
+                "SELECT definition_checksum FROM schema_versions WHERE id = ?", String.class, existingId));
     }
 
     private static void createHibernateEntitySchema(DataSource dataSource) {
@@ -162,6 +336,16 @@ class FreshSchemaBootstrapMigrationTest {
 
     private static Connection connect() throws SQLException {
         return DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+    }
+
+    private static void createDatabase(String database) throws SQLException {
+        try (Connection connection = connect(); var statement = connection.createStatement()) {
+            statement.execute("CREATE DATABASE \"" + database + "\"");
+        }
+    }
+
+    private static String jdbcUrl(String database) {
+        return POSTGRES.getJdbcUrl().replace("/physlive_fresh_bootstrap_test", "/" + database);
     }
 
     private static int count(Connection connection, String sql) throws SQLException {

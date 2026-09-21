@@ -1,0 +1,166 @@
+{
+  "schemaId": "adiabatic_gas",
+  "model": "adiabatic_gas",
+  "name": "Reversible adiabatic gas process",
+  "topic": "THERMAL",
+  "version": "1.3",
+  "solverId": "adiabatic_gas_solver_v2",
+  "referenceSolverId": "adiabatic_gas_reference_v2",
+  "definition": {
+    "requiredQuantities": [
+      {
+        "key": "initial_pressure",
+        "aliases": [
+          "P1"
+        ],
+        "allowedUnits": [
+          "Pa"
+        ],
+        "positive": true
+      },
+      {
+        "key": "initial_volume",
+        "aliases": [
+          "V1"
+        ],
+        "allowedUnits": [
+          "m3"
+        ],
+        "positive": true
+      },
+      {
+        "key": "final_volume",
+        "aliases": [
+          "V2"
+        ],
+        "allowedUnits": [
+          "m3"
+        ],
+        "positive": true
+      },
+      {
+        "key": "initial_temperature",
+        "aliases": [
+          "T1"
+        ],
+        "allowedUnits": [
+          "K"
+        ],
+        "positive": true
+      },
+      {
+        "key": "heat_capacity_ratio",
+        "aliases": [
+          "gamma",
+          "γ"
+        ],
+        "allowedUnits": [
+          "1"
+        ],
+        "positive": true
+      }
+    ],
+    "adjustableParameters": [
+      {
+        "key": "final_volume",
+        "label": "Final volume",
+        "symbol": "V₂",
+        "unit": "m3",
+        "min": 0.0001,
+        "max": 100,
+        "step": 0.001
+      }
+    ],
+    "visualization": {
+      "scene": "adiabatic_gas",
+      "series": [
+        {
+          "key": "finalPressure",
+          "source": "values.finalPressure",
+          "label": "Final pressure",
+          "symbol": "P₂",
+          "unit": "Pa",
+          "color": "#38bdf8"
+        },
+        {
+          "key": "finalTemperature",
+          "source": "values.finalTemperature",
+          "label": "Final temperature",
+          "symbol": "T₂",
+          "unit": "K",
+          "color": "#fb923c"
+        }
+      ],
+      "presentation": {
+        "theme": "lab-night",
+        "environment": "room.thermodynamics",
+        "sceneGraph": {
+          "nodes": [
+            {
+              "id": "background",
+              "type": "background",
+              "layer": "static"
+            },
+            {
+              "id": "graph",
+              "type": "graph",
+              "layer": "dynamic",
+              "properties": {
+                "source": "values.finalPressure"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "durationSeconds": 1,
+      "stepSeconds": 0.1,
+      "durationBindings": []
+    },
+    "validation": {
+      "tolerance": 1e-06,
+      "checkpointFractions": [
+        0.25,
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "output": {
+      "type": "timeseries",
+      "probeSeries": [
+        "initialPressure",
+        "finalPressure",
+        "finalTemperature",
+        "work"
+      ],
+      "definitions": [
+        {
+          "key": "initialPressure",
+          "kind": "time_series",
+          "unit": "Pa",
+          "required": true
+        },
+        {
+          "key": "finalPressure",
+          "kind": "time_series",
+          "unit": "Pa",
+          "required": true
+        },
+        {
+          "key": "finalTemperature",
+          "kind": "time_series",
+          "unit": "K",
+          "required": true
+        },
+        {
+          "key": "work",
+          "kind": "time_series",
+          "unit": "J",
+          "required": true
+        }
+      ]
+    }
+  }
+}

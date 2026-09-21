@@ -95,6 +95,18 @@ public final class TypedEndConditionCompiler {
         } else {
             OutputSourceBinding.Group group = requestedGroup;
             matches = declared.stream().filter(binding -> binding.group() == group).toList();
+            if (matches.isEmpty()) {
+                // Visualization bindings are indexed by their typed output key,
+                // while an end condition may name the grouped source key (for
+                // example velocities.x). Resolve that relation from compiled
+                // metadata instead of inferring it from a field-name prefix.
+                String sourceKey = key;
+                matches = schema.endConditionSources().values().stream()
+                        .flatMap(List::stream)
+                        .filter(binding -> binding.group() == group && binding.key().equals(sourceKey))
+                        .distinct()
+                        .toList();
+            }
         }
         if (matches.size() != 1) {
             String reason = matches.isEmpty() ? "is not a declared time-series output"

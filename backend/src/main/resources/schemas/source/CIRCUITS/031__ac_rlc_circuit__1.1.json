@@ -102,7 +102,7 @@
           "key": "powerFactor",
           "source": "values.powerFactor",
           "label": "Power factor",
-          "symbol": "cosÏ†",
+          "symbol": "cosφ",
           "unit": "1",
           "color": "#fb923c"
         }

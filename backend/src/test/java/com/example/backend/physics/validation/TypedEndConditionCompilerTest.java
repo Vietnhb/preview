@@ -1,6 +1,8 @@
 package com.example.backend.physics.validation;
 
 import com.example.backend.physics.model.SolverOutput;
+import com.example.backend.physics.output.PhysicsOutputFrame;
+import com.example.backend.physics.output.TimeSeriesOutput;
 import com.example.backend.service.problem.CompiledSchema;
 import com.example.backend.service.problem.SchemaCompiler;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -62,6 +64,35 @@ class TypedEndConditionCompilerTest {
                 () -> TypedEndConditionCompiler.compile(schema, unknown, 2));
         assertThrows(IllegalArgumentException.class,
                 () -> TypedEndConditionCompiler.compile(schema, wrongGroup, 2));
+    }
+
+    @Test
+    void mapsVisualizationOutputKeyToGroupedSourceKeyWithoutNameHeuristics() throws Exception {
+        CompiledSchema schema = new SchemaCompiler(mapper).compile(mapper.readTree("""
+                {
+                  "version":"3.0","topic":"KINEMATICS","model":"projectile",
+                  "requiredQuantities":[],"optionalQuantities":[],
+                  "execution":{"durationSeconds":1,"stepSeconds":1},
+                  "validation":{"tolerance":0,"checkpointFractions":[]},
+                  "output":{"type":"timeseries","definitions":[
+                    {"key":"x","kind":"time_series","unit":"m","required":true},
+                    {"key":"vx","kind":"time_series","unit":"m/s","required":true}
+                  ]},
+                  "visualization":{"series":[
+                    {"key":"x","source":"positions.x","unit":"m"},
+                    {"key":"vx","source":"velocities.x","unit":"m/s"}
+                  ]}
+                }
+                """), "projectile", "3.0", "KINEMATICS");
+
+        assertEquals(List.of(OutputSourceBinding.declared(OutputSourceBinding.Group.VELOCITIES, "x")),
+                schema.endConditionSources().get("vx"));
+        EndConditionContract condition = TypedEndConditionCompiler.compile(schema,
+                request("{\"type\":\"threshold\",\"quantity\":\"velocities.x\",\"operator\":\">=\",\"value\":5}"), 1);
+        var frame = new PhysicsOutputFrame(List.of(0d, 1d), List.of(
+                new TimeSeriesOutput("vx", "m/s", List.of(0d, 1d), List.of(0d, 10d))));
+        assertEquals(0.5, EndConditionResolver.resolve(condition, frame,
+                schema.endConditionSources()).time(), EPSILON);
     }
 
     private CompiledSchema schema() throws Exception {
