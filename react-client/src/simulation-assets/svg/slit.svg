@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 130" role="img" aria-label="diffraction slit">
+  <rect x="10" y="8" width="20" height="114" rx="3" fill="#475569" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="40" y="8" width="20" height="114" rx="3" fill="#475569" stroke="#cbd5e1" stroke-width="2"/>
+  <path d="M30 46h10M30 84h10" stroke="#fbbf24" stroke-width="4"/>
+</svg>

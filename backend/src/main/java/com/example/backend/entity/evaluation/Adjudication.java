@@ -35,4 +35,7 @@ public class Adjudication extends AuditedEntity {
 
     @Column(nullable = false, length = 24)
     private String disagreementState;
+
+    @Column(columnDefinition = "text")
+    private String rationale;
 }

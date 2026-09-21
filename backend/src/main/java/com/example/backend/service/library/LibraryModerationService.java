@@ -14,10 +14,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -35,15 +38,30 @@ public class LibraryModerationService {
                 .stream().map(this::response).toList();
     }
 
+    @Transactional(readOnly = true)
+    public PageView page(LibraryModerationStatus status, Pageable pageable) {
+        Page<LibraryItem> result = items.findByVisibilityInAndModerationStatusOrderByCreatedAtAsc(
+                java.util.Set.of(Visibility.SHARED, Visibility.PUBLIC),
+                status == null ? LibraryModerationStatus.PENDING : status, pageable);
+        return new PageView(result.getContent().stream().map(this::response).toList(), result.getNumber(),
+                result.getSize(), result.getTotalElements(), result.getTotalPages());
+    }
+
+    public record PageView(List<LibraryItemResponse> items, int page, int size, long totalElements, int totalPages) { }
+
     @Transactional
     public LibraryItemResponse moderate(UUID id, LibraryModerationStatus status, String comment) {
         var actor = currentUser.requireCurrentUser();
-        LibraryItem item = items.findById(id)
+        LibraryItem item = items.findByIdForUpdate(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shared library item not found"));
         if (item.getVisibility() == Visibility.PERSONAL)
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only published library items can be moderated");
         if (status == null || status == LibraryModerationStatus.PENDING)
             throw new ApiException(HttpStatus.BAD_REQUEST, "A final moderation status is required");
+        if ((status == LibraryModerationStatus.REJECTED || status == LibraryModerationStatus.REMOVED)
+                && !StringUtils.hasText(comment)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A reason is required when rejecting or removing content");
+        }
         LibraryModerationAudit audit = new LibraryModerationAudit(); audit.setLibraryItem(item); audit.setReviewer(actor);
         audit.setFromStatus(item.getModerationStatus()); audit.setToStatus(status); audit.setComment(comment == null ? null : comment.trim()); audits.save(audit);
         item.setModerationStatus(status);

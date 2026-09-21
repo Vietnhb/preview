@@ -41,6 +41,8 @@ export type VisualizationActor = {
 export type VisualizationPresentation = {
   theme?: string;
   environment?: string;
+  /** Frontend layout capability; absent means the renderer chooses dataPlane. */
+  layout?: "dataPlane" | "horizontalTrack" | "projectileRange" | "collisionTrack" | "springBench" | "circuitBoard" | "world";
   actors?: VisualizationActor[];
   props?: string[];
   effects?: string[];

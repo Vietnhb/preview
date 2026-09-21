@@ -8,6 +8,7 @@
 **/.vite/
 **/coverage/
 *.class
+tmp/
 
 # Local IDE files
 **/.idea/
@@ -31,5 +32,6 @@ backend/.github/java-upgrade/
 # Temporary files
 **/*.log
 **/~$*
+**/.cache/
 .DS_Store
 Thumbs.db

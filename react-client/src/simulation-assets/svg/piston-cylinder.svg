@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92 130" role="img" aria-label="piston cylinder">
+  <path d="M16 22h60v94H16z" fill="#334155" fill-opacity=".7" stroke="#cbd5e1" stroke-width="3"/>
+  <rect x="22" y="75" width="48" height="9" rx="3" fill="#fbbf24" stroke="#fef3c7"/>
+  <path d="M46 75V34M36 34h20M46 104v16" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M30 54c8-12 24-12 32 0" fill="none" stroke="#fb7185" stroke-width="3" stroke-linecap="round"/>
+</svg>

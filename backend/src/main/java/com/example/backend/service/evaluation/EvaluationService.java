@@ -3,6 +3,7 @@ package com.example.backend.service.evaluation;
 import com.example.backend.repository.evaluation.BenchmarkProblemRepository;
 import com.example.backend.repository.evaluation.EvaluationRunRepository;
 import com.example.backend.service.problem.SchemaDefinitionService;
+import com.example.backend.service.account.CurrentUserService;
 
 import com.example.backend.dto.evaluation.EvaluationResponse;
 import com.example.backend.entity.evaluation.Adjudication;
@@ -28,6 +29,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.time.Instant;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -42,9 +50,29 @@ public class EvaluationService {
     private final ExtractionCoordinator extractionCoordinator;
     private final ObjectMapper objectMapper;
     private final SchemaDefinitionService schemaDefinitions;
+    private final CurrentUserService currentUser;
+
+    public record RunView(UUID id, String evaluationType, String status, int benchmarkCount,
+                          JsonNode metrics, String report, String requestedByReference,
+                          Instant createdAt, Instant startedAt, Instant completedAt,
+                          Long durationMs, String benchmarkSnapshotHash, JsonNode configuration,
+                          String failureCode, String failureMessage) {
+        static RunView from(EvaluationRun run) {
+            return new RunView(run.getId(), run.getEvaluationType(), run.getStatus(), run.getBenchmarkCount(),
+                    run.getMetrics(), run.getReport(), run.getRequestedByReference(), run.getCreatedAt(),
+                    run.getStartedAt(), run.getCompletedAt(), run.getDurationMs(), run.getBenchmarkSnapshotHash(),
+                    run.getConfiguration(), run.getFailureCode(), run.getFailureMessage());
+        }
+    }
+
+    public record RunPage(List<RunView> items, int page, int size, long totalElements, int totalPages) { }
+
+    public record RunComparison(RunView baseline, RunView candidate, JsonNode metricDelta) { }
 
     @Transactional
     public EvaluationResponse run() {
+        Instant startedAt = Instant.now();
+        String actor = "user:" + currentUser.requireCurrentUser().getId();
         List<BenchmarkProblem> benchmarks = finalizedBenchmarks();
         if (benchmarks.isEmpty()) {
             throw new com.example.backend.exception.ApiException(HttpStatus.CONFLICT,
@@ -78,11 +106,70 @@ public class EvaluationService {
         run.setEvaluationType("CONFIRM_FLOW_VS_SILENT_DEFAULT");
         run.setBenchmarkCount(benchmarks.size());
         run.setMetrics(metrics);
+        run.setStatus("COMPLETED");
+        run.setRequestedByReference(actor);
+        run.setStartedAt(startedAt);
+        run.setCompletedAt(Instant.now());
+        run.setDurationMs(java.time.Duration.between(startedAt, run.getCompletedAt()).toMillis());
+        run.setBenchmarkSnapshotHash(snapshotHash(benchmarks));
+        ObjectNode configuration = objectMapper.createObjectNode();
+        configuration.put("evaluationType", "CONFIRM_FLOW_VS_SILENT_DEFAULT");
+        configuration.put("schemaCatalogMode", "approved");
+        configuration.put("toleranceSource", "approved schema validation.tolerance");
+        run.setConfiguration(configuration);
         run.setReport("Confirm-flow metrics are compared with a deterministic silent-default baseline. "
                 + "The baseline is evaluation-only and never participates in production simulation creation.");
         evaluationRepository.save(run);
         return new EvaluationResponse("CONFIRM_FLOW_VS_SILENT_DEFAULT", benchmarks.size(), total.precision(),
                 total.recall(), total.f1(), cohenKappa(benchmarks), total.incorrectRate(), metrics);
+    }
+
+    @Transactional(readOnly = true)
+    public RunPage history(String status, Pageable pageable) {
+        Page<EvaluationRun> page = evaluationRepository.search(StringUtils.hasText(status) ? status.trim() : null, pageable);
+        return new RunPage(page.getContent().stream().map(RunView::from).toList(), page.getNumber(), page.getSize(),
+                page.getTotalElements(), page.getTotalPages());
+    }
+
+    @Transactional(readOnly = true)
+    public RunView detail(UUID id) {
+        return RunView.from(evaluationRepository.findById(id)
+                .orElseThrow(() -> new com.example.backend.exception.ApiException(HttpStatus.NOT_FOUND,
+                        "Evaluation run not found")));
+    }
+
+    @Transactional(readOnly = true)
+    public RunComparison compare(UUID baselineId, UUID candidateId) {
+        RunView baseline = detail(baselineId);
+        RunView candidate = detail(candidateId);
+        ObjectNode delta = objectMapper.createObjectNode();
+        delta.put("precision", numericDelta(baseline.metrics(), candidate.metrics(), "confirmFlow", "precision"));
+        delta.put("recall", numericDelta(baseline.metrics(), candidate.metrics(), "confirmFlow", "recall"));
+        delta.put("f1", numericDelta(baseline.metrics(), candidate.metrics(), "confirmFlow", "f1"));
+        delta.put("numericAgreement", numericDelta(baseline.metrics(), candidate.metrics(), null, "numericAgreement"));
+        delta.put("incorrectSimulationRate", numericDelta(baseline.metrics(), candidate.metrics(), null, "incorrectSimulationRate"));
+        return new RunComparison(baseline, candidate, delta);
+    }
+
+    private double numericDelta(JsonNode baseline, JsonNode candidate, String parent, String field) {
+        JsonNode left = parent == null ? baseline.path(field) : baseline.path(parent).path(field);
+        JsonNode right = parent == null ? candidate.path(field) : candidate.path(parent).path(field);
+        return right.asDouble(0.0) - left.asDouble(0.0);
+    }
+
+    private String snapshotHash(List<BenchmarkProblem> benchmarks) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            benchmarks.stream()
+                    .map(item -> item.getId() + ":" + item.getUpdatedAt())
+                    .sorted()
+                    .forEach(value -> digest.update(value.getBytes(StandardCharsets.UTF_8)));
+            StringBuilder result = new StringBuilder();
+            for (byte value : digest.digest()) result.append(String.format("%02x", value));
+            return result.toString();
+        } catch (java.security.NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is required", exception);
+        }
     }
 
     private List<BenchmarkProblem> finalizedBenchmarks() {

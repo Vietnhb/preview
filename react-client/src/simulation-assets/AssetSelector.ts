@@ -28,7 +28,7 @@ export type AssetSelection<T extends SelectableAssetVariant = SelectableAssetVar
 };
 
 export function tokenizeAssetHint(value: string): string[] {
-  return value.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 }
 
 function stableHash(value: string): number {
@@ -78,4 +78,3 @@ export function selectAsset<T extends SelectableAssetVariant>(
     .sort((left, right) => left.variant.id.localeCompare(right.variant.id));
   return best[stableHash(`${seed}|${hint}`) % best.length] ?? best[0] ?? null;
 }
-

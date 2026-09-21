@@ -239,6 +239,16 @@ const environmentRegistry: Record<string, EnvironmentPainter> = {
     for (let x = 70; x < width - 50; x += 70) { ctx.beginPath(); ctx.arc(x, y * .42, 18, 0, Math.PI * 2); ctx.stroke(); }
     ctx.fillStyle = palette.muted; ctx.font = "700 10px ui-monospace, Consolas, monospace"; ctx.fillText("ACOUSTIC PRESSURE FIELD", 72, 72);
   },
+  "wave.tank": (ctx, width, height, y, palette) => {
+    const waterTop = Math.min(height - 80, Math.max(110, y - 30));
+    const water = ctx.createLinearGradient(0, waterTop, 0, height);
+    water.addColorStop(0, "rgba(14,165,233,.26)"); water.addColorStop(1, "rgba(8,47,73,.82)");
+    ctx.fillStyle = water; ctx.fillRect(0, waterTop, width, height - waterTop);
+    ctx.strokeStyle = "rgba(125,211,252,.8)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, waterTop); ctx.lineTo(width, waterTop); ctx.stroke();
+    ctx.strokeStyle = "rgba(56,189,248,.22)"; ctx.lineWidth = 1;
+    for (let row = waterTop + 22; row < height; row += 26) { ctx.beginPath(); ctx.moveTo(54, row); ctx.lineTo(width - 54, row); ctx.stroke(); }
+    ctx.fillStyle = palette.muted; ctx.font = "700 10px ui-monospace, Consolas, monospace"; ctx.fillText("WATER-SURFACE WAVE TANK", 72, 72);
+  },
   "optical.bench": (ctx, width, _height, y, palette) => {
     ctx.fillStyle = "rgba(18,24,37,.82)"; ctx.fillRect(0, y - 26, width, 70);
     ctx.strokeStyle = "rgba(251,191,36,.7)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(42, y); ctx.lineTo(width - 42, y); ctx.stroke();
@@ -518,7 +528,10 @@ function drawNode(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node:
   if (node.type === "prop") {
     const anchorNode = actorNode(nodes, propertyString(node, "anchorId"));
     const anchorState = anchorNode ? resolver.resolveNode(anchorNode, frame.data.time[0] ?? 0, 0) : { x: 0, y: 0 };
-    const anchor = layout.mapPoint(anchorState.x, anchorState.y, propertyNumber(anchorNode ?? node, "lane"));
+    const hasScreenAnchor = !anchorNode && typeof node.properties.anchorXRatio === "number" && typeof node.properties.anchorYRatio === "number";
+    const anchor = hasScreenAnchor
+      ? { x: frame.width * propertyNumber(node, "anchorXRatio"), y: frame.height * propertyNumber(node, "anchorYRatio") }
+      : layout.mapPoint(anchorState.x, anchorState.y, propertyNumber(anchorNode ?? node, "lane"));
     canvasAssetRegistry.drawProp(propertyString(node, "asset"), ctx, anchor, propertyNumber(node, "angle"), palette);
     return;
   }

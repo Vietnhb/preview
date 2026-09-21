@@ -7,6 +7,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 import java.util.UUID;
 import java.util.List;
@@ -14,6 +18,10 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"specification", "owner", "owner.school"})
+    @Query("select i from LibraryItem i where i.id = :id")
+    Optional<LibraryItem> findByIdForUpdate(@Param("id") UUID id);
     Optional<LibraryItem> findBySimulationIdAndOwnerId(UUID simulationId, Integer ownerId);
 
     Optional<LibraryItem> findByIdAndOwnerIdAndActiveTrue(UUID id, Integer ownerId);
@@ -80,4 +88,8 @@ public interface LibraryItemRepository extends JpaRepository<LibraryItem, UUID> 
 
     List<LibraryItem> findByVisibilityAndModerationStatusOrderByCreatedAtAsc(Visibility visibility, LibraryModerationStatus status);
     List<LibraryItem> findByVisibilityInAndModerationStatusOrderByCreatedAtAsc(java.util.Set<Visibility> visibilities, LibraryModerationStatus status);
+    @EntityGraph(attributePaths = {"specification", "owner", "owner.school"})
+    Page<LibraryItem> findByVisibilityInAndModerationStatusOrderByCreatedAtAsc(java.util.Set<Visibility> visibilities,
+                                                                                 LibraryModerationStatus status,
+                                                                                 Pageable pageable);
 }

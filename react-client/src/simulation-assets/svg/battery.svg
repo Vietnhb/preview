@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" role="img" aria-label="battery">
+  <rect x="12" y="8" width="40" height="56" rx="7" fill="#1e293b" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="23" y="2" width="7" height="8" rx="2" fill="#f8fafc"/>
+  <rect x="35" y="2" width="7" height="8" rx="2" fill="#f8fafc"/>
+  <path d="M32 22v18M23 31h18" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+  <path d="M24 50h16" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/>
+</svg>

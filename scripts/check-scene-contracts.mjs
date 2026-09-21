@@ -14,6 +14,10 @@ const errors = [];
 const identities = new Set();
 let explicitSceneGraphs = 0;
 let seriesDrivenScenes = 0;
+let adjustableSchemas = 0;
+let assetHintCount = 0;
+const primitiveCounts = new Map();
+const environments = new Set();
 
 function bindingError(value, depth = 0, declaredSources) {
   if (depth > 32) return "binding nesting exceeds 32";
@@ -41,6 +45,7 @@ function visitNodes(schemaId, nodes, ids, declaredSources) {
     if (ids.has(node.id)) errors.push(`${schemaId}: duplicate node id ${node.id}`);
     ids.add(node.id);
     if (!primitives.has(node.type)) errors.push(`${schemaId}: unsupported primitive ${node.type}`);
+    primitiveCounts.set(node.type, (primitiveCounts.get(node.type) ?? 0) + 1);
     for (const [key, value] of Object.entries(node.transform ?? {})) {
       const error = bindingError(value, 0, declaredSources);
       if (error) errors.push(`${schemaId}.${node.id}.transform.${key}: ${error}`);
@@ -75,6 +80,10 @@ for (const schema of schemas) {
     else declaredSources.add(series.source);
   }
   const nodes = visualization.presentation?.sceneGraph?.nodes;
+  if ((schema.definition?.adjustableParameters?.length ?? 0) > 0) adjustableSchemas += 1;
+  if (typeof visualization.presentation?.environment === "string") environments.add(visualization.presentation.environment);
+  assetHintCount += (visualization.presentation?.actors ?? []).filter(actor => typeof actor.asset === "string" && actor.asset.trim()).length;
+  assetHintCount += (visualization.presentation?.props ?? []).filter(prop => typeof prop === "string" && prop.trim()).length;
   if (Array.isArray(nodes) && nodes.length) {
     explicitSceneGraphs += 1;
     visitNodes(schemaId, nodes, new Set(), declaredSources);
@@ -86,5 +95,14 @@ for (const schema of schemas) {
   }
 }
 
-console.log(JSON.stringify({ schemas: schemas.length, explicitSceneGraphs, seriesDrivenScenes, errors }, null, 2));
+console.log(JSON.stringify({
+  schemas: schemas.length,
+  adjustableSchemas,
+  explicitSceneGraphs,
+  seriesDrivenScenes,
+  assetHintCount,
+  environments: [...environments].sort(),
+  primitiveCounts: Object.fromEntries([...primitiveCounts.entries()].sort(([left], [right]) => left.localeCompare(right))),
+  errors,
+}, null, 2));
 if (errors.length) process.exitCode = 1;

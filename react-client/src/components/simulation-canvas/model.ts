@@ -1,4 +1,5 @@
 import type { Simulation, VisualizationActor, VisualizationPresentation } from "../../types/physlive";
+import { inferScenePresentation } from "../../simulation-scene/SceneProfile";
 
 export type OverlayState = {
   grid: boolean;
@@ -103,13 +104,15 @@ const DEFAULT_PRESENTATIONS: Record<string, VisualizationPresentation> = {
 
 export function presentationFor(simulation: Simulation): VisualizationPresentation {
   const configured = simulation.visualization?.presentation;
-  const fallback = DEFAULT_PRESENTATIONS[simulation.visualization?.scene] ?? {};
+  const inferred = inferScenePresentation(simulation);
+  const fallback = DEFAULT_PRESENTATIONS[simulation.visualization?.scene] ?? inferred;
   return {
+    ...inferred,
     ...fallback,
     ...configured,
-    actors: configured?.actors?.length ? configured.actors : fallback.actors,
-    props: configured?.props ?? fallback.props,
-    effects: configured?.effects ?? fallback.effects,
+    actors: configured?.actors?.length ? configured.actors : fallback.actors ?? inferred.actors,
+    props: configured?.props ?? fallback.props ?? inferred.props,
+    effects: configured?.effects ?? fallback.effects ?? inferred.effects,
   };
 }
 

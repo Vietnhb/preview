@@ -35,4 +35,13 @@ public class GoldAnnotation extends AuditedEntity {
 
     @Column(nullable = false, length = 24)
     private String annotationStatus;
+
+    @Column(name = "schema_catalog_checksum", length = 120)
+    private String schemaCatalogChecksum;
+
+    @Column(name = "prompt_version", length = 120)
+    private String promptVersion;
+
+    @Column(name = "model_version", length = 120)
+    private String modelVersion;
 }

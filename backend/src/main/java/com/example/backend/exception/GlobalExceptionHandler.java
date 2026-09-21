@@ -2,6 +2,7 @@ package com.example.backend.exception;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -79,6 +80,13 @@ public class GlobalExceptionHandler {
         String message = conflictMessage(detail);
         log.warn("Data integrity conflict: {}", detail);
         return ResponseEntity.status(409).body(new ErrorResponse(409, message));
+    }
+
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class,
+            jakarta.persistence.OptimisticLockException.class})
+    public ResponseEntity<ErrorResponse> handleOptimisticConflict(Exception ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(409, "Bản ghi vừa được reviewer khác thay đổi; hãy tải lại."));
     }
 
     private String conflictMessage(String detail) {

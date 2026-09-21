@@ -10,6 +10,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -43,4 +44,8 @@ public class SchemaVersion extends AuditedEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private LifecycleStatus lifecycleStatus = LifecycleStatus.DRAFT;
+
+    @Version
+    @Column(name = "record_version", nullable = false)
+    private long recordVersion;
 }

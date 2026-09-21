@@ -26,6 +26,9 @@ import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -37,15 +40,57 @@ public class ReviewerService {
     private final AmbiguityResolutionApplier ambiguityResolutionApplier;
     private final SpecificationReadinessService readinessService;
 
+    public record AmbiguityPage(List<ReviewerAmbiguityResponse> items, int page, int size,
+                                long totalElements, int totalPages) { }
+
     @Transactional(readOnly = true)
     public List<ReviewerAmbiguityResponse> openAmbiguities() {
-        return ambiguityRepository.findByStatus(AmbiguityStatus.OPEN).stream()
-                .map(item -> new ReviewerAmbiguityResponse(item.getId(), item.getSpecification().getId(), item.getCode(),
-                        item.getFieldPath(), item.getQuestion(), item.getOptions(), item.getStatus(),
-                        item.getSpecification().getSubmission().getEditableText() == null
-                            ? item.getSpecification().getSubmission().getOriginalText() : item.getSpecification().getSubmission().getEditableText(),
-                        item.getSpecification().getTopic(), item.getSpecification().getQuantities(), item.getSpecification().getRelations()))
+        User actor = currentUserService.requireCurrentUser();
+        Instant now = Instant.now();
+        return ambiguityRepository.findQueue(AmbiguityStatus.OPEN, now, actor.getId()).stream()
+                .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AmbiguityPage openAmbiguitiesPage(String topic, Pageable pageable) {
+        User actor = currentUserService.requireCurrentUser();
+        Page<AmbiguityCase> result = ambiguityRepository.findQueuePage(AmbiguityStatus.OPEN, Instant.now(), actor.getId(),
+                StringUtils.hasText(topic) ? topic.trim() : null, pageable);
+        return new AmbiguityPage(result.getContent().stream().map(this::toResponse).toList(), result.getNumber(),
+                result.getSize(), result.getTotalElements(), result.getTotalPages());
+    }
+
+    @Transactional
+    public ReviewerAmbiguityResponse claim(UUID ambiguityId) {
+        User actor = currentUserService.requireCurrentUser();
+        AmbiguityCase ambiguity = ambiguityRepository.findByIdForUpdate(ambiguityId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ambiguity case not found"));
+        Instant now = Instant.now();
+        if (ambiguity.getStatus() != AmbiguityStatus.OPEN) {
+            throw new ApiException(HttpStatus.CONFLICT, "Ambiguity case is no longer open");
+        }
+        if (ambiguity.getClaimedBy() != null && !ambiguity.getClaimedBy().equals(actor.getId())
+                && ambiguity.getClaimExpiresAt() != null && ambiguity.getClaimExpiresAt().isAfter(now)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Ambiguity case is claimed by another reviewer");
+        }
+        ambiguity.setClaimedBy(actor.getId());
+        ambiguity.setClaimedAt(now);
+        ambiguity.setClaimExpiresAt(now.plusSeconds(30 * 60));
+        return toResponse(ambiguity);
+    }
+
+    @Transactional
+    public void release(UUID ambiguityId) {
+        User actor = currentUserService.requireCurrentUser();
+        AmbiguityCase ambiguity = ambiguityRepository.findByIdForUpdate(ambiguityId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ambiguity case not found"));
+        if (ambiguity.getClaimedBy() != null && !ambiguity.getClaimedBy().equals(actor.getId())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Only the claiming reviewer can release this case");
+        }
+        ambiguity.setClaimedBy(null);
+        ambiguity.setClaimedAt(null);
+        ambiguity.setClaimExpiresAt(null);
     }
 
     @Transactional
@@ -54,12 +99,19 @@ public class ReviewerService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Resolution answer is required");
         }
         User actor = currentUserService.requireCurrentUser();
-        AmbiguityCase ambiguity = ambiguityRepository.findById(ambiguityId)
+        AmbiguityCase ambiguity = ambiguityRepository.findByIdForUpdate(ambiguityId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ambiguity case not found"));
         if (ambiguity.getStatus() != AmbiguityStatus.OPEN) {
             throw new ApiException(HttpStatus.CONFLICT, "Ambiguity case is already resolved");
         }
         Instant now = Instant.now();
+        if (ambiguity.getClaimedBy() != null && !ambiguity.getClaimedBy().equals(actor.getId())
+                && ambiguity.getClaimExpiresAt() != null && ambiguity.getClaimExpiresAt().isAfter(now)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Ambiguity case is claimed by another reviewer");
+        }
+        ambiguity.setClaimedBy(actor.getId());
+        ambiguity.setClaimedAt(now);
+        ambiguity.setClaimExpiresAt(now.plusSeconds(30 * 60));
         try {
             ambiguityResolutionApplier.applyAll(ambiguity.getSpecification(), java.util.Map.of(ambiguity.getCode(), request.answer().trim()));
         } catch (RuntimeException exception) {
@@ -84,6 +136,19 @@ public class ReviewerService {
             specification.setConfirmationState(ConfirmationState.CONFIRMED);
             specification.getSubmission().setStatus(SubmissionStatus.READY_FOR_VALIDATION);
         }
+        ambiguity.setClaimedBy(null);
+        ambiguity.setClaimedAt(null);
+        ambiguity.setClaimExpiresAt(null);
         return mapper.toSpecification(specification);
+    }
+
+    private ReviewerAmbiguityResponse toResponse(AmbiguityCase item) {
+        String problemText = item.getSpecification().getSubmission().getEditableText() == null
+                ? item.getSpecification().getSubmission().getOriginalText()
+                : item.getSpecification().getSubmission().getEditableText();
+        return new ReviewerAmbiguityResponse(item.getId(), item.getSpecification().getId(), item.getCode(),
+                item.getFieldPath(), item.getQuestion(), item.getOptions(), item.getStatus(), problemText,
+                item.getSpecification().getTopic(), item.getSpecification().getQuantities(),
+                item.getSpecification().getRelations(), item.getClaimedBy(), item.getClaimedAt(), item.getClaimExpiresAt());
     }
 }

@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.BatchSize;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "benchmark_problems")
@@ -35,6 +36,19 @@ public class BenchmarkProblem extends AuditedEntity {
 
     @Column(nullable = false)
     private boolean active;
+
+    @Column(nullable = false, length = 24)
+    private String status = "DRAFT";
+
+    @Version
+    @Column(nullable = false)
+    private long version;
+
+    @Column(name = "created_by_reference", length = 80)
+    private String createdByReference;
+
+    @Column(name = "archived_reason", columnDefinition = "text")
+    private String archivedReason;
 
     @OneToMany(mappedBy = "benchmarkProblem", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)

@@ -217,6 +217,13 @@ public class SchemaDefinitionService {
         return schemaCompiler.checksum(definition);
     }
 
+    public String solverBindingChecksum(String solverId, JsonNode outputDefinition) {
+        ObjectNode binding = JsonNodeFactory.instance.objectNode();
+        binding.put("solverId", solverId == null ? "" : solverId.trim());
+        binding.set("outputDefinition", outputDefinition == null ? JsonNodeFactory.instance.nullNode() : outputDefinition.deepCopy());
+        return schemaCompiler.checksum(binding);
+    }
+
     public CompiledSchema compiled(SchemaVersion schema) {
         if (schema == null || !StringUtils.hasText(schema.getSchemaId()) || !StringUtils.hasText(schema.getVersion())
                 || !StringUtils.hasText(schema.getTopic())) {

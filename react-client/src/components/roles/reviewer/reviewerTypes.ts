@@ -9,6 +9,9 @@ export type ReviewItem = {
   topic: string;
   quantities: unknown;
   relations: unknown;
+  claimedBy?: number | null;
+  claimedAt?: string | null;
+  claimExpiresAt?: string | null;
 };
 
 export type Version = {
@@ -21,6 +24,9 @@ export type Version = {
   definition?: unknown;
   solverId?: string;
   outputDefinition?: { referenceSolverId?: string };
+  definitionChecksum?: string;
+  bindingChecksum?: string;
+  recordVersion?: number;
   createdAt: string;
 };
 
@@ -45,6 +51,9 @@ export type Benchmark = {
   canAdjudicate: boolean;
   annotations: { actor: string; specification: unknown }[];
   goldSpecification: unknown;
+  version?: number;
+  createdByReference?: string;
+  createdAt?: string;
 };
 
 export type Evaluation = {
@@ -54,4 +63,30 @@ export type Evaluation = {
   f1: number;
   kappa: number;
   incorrectRate: number;
+};
+
+export type EvaluationRun = {
+  id: string;
+  evaluationType: string;
+  status: string;
+  benchmarkCount: number;
+  metrics: Record<string, unknown>;
+  report?: string;
+  requestedByReference?: string;
+  createdAt?: string;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
+  benchmarkSnapshotHash?: string;
+  configuration?: Record<string, unknown>;
+  failureCode?: string;
+  failureMessage?: string;
+};
+
+export type EvaluationPage = {
+  items: EvaluationRun[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 };

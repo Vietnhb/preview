@@ -1,0 +1,31 @@
+{
+  "purpose": "offline-svg-catalog",
+  "activeRendererImports": "reviewed-manifest-only",
+  "libraries": [
+    {
+      "id": "tabler",
+      "version": "3.47.0",
+      "license": "MIT",
+      "source": "https://github.com/tabler/tabler-icons",
+      "svgCount": 6202,
+      "path": "tabler/svg"
+    },
+    {
+      "id": "phosphor",
+      "version": "2.1.1",
+      "license": "MIT",
+      "source": "https://github.com/phosphor-icons/core",
+      "svgCount": 9072,
+      "path": "phosphor/svg"
+    },
+    {
+      "id": "material-design-icons",
+      "version": "0.14.15",
+      "license": "Apache-2.0",
+      "source": "https://github.com/google/material-design-icons",
+      "svgCount": 10610,
+      "path": "material-design-icons/svg"
+    }
+  ],
+  "totalSvgCount": 25884
+}

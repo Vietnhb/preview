@@ -8,6 +8,9 @@ import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +25,12 @@ public class LibraryModerationController {
 
     @GetMapping
     public List<LibraryItemResponse> queue(@RequestParam(required = false) LibraryModerationStatus status) { return service.queue(status); }
+
+    @GetMapping("/page")
+    public LibraryModerationService.PageView page(@RequestParam(required = false) LibraryModerationStatus status,
+                                                  @PageableDefault(size = 25, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+        return service.page(status, pageable);
+    }
 
     @PutMapping("/{id}")
     public LibraryItemResponse moderate(@PathVariable UUID id, @Valid @RequestBody ModerationRequest request) {

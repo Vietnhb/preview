@@ -18,6 +18,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -52,4 +53,17 @@ public class AmbiguityCase extends AuditedEntity {
     private String resolution;
 
     private Instant resolvedAt;
+
+    @Column(name = "claimed_by")
+    private Integer claimedBy;
+
+    @Column(name = "claimed_at")
+    private Instant claimedAt;
+
+    @Column(name = "claim_expires_at")
+    private Instant claimExpiresAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 }

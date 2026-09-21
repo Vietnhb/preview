@@ -150,6 +150,7 @@ class BenchmarkProblemFinalizedQueryTest {
         benchmark.setGradeScope("GRADE_10");
         benchmark.setSourceCategory("TEST");
         benchmark.setActive(active);
+        benchmark.setStatus(active ? "GOLD_READY" : "ARCHIVED");
         return benchmark;
     }
 

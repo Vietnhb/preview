@@ -50,10 +50,9 @@ public class SchemaService {
 
     @Transactional
     public SchemaVersion changeLifecycle(String schemaId, LifecycleStatus status) {
-        SchemaVersion schema = schemaRepository.findTopBySchemaIdIgnoreCaseAndLifecycleStatusOrderByCreatedAtDesc(
-                schemaId.trim(), LifecycleStatus.APPROVED)
+        if (status == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Lifecycle status is required");
+        SchemaVersion schema = schemaRepository.findTopBySchemaIdIgnoreCaseOrderByCreatedAtDesc(schemaId.trim())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Schema not found"));
-        LifecycleStatus previousStatus = schema.getLifecycleStatus();
         transition(schema, status);
         SchemaVersion saved = schemaRepository.save(schema);
         return saved;
@@ -61,8 +60,8 @@ public class SchemaService {
 
     @Transactional
     public SchemaVersion changeVersionLifecycle(java.util.UUID id, LifecycleStatus status) {
+        if (status == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Lifecycle status is required");
         SchemaVersion schema = schemaRepository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Schema version not found"));
-        LifecycleStatus previousStatus = schema.getLifecycleStatus();
         transition(schema, status);
         SchemaVersion saved = schemaRepository.save(schema);
         return saved;
@@ -72,6 +71,9 @@ public class SchemaService {
         if (schema.getLifecycleStatus() == status) return;
         if (schema.getLifecycleStatus() == LifecycleStatus.RETIRED || status == LifecycleStatus.DRAFT)
             throw new ApiException(HttpStatus.CONFLICT, "Create a new draft version instead of reopening a published version");
+        if (schema.getLifecycleStatus() == LifecycleStatus.DRAFT && status != LifecycleStatus.APPROVED) {
+            throw new ApiException(HttpStatus.CONFLICT, "A draft can only move to APPROVED after evidence validation");
+        }
         if (status == LifecycleStatus.APPROVED) {
             schemaDefinitions.validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(),
                     schema.getTopic());

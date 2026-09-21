@@ -24,6 +24,10 @@ test("tokenization makes descriptive dotted asset hints searchable", () => {
   assert.deepEqual(tokenizeAssetHint("Vehicle.Cart.Blue"), ["vehicle", "cart", "blue"]);
 });
 
+test("tokenization keeps Vietnamese semantic asset hints searchable", () => {
+  assert.deepEqual(tokenizeAssetHint("xe ô tô · lò xo"), ["xe", "o", "to", "lo", "xo"]);
+});
+
 test("selector honors semantic aliases instead of requiring exact registry keys", () => {
   const selected = selectAsset("vehicle.cart.orange", "actor", "body-2", definitions);
   assert.equal(selected?.variant.id, "cart-orange");
@@ -40,4 +44,3 @@ test("selector is deterministic for one actor and can diversify other actors", (
 test("unknown semantic categories are allowed to use a renderer fallback", () => {
   assert.equal(selectAsset("laboratory.spring", "actor", "mass", definitions), null);
 });
-

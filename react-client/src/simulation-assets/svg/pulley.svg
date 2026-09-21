@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="pulley">
+  <circle cx="48" cy="36" r="24" fill="#334155" stroke="#e2e8f0" stroke-width="3"/>
+  <circle cx="48" cy="36" r="8" fill="#fbbf24" stroke="#fef3c7" stroke-width="2"/>
+  <path d="M24 36v42M72 36v42M24 78h48" fill="none" stroke="#94a3b8" stroke-width="4"/>
+  <path d="M48 60v26M38 86h20" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/>
+</svg>

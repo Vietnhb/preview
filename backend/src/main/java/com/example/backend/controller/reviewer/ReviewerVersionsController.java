@@ -27,6 +27,7 @@ public class ReviewerVersionsController {
     private final SolverVersionRepository solvers;
     private final PhysicsSolverRegistry numerical;
     private final ReferenceSolverRegistry reference;
+    private final com.example.backend.service.problem.SchemaDefinitionService schemaDefinitions;
     public record SolverRequest(@NotBlank @Size(max=80) String schemaId, @NotBlank @Size(max=120) String solverId,
             @NotBlank @Size(max=16) String version, @NotNull JsonNode outputDefinition) { }
 
@@ -55,7 +56,10 @@ public class ReviewerVersionsController {
     }
     private SolverVersion save(SolverVersion version, SolverRequest request) {
         validate(request.solverId(), request.outputDefinition());
-        version.setSolverId(request.solverId()); version.setOutputDefinition(request.outputDefinition()); return solvers.save(version);
+        version.setSolverId(request.solverId());
+        version.setOutputDefinition(request.outputDefinition());
+        version.setBindingChecksum(schemaDefinitions.solverBindingChecksum(request.solverId(), request.outputDefinition()));
+        return solvers.save(version);
     }
     private void validate(String solverId, JsonNode definition) {
         if (!definition.isObject() || !numerical.ids().contains(solverId)
@@ -68,7 +72,14 @@ public class ReviewerVersionsController {
         if (version.getLifecycleStatus() == status) return version;
         if (version.getLifecycleStatus() == LifecycleStatus.RETIRED || status == LifecycleStatus.DRAFT)
             throw new ApiException(HttpStatus.CONFLICT, "Create a new version instead of reopening a published version");
-        if (status == LifecycleStatus.APPROVED) validate(version.getSolverId(), version.getOutputDefinition());
+        if (status == LifecycleStatus.APPROVED) {
+            validate(version.getSolverId(), version.getOutputDefinition());
+            String checksum = schemaDefinitions.solverBindingChecksum(version.getSolverId(), version.getOutputDefinition());
+            if (version.getBindingChecksum() != null && !version.getBindingChecksum().equals(checksum)) {
+                throw new ApiException(HttpStatus.CONFLICT, "Solver binding checksum drift detected; create a new version");
+            }
+            version.setBindingChecksum(checksum);
+        }
         version.setLifecycleStatus(status); return solvers.save(version);
     }
     private SolverVersion require(UUID id) { return solvers.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Solver version not found")); }

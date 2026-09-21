@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 82" role="img" aria-label="solar panel">
+  <path d="M15 12h90l12 48H3z" fill="#172554" stroke="#60a5fa" stroke-width="3"/>
+  <path d="M38 12 31 60M61 12 60 60M84 12 89 60M8 36h104" stroke="#38bdf8" stroke-width="1.5"/>
+  <path d="M60 60v14M44 76h32" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -16,6 +16,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -71,4 +72,8 @@ public class LibraryItem extends AuditedEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "moderated_by")
     private User moderatedBy;
+
+    @Version
+    @Column(name = "record_version", nullable = false)
+    private long recordVersion;
 }
