@@ -1,5 +1,8 @@
 package com.example.backend.controller.school;
 
+import com.example.backend.dto.school.SchoolPaymentPlanChoiceRequest;
+import com.example.backend.dto.school.SchoolPaymentRecoveryRequest;
+import com.example.backend.dto.school.SchoolRegistrationRequest;
 import com.example.backend.service.school.SchoolPaymentService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -13,7 +16,7 @@ public class SchoolPaymentController {
     private final SchoolPaymentService payments;
 
     @PostMapping("/api/auth/school-checkout")
-    public SchoolPaymentService.Checkout checkout(@Valid @RequestBody SchoolPaymentService.Registration request,
+    public SchoolPaymentService.Checkout checkout(@Valid @RequestBody SchoolRegistrationRequest request,
             HttpServletRequest http) {
         return payments.checkout(request, http.getRemoteAddr());
     }
@@ -24,18 +27,18 @@ public class SchoolPaymentController {
     }
 
     @PostMapping("/api/auth/school-checkout/recover")
-    public SchoolPaymentService.Checkout recover(@Valid @RequestBody SchoolPaymentService.Recovery credentials, HttpServletRequest http) {
+    public SchoolPaymentService.Checkout recover(@Valid @RequestBody SchoolPaymentRecoveryRequest credentials, HttpServletRequest http) {
         return payments.recover(credentials, http.getRemoteAddr());
     }
 
     @GetMapping("/api/school/billing")
     public SchoolPaymentService.Billing billing() { return payments.billing(); }
     @PostMapping("/api/school/billing/quote")
-    public SchoolPaymentService.Quote quote(@Valid @RequestBody SchoolPaymentService.PlanChoice request) { return payments.quote(request.planCode()); }
+    public SchoolPaymentService.Quote quote(@Valid @RequestBody SchoolPaymentPlanChoiceRequest request) { return payments.quote(request.planCode()); }
     @PostMapping("/api/school/billing/checkout")
-    public SchoolPaymentService.Checkout purchase(@Valid @RequestBody SchoolPaymentService.PlanChoice request, HttpServletRequest http) { return payments.purchase(request.planCode(), request.expectedAmountVnd(), http.getRemoteAddr()); }
+    public SchoolPaymentService.Checkout purchase(@Valid @RequestBody SchoolPaymentPlanChoiceRequest request, HttpServletRequest http) { return payments.purchase(request.planCode(), request.expectedAmountVnd(), http.getRemoteAddr()); }
     @PutMapping("/api/school/billing/next-plan")
-    public SchoolPaymentService.Billing nextPlan(@Valid @RequestBody SchoolPaymentService.PlanChoice request) { return payments.nextPlan(request.planCode()); }
+    public SchoolPaymentService.Billing nextPlan(@Valid @RequestBody SchoolPaymentPlanChoiceRequest request) { return payments.nextPlan(request.planCode()); }
 
     @GetMapping("/api/auth/payments/{id}")
     public Map<String, String> status(@PathVariable UUID id) {

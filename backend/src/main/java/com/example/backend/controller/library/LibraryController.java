@@ -1,7 +1,10 @@
 package com.example.backend.controller.library;
 
+import com.example.backend.dto.library.CloneLibraryItemRequest;
 import com.example.backend.dto.library.LibraryItemResponse;
 import com.example.backend.dto.library.LibrarySaveRequest;
+import com.example.backend.dto.library.MoveLibraryItemRequest;
+import com.example.backend.dto.library.RenameLibraryItemRequest;
 import com.example.backend.service.library.LibraryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,17 +26,13 @@ import java.util.UUID;
 public class LibraryController {
     private final LibraryService libraryService;
 
-    public record MoveRequest(@jakarta.validation.constraints.NotNull UUID folderId) {}
-    public record RenameRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 160) String title) {}
-    public record CloneRequest(@jakarta.validation.constraints.NotNull UUID folderId, @jakarta.validation.constraints.Size(max = 160) String title) {}
-
     @org.springframework.web.bind.annotation.PatchMapping("/{id}")
-    public LibraryItemResponse rename(@PathVariable UUID id, @Valid @RequestBody RenameRequest request) {
+    public LibraryItemResponse rename(@PathVariable UUID id, @Valid @RequestBody RenameLibraryItemRequest request) {
         return libraryService.rename(id, request.title());
     }
 
     @org.springframework.web.bind.annotation.PatchMapping("/{id}/folder")
-    public LibraryItemResponse move(@PathVariable UUID id, @Valid @RequestBody MoveRequest request) {
+    public LibraryItemResponse move(@PathVariable UUID id, @Valid @RequestBody MoveLibraryItemRequest request) {
         return libraryService.move(id, request.folderId());
     }
 
@@ -43,7 +42,7 @@ public class LibraryController {
     }
 
     @PostMapping("/{id}/clone")
-    public LibraryItemResponse clone(@PathVariable UUID id, @Valid @RequestBody CloneRequest request) {
+    public LibraryItemResponse clone(@PathVariable UUID id, @Valid @RequestBody CloneLibraryItemRequest request) {
         return libraryService.cloneShared(id, request.folderId(), request.title());
     }
 

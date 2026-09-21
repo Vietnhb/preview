@@ -1,5 +1,9 @@
 package com.example.backend.service.evaluation;
 
+import com.example.backend.dto.evaluation.BenchmarkAdjudicationRequest;
+import com.example.backend.dto.evaluation.BenchmarkAnnotationRequest;
+import com.example.backend.dto.evaluation.BenchmarkCreateRequest;
+import com.example.backend.dto.evaluation.BenchmarkUpdateRequest;
 import com.example.backend.entity.evaluation.Adjudication;
 import com.example.backend.entity.evaluation.BenchmarkProblem;
 import com.example.backend.entity.evaluation.GoldAnnotation;
@@ -9,9 +13,6 @@ import com.example.backend.service.account.CurrentUserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,29 +32,6 @@ public class BenchmarkReviewService {
     private final BenchmarkProblemRepository repository;
     private final CurrentUserService currentUser;
     private final EntityManager entityManager;
-
-    public record CreateRequest(
-            @NotBlank @Size(max = 10000) String problemText,
-            @NotBlank @Size(max = 32) String topic,
-            @NotBlank @Size(max = 32) String gradeScope,
-            @NotBlank @Size(max = 80) String sourceCategory) { }
-
-    public record UpdateRequest(
-            @NotBlank @Size(max = 10000) String problemText,
-            @NotBlank @Size(max = 32) String topic,
-            @NotBlank @Size(max = 32) String gradeScope,
-            @NotBlank @Size(max = 80) String sourceCategory) { }
-
-    public record AnnotationRequest(
-            @NotNull JsonNode specification,
-            @Size(max = 120) String schemaCatalogChecksum,
-            @Size(max = 120) String promptVersion,
-            @Size(max = 120) String modelVersion) { }
-
-    public record AdjudicationRequest(
-            @NotNull JsonNode specification,
-            @NotBlank @Size(max = 4000) String rationale,
-            @Size(max = 1000) String disagreementCategories) { }
 
     public record AnnotationView(String actor, JsonNode specification) { }
 
@@ -81,7 +59,7 @@ public class BenchmarkReviewService {
     }
 
     @Transactional
-    public View create(CreateRequest request) {
+    public View create(BenchmarkCreateRequest request) {
         String actor = actor();
         BenchmarkProblem benchmark = new BenchmarkProblem();
         benchmark.setProblemText(request.problemText().trim());
@@ -95,7 +73,7 @@ public class BenchmarkReviewService {
     }
 
     @Transactional
-    public View updateDraft(UUID id, UpdateRequest request) {
+    public View updateDraft(UUID id, BenchmarkUpdateRequest request) {
         BenchmarkProblem benchmark = locked(id);
         if (!"DRAFT".equals(benchmark.getStatus()) || !benchmark.getAnnotations().isEmpty()) {
             throw conflict("Only a draft without annotations can be edited");
@@ -127,7 +105,7 @@ public class BenchmarkReviewService {
     }
 
     @Transactional
-    public View annotate(UUID id, AnnotationRequest request) {
+    public View annotate(UUID id, BenchmarkAnnotationRequest request) {
         validate(request.specification());
         BenchmarkProblem benchmark = locked(id);
         if (!"ANNOTATING".equals(benchmark.getStatus())) {
@@ -153,7 +131,7 @@ public class BenchmarkReviewService {
     }
 
     @Transactional
-    public View adjudicate(UUID id, AdjudicationRequest request) {
+    public View adjudicate(UUID id, BenchmarkAdjudicationRequest request) {
         validate(request.specification());
         BenchmarkProblem benchmark = locked(id);
         String actor = actor();

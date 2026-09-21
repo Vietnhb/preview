@@ -1,84 +1,70 @@
 package com.example.backend.controller.reviewer;
 
+import com.example.backend.dto.reviewer.SchemaRequest;
+import com.example.backend.dto.reviewer.SolverRequest;
+import com.example.backend.entity.enums.LifecycleStatus;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.entity.simulation.SolverVersion;
-import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
-import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolverRegistry;
-import com.example.backend.entity.enums.LifecycleStatus;
-
-import com.example.backend.repository.simulation.SolverVersionRepository;
-import com.example.backend.service.problem.SchemaService;
-import com.example.backend.dto.reviewer.SchemaRequest;
-import com.example.backend.exception.ApiException;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.example.backend.service.reviewer.ReviewerVersionService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
-import java.util.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-@RestController @RequestMapping("/api/reviewer") @RequiredArgsConstructor
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/reviewer")
+@RequiredArgsConstructor
 public class ReviewerVersionsController {
-    private final SchemaService schemas;
-    private final SolverVersionRepository solvers;
-    private final PhysicsSolverRegistry numerical;
-    private final ReferenceSolverRegistry reference;
-    private final com.example.backend.service.problem.SchemaDefinitionService schemaDefinitions;
-    public record SolverRequest(@NotBlank @Size(max=80) String schemaId, @NotBlank @Size(max=120) String solverId,
-            @NotBlank @Size(max=16) String version, @NotNull JsonNode outputDefinition) { }
+    private final ReviewerVersionService service;
 
-    @GetMapping("/schemas") public List<SchemaVersion> schemas() { return schemas.list(false); }
+    @GetMapping("/schemas")
+    public List<SchemaVersion> schemas() {
+        return service.schemas();
+    }
+
     @PutMapping("/schema-versions/{id}")
-    public SchemaVersion updateSchema(@PathVariable UUID id, @Valid @RequestBody SchemaRequest request) { return schemas.updateDraft(id, request); }
+    public SchemaVersion updateSchema(@PathVariable UUID id, @Valid @RequestBody SchemaRequest request) {
+        return service.updateSchema(id, request);
+    }
+
     @PutMapping("/schema-versions/{id}/lifecycle")
-    public SchemaVersion schemaLifecycle(@PathVariable UUID id, @RequestParam LifecycleStatus status) { return schemas.changeVersionLifecycle(id, status); }
+    public SchemaVersion schemaLifecycle(@PathVariable UUID id, @RequestParam LifecycleStatus status) {
+        return service.schemaLifecycle(id, status);
+    }
+
     @GetMapping("/solver-implementations")
-    public Map<String, List<String>> implementations() { return Map.of("numerical", numerical.ids(), "reference", reference.ids()); }
-    @GetMapping("/solvers") public List<SolverVersion> solvers() { return solvers.findAll(); }
-    @PostMapping("/solvers") @Transactional
+    public Map<String, List<String>> implementations() {
+        return service.implementations();
+    }
+
+    @GetMapping("/solvers")
+    public List<SolverVersion> solvers() {
+        return service.solvers();
+    }
+
+    @PostMapping("/solvers")
     public SolverVersion create(@Valid @RequestBody SolverRequest request) {
-        if (solvers.findFirstBySchemaIdAndVersion(request.schemaId(), request.version()).isPresent())
-            throw new ApiException(HttpStatus.CONFLICT, "Solver version already exists");
-        SolverVersion version = new SolverVersion(); version.setSchemaId(request.schemaId()); version.setVersion(request.version());
-        return save(version, request);
+        return service.create(request);
     }
-    @PutMapping("/solvers/{id}") @Transactional
-    public SolverVersion update(@PathVariable UUID id, @Valid @RequestBody SolverRequest request) {
-        SolverVersion version = require(id);
-        if (version.getLifecycleStatus() != LifecycleStatus.DRAFT) throw new ApiException(HttpStatus.CONFLICT, "Only drafts can be edited");
-        if (!version.getSchemaId().equals(request.schemaId()) || !version.getVersion().equals(request.version()))
-            throw new ApiException(HttpStatus.CONFLICT, "Version identity cannot be changed");
-        return save(version, request);
+
+    @PutMapping("/solvers/{id}")
+    public SolverVersion update(@PathVariable UUID id,
+                                @Valid @RequestBody SolverRequest request) {
+        return service.update(id, request);
     }
-    private SolverVersion save(SolverVersion version, SolverRequest request) {
-        validate(request.solverId(), request.outputDefinition());
-        version.setSolverId(request.solverId());
-        version.setOutputDefinition(request.outputDefinition());
-        version.setBindingChecksum(schemaDefinitions.solverBindingChecksum(request.solverId(), request.outputDefinition()));
-        return solvers.save(version);
-    }
-    private void validate(String solverId, JsonNode definition) {
-        if (!definition.isObject() || !numerical.ids().contains(solverId)
-                || !reference.ids().contains(definition.path("referenceSolverId").asText()))
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Choose installed numerical and independent reference solver modules");
-    }
-    @PutMapping("/solvers/{id}/lifecycle") @Transactional
+
+    @PutMapping("/solvers/{id}/lifecycle")
     public SolverVersion lifecycle(@PathVariable UUID id, @RequestParam LifecycleStatus status) {
-        SolverVersion version = require(id);
-        if (version.getLifecycleStatus() == status) return version;
-        if (version.getLifecycleStatus() == LifecycleStatus.RETIRED || status == LifecycleStatus.DRAFT)
-            throw new ApiException(HttpStatus.CONFLICT, "Create a new version instead of reopening a published version");
-        if (status == LifecycleStatus.APPROVED) {
-            validate(version.getSolverId(), version.getOutputDefinition());
-            String checksum = schemaDefinitions.solverBindingChecksum(version.getSolverId(), version.getOutputDefinition());
-            if (version.getBindingChecksum() != null && !version.getBindingChecksum().equals(checksum)) {
-                throw new ApiException(HttpStatus.CONFLICT, "Solver binding checksum drift detected; create a new version");
-            }
-            version.setBindingChecksum(checksum);
-        }
-        version.setLifecycleStatus(status); return solvers.save(version);
+        return service.lifecycle(id, status);
     }
-    private SolverVersion require(UUID id) { return solvers.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Solver version not found")); }
 }

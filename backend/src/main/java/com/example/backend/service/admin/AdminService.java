@@ -7,6 +7,7 @@ import com.example.backend.service.account.RoleValidationService;
 import com.example.backend.service.school.LicenseCheckService;
 
 import com.example.backend.dto.admin.CreateManagedUserRequest;
+import com.example.backend.dto.admin.UpdateManagedUserRequest;
 import com.example.backend.dto.admin.UserStatusResponse;
 import com.example.backend.dto.admin.ValidationMetricsResponse;
 import com.example.backend.dto.admin.TopicStatusResponse;
@@ -44,6 +45,20 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<UserStatusResponse> users() {
         return userRepository.findAll().stream().map(this::toUser).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserStatusResponse> usersForSchool(java.util.UUID schoolId) {
+        requireSchoolAccess(schoolId);
+        return userRepository.findBySchoolId(schoolId).stream().map(this::toUser).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public void requireUserInSchool(java.util.UUID schoolId, Integer userId) {
+        requireSchoolAccess(schoolId);
+        userRepository.findById(userId)
+                .filter(user -> user.getSchool() != null && schoolId.equals(user.getSchool().getId()))
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "School user not found"));
     }
 
     @Transactional
@@ -109,11 +124,8 @@ public class AdminService {
                 user.getInstitutionId(), user.getLastLogin(), user.getDateOfBirth());
     }
 
-    public record UpdateUserRequest(@jakarta.validation.constraints.NotBlank String fullName,
-            @jakarta.validation.constraints.NotBlank String role, String institutionId) { }
-
     @Transactional
-    public UserStatusResponse updateUser(Integer id, UpdateUserRequest request) {
+    public UserStatusResponse updateUser(Integer id, UpdateManagedUserRequest request) {
         User user = userRepository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
         requireManage(user.getRole().getName(), user.getSchool());
         Role role = roleRepository.findByName(request.role().trim().toUpperCase(java.util.Locale.ROOT))
@@ -139,6 +151,12 @@ public class AdminService {
                 || !(RoleName.TEACHER.matches(targetRole) || RoleName.STUDENT.matches(targetRole)))
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only manage teachers and students in your school");
         licenseCheckService.requireWriteAccess(actor);
+    }
+
+    private void requireSchoolAccess(java.util.UUID schoolId) {
+        if (!roleValidationService.canManageSchool(currentUserService.requireCurrentUser(), schoolId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "School access denied");
+        }
     }
 
     private void requireStudentSeat(String role, com.example.backend.entity.school.School school) {

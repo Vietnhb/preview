@@ -11,8 +11,10 @@ import java.util.Map;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -73,6 +75,9 @@ public class ProblemService {
     private final SpecificationReadinessService readinessService;
     private final SchemaDefinitionService schemaDefinitions;
     private final UploadProperties uploadProperties;
+    private final PlatformTransactionManager transactionManager;
+
+    private record ExtractionInput(UUID problemId, UUID runId, Integer ownerId, String text) { }
 
     @Transactional
     public ProblemResponse create(CreateProblemRequest request) {
@@ -153,22 +158,51 @@ public class ProblemService {
         return mapper.toResponse(problem);
     }
 
-    @Transactional(noRollbackFor = ApiException.class)
     public ProblemResponse extract(UUID id) {
-        ProblemSubmission problem = requireOwnedProblem(id);
-        if (!StringUtils.hasText(problem.getEditableText())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Confirm or enter OCR text before extraction");
-        }
-
-        ExtractionRun run = new ExtractionRun();
-        run.setSubmission(problem);
-        run.setExtractionPath(com.example.backend.entity.enums.ExtractionPath.OPENROUTER);
-        run.setProviderName("pending");
-        run.setStatus(ExtractionRunStatus.RUNNING);
-        extractionRunRepository.save(run);
-
+        ExtractionInput input = beginExtraction(id);
         try {
-            ExtractionResult result = extractionCoordinator.extract(problem.getEditableText());
+            ExtractionResult result = extractionCoordinator.extract(input.text());
+            return completeExtraction(input, result);
+        } catch (ApiException exception) {
+            markExtractionFailed(input);
+            throw exception;
+        } catch (RuntimeException exception) {
+            markExtractionFailed(input);
+            throw new ApiException(HttpStatus.BAD_GATEWAY,
+                    "AI problem understanding failed; specification was not created. Cause: " + safeCause(exception));
+        }
+    }
+
+    private ExtractionInput beginExtraction(UUID id) {
+        return transactionTemplate().execute(status -> {
+            ProblemSubmission problem = requireOwnedProblem(id);
+            if (!StringUtils.hasText(problem.getEditableText())) {
+                throw new ApiException(HttpStatus.CONFLICT, "Confirm or enter OCR text before extraction");
+            }
+
+            ExtractionRun run = new ExtractionRun();
+            run.setSubmission(problem);
+            run.setExtractionPath(com.example.backend.entity.enums.ExtractionPath.OPENROUTER);
+            run.setProviderName("pending");
+            run.setStatus(ExtractionRunStatus.RUNNING);
+            extractionRunRepository.saveAndFlush(run);
+            return new ExtractionInput(problem.getId(), run.getId(), problem.getOwner().getId(), problem.getEditableText());
+        });
+    }
+
+    private ProblemResponse completeExtraction(ExtractionInput input, ExtractionResult result) {
+        return transactionTemplate().execute(status -> {
+            ProblemSubmission problem = problemRepository.findById(input.problemId())
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Problem not found"));
+            if (!input.ownerId().equals(problem.getOwner().getId())
+                    || !input.ownerId().equals(currentUserService.requireCurrentUser().getId())) {
+                throw new ApiException(HttpStatus.NOT_FOUND, "Problem not found");
+            }
+            ExtractionRun run = extractionRunRepository.findById(input.runId())
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Extraction run not found"));
+            if (run.getStatus() != ExtractionRunStatus.RUNNING) {
+                throw new ApiException(HttpStatus.CONFLICT, "Extraction run is no longer active");
+            }
             applyResult(run, result);
             Specification specification = createSpecification(problem, run, result.document());
             readinessService.ensureRequiredAmbiguities(specification);
@@ -178,22 +212,33 @@ public class ProblemService {
                     ? SubmissionStatus.NEEDS_CONFIRMATION
                     : SubmissionStatus.READY_FOR_VALIDATION);
             return mapper.toResponse(problem);
-        } catch (ApiException exception) {
-            // Keep a failed extraction from looking active when a precondition such as
-            // the school's AI quota rejects the request after the run was created.
-            run.setStatus(ExtractionRunStatus.FAILED);
-            run.setOutcome(ExtractionOutcome.FAILED);
-            run.setErrorMessage("AI extraction failed");
-            problem.setStatus(SubmissionStatus.FAILED);
-            throw exception;
-        } catch (RuntimeException exception) {
-            run.setStatus(ExtractionRunStatus.FAILED);
-            run.setOutcome(ExtractionOutcome.FAILED);
-            run.setErrorMessage("AI extraction failed");
-            problem.setStatus(SubmissionStatus.FAILED);
-            throw new ApiException(HttpStatus.BAD_GATEWAY,
-                    "AI problem understanding failed; specification was not created. Cause: " + safeCause(exception));
+        });
+    }
+
+    private void markExtractionFailed(ExtractionInput input) {
+        try {
+            transactionTemplate().executeWithoutResult(status -> {
+                extractionRunRepository.findById(input.runId()).ifPresent(run -> {
+                    run.setStatus(ExtractionRunStatus.FAILED);
+                    run.setOutcome(ExtractionOutcome.FAILED);
+                    run.setErrorMessage("AI extraction failed");
+                    extractionRunRepository.save(run);
+                });
+                problemRepository.findById(input.problemId()).ifPresent(problem -> {
+                    if (input.ownerId().equals(problem.getOwner().getId())) {
+                        problem.setStatus(SubmissionStatus.FAILED);
+                        problemRepository.save(problem);
+                    }
+                });
+            });
+        } catch (RuntimeException ignored) {
+            // Preserve the original provider error. The run remains inspectable if the
+            // failure transaction itself could not be committed.
         }
+    }
+
+    private TransactionTemplate transactionTemplate() {
+        return new TransactionTemplate(transactionManager);
     }
 
     @Transactional

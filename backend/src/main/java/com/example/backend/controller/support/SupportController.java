@@ -1,5 +1,7 @@
 package com.example.backend.controller.support;
 
+import com.example.backend.dto.support.CreateSupportRequest;
+import com.example.backend.dto.support.UpdateSupportRequest;
 import com.example.backend.entity.enums.SupportKind;
 import com.example.backend.service.support.SupportService;
 import jakarta.validation.Valid;
@@ -16,10 +18,10 @@ public class SupportController {
     private final SupportService service;
 
     @PostMapping("/feedback")
-    public SupportService.SupportView feedback(@Valid @RequestBody SupportService.CreateRequest request) { return service.create(SupportKind.FEEDBACK, request); }
+    public SupportService.SupportView feedback(@Valid @RequestBody CreateSupportRequest request) { return service.create(SupportKind.FEEDBACK, request); }
 
     @PostMapping("/messages")
-    public SupportService.SupportView message(@Valid @RequestBody SupportService.CreateRequest request) { return service.create(SupportKind.MESSAGE, request); }
+    public SupportService.SupportView message(@Valid @RequestBody CreateSupportRequest request) { return service.create(SupportKind.MESSAGE, request); }
 
     @GetMapping("/mine")
     public List<SupportService.SupportView> mine() { return service.mine(); }
@@ -28,5 +30,8 @@ public class SupportController {
     public List<SupportService.SupportView> adminList(@RequestParam SupportKind kind) { return service.adminList(kind); }
 
     @PutMapping("/admin/{id}")
-    public SupportService.SupportView update(@PathVariable UUID id, @RequestBody SupportService.UpdateRequest request) { return service.update(id, request); }
+    public SupportService.SupportView update(@PathVariable UUID id,
+                                             @Valid @RequestBody UpdateSupportRequest request) {
+        return service.update(id, request);
+    }
 }

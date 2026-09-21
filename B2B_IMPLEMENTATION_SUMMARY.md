@@ -14,7 +14,7 @@ Implemented in this increment:
 - Added school-scoped account creation/update/listing and `/school`, reusing the existing account UI.
 - Added license dates/token allowance to school administration and `/api/user/me/license` with a renewal/read-only banner.
 - Expired/unconfigured/future licenses block school API writes; disabled schools invalidate existing JWT access. Profile maintenance remains available.
-- Unified CONTENT_REVIEWER authorization, blocked reviewer teaching creation, and fixed student assignment routing.
+- Unified REVIEWER authorization, blocked reviewer teaching creation, and fixed student assignment routing.
 - AI calls record actual usage in an independent transaction, serialize quota checks per school, and reset the usage bucket at the calendar month boundary (server date). Retries with a provider response are charged individually; local rule-based work is not charged.
 - New token columns avoid interpreting the old simulation counters as tokens. Schools with no configured license stay read-only.
 - Corrected PostgreSQL role enforcement, manager uniqueness, legacy school mapping, and the partial active-enrollment index. SQL initialization uses `;;` so function bodies remain intact.
@@ -39,28 +39,28 @@ The sections below describe the earlier implementation snapshot; this update tak
 
 ---
 
-## 🐛 Bug Fixed: CONTENT_REVIEWER Permissions
+## 🐛 Bug Fixed: REVIEWER Permissions
 
 ### Issue Discovered
 **File**: `AdminService.java` and role-aware teaching services - `canCreateSimulation()` policy
 
-**Problem**: CONTENT_REVIEWER was incorrectly allowed to create simulations
+**Problem**: REVIEWER was incorrectly allowed to create simulations
 ```java
 // BEFORE (WRONG):
 public boolean canCreateSimulation(User user) {
     if (user.getSchool() == null) {
-        return true; // ❌ Allowed ALL platform users (ADMIN + CONTENT_REVIEWER)
+        return true; // ❌ Allowed ALL platform users (ADMIN + REVIEWER)
     }
     // ...
 }
 ```
 
-**Root Cause**: Logic assumed `school_id = NULL` → can create, but CONTENT_REVIEWER should NOT create teaching simulations.
+**Root Cause**: Logic assumed `school_id = NULL` → can create, but REVIEWER should NOT create teaching simulations.
 
 ### Design Clarification
 After reviewing proposal (`PhysLive_Full_Scope_Requirements.md`), confirmed:
 
-**CONTENT_REVIEWER = Curriculum Expert** (not QA reviewer):
+**REVIEWER = Curriculum Expert** (not QA reviewer):
 - ✅ **Creates** topic schema (FR-REV-01) - defines knowledge structure (Kinematics, Dynamics, etc.)
 - ✅ **Creates** reference solver (FR-REV-02) - standard algorithm for each topic
 - ✅ **Creates** benchmark problems (FR-REV-06) - evaluation problems for AI solver
@@ -70,7 +70,7 @@ After reviewing proposal (`PhysLive_Full_Scope_Requirements.md`), confirmed:
 - ❌ **Does NOT assign** homework or grade - teaching operations only for TEACHER
 
 **Key Distinction**:
-- **CONTENT_REVIEWER** = Curriculum designer (creates schemas/solvers for AI)
+- **REVIEWER** = Curriculum designer (creates schemas/solvers for AI)
 - **TEACHER** = Content creator (creates simulations using schemas)
 
 ### Fix Applied
@@ -81,7 +81,7 @@ public boolean canCreateSimulation(User user) {
     
     // Platform roles
     if ("ADMIN".equals(roleName)) return true;
-    if ("CONTENT_REVIEWER".equals(roleName)) return false; // ✅ Fixed
+    if ("REVIEWER".equals(roleName)) return false; // ✅ Fixed
     
     // School roles
     if ("TEACHER".equals(roleName)) {
@@ -93,7 +93,7 @@ public boolean canCreateSimulation(User user) {
 ```
 
 **Same fix applied to**:
-- `canCreateAssignment()` - CONTENT_REVIEWER cannot assign homework
+- `canCreateAssignment()` - REVIEWER cannot assign homework
 - All other teaching-related permissions
 
 ### UI Verification
@@ -102,7 +102,7 @@ Checked existing UI components:
 **✅ UI is CORRECT** (per proposal FR-REV):
 - `ReviewerConsole.tsx` → VersionsTab has "Tạo bản nháp mới" (Create draft) - ✅ Creates **schema**, not simulation
 - `ReviewerConsole.tsx` → BenchmarksTab has "Thêm bài Benchmark" - ✅ Creates **benchmark**, not simulation
-- No "Create Simulation" button for CONTENT_REVIEWER - ✅ Correct
+- No "Create Simulation" button for REVIEWER - ✅ Correct
 
 **Documentation was wrong, not UI** - now aligned.
 
@@ -113,10 +113,10 @@ Checked existing UI components:
 ### 1. Database Schema & Migrations ✅
 **Files**: `backend/src/main/resources/data.sql`
 
-- ✅ 5 roles: `ADMIN`, `CONTENT_REVIEWER`, `SCHOOL_MANAGER`, `TEACHER`, `STUDENT`
-  - **CONTENT_REVIEWER** = Curriculum Expert (creates schema/solver/benchmark, reviews shared library)
+- ✅ 5 roles: `ADMIN`, `REVIEWER`, `SCHOOL_MANAGER`, `TEACHER`, `STUDENT`
+  - **REVIEWER** = Curriculum Expert (creates schema/solver/benchmark, reviews shared library)
   - **Not** a QA reviewer - responsible for curriculum design per FR-REV-01/02/06
-- ✅ CHECK constraint: Platform roles (ADMIN, CONTENT_REVIEWER) → `school_id` = NULL
+- ✅ CHECK constraint: Platform roles (ADMIN, REVIEWER) → `school_id` = NULL
 - ✅ CHECK constraint: School roles → `school_id` NOT NULL  
 - ✅ UNIQUE index: 1 SCHOOL_MANAGER per school
 - ✅ Auto-migration on startup (idempotent SQL)
@@ -169,7 +169,7 @@ All repositories created with custom queries:
 Role-based URL patterns configured:
 ```java
 /api/admin/**           → ADMIN only
-/api/reviewer/**        → CONTENT_REVIEWER, ADMIN
+/api/reviewer/**        → REVIEWER, ADMIN
 /api/schools/*/users    → SCHOOL_MANAGER, ADMIN
 /api/simulations/create → TEACHER, ADMIN
 /api/assignments/*/submit → STUDENT, ADMIN
@@ -192,7 +192,7 @@ The current frontend includes role-aware admin, school, teacher, reviewer and st
 ## 🎯 Business Rules Enforced
 
 ### Role-School Consistency
-✅ Platform roles (`ADMIN`, `CONTENT_REVIEWER`) → `school_id` = NULL  
+✅ Platform roles (`ADMIN`, `REVIEWER`) → `school_id` = NULL  
 ✅ School roles (`SCHOOL_MANAGER`, `TEACHER`, `STUDENT`) → `school_id` NOT NULL
 
 ### School Manager Constraint
@@ -284,7 +284,7 @@ The current frontend includes role-aware admin, school, teacher, reviewer and st
 
 ### Security
 - [ ] `/api/admin/**` → 401 for non-ADMIN
-- [ ] `/api/reviewer/**` → accessible by CONTENT_REVIEWER
+- [ ] `/api/reviewer/**` → accessible by REVIEWER
 - [ ] `/api/schools/{id}/users` → accessible by SCHOOL_MANAGER (own school)
 - [ ] `/api/simulations/create` → accessible by TEACHER
 
@@ -379,7 +379,7 @@ if (!success) {
 - **Full Requirements**: `D:\FPT_FALL_2026\SEP490\proposal\PhysLive_Full_Scope_Requirements.md`
 - **Original Proposal**: `D:\FPT_FALL_2026\SEP490\proposal\FA26SE309.docx`
 
-### CONTENT_REVIEWER Requirements (from proposal)
+### REVIEWER Requirements (from proposal)
 - **FR-REV-01**: Create/manage topic schema (knowledge structure definition)
 - **FR-REV-02**: Create/manage reference solver (standard algorithm per topic)
 - **FR-REV-03**: Handle ambiguous extraction (NLP disambiguation)

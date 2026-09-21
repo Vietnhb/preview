@@ -1,5 +1,7 @@
 package com.example.backend.service.school;
 
+import com.example.backend.dto.school.SchoolPaymentRecoveryRequest;
+import com.example.backend.dto.school.SchoolRegistrationRequest;
 import com.example.backend.entity.account.User;
 import com.example.backend.entity.school.LicensePlan;
 import com.example.backend.entity.school.School;
@@ -14,7 +16,6 @@ import com.example.backend.service.account.CurrentUserService;
 import com.example.backend.entity.enums.RoleName;
 import com.example.backend.exception.ApiException;
 import com.example.backend.config.properties.VnpayProperties;
-import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,15 +54,8 @@ public class SchoolPaymentService {
     private final HttpClient http;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
-    public record Registration(@NotBlank String planCode, @NotBlank @Size(max=200) String schoolName,
-        @NotBlank @Size(max=80) @Pattern(regexp="[A-Za-z0-9_-]+") String schoolCode,
-        @NotBlank @Size(max=300) String address, @NotBlank @Size(max=200) String fullName,
-        @NotBlank @Email @Size(max=100) String email, @NotBlank @Size(max=20) String phoneNumber,
-        @NotBlank @Size(min=8,max=72) String password) { }
     public record Checkout(UUID paymentId, String paymentUrl) { }
     public record Notification(UUID id, String schoolName, String planCode, Long amountVnd, Instant paidAt, String status) { }
-    public record Recovery(@NotBlank @Email String email, @NotBlank String password) { }
-    public record PlanChoice(@NotBlank String planCode, @Positive Long expectedAmountVnd) { }
     public record Quote(String planCode, String purpose, long amountVnd, LocalDate licenseStart, LocalDate licenseEnd) { }
     public record PaymentRow(UUID id, String planCode, String purpose, Long amountVnd, String status, Instant createdAt, Instant paidAt) { }
     public record AdminPaymentRow(UUID id, String schoolName, String managerEmail, String planCode, String purpose, Long amountVnd, String status, Instant createdAt, Instant paidAt) { }
@@ -70,7 +64,7 @@ public class SchoolPaymentService {
         Integer studentQuota, long studentsUsed, Integer monthlyTokenQuota, long tokensUsed, List<PaymentRow> payments) { }
 
     @Transactional
-    public Checkout checkout(Registration request, String ip) {
+    public Checkout checkout(SchoolRegistrationRequest request, String ip) {
         requireConfigured();
         if (request.password().getBytes(StandardCharsets.UTF_8).length > 72)
             throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu không được vượt quá 72 byte UTF-8.");
@@ -82,7 +76,7 @@ public class SchoolPaymentService {
         if (existing.isPresent()) {
             var user = existing.get();
             if (Boolean.FALSE.equals(user.getActive()) && user.getSchool() != null && code.equals(user.getSchool().getCode())
-                && passwords.matches(request.password(), user.getPassword())) return recover(new Recovery(email, request.password()), ip);
+                && passwords.matches(request.password(), user.getPassword())) return recover(new SchoolPaymentRecoveryRequest(email, request.password()), ip);
             throw new ApiException(HttpStatus.CONFLICT, "Email đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.");
         }
         if (schools.existsByCode(code) || schools.findByName(request.schoolName().trim()).isPresent())
@@ -182,7 +176,7 @@ public class SchoolPaymentService {
     }
 
     @Transactional
-    public Checkout recover(Recovery credentials, String ip) {
+    public Checkout recover(SchoolPaymentRecoveryRequest credentials, String ip) {
         requireConfigured();
         var user = users.findByEmail(credentials.email().trim().toLowerCase(Locale.ROOT))
             .filter(u -> passwords.matches(credentials.password(), u.getPassword()))

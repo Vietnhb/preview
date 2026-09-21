@@ -6,7 +6,7 @@ import java.util.Optional;
 /** Roles supported by the authorization and school-membership model. */
 public enum RoleName {
     ADMIN(Scope.PLATFORM),
-    CONTENT_REVIEWER(Scope.PLATFORM),
+    REVIEWER(Scope.PLATFORM),
     SCHOOL_MANAGER(Scope.SCHOOL),
     TEACHER(Scope.SCHOOL),
     STUDENT(Scope.SCHOOL);

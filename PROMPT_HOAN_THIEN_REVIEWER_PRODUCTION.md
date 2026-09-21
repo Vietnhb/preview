@@ -379,7 +379,7 @@ Giữ backward compatibility cho endpoint frontend hiện tại trong giai đo�
 
 ## 13. Security và governance
 
-- Chỉ `ADMIN` và `CONTENT_REVIEWER` truy cập reviewer APIs theo policy hiện có.
+- Chỉ `ADMIN` và `REVIEWER` truy cập reviewer APIs theo policy hiện có.
 - Phân biệt quyền admin override và reviewer thông thường.
 - Backend tự lấy actor từ authenticated principal; không nhận reviewer ID tùy ý từ client.
 - Ngăn IDOR: mọi detail/action endpoint phải kiểm tra quyền và scope.

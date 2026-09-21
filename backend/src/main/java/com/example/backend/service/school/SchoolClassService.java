@@ -1,5 +1,6 @@
 package com.example.backend.service.school;
 
+import com.example.backend.dto.school.SchoolClassRequest;
 import com.example.backend.service.account.CurrentUserService;
 import com.example.backend.service.account.RoleValidationService;
 
@@ -15,12 +16,6 @@ import com.example.backend.repository.school.ClassTeacherAssignmentRepository;
 import com.example.backend.repository.school.SchoolClassRepository;
 import com.example.backend.repository.school.SchoolRepository;
 import com.example.backend.repository.account.UserRepository;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -43,10 +38,6 @@ public class SchoolClassService {
     private final RoleValidationService roleValidation;
     private final LicenseCheckService licenseCheck;
 
-    public record ClassRequest(@NotBlank @Size(max = 100) String name,
-                               @NotNull @Min(10) @Max(12) Integer gradeLevel,
-                               @NotBlank @Size(max = 20) @Pattern(regexp = "\\d{4}-\\d{4}") String schoolYear,
-                               @Size(max = 50) String subject) { }
     public record Person(Integer id, String fullName, String email) { }
     public record ClassSummary(UUID id, String name, Integer gradeLevel, String schoolYear, String subject,
                                boolean active, long teacherCount, long studentCount) { }
@@ -96,7 +87,7 @@ public class SchoolClassService {
     }
 
     @Transactional
-    public ClassDetail create(UUID schoolId, ClassRequest request) {
+    public ClassDetail create(UUID schoolId, SchoolClassRequest request) {
         requireWriteAccess(schoolId);
         String name = clean(request.name());
         String year = clean(request.schoolYear());
@@ -110,7 +101,7 @@ public class SchoolClassService {
     }
 
     @Transactional
-    public ClassDetail update(UUID schoolId, UUID classId, ClassRequest request) {
+    public ClassDetail update(UUID schoolId, UUID classId, SchoolClassRequest request) {
         requireWriteAccess(schoolId);
         SchoolClass schoolClass = activeClassInSchool(schoolId, classId);
         String name = clean(request.name()); String year = clean(request.schoolYear());

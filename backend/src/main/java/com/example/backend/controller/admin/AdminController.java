@@ -1,6 +1,7 @@
 package com.example.backend.controller.admin;
 
 import com.example.backend.dto.admin.CreateManagedUserRequest;
+import com.example.backend.dto.admin.UpdateManagedUserRequest;
 import com.example.backend.dto.admin.UserStatusResponse;
 import com.example.backend.dto.admin.ValidationMetricsResponse;
 import com.example.backend.dto.admin.TopicStatusResponse;
@@ -35,7 +36,7 @@ public class AdminController {
     }
 
     @PutMapping("/users/{id}")
-    public UserStatusResponse updateUser(@PathVariable Integer id, @Valid @RequestBody AdminService.UpdateUserRequest request) {
+    public UserStatusResponse updateUser(@PathVariable Integer id, @Valid @RequestBody UpdateManagedUserRequest request) {
         return adminService.updateUser(id, request);
     }
 

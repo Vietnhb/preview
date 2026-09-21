@@ -8,7 +8,7 @@ export function Access({ reviewer = false, children }: Readonly<{ reviewer?: boo
   const user = usePhysliveStore((state) => state.user);
   if (!getToken()) return <main className="main ops"><h1>Cần đăng nhập</h1><Link to="/login">Đăng nhập để tiếp tục</Link></main>;
   if (!user) return <main className="main ops"><output>Đang xác thực tài khoản…</output></main>;
-  if (user.role !== "ADMIN" && !(reviewer && user.role === "CONTENT_REVIEWER")) return <main className="main ops"><h1>Không có quyền truy cập</h1><Link to="/workspace">Về workspace</Link></main>;
+  if (user.role !== "ADMIN" && !(reviewer && user.role === "REVIEWER")) return <main className="main ops"><h1>Không có quyền truy cập</h1><Link to="/workspace">Về workspace</Link></main>;
   return children;
 }
 

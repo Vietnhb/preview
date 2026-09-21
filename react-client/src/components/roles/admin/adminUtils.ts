@@ -2,7 +2,7 @@ import axios from "axios";
 import type { CurriculumTree } from "../../../api/adminApi";
 export type CurriculumKind = "topic" | "module" | "level" | "lesson";
 
-export const roleLabels: Record<string, string> = { ADMIN: "Quản trị viên", TEACHER: "Giáo viên", STUDENT: "Học sinh", CONTENT_REVIEWER: "Reviewer", SCHOOL_MANAGER: "Quản lý trường" };
+export const roleLabels: Record<string, string> = { ADMIN: "Quản trị viên", TEACHER: "Giáo viên", STUDENT: "Học sinh", REVIEWER: "Reviewer", SCHOOL_MANAGER: "Quản lý trường" };
 
 export const apiMessage = (error: unknown, fallback: string) => axios.isAxiosError<{ message?: string }>(error)
   ? error.response?.data?.message ?? fallback : fallback;

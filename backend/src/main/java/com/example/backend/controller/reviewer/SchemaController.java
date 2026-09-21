@@ -31,7 +31,7 @@ public class SchemaController {
                                    org.springframework.security.core.Authentication authentication) {
         boolean privileged = authentication.getAuthorities().stream().anyMatch(a ->
                 a.getAuthority().equals(RoleName.ADMIN.authority())
-                        || a.getAuthority().equals(RoleName.CONTENT_REVIEWER.authority()));
+                        || a.getAuthority().equals(RoleName.REVIEWER.authority()));
         return schemaService.list(enabledOnly).stream().filter(s -> privileged
                 || s.getLifecycleStatus() == LifecycleStatus.APPROVED).toList();
     }

@@ -5,6 +5,7 @@ import com.example.backend.dto.assignment.AssignmentSubmissionResponse;
 import com.example.backend.dto.assignment.CreateAssignmentRequest;
 import com.example.backend.dto.assignment.SubmitPredictionRequest;
 import com.example.backend.dto.assignment.CompleteAssignmentRequest;
+import com.example.backend.dto.assignment.GradeAssignmentRequest;
 import com.example.backend.dto.simulation.ParameterAdjustmentRequest;
 import com.example.backend.dto.simulation.SimulationResponse;
 import com.example.backend.service.assignment.AssignmentService;
@@ -20,19 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
-import java.math.BigDecimal;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 @RestController
 @RequestMapping("/api/assignments")
 @RequiredArgsConstructor
 public class AssignmentController {
     private final AssignmentService assignmentService;
-
-    public record GradeRequest(@NotNull @DecimalMin("0.0") BigDecimal score,
-                               @Size(max = 4000) String feedback, boolean confirm) { }
 
     @PostMapping
     public AssignmentResponse create(@Valid @RequestBody CreateAssignmentRequest request) {
@@ -90,7 +84,7 @@ public class AssignmentController {
     @PutMapping("/{assignmentId}/submissions/{submissionId}/grade")
     public AssignmentSubmissionResponse grade(@PathVariable UUID assignmentId,
                                                @PathVariable UUID submissionId,
-                                               @Valid @RequestBody GradeRequest request) {
+                                               @Valid @RequestBody GradeAssignmentRequest request) {
         return assignmentService.grade(assignmentId, submissionId, request.score(), request.feedback(), request.confirm());
     }
 

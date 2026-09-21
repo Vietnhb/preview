@@ -111,11 +111,8 @@ CREATE TABLE IF NOT EXISTS library_moderation_audits (
 );;
 
 INSERT INTO roles (name)
-VALUES ('ADMIN'), ('CONTENT_REVIEWER'), ('SCHOOL_MANAGER'), ('TEACHER'), ('STUDENT')
+VALUES ('ADMIN'), ('REVIEWER'), ('SCHOOL_MANAGER'), ('TEACHER'), ('STUDENT')
 ON CONFLICT (name) DO NOTHING;;
-
-UPDATE users SET role_id = (SELECT id FROM roles WHERE name = 'CONTENT_REVIEWER')
-WHERE role_id = (SELECT id FROM roles WHERE name = 'REVIEWER');;
 
 -- Migrate only explicit legacy school associations; never guess a user's school.
 DO $$
@@ -134,7 +131,7 @@ CREATE OR REPLACE FUNCTION validate_user_school() RETURNS trigger LANGUAGE plpgs
 DECLARE role_name text;
 BEGIN
     SELECT name INTO role_name FROM roles WHERE id = NEW.role_id;
-    IF role_name IN ('ADMIN', 'CONTENT_REVIEWER') AND NEW.school_id IS NULL THEN
+    IF role_name IN ('ADMIN', 'REVIEWER') AND NEW.school_id IS NULL THEN
         RETURN NEW;
     END IF;
     IF role_name IN ('SCHOOL_MANAGER', 'TEACHER', 'STUDENT') AND NEW.school_id IS NOT NULL THEN

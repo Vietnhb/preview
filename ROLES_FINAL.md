@@ -18,7 +18,7 @@
 │     • school_id = NULL                                  │
 │     • Quản lý toàn platform                             │
 │                                                         │
-│  2. CONTENT_REVIEWER    (Chuyên gia nội dung & Kiểm duyệt)  │
+│  2. REVIEWER    (Chuyên gia nội dung & Kiểm duyệt)  │
 │     • school_id = NULL                                  │
 │     • Curriculum Expert - Curriculum Designer           │
 │     • TẠO topic schema (FR-REV-01)                     │
@@ -271,11 +271,11 @@ CREATE TABLE users (
     
     -- Role
     role VARCHAR(20) NOT NULL,
-    -- 'ADMIN' | 'CONTENT_REVIEWER' | 'SCHOOL_MANAGER' | 'TEACHER' | 'STUDENT'
+    -- 'ADMIN' | 'REVIEWER' | 'SCHOOL_MANAGER' | 'TEACHER' | 'STUDENT'
     
     -- School association
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-    -- NULL for ADMIN and CONTENT_REVIEWER
+    -- NULL for ADMIN and REVIEWER
     -- NOT NULL for SCHOOL_MANAGER, TEACHER, STUDENT
     
     -- Soft delete
@@ -307,7 +307,7 @@ CREATE TABLE users (
     -- ⭐ CONSTRAINTS
     CONSTRAINT check_role_school_consistency 
         CHECK (
-            (role IN ('ADMIN', 'CONTENT_REVIEWER') AND school_id IS NULL)
+            (role IN ('ADMIN', 'REVIEWER') AND school_id IS NULL)
             OR
             (role IN ('SCHOOL_MANAGER', 'TEACHER', 'STUDENT') AND school_id IS NOT NULL)
         )
@@ -385,7 +385,7 @@ CREATE TABLE simulations (
     -- Review status
     review_status VARCHAR(20) DEFAULT 'NOT_SUBMITTED',
     -- NOT_SUBMITTED, PENDING_REVIEW, APPROVED, REJECTED
-    reviewed_by UUID REFERENCES users(id), -- CONTENT_REVIEWER
+    reviewed_by UUID REFERENCES users(id), -- REVIEWER
     reviewed_at TIMESTAMP,
     review_feedback TEXT,
     
@@ -475,7 +475,7 @@ CREATE INDEX idx_simulations_visibility ON simulations(visibility, review_status
     • Status: PENDING_REVIEW
     • Vào REVIEWER queue
     ↓
-[3] CONTENT_REVIEWER review
+[3] REVIEWER review
     • Check physics accuracy
     • Check content quality
     • Test simulation
@@ -530,7 +530,7 @@ CREATE INDEX idx_simulations_visibility ON simulations(visibility, review_status
 | Role | Count/School | school_id | Can Create Sim | Can Assign | Can Review |
 |------|--------------|-----------|----------------|------------|------------|
 | ADMIN | N/A | NULL | ✅ | ✅ | ✅ |
-| CONTENT_REVIEWER | N/A | NULL | ❌ | ❌ | ✅ |
+| REVIEWER | N/A | NULL | ❌ | ❌ | ✅ |
 | SCHOOL_MANAGER | **1** | UUID | ❌ | ❌ | ❌ |
 | TEACHER | 10-50 | UUID | ✅ | ✅ | ❌ |
 | STUDENT | 500-5000 | UUID | ❌ | ❌ | ❌ |

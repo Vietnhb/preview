@@ -1,6 +1,5 @@
 package com.example.backend.security;
 
-
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -29,7 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  *
  * Roles:
  * - ADMIN: Platform admin, manages all schools
- * - CONTENT_REVIEWER: Reviews shared simulations
+ * - REVIEWER: Reviews shared simulations
  * - SCHOOL_MANAGER: Manages one school (users, classes)
  * - TEACHER: Creates simulations, teaches classes
  * - STUDENT: Takes classes, submits work
@@ -38,130 +37,156 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnableWebSecurity
 @AllArgsConstructor
 public class SecurityConfig {
-    private static final String ADMIN = "ADMIN";
-    private static final String REVIEWER = "CONTENT_REVIEWER";
-    private static final String SCHOOL_MANAGER = "SCHOOL_MANAGER";
-    private static final String TEACHER = "TEACHER";
-    private static final String STUDENT = "STUDENT";
+        private static final String ADMIN = "ADMIN";
+        private static final String REVIEWER = "REVIEWER";
+        private static final String SCHOOL_MANAGER = "SCHOOL_MANAGER";
+        private static final String TEACHER = "TEACHER";
+        private static final String STUDENT = "STUDENT";
 
-    private final JwtFilter jwtFilter;
-    private final ObjectMapper objectMapper;
-    private final SecurityProperties securityProperties;
+        private final JwtFilter jwtFilter;
+        private final ObjectMapper objectMapper;
+        private final SecurityProperties securityProperties;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
-                        (request, response, exception) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                            objectMapper.writeValue(response.getOutputStream(),
-                                    new ErrorResponse(HttpServletResponse.SC_UNAUTHORIZED,
-                                            "Authentication is required"));
-                        })
-                        .accessDeniedHandler((request, response, exception) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                            objectMapper.writeValue(response.getOutputStream(),
-                                    new ErrorResponse(HttpServletResponse.SC_FORBIDDEN,
-                                            "You do not have permission for this action"));
-                        }))
-                .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/auth/**", "/ws/**", "/actuator/health").permitAll()
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
+                                                (request, response, exception) -> {
+                                                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                                        response.setContentType("application/json");
+                                                        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                                                        objectMapper.writeValue(response.getOutputStream(),
+                                                                        new ErrorResponse(
+                                                                                        HttpServletResponse.SC_UNAUTHORIZED,
+                                                                                        "Authentication is required"));
+                                                })
+                                                .accessDeniedHandler((request, response, exception) -> {
+                                                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                                                        response.setContentType("application/json");
+                                                        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                                                        objectMapper.writeValue(response.getOutputStream(),
+                                                                        new ErrorResponse(
+                                                                                        HttpServletResponse.SC_FORBIDDEN,
+                                                                                        "You do not have permission for this action"));
+                                                }))
+                                .authorizeHttpRequests(auth -> auth
+                                                // Public endpoints
+                                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                                                .requestMatchers("/api/auth/**", "/ws/**", "/actuator/health")
+                                                .permitAll()
 
-                        // User profile (all authenticated users)
-                        .requestMatchers("/api/user/me", "/api/user/profile/**").authenticated()
+                                                // User profile (all authenticated users)
+                                                .requestMatchers("/api/user/me", "/api/user/profile/**").authenticated()
 
-                        // Platform admin only
-                        .requestMatchers("/api/admin/**").hasRole(ADMIN)
-                        .requestMatchers("/api/user/all").hasRole(ADMIN)
-                        .requestMatchers("/api/user/students").hasAnyRole(TEACHER, ADMIN)
-                        .requestMatchers("/api/schools/*/activate", "/api/schools/*/deactivate").hasRole(ADMIN)
+                                                // Platform admin only
+                                                .requestMatchers("/api/admin/**").hasRole(ADMIN)
+                                                .requestMatchers("/api/user/all").hasRole(ADMIN)
+                                                .requestMatchers("/api/user/students").hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers("/api/schools/*/activate", "/api/schools/*/deactivate")
+                                                .hasRole(ADMIN)
 
-                        // Content Reviewer (platform-level content moderation)
-                        .requestMatchers("/api/reviewer/**").hasAnyRole(REVIEWER, ADMIN)
-                        .requestMatchers("/api/simulations/*/approve", "/api/simulations/*/reject").hasAnyRole(REVIEWER, ADMIN)
+                                                // Content Reviewer (platform-level content moderation)
+                                                .requestMatchers("/api/reviewer/**").hasAnyRole(REVIEWER, ADMIN)
+                                                .requestMatchers("/api/simulations/*/approve",
+                                                                "/api/simulations/*/reject")
+                                                .hasAnyRole(REVIEWER, ADMIN)
 
-                        // School Manager (school-level management)
-                        .requestMatchers("/api/schools/*/users/**").hasAnyRole(SCHOOL_MANAGER, ADMIN)
-                        .requestMatchers("/api/schools/*/classes/**").hasAnyRole(SCHOOL_MANAGER, ADMIN)
-                        .requestMatchers("/api/schools/*/reports/**").hasAnyRole(SCHOOL_MANAGER, ADMIN)
+                                                // School Manager (school-level management)
+                                                .requestMatchers("/api/schools/*/users/**")
+                                                .hasAnyRole(SCHOOL_MANAGER, ADMIN)
+                                                .requestMatchers("/api/schools/*/classes/**")
+                                                .hasAnyRole(SCHOOL_MANAGER, ADMIN)
+                                                .requestMatchers("/api/schools/*/reports/**")
+                                                .hasAnyRole(SCHOOL_MANAGER, ADMIN)
 
-                        .requestMatchers("/api/problems/**").hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers("/api/problems/**").hasAnyRole(TEACHER, ADMIN)
 
-                        // Teacher (content creation + teaching)
-                        .requestMatchers(HttpMethod.POST, "/api/simulations", "/api/simulations/adjust", "/api/simulations/create")
-                                .hasAnyRole(TEACHER, ADMIN)
-                        .requestMatchers("/api/classes/*/students").hasAnyRole(TEACHER, SCHOOL_MANAGER, ADMIN)
+                                                // Reviewer evaluation runs are platform-level operations. Keep this
+                                                // before the authenticated fallback so school users cannot start or
+                                                // inspect corpus evaluations.
+                                                .requestMatchers("/api/evaluations", "/api/evaluations/**")
+                                                .hasAnyRole(REVIEWER, ADMIN)
 
-                        // Student (learning + submissions)
-                        .requestMatchers("/api/student/**").hasRole(STUDENT)
-                        .requestMatchers("/api/support/admin/**").hasRole(ADMIN)
-                        .requestMatchers("/api/support/**").authenticated()
+                                                // Teacher (content creation + teaching)
+                                                .requestMatchers(HttpMethod.POST, "/api/simulations",
+                                                                "/api/simulations/adjust", "/api/simulations/create")
+                                                .hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers("/api/classes/*/students")
+                                                .hasAnyRole(TEACHER, SCHOOL_MANAGER, ADMIN)
 
-                        // School billing
-                        .requestMatchers("/api/school/billing", "/api/school/billing/**")
-                                .hasRole(SCHOOL_MANAGER)
+                                                // Student (learning + submissions)
+                                                .requestMatchers("/api/student/**").hasRole(STUDENT)
+                                                .requestMatchers("/api/support/admin", "/api/support/admin/**")
+                                                .hasRole(ADMIN)
+                                                .requestMatchers("/api/support/**").authenticated()
 
-                        // Assignments: keep teacher and student operations separate.
-                        .requestMatchers("/api/assignments/mine/teacher", "/api/assignments/mine/teacher/classes",
-                                "/api/assignments/*/submissions", "/api/assignments/*/report",
-                                "/api/assignments/*/submissions/*/grade", "/api/assignments/*/submissions/*/reopen")
-                                .hasAnyRole(TEACHER, ADMIN)
-                        .requestMatchers("/api/assignments/mine/student", "/api/assignments/*/predictions",
-                                "/api/assignments/*/submit", "/api/assignments/*/simulation",
-                                "/api/assignments/*/simulation/adjust")
-                                .hasRole(STUDENT)
-                        .requestMatchers("/api/assignments", "/api/assignments/**")
-                                .hasAnyRole(TEACHER, STUDENT, ADMIN)
+                                                // School billing
+                                                .requestMatchers("/api/school/billing", "/api/school/billing/**")
+                                                .hasRole(SCHOOL_MANAGER)
 
-                        // Shared library (view: all auth users, submit: teachers only)
-                        .requestMatchers("/api/library/folders", "/api/library/folders/**")
-                                .hasAnyRole(TEACHER, ADMIN)
-                        .requestMatchers(HttpMethod.POST, "/api/library", "/api/library/**")
-                                .hasAnyRole(TEACHER, ADMIN)
-                        .requestMatchers(HttpMethod.PATCH, "/api/library", "/api/library/**")
-                                .hasAnyRole(TEACHER, ADMIN)
-                        .requestMatchers(HttpMethod.DELETE, "/api/library", "/api/library/**")
-                                .hasAnyRole(TEACHER, ADMIN)
-                        .requestMatchers("/api/library/mine").hasAnyRole(TEACHER, ADMIN)
-                        .requestMatchers("/api/library", "/api/library/**").authenticated()
+                                                // Assignments: keep teacher and student operations separate.
+                                                .requestMatchers("/api/assignments/mine/teacher",
+                                                                "/api/assignments/mine/teacher/classes",
+                                                                "/api/assignments/*/submissions",
+                                                                "/api/assignments/*/report",
+                                                                "/api/assignments/*/submissions/*/grade",
+                                                                "/api/assignments/*/submissions/*/reopen")
+                                                .hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers("/api/assignments/mine/student",
+                                                                "/api/assignments/*/predictions",
+                                                                "/api/assignments/*/submit",
+                                                                "/api/assignments/*/simulation",
+                                                                "/api/assignments/*/simulation/adjust")
+                                                .hasRole(STUDENT)
+                                                .requestMatchers(HttpMethod.POST, "/api/assignments")
+                                                .hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers("/api/assignments", "/api/assignments/**")
+                                                .hasAnyRole(TEACHER, STUDENT, ADMIN)
 
-                        // Schemas (CONTENT_REVIEWER + ADMIN manage, others view approved only)
-                        .requestMatchers(HttpMethod.POST, "/api/schemas", "/api/schemas/**")
-                                .hasAnyRole(REVIEWER, ADMIN)
-                        .requestMatchers(HttpMethod.PUT, "/api/schemas", "/api/schemas/**")
-                                .hasAnyRole(REVIEWER, ADMIN)
-                        .requestMatchers("/api/schemas", "/api/schemas/**").authenticated()
+                                                // Shared library (view: all auth users, submit: teachers only)
+                                                .requestMatchers("/api/library/folders", "/api/library/folders/**")
+                                                .hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers(HttpMethod.POST, "/api/library", "/api/library/**")
+                                                .hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers(HttpMethod.PATCH, "/api/library", "/api/library/**")
+                                                .hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers(HttpMethod.DELETE, "/api/library", "/api/library/**")
+                                                .hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers("/api/library/mine").hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers("/api/library", "/api/library/**").authenticated()
 
-                        // All other requests require authentication
-                        .anyRequest().authenticated())
+                                                // Schemas (REVIEWER + ADMIN manage, others view approved only)
+                                                .requestMatchers(HttpMethod.POST, "/api/schemas", "/api/schemas/**")
+                                                .hasAnyRole(REVIEWER, ADMIN)
+                                                .requestMatchers(HttpMethod.PUT, "/api/schemas", "/api/schemas/**")
+                                                .hasAnyRole(REVIEWER, ADMIN)
+                                                .requestMatchers("/api/schemas", "/api/schemas/**").authenticated()
 
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                                                // All other requests require authentication
+                                                .anyRequest().authenticated())
 
-        return http.build();
-    }
+                                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(securityProperties.allowedOrigins());
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+                return http.build();
+        }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(securityProperties.passwordStrength());
-    }
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOrigins(securityProperties.allowedOrigins());
+                configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                configuration.setAllowedHeaders(List.of("*"));
+                configuration.setAllowCredentials(true);
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
+
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder(securityProperties.passwordStrength());
+        }
 }

@@ -463,7 +463,7 @@ VALUES ('uuid-10a2', 201, '2026-2027', 'ACTIVE');`,
         dbName: "roles",
         category: "auth",
         categoryName: "Xác thực & Phân quyền",
-        purpose: "5 vai trò trong hệ thống (ADMIN, CONTENT_REVIEWER, SCHOOL_MANAGER, TEACHER, STUDENT)",
+        purpose: "5 vai trò trong hệ thống (ADMIN, REVIEWER, SCHOOL_MANAGER, TEACHER, STUDENT)",
         roles: ["admin"],
         columns: [
             { name: "id", type: "SERIAL PRIMARY KEY", description: "1-5" },
@@ -474,7 +474,7 @@ VALUES ('uuid-10a2', 201, '2026-2027', 'ACTIVE');`,
 | id | name               | description                           |
 |----|--------------------|---------------------------------------|
 | 1  | ADMIN              | Platform admin - Quản trị toàn hệ thống |
-| 2  | CONTENT_REVIEWER   | Chuyên gia kiểm duyệt nội dung physics |
+| 2  | REVIEWER   | Chuyên gia kiểm duyệt nội dung physics |
 | 3  | SCHOOL_MANAGER     | Quản lý trường - 1 người/trường        |
 | 4  | TEACHER            | Giáo viên - Nhiều người/trường         |
 | 5  | STUDENT            | Học sinh                               |`,

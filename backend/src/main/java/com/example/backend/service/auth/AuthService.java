@@ -6,14 +6,18 @@ import com.example.backend.dto.auth.SignupRequest;
 import com.example.backend.dto.user.UserResponse;
 import com.example.backend.entity.account.User;
 import com.example.backend.entity.enums.RoleName;
+import com.example.backend.entity.school.LicensePlan;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.account.UserRepository;
+import com.example.backend.repository.school.LicensePlanRepository;
 import com.example.backend.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -22,6 +26,12 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+    private final LicensePlanRepository licensePlanRepository;
+
+    @Transactional(readOnly = true)
+    public List<LicensePlan> plans() {
+        return licensePlanRepository.findByActiveTrueOrderByAnnualPriceVndAsc();
+    }
 
     public LoginResponse login(String email, String password) {
         String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);

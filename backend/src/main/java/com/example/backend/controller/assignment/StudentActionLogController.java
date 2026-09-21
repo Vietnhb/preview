@@ -1,50 +1,31 @@
 package com.example.backend.controller.assignment;
 
-
+import com.example.backend.dto.assignment.StudentActionLogRequest;
 import com.example.backend.entity.audit.StudentActionLog;
-import com.example.backend.exception.ApiException;
-import com.example.backend.repository.audit.StudentActionLogRepository;
-import com.example.backend.repository.assignment.AssignmentRepository;
-import com.example.backend.service.account.CurrentUserService;
+import com.example.backend.service.assignment.StudentActionLogService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/student/action-logs")
 @RequiredArgsConstructor
 public class StudentActionLogController {
-    private final StudentActionLogRepository logs;
-    private final AssignmentRepository assignments;
-    private final CurrentUserService currentUser;
-
-    public record ActionRequest(@NotNull UUID assignmentId, @NotBlank @Size(max = 64) String action,
-            com.fasterxml.jackson.databind.JsonNode payload) {
-    }
+    private final StudentActionLogService service;
 
     @PostMapping
-    public StudentActionLog create(@Valid @RequestBody ActionRequest request) {
-        Integer studentId = currentUser.requireCurrentUser().getId();
-        if (!assignments.findById(request.assignmentId())
-                .filter(item -> item.getAssignedStudentIds().contains(studentId)).isPresent())
-            throw new ApiException(HttpStatus.FORBIDDEN, "Assignment is not assigned to this student");
-        StudentActionLog log = new StudentActionLog();
-        log.setStudentId(studentId);
-        log.setAssignmentId(request.assignmentId());
-        log.setAction(request.action().trim());
-        log.setPayload(request.payload());
-        return logs.save(log);
+    public StudentActionLog create(@Valid @RequestBody StudentActionLogRequest request) {
+        return service.create(request);
     }
 
     @GetMapping
     public List<StudentActionLog> mine() {
-        return logs.findTop200ByStudentIdOrderByOccurredAtDesc(currentUser.requireCurrentUser().getId());
+        return service.mine();
     }
 }

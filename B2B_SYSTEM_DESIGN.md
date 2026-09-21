@@ -40,7 +40,7 @@
 │                  PLATFORM LEVEL (PhysLive)                  │
 │                                                             │
 │  ┌──────────────┐  ┌────────────────────────────────────┐ │
-│  │ SYSTEM_ADMIN │  │  CONTENT_REVIEWER (Platform Team)  │ │
+│  │ SYSTEM_ADMIN │  │  REVIEWER (Platform Team)  │ │
 │  └──────────────┘  └────────────────────────────────────┘ │
 │         │                        │                         │
 │         │                        │ Quality Control         │
@@ -475,7 +475,7 @@ LỢI NHUẬN (năm đầu):               3,200M VNĐ (~55% margin)
 │     • System monitoring & analytics                        │
 │     • KHÔNG thuộc trường nào                               │
 │                                                             │
-│  2. CONTENT_REVIEWER                                       │
+│  2. REVIEWER                                       │
 │     • Duyệt simulations trước khi vào Shared Library       │
 │     • Quality control (physics accuracy)                   │
 │     • Feature simulations (highlight quality content)      │
@@ -566,7 +566,7 @@ LỢI NHUẬN (năm đầu):               3,200M VNĐ (~55% margin)
 ### **Key Differences:**
 
 - **SYSTEM_ADMIN**: Quản lý platform-level (all schools)
-- **CONTENT_REVIEWER**: Quality control cho Shared Library
+- **REVIEWER**: Quality control cho Shared Library
 - **SCHOOL_ADMIN**: Quản lý operational của 1 trường (users, classes) - KHÔNG dạy
 - **TEACHER**: Dạy học (create content, assign, grade) - Quản lý lớp của mình
 - **STUDENT**: Học tập
@@ -633,11 +633,11 @@ CREATE TABLE users (
     
     -- Role (CRITICAL!)
     role VARCHAR(20) NOT NULL,
-    -- 'SYSTEM_ADMIN' | 'CONTENT_REVIEWER' | 'SCHOOL_ADMIN' | 'TEACHER' | 'STUDENT'
+    -- 'SYSTEM_ADMIN' | 'REVIEWER' | 'SCHOOL_ADMIN' | 'TEACHER' | 'STUDENT'
     
     -- School association
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-    -- NULL for SYSTEM_ADMIN and CONTENT_REVIEWER (platform roles)
+    -- NULL for SYSTEM_ADMIN and REVIEWER (platform roles)
     -- NOT NULL for SCHOOL_ADMIN, TEACHER and STUDENT (school roles)
     
     -- Profile
@@ -664,7 +664,7 @@ CREATE TABLE users (
     -- Constraints
     CONSTRAINT check_platform_roles_no_school 
         CHECK (
-            (role IN ('SYSTEM_ADMIN', 'CONTENT_REVIEWER') AND school_id IS NULL)
+            (role IN ('SYSTEM_ADMIN', 'REVIEWER') AND school_id IS NULL)
             OR
             (role IN ('SCHOOL_ADMIN', 'TEACHER', 'STUDENT') AND school_id IS NOT NULL)
         )

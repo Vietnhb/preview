@@ -56,6 +56,7 @@ public class SchemaDefinitionService {
     public record RequiredGap(String key, String unit) { }
     public record SolverBinding(String numericalSolverId, String referenceSolverId, String version) { }
     public record AdjustableParameter(String key, double min, double max) { }
+    public record DefinitionSnapshot(String schemaId, String version, JsonNode definition) { }
     private final SchemaVersionRepository repository;
     private final SolverVersionRepository solverRepository;
     private final com.example.backend.repository.curriculum.TopicRepository topicRepository;
@@ -75,6 +76,16 @@ public class SchemaDefinitionService {
         requireEnabledTopic(schema.getTopic());
         compiled(schema);
         return schema;
+    }
+
+    /**
+     * Return the approved definition as an immutable boundary value. Callers that
+     * perform slow external work must not retain the managed SchemaVersion entity.
+     */
+    @Transactional(readOnly = true)
+    public DefinitionSnapshot approvedDefinitionSnapshot(String schemaId) {
+        SchemaVersion schema = requireApproved(schemaId);
+        return new DefinitionSnapshot(schema.getSchemaId(), schema.getVersion(), schema.getDefinition().deepCopy());
     }
 
     @Transactional(readOnly = true)

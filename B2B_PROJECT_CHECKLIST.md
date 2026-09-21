@@ -13,7 +13,7 @@
 
 ## Quyết định sản phẩm đã chốt
 
-- [x] Hệ thống có 5 vai trò: `ADMIN`, `CONTENT_REVIEWER`, `SCHOOL_MANAGER`, `TEACHER`, `STUDENT`.
+- [x] Hệ thống có 5 vai trò: `ADMIN`, `REVIEWER`, `SCHOOL_MANAGER`, `TEACHER`, `STUDENT`.
 - [x] Trường được tự đăng ký tài khoản `SCHOOL_MANAGER` và chọn gói.
 - [x] Chỉ kích hoạt trường và tài khoản quản lý sau khi backend xác minh thanh toán VNPAY thành công.
 - [x] Giáo viên và học sinh do quản lý trường tạo; endpoint đăng ký cá nhân cũ vẫn bị khóa.
@@ -79,7 +79,7 @@
 - [x] Trang `Feedback` và `Messages` có danh sách backend, modal xem, phản hồi và đóng yêu cầu.
 - [~] Có báo cáo doanh thu gắn với payment reconciliation; MRR/conversion theo cohort chưa có.
 
-### CONTENT_REVIEWER — chuyên gia nội dung
+### REVIEWER — chuyên gia nội dung
 
 - [x] Resolve ambiguity extraction.
 - [x] Tạo và thay đổi lifecycle schema.
@@ -192,7 +192,7 @@
 - [x] Quản lý trường tạo được giáo viên/học sinh, lớp, phân giáo viên và enrollment; quota học sinh được kiểm tra.
 - [x] Giáo viên chỉ giao bài trong lớp được phân công.
 - [~] Học sinh làm bài, action log được lưu, auto-grade đáp án số và giáo viên xác nhận điểm; solver formula/realtime còn thiếu.
-- [x] Shared Library có moderation bởi `CONTENT_REVIEWER` và audit quyết định.
+- [x] Shared Library có moderation bởi `REVIEWER` và audit quyết định.
 - [x] License hết hạn chuyển đúng sang read-only cho các write flow B2B.
 - [x] Admin xem được payment, plan, school, user, report và audit cần thiết.
 - [ ] Supabase staging migration và VNPAY Sandbox test end-to-end đã có bằng chứng.

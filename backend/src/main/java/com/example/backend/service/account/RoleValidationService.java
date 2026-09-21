@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 /**
  * Service for validating role-school consistency rules.
  * Enforces business logic:
- * - Platform roles (ADMIN, CONTENT_REVIEWER) must have school_id = NULL
+ * - Platform roles (ADMIN, REVIEWER) must have school_id = NULL
  * - School roles (SCHOOL_MANAGER, TEACHER, STUDENT) must have school_id NOT NULL
  * - Only 1 SCHOOL_MANAGER per school
  */

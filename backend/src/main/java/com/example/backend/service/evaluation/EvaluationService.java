@@ -12,14 +12,17 @@ import com.example.backend.entity.evaluation.EvaluationRun;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.ai.extraction.ExtractionCoordinator;
 import com.example.backend.ai.extraction.model.ExtractionResult;
+import com.example.backend.exception.ApiException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -51,6 +54,7 @@ public class EvaluationService {
     private final ObjectMapper objectMapper;
     private final SchemaDefinitionService schemaDefinitions;
     private final CurrentUserService currentUser;
+    private final PlatformTransactionManager transactionManager;
 
     public record RunView(UUID id, String evaluationType, String status, int benchmarkCount,
                           JsonNode metrics, String report, String requestedByReference,
@@ -69,59 +73,175 @@ public class EvaluationService {
 
     public record RunComparison(RunView baseline, RunView candidate, JsonNode metricDelta) { }
 
-    @Transactional
+    private record EvaluationCase(UUID id, String topic, String problemText, Instant updatedAt,
+                                  JsonNode goldSpecification, JsonNode firstAnnotation, JsonNode secondAnnotation) { }
+
+    private record PreparedRun(UUID id, String actor, Instant startedAt, String snapshotHash,
+                               List<EvaluationCase> cases) { }
+
     public EvaluationResponse run() {
-        Instant startedAt = Instant.now();
-        String actor = "user:" + currentUser.requireCurrentUser().getId();
-        List<BenchmarkProblem> benchmarks = finalizedBenchmarks();
-        if (benchmarks.isEmpty()) {
-            throw new com.example.backend.exception.ApiException(HttpStatus.CONFLICT,
-                    "No finalized gold benchmarks are available");
-        }
+        PreparedRun prepared = prepareRun();
         List<CaseMetrics> confirmFlow = new ArrayList<>();
         List<CaseMetrics> silentDefault = new ArrayList<>();
-        for (BenchmarkProblem benchmark : benchmarks) {
-            ExtractionResult extraction = extractionCoordinator.extract(benchmark.getProblemText());
-            JsonNode predicted = objectMapper.valueToTree(extraction.document());
-            JsonNode gold = goldSpecification(benchmark);
-            JsonNode definition = schemaDefinition(extraction.document().schemaId());
-            double tolerance = definition.path("validation").path("tolerance").asDouble(0.0);
-            confirmFlow.add(compare(benchmark, predicted, gold, definition, tolerance, extraction.modelVersion()));
-            silentDefault.add(compare(benchmark, addSilentDefaults(predicted, definition), gold, definition, tolerance,
-                    extraction.modelVersion()));
+        Map<String, String> schemaVersions = new LinkedHashMap<>();
+        Map<String, JsonNode> schemaDefinitionsUsed = new LinkedHashMap<>();
+        Map<String, String> modelVersions = new LinkedHashMap<>();
+        try {
+            for (EvaluationCase benchmark : prepared.cases()) {
+                ExtractionResult extraction = extractionCoordinator.extract(benchmark.problemText());
+                JsonNode predicted = objectMapper.valueToTree(extraction.document());
+                SchemaDefinitionService.DefinitionSnapshot schema = schemaDefinitions
+                        .approvedDefinitionSnapshot(extraction.document().schemaId());
+                JsonNode definition = schema.definition();
+                double tolerance = definition.path("validation").path("tolerance").asDouble(0.0);
+                confirmFlow.add(compare(benchmark, predicted, benchmark.goldSpecification(), definition, tolerance,
+                        extraction.modelVersion()));
+                silentDefault.add(compare(benchmark, addSilentDefaults(predicted, definition),
+                        benchmark.goldSpecification(), definition, tolerance, extraction.modelVersion()));
+                schemaVersions.put(schema.schemaId(), schema.version());
+                schemaDefinitionsUsed.put(schema.schemaId(), schema.definition());
+                modelVersions.put(benchmark.id().toString(), extraction.modelVersion());
+            }
+
+            Summary total = summarize(confirmFlow);
+            ObjectNode metrics = objectMapper.createObjectNode();
+            metrics.set("confirmFlow", report(confirmFlow, "CONFIRM_FLOW"));
+            metrics.set("silentDefaultBaseline", report(silentDefault, "SILENT_DEFAULT_BASELINE"));
+            metrics.set("byTopic", groupedReport(confirmFlow, CaseMetrics::topic));
+            metrics.set("byQuantityType", groupedQuantityReport(confirmFlow));
+            metrics.put("numericAgreement", total.numericAgreement());
+            metrics.put("incorrectSimulationRate", total.incorrectRate());
+            metrics.put("extractionModel", providerVersion(confirmFlow));
+            metrics.put("evaluationDesign", "Fixed benchmark corpus; same extraction and schema versions in both conditions.");
+
+            ObjectNode configuration = configurationSnapshot(prepared.cases());
+            ObjectNode bindings = objectMapper.createObjectNode();
+            schemaVersions.forEach(bindings::put);
+            configuration.set("schemaVersionsUsed", bindings);
+            ObjectNode definitions = objectMapper.createObjectNode();
+            schemaDefinitionsUsed.forEach(definitions::set);
+            configuration.set("schemaDefinitionsUsed", definitions);
+            ObjectNode models = objectMapper.createObjectNode();
+            modelVersions.forEach(models::put);
+            configuration.set("modelVersionsUsed", models);
+            completeRun(prepared, metrics, configuration, total, cohenKappa(prepared.cases()));
+            return new EvaluationResponse("CONFIRM_FLOW_VS_SILENT_DEFAULT", prepared.cases().size(), total.precision(),
+                    total.recall(), total.f1(), cohenKappa(prepared.cases()), total.incorrectRate(), metrics);
+        } catch (ApiException exception) {
+            markRunFailed(prepared, exception.getClass().getSimpleName(), safeFailureMessage(exception));
+            throw exception;
+        } catch (RuntimeException exception) {
+            markRunFailed(prepared, "EVALUATION_FAILED", safeFailureMessage(exception));
+            throw new com.example.backend.exception.ApiException(HttpStatus.BAD_GATEWAY,
+                    "Evaluation failed. Cause: " + safeFailureMessage(exception));
         }
+    }
 
-        Summary total = summarize(confirmFlow);
-        ObjectNode metrics = objectMapper.createObjectNode();
-        metrics.set("confirmFlow", report(confirmFlow, "CONFIRM_FLOW"));
-        metrics.set("silentDefaultBaseline", report(silentDefault, "SILENT_DEFAULT_BASELINE"));
-        metrics.set("byTopic", groupedReport(confirmFlow, CaseMetrics::topic));
-        metrics.set("byQuantityType", groupedQuantityReport(confirmFlow));
-        metrics.put("numericAgreement", total.numericAgreement());
-        metrics.put("incorrectSimulationRate", total.incorrectRate());
-        metrics.put("extractionModel", providerVersion(confirmFlow));
-        metrics.put("evaluationDesign", "Fixed benchmark corpus; same extraction and schema versions in both conditions.");
+    private PreparedRun prepareRun() {
+        return transactionTemplate().execute(status -> {
+            Instant startedAt = Instant.now();
+            String actor = "user:" + currentUser.requireCurrentUser().getId();
+            List<BenchmarkProblem> benchmarks = finalizedBenchmarks();
+            if (benchmarks.isEmpty()) {
+                throw new com.example.backend.exception.ApiException(HttpStatus.CONFLICT,
+                        "No finalized gold benchmarks are available");
+            }
+            List<EvaluationCase> cases = benchmarks.stream().map(this::snapshotCase).toList();
+            String snapshotHash = snapshotHash(cases);
+            EvaluationRun run = new EvaluationRun();
+            run.setEvaluationType("CONFIRM_FLOW_VS_SILENT_DEFAULT");
+            run.setBenchmarkCount(cases.size());
+            run.setMetrics(objectMapper.createObjectNode());
+            run.setStatus("RUNNING");
+            run.setRequestedByReference(actor);
+            run.setStartedAt(startedAt);
+            run.setBenchmarkSnapshotHash(snapshotHash);
+            run.setConfiguration(configurationSnapshot(cases));
+            evaluationRepository.saveAndFlush(run);
+            return new PreparedRun(run.getId(), actor, startedAt, snapshotHash, cases);
+        });
+    }
 
-        EvaluationRun run = new EvaluationRun();
-        run.setEvaluationType("CONFIRM_FLOW_VS_SILENT_DEFAULT");
-        run.setBenchmarkCount(benchmarks.size());
-        run.setMetrics(metrics);
-        run.setStatus("COMPLETED");
-        run.setRequestedByReference(actor);
-        run.setStartedAt(startedAt);
-        run.setCompletedAt(Instant.now());
-        run.setDurationMs(java.time.Duration.between(startedAt, run.getCompletedAt()).toMillis());
-        run.setBenchmarkSnapshotHash(snapshotHash(benchmarks));
+    private EvaluationCase snapshotCase(BenchmarkProblem benchmark) {
+        JsonNode first = benchmark.getAnnotations().size() > 0
+                ? copy(benchmark.getAnnotations().get(0).getGoldSpecification()) : null;
+        JsonNode second = benchmark.getAnnotations().size() > 1
+                ? copy(benchmark.getAnnotations().get(1).getGoldSpecification()) : null;
+        return new EvaluationCase(benchmark.getId(), benchmark.getTopic(), benchmark.getProblemText(),
+                benchmark.getUpdatedAt(), copy(goldSpecification(benchmark)), first, second);
+    }
+
+    private ObjectNode configurationSnapshot(List<EvaluationCase> cases) {
         ObjectNode configuration = objectMapper.createObjectNode();
         configuration.put("evaluationType", "CONFIRM_FLOW_VS_SILENT_DEFAULT");
         configuration.put("schemaCatalogMode", "approved");
         configuration.put("toleranceSource", "approved schema validation.tolerance");
-        run.setConfiguration(configuration);
-        run.setReport("Confirm-flow metrics are compared with a deterministic silent-default baseline. "
-                + "The baseline is evaluation-only and never participates in production simulation creation.");
-        evaluationRepository.save(run);
-        return new EvaluationResponse("CONFIRM_FLOW_VS_SILENT_DEFAULT", benchmarks.size(), total.precision(),
-                total.recall(), total.f1(), cohenKappa(benchmarks), total.incorrectRate(), metrics);
+        ArrayNode snapshot = configuration.putArray("benchmarkCorpusSnapshot");
+        cases.forEach(item -> {
+            ObjectNode entry = snapshot.addObject();
+            entry.put("id", item.id().toString());
+            entry.put("topic", item.topic());
+            entry.put("updatedAt", item.updatedAt().toString());
+            entry.put("problemText", item.problemText());
+            entry.set("goldSpecification", item.goldSpecification() == null
+                    ? objectMapper.nullNode() : item.goldSpecification());
+        });
+        return configuration;
+    }
+
+    private void completeRun(PreparedRun prepared, JsonNode metrics, JsonNode configuration,
+                             Summary total, double kappa) {
+        transactionTemplate().executeWithoutResult(status -> {
+            EvaluationRun run = evaluationRepository.findById(prepared.id())
+                    .orElseThrow(() -> new com.example.backend.exception.ApiException(HttpStatus.NOT_FOUND,
+                            "Evaluation run not found"));
+            if (!"RUNNING".equals(run.getStatus())) {
+                throw new com.example.backend.exception.ApiException(HttpStatus.CONFLICT,
+                        "Evaluation run is no longer active");
+            }
+            Instant completedAt = Instant.now();
+            run.setMetrics(metrics);
+            run.setConfiguration(configuration);
+            run.setStatus("COMPLETED");
+            run.setCompletedAt(completedAt);
+            run.setDurationMs(java.time.Duration.between(prepared.startedAt(), completedAt).toMillis());
+            run.setReport("Confirm-flow metrics are compared with a deterministic silent-default baseline. "
+                    + "The baseline is evaluation-only and never participates in production simulation creation. "
+                    + "Agreement=" + kappa + ", F1=" + total.f1());
+            evaluationRepository.save(run);
+        });
+    }
+
+    private void markRunFailed(PreparedRun prepared, String code, String message) {
+        try {
+            transactionTemplate().executeWithoutResult(status -> evaluationRepository.findById(prepared.id()).ifPresent(run -> {
+                if (!"RUNNING".equals(run.getStatus())) return;
+                Instant completedAt = Instant.now();
+                run.setStatus("FAILED");
+                run.setFailureCode(code);
+                run.setFailureMessage(message);
+                run.setCompletedAt(completedAt);
+                run.setDurationMs(java.time.Duration.between(prepared.startedAt(), completedAt).toMillis());
+                evaluationRepository.save(run);
+            }));
+        } catch (RuntimeException ignored) {
+            // Preserve the original evaluation error if failure bookkeeping cannot commit.
+        }
+    }
+
+    private String safeFailureMessage(Throwable failure) {
+        String message = failure.getMessage();
+        if (!StringUtils.hasText(message)) return failure.getClass().getSimpleName();
+        String sanitized = message.replaceAll("(?i)bearer\\s+[^\\s,]+", "Bearer [redacted]");
+        return sanitized.substring(0, Math.min(240, sanitized.length()));
+    }
+
+    private JsonNode copy(JsonNode value) {
+        return value == null ? null : value.deepCopy();
+    }
+
+    private TransactionTemplate transactionTemplate() {
+        return new TransactionTemplate(transactionManager);
     }
 
     @Transactional(readOnly = true)
@@ -157,11 +277,11 @@ public class EvaluationService {
         return right.asDouble(0.0) - left.asDouble(0.0);
     }
 
-    private String snapshotHash(List<BenchmarkProblem> benchmarks) {
+    private String snapshotHash(List<EvaluationCase> benchmarks) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             benchmarks.stream()
-                    .map(item -> item.getId() + ":" + item.getUpdatedAt())
+                    .map(item -> item.id() + ":" + item.updatedAt())
                     .sorted()
                     .forEach(value -> digest.update(value.getBytes(StandardCharsets.UTF_8)));
             StringBuilder result = new StringBuilder();
@@ -218,6 +338,16 @@ public class EvaluationService {
 
     private CaseMetrics compare(BenchmarkProblem benchmark, JsonNode predicted, JsonNode gold,
                                 JsonNode definition, double tolerance, String provider) {
+        return compareValues(benchmark.getId(), benchmark.getTopic(), predicted, gold, definition, tolerance, provider);
+    }
+
+    private CaseMetrics compare(EvaluationCase benchmark, JsonNode predicted, JsonNode gold,
+                                JsonNode definition, double tolerance, String provider) {
+        return compareValues(benchmark.id(), benchmark.topic(), predicted, gold, definition, tolerance, provider);
+    }
+
+    private CaseMetrics compareValues(UUID benchmarkId, String topic, JsonNode predicted, JsonNode gold,
+                                      JsonNode definition, double tolerance, String provider) {
         Map<String, QuantityValue> actual = quantities(predicted, definition);
         Map<String, QuantityValue> expected = quantities(gold, definition);
         int truePositive = 0;
@@ -243,8 +373,8 @@ public class EvaluationService {
             numericComparableByKey.put(key, comparable);
             numericMatchByKey.put(key, comparable && numericMatch(actualValue, expectedValue, tolerance));
         }
-        return new CaseMetrics(benchmark.getId() == null ? UNKNOWN_VALUE : benchmark.getId().toString(),
-                benchmark.getTopic(), provider == null ? UNKNOWN_VALUE : provider, truePositive, actual.size(),
+        return new CaseMetrics(benchmarkId == null ? UNKNOWN_VALUE : benchmarkId.toString(),
+                topic, provider == null ? UNKNOWN_VALUE : provider, truePositive, actual.size(),
                 expected.size(), numericMatches, numericComparable, exact, types, actual, expected,
                 numericMatchByKey, numericComparableByKey);
     }
@@ -355,13 +485,13 @@ public class EvaluationService {
         return "OTHER";
     }
 
-    private double cohenKappa(List<BenchmarkProblem> benchmarks) {
+    private double cohenKappa(List<EvaluationCase> benchmarks) {
         List<String> first = new ArrayList<>();
         List<String> second = new ArrayList<>();
-        for (BenchmarkProblem benchmark : benchmarks) {
-            if (benchmark.getAnnotations().size() < 2) continue;
-            first.add(quantitySignature(benchmark.getAnnotations().get(0).getGoldSpecification()));
-            second.add(quantitySignature(benchmark.getAnnotations().get(1).getGoldSpecification()));
+        for (EvaluationCase benchmark : benchmarks) {
+            if (benchmark.firstAnnotation() == null || benchmark.secondAnnotation() == null) continue;
+            first.add(quantitySignature(benchmark.firstAnnotation()));
+            second.add(quantitySignature(benchmark.secondAnnotation()));
         }
         if (first.isEmpty()) return 0;
         int agreement = 0;
