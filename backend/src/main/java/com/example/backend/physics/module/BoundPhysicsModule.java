@@ -7,7 +7,10 @@ import com.example.backend.physics.output.PhysicsOutputContract;
 import com.example.backend.physics.output.PhysicsOutputFrame;
 import com.example.backend.physics.output.PhysicsOutputFrameMapper;
 import com.example.backend.physics.reference.ClosedFormReferenceSolver;
+import com.example.backend.physics.validation.OutputSourceBinding;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /** A module paired with parameters bound once from a canonical ingress bag. */
@@ -71,16 +74,23 @@ public final class BoundPhysicsModule {
      * adapter so existing module implementations can migrate independently.
      */
     public SolvedOutput solve(PhysicsOutputContract contract, SimulationClock clock) {
+        return solve(contract, clock, Map.of());
+    }
+
+    /** Executes one bound module with catalog source bindings for compatibility projection. */
+    public SolvedOutput solve(PhysicsOutputContract contract, SimulationClock clock,
+                              Map<String, List<OutputSourceBinding>> sourceBindings) {
         Objects.requireNonNull(contract, "output contract");
         SimulationClock requestedClock = Objects.requireNonNull(clock, "clock");
+        Map<String, List<OutputSourceBinding>> bindings = sourceBindings == null ? Map.of() : sourceBindings;
         SolverOutput legacy;
         PhysicsOutputFrame typed;
         if (nativeTypedOutput) {
             typed = operations.solveTyped(contract, requestedClock);
-            legacy = PhysicsOutputFrameMapper.toSolverOutput(typed);
+            legacy = PhysicsOutputFrameMapper.toSolverOutput(typed, bindings);
         } else {
             legacy = operations.solve(requestedClock);
-            typed = PhysicsOutputFrameMapper.fromSolverOutput(legacy, contract);
+            typed = PhysicsOutputFrameMapper.fromSolverOutput(legacy, contract, bindings);
         }
         return new SolvedOutput(legacy, typed);
     }

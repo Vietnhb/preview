@@ -48,10 +48,41 @@ public final class PhysicsOutputFrameMapper {
 
     public static PhysicsOutputFrame fromSolverOutput(SolverOutput output,
                                                        PhysicsOutputContract contract) {
+        return fromSolverOutput(output, contract, Map.of());
+    }
+
+    /**
+     * Adapts a grouped legacy result using the catalog's semantic source
+     * bindings. A legacy solver commonly exposes component {@code x} in all
+     * of positions, velocities and accelerations, while the output contract
+     * names those series {@code x}, {@code vx} and {@code ax}. The bindings
+     * are the data-driven bridge between those two representations.
+     */
+    public static PhysicsOutputFrame fromSolverOutput(SolverOutput output,
+                                                       PhysicsOutputContract contract,
+                                                       Map<String, List<OutputSourceBinding>> sourceBindings) {
         if (contract == null) throw new IllegalArgumentException("Output contract is required");
         Map<String, String> units = new LinkedHashMap<>();
         contract.outputs().forEach((key, definition) -> units.put(key, definition.unit()));
-        return fromSolverOutput(output, units);
+        if (output == null) throw new IllegalArgumentException("Solver output is required");
+        List<PhysicsOutput> outputs = new ArrayList<>();
+        appendSeries(outputs, output.values(), output.time(), units, true);
+        Map<String, List<OutputSourceBinding>> bindings = sourceBindings == null ? Map.of() : sourceBindings;
+        appendMappedSeries(outputs, output.positions(), output.time(), units, bindings,
+                OutputSourceBinding.Group.POSITIONS);
+        appendMappedSeries(outputs, output.velocities(), output.time(), units, bindings,
+                OutputSourceBinding.Group.VELOCITIES);
+        appendMappedSeries(outputs, output.accelerations(), output.time(), units, bindings,
+                OutputSourceBinding.Group.ACCELERATIONS);
+        if (output.scalarOutputs() != null) {
+            output.scalarOutputs().forEach((key, value) -> appendUnique(outputs,
+                    new ScalarOutput(key, Optional.ofNullable(units.get(key)), value)));
+        }
+        if (output.scalarFields() != null) {
+            output.scalarFields().forEach((key, field) -> appendUnique(outputs,
+                    new ScalarFieldOutput(key, field)));
+        }
+        return new PhysicsOutputFrame(output.time(), outputs);
     }
 
     /**
@@ -160,6 +191,28 @@ public final class PhysicsOutputFrameMapper {
             } else {
                 appendUnique(target, new TimeSeriesOutput(key, unit, time, values));
             }
+        });
+    }
+
+    private static void appendMappedSeries(List<PhysicsOutput> target,
+                                           Map<String, List<Double>> source,
+                                           List<Double> time,
+                                           Map<String, String> units,
+                                           Map<String, List<OutputSourceBinding>> sourceBindings,
+                                           OutputSourceBinding.Group group) {
+        if (source == null) return;
+        source.forEach((sourceKey, values) -> {
+            for (Map.Entry<String, List<OutputSourceBinding>> entry : sourceBindings.entrySet()) {
+                for (OutputSourceBinding binding : entry.getValue()) {
+                    if (binding.group() != group || !binding.key().equals(sourceKey)) continue;
+                    appendUnique(target, new TimeSeriesOutput(entry.getKey(),
+                            Optional.ofNullable(units.get(entry.getKey())), time, values));
+                }
+            }
+            // An unbound grouped key is deliberately ignored. The contract's
+            // canonical values series remains authoritative; inventing a
+            // semantic output name from a legacy component would reintroduce
+            // the duplicate-key ambiguity this adapter is meant to remove.
         });
     }
 

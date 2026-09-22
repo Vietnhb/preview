@@ -1,5 +1,5 @@
 import type { Simulation, VisualizationBinding, VisualizationNode } from "../types/physlive";
-import { presentationFor } from "../components/simulation-canvas/model";
+import { presentationFor } from "../components/simulation-canvas/model.ts";
 
 export type Binding = VisualizationBinding;
 
@@ -63,7 +63,9 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
   const presentation = presentationFor(simulation);
   const environment = presentation.environment;
   const actors = (presentation.actors ?? []).filter(actor => Boolean(actor.x));
-  const hasSecondDimension = actors.some(actor => Boolean(actor.y));
+  const positionSources = new Set(actors.map(actor => actor.x));
+  const positionSeries = (simulation.visualization?.series ?? []).find(series =>
+    typeof series.source === "string" && positionSources.has(series.source));
   // A missing layout is intentionally the renderer's neutral data plane. The
   // client must not infer a physical apparatus or coordinate system from text.
   const layout = presentation.layout;
@@ -76,6 +78,14 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
       layer: "static",
       properties: { environment, layout },
     }, "scene", 2)] : []),
+    // The ruler is a renderer primitive driven by the declared actor
+    // coordinate, not by a schema id or a physics-family branch.
+    ...(positionSeries ? [normalizeNode({
+      id: "position-ruler",
+      type: "ruler",
+      layer: "static",
+      properties: { unit: positionSeries?.unit, originSource: actors[0]?.x },
+    }, "scene", 3)] : []),
   ];
 
   for (let index = 0; index < actors.length; index++) {
@@ -98,13 +108,16 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
       },
     }, "scene", 3 + index));
 
-    if (presentation?.effects?.includes("motion.trail")) {
+    // A one-dimensional actor already has its position represented by the
+    // track/ruler. Avoid drawing an unexplained horizontal stroke across the
+    // scene; retain the trail when the declared actor has a second coordinate.
+    if (presentation?.effects?.includes("motion.trail") && actor.y) {
       nodes.push(normalizeNode({
         id: `${actorId}-trajectory`,
         type: "trajectory",
         layer: "trajectory",
         transform: { x: binding(actor.x), y: binding(actor.y) },
-        properties: { actorId, lane: actor.lane ?? 0, ...(layout ? { layout } : {}), previewAll: hasSecondDimension },
+        properties: { actorId, lane: actor.lane ?? 0, ...(layout ? { layout } : {}), previewAll: true },
       }, "scene", 100 + index));
     }
     if (actor.vx || actor.vy) {

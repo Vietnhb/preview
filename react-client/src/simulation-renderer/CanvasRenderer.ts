@@ -272,21 +272,47 @@ function drawEnvironment(ctx: CanvasRenderingContext2D, node: SceneNode, layout:
   environmentRegistry[environment]?.(ctx, layout.width, layout.height, layout.baseline, palette);
 }
 
-function drawRuler(ctx: CanvasRenderingContext2D, node: SceneNode, layout: LayoutContext, palette: CanvasPalette) {
+function drawRuler(ctx: CanvasRenderingContext2D, node: SceneNode, layout: LayoutContext, palette: CanvasPalette, data: RuntimeData) {
   if (layout.mode === "world" || layout.mode === "circuitBoard") return;
   const count = layout.width < 620 ? 4 : 7;
-  const y = layout.mode === "projectileRange" || layout.mode === "horizontalTrack" ? layout.baseline : layout.baseline + 88;
+  const requestedY = layout.mode === "collisionTrack" || layout.mode === "lanes"
+    ? layout.baseline + 88
+    : layout.baseline + 30;
+  // Keep the scale below the actor/track while reserving enough room for its
+  // labels on short canvases.
+  const y = Math.min(layout.height - 34, requestedY);
   const left = layout.mode === "springBench" ? layout.left + 130 : layout.left;
   ctx.save(); ctx.font = "600 10px ui-monospace, Consolas, monospace"; ctx.textAlign = "center";
   const unit = propertyString(node, "unit");
+  const originSource = propertyString(node, "originSource");
+  const originSeries = originSource ? data.series.get(originSource) : undefined;
+  const originValue = originSeries?.[0];
+  const finalValue = originSeries?.[originSeries.length - 1];
+  const movesForward = typeof originValue === "number" && typeof finalValue === "number"
+    ? finalValue >= originValue
+    : true;
+  const hasOrigin = typeof originValue === "number" && Number.isFinite(originValue)
+    && originValue >= layout.xMin && originValue <= layout.xMax;
+  const rulerMin = hasOrigin && movesForward ? originValue : layout.xMin;
+  const rulerMax = hasOrigin && movesForward ? layout.xMax : hasOrigin ? originValue : layout.xMax;
+  const rulerLeft = hasOrigin && movesForward ? layout.mapX(originValue) : left;
+  const rulerRight = hasOrigin && !movesForward ? layout.mapX(originValue) : layout.right;
+  const rulerSpan = Math.max(Number.EPSILON, rulerMax - rulerMin);
   for (let index = 0; index < count; index++) {
     const ratio = index / (count - 1);
-    const x = left + ratio * (layout.right - left);
-    const value = layout.xMin + ratio * (layout.xMax - layout.xMin);
+    const x = rulerLeft + ratio * (rulerRight - rulerLeft);
+    const value = rulerMin + ratio * rulerSpan;
     ctx.strokeStyle = index === 0 ? palette.cyan : palette.gridStrong; ctx.lineWidth = index === 0 ? 2 : 1;
     ctx.beginPath(); ctx.moveTo(x, y - 9); ctx.lineTo(x, y + 10); ctx.stroke();
     ctx.fillStyle = index === 0 ? palette.cyan : palette.muted;
     ctx.fillText(`${value.toFixed(1)}${unit ? ` ${unit}` : ""}`, x, y + 25);
+  }
+  if (hasOrigin) {
+    const originX = layout.mapX(originValue);
+    ctx.strokeStyle = palette.cyan; ctx.lineWidth = 2; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(originX, y - 13); ctx.lineTo(originX, y + 12); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = palette.cyan;
+    ctx.fillText(`x₀=${originValue.toFixed(1)}${unit ? ` ${unit}` : ""}`, originX, y + 38);
   }
   ctx.restore();
 }
@@ -568,7 +594,15 @@ function drawNode(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node:
     const column = slot % columns; const row = Math.floor(slot / columns);
     const graphLeft = (hasBodies ? frame.width - margin - availableWidth : margin) + column * (panelWidth + gap);
     const graphTop = margin + row * (panelHeight + gap); const graphBottom = graphTop + panelHeight;
-    const range = frame.data.ranges.get(source) ?? [0, 1];
+    const validValues = Array.from(values).filter(value => Number.isFinite(value));
+    let observedMinimum = Number.POSITIVE_INFINITY;
+    let observedMaximum = Number.NEGATIVE_INFINITY;
+    for (const value of validValues) {
+      observedMinimum = Math.min(observedMinimum, value);
+      observedMaximum = Math.max(observedMaximum, value);
+    }
+    const range = frame.data.ranges.get(source)
+      ?? (validValues.length ? [observedMinimum, observedMaximum] as [number, number] : [0, 1]);
     const minimum = range[0] === range[1] ? range[0] - 1 : range[0];
     const maximum = range[0] === range[1] ? range[1] + 1 : range[1];
     const plotTop = graphTop + 22; const plotBottom = graphBottom - 14;
@@ -576,11 +610,19 @@ function drawNode(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node:
     ctx.beginPath(); ctx.roundRect(graphLeft, graphTop, panelWidth, panelHeight, 8); ctx.fill(); ctx.stroke();
     ctx.fillStyle = palette.text; ctx.font = "600 10px ui-monospace, Consolas, monospace";
     ctx.fillText(`${propertyString(node, "label", source)}${propertyString(node, "unit") ? ` (${propertyString(node, "unit")})` : ""}`, graphLeft + 8, graphTop + 14);
+    if (validValues.length === 0) {
+      ctx.fillStyle = palette.muted; ctx.font = "500 10px ui-monospace, Consolas, monospace";
+      ctx.textAlign = "center"; ctx.fillText("Chưa có dữ liệu", graphLeft + panelWidth / 2, graphTop + panelHeight / 2 + 4);
+      ctx.restore();
+      return;
+    }
     ctx.strokeStyle = nodeColor(node, palette, propertyString(node, "color", palette.blue)); ctx.lineWidth = 2; ctx.beginPath();
+    let hasPoint = false;
     for (let i = 0; i < values.length; i++) {
+      if (!Number.isFinite(values[i])) continue;
       const x = graphLeft + 6 + i / Math.max(1, values.length - 1) * (panelWidth - 12);
       const y = plotBottom - ((values[i] ?? 0) - minimum) / Math.max(Number.EPSILON, maximum - minimum) * (plotBottom - plotTop);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      if (!hasPoint) { ctx.moveTo(x, y); hasPoint = true; } else ctx.lineTo(x, y);
     }
     ctx.stroke(); ctx.restore();
     return;
@@ -716,7 +758,14 @@ export class CanvasRenderer {
       frame.cache.resolver = new BindingResolver(frame.data, nodes);
     }
     const resolver = frame.cache.resolver;
-    const staticKey = `${frame.graph.signature}|${frame.width}x${frame.height}|${frame.palette.backgroundTop}|${frame.palette.backgroundBottom}|${frame.palette.grid}|${frame.overlays.grid}|${layout.mode}`;
+    const rulerOriginKey = nodes
+      .filter(node => node.type === "ruler")
+      .map(node => {
+        const source = propertyString(node, "originSource");
+        return source ? String(frame.data.series.get(source)?.[0] ?? "") : "";
+      })
+      .join(",");
+    const staticKey = `${frame.graph.signature}|${frame.width}x${frame.height}|${frame.palette.backgroundTop}|${frame.palette.backgroundBottom}|${frame.palette.grid}|${frame.overlays.grid}|${layout.mode}|${rulerOriginKey}`;
     if (!frame.cache.staticLayer || frame.cache.staticKey !== staticKey) {
       frame.cache.staticKey = staticKey;
       frame.cache.trajectories.clear();
@@ -729,7 +778,7 @@ export class CanvasRenderer {
         if (node.type === "grid" && frame.overlays.grid) drawGrid(staticCtx, frame.width, frame.height, frame.palette);
         else if (node.type === "environment") drawEnvironment(staticCtx, node, layout, frame.palette);
         else if (node.type === "prop") primitiveRenderers.draw(node.type, { frame: { ...frame, ctx: staticCtx }, node, layout, resolver, nodes });
-        else if (node.type === "ruler") drawRuler(staticCtx, node, layout, frame.palette);
+        else if (node.type === "ruler") drawRuler(staticCtx, node, layout, frame.palette, frame.data);
         else primitiveRenderers.draw(node.type, { frame: { ...frame, ctx: staticCtx }, node, layout, resolver, nodes });
       }
       frame.cache.staticLayer = layer;

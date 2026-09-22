@@ -576,7 +576,6 @@ export default function Workspace() {
     }
     const answer = answers[activeAmbiguity.code].trim();
     const submittedAnswers = { ...answers, [activeAmbiguity.code]: answer };
-    appendConversationMessage("assistant", activeAmbiguity.question);
     appendConversationMessage("user", answer);
     setAnswers({ ...answers, [activeAmbiguity.code]: "" });
     if (ambiguityStep < ambiguities.length - 1) {
@@ -601,6 +600,13 @@ export default function Workspace() {
         setStage("");
         return;
       }
+      // The ambiguity has been resolved by the backend. Clear the pending
+      // question before starting the run so an execution error cannot cause
+      // the same already-answered question to be rendered again.
+      setProblem(resolved);
+      setPendingProblem(null);
+      setAnswers({});
+      setAmbiguityStep(0);
       await finishSimulation(resolved);
     } catch (requestError) {
       setError(apiMessage(requestError));

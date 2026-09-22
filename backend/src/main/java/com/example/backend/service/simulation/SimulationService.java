@@ -406,7 +406,9 @@ public class SimulationService {
         // returned to a caller.
         SolverOutput trimmed = EndConditionResolver.trim(output, response.time());
         PhysicsOutputFrame trimmedTyped = null;
-        OutputContractValidator.validate(context.compiledSchema(), context.schemaDefinition(), trimmed);
+        if (context.typedModule() == null) {
+            OutputContractValidator.validate(context.compiledSchema(), context.schemaDefinition(), trimmed);
+        }
         if (context.typedModule() != null) {
             // End-condition trimming is performed on the typed frame. The
             // grouped output above remains only for the versioned API mapper.
@@ -414,7 +416,8 @@ public class SimulationService {
             OutputContractValidator.validate(context.compiledSchema(), trimmedTyped);
             trimmed = PhysicsOutputFrameMapper.toSolverOutput(trimmedTyped,
                     context.compiledSchema().endConditionSources());
-            OutputContractValidator.validate(context.compiledSchema(), context.schemaDefinition(), trimmed);
+            OutputContractValidator.validate(context.compiledSchema(), context.schemaDefinition(), trimmed,
+                    context.compiledSchema().endConditionSources());
         }
         return new CalculationResult(trimmed, trimmedTyped, response);
     }
@@ -448,7 +451,7 @@ public class SimulationService {
                     + context.schemaId() + " schemaVersion=" + context.schemaVersion());
         }
         BoundPhysicsModule.SolvedOutput solved = context.typedModule().solve(contract,
-                new SimulationClock(horizon, context.step()));
+                new SimulationClock(horizon, context.step()), context.compiledSchema().endConditionSources());
         return new SolvedOutput(solved.legacy(), solved.typed());
     }
 

@@ -5,12 +5,14 @@ import com.example.backend.exception.OutputContractException;
 import com.example.backend.physics.model.SolverOutput;
 import com.example.backend.physics.output.PhysicsOutput;
 import com.example.backend.physics.output.PhysicsOutputFrame;
+import com.example.backend.physics.output.PhysicsOutputFrameMapper;
 import com.example.backend.physics.output.PhysicsOutputValidator;
 import com.example.backend.physics.output.PhysicsOutputContract;
 import com.example.backend.service.problem.CompiledSchema;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,6 +26,12 @@ public final class OutputContractValidator {
 
     /** Validates a compiled per-output contract when the schema version declares one. */
     public static void validate(CompiledSchema schema, JsonNode definition, SolverOutput output) {
+        validate(schema, definition, output, Map.of());
+    }
+
+    /** Validates a grouped compatibility result with catalog source bindings. */
+    public static void validate(CompiledSchema schema, JsonNode definition, SolverOutput output,
+                                Map<String, List<OutputSourceBinding>> sourceBindings) {
         if (schema == null) throw new IllegalArgumentException("Compiled schema is required for output validation");
         PhysicsOutputContract contract = schema.outputContract(MAX_SAMPLES);
         if (contract == null) {
@@ -34,7 +42,9 @@ public final class OutputContractValidator {
         Map<String, String> units = new LinkedHashMap<>(declaredUnits(definition));
         schema.outputDefinitions().forEach((key, value) -> units.put(key, value.unit()));
         try {
-            PhysicsOutputFrame frame = LegacySolverOutputAdapter.adapt(output, units);
+            PhysicsOutputFrame frame = sourceBindings == null || sourceBindings.isEmpty()
+                    ? LegacySolverOutputAdapter.adapt(output, units)
+                    : PhysicsOutputFrameMapper.fromSolverOutput(output, contract, sourceBindings);
             PhysicsOutputValidator.validate(contract, frame);
         } catch (OutputContractException failure) {
             throw failure;
