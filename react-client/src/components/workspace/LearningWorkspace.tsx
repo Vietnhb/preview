@@ -62,6 +62,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   const [bottomTab, setBottomTab] = useState<"graph" | "data">("graph");
   const [selectedSeries, setSelectedSeries] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [adjusting, setAdjusting] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [time, setTime] = useState(times[0] ?? 0);
   const [seekRevision, setSeekRevision] = useState(0);
@@ -124,6 +125,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
     setMobilePanel("observe");
     setBottomTab("graph");
     setSelectedSeries(null);
+    setAdjusting(false);
     setSpeed(1);
     setError("");
     setExportError("");
@@ -143,6 +145,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
   }, [copy.title, problem?.editableText, problem?.originalText, simulation.simulationId]);
   
   const handleParamChange = (key: string, valueStr: string) => {
+    if (adjusting) return;
     // Stop and reset immediately, before the debounced solver request returns.
     setPlaying(false);
     setTime(times[0] ?? 0);
@@ -171,17 +174,20 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
     const requestId = ++adjustmentRequestRef.current;
     const simulationId = simulation.simulationId;
     adjustmentTimerRef.current = globalThis.setTimeout(() => {
+      setAdjusting(true);
       void adjustSimulation(simulationId, numericOverrides)
         .then(updated => {
           if (!mounted.current || requestId !== adjustmentRequestRef.current
               || usePhysliveStore.getState().simulation?.simulationId !== simulationId) return;
           onUpdate(updated);
           setError("");
+          setAdjusting(false);
           setPlaying(false);
           setTime(updated.time[0] ?? 0);
           timeRef.current = updated.time[0] ?? 0;
         })
         .catch(() => {
+          setAdjusting(false);
           if (mounted.current && requestId === adjustmentRequestRef.current) {
             setError("Không thể cập nhật mô phỏng với giá trị này.");
           }
