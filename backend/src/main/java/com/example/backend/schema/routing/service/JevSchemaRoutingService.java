@@ -106,8 +106,53 @@ public final class JevSchemaRoutingService {
                     .filter(StringUtils::hasText)
                     .sorted().limit(16).toList().toString();
         }
-        return "%s | topic=%s | model=%s | required quantities=%s".formatted(
-                schema.getName(), schema.getTopic(), definition == null ? "" : definition.path("model").asText(schema.getSchemaId()), quantities);
+        String entities = "";
+        if (definition != null) {
+            var types = definition.path("entityContract").path("types");
+            if (!types.isArray()) types = definition.path("entityTypes");
+            if (types.isArray()) {
+                entities = java.util.stream.StreamSupport.stream(types.spliterator(), false)
+                        .map(item -> "%s[%s..%s]".formatted(item.path("type").asText(),
+                                item.has("min") ? item.path("min").asInt(1) : item.path("minCount").asInt(1),
+                                item.has("max") ? item.path("max").asInt(1)
+                                        : item.has("maxCount") ? item.path("maxCount").asInt(1)
+                                        : item.has("min") ? item.path("min").asInt(1) : item.path("minCount").asInt(1)))
+                        .filter(StringUtils::hasText).sorted().limit(16).toList().toString();
+            }
+        }
+        String visualIntent = "";
+        if (definition != null) {
+            var visualization = definition.path("visualization");
+            var series = visualization.path("series");
+            var labels = series.isArray()
+                    ? java.util.stream.StreamSupport.stream(series.spliterator(), false)
+                        .flatMap(item -> java.util.stream.Stream.of(item.path("key").asText(), item.path("label").asText()))
+                        .filter(StringUtils::hasText).distinct().limit(16).toList()
+                    : List.of();
+            var presentation = visualization.path("presentation");
+            var actors = presentation.path("actors");
+            var actorHints = actors.isArray()
+                    ? java.util.stream.StreamSupport.stream(actors.spliterator(), false)
+                        .flatMap(item -> java.util.stream.Stream.of(item.path("assetHint").asText(), item.path("asset").asText()))
+                        .filter(StringUtils::hasText).distinct().limit(12).toList()
+                    : List.of();
+            var effects = presentation.path("effects");
+            var effectNames = effects.isArray()
+                    ? java.util.stream.StreamSupport.stream(effects.spliterator(), false)
+                        .map(item -> item.asText()).filter(StringUtils::hasText).distinct().limit(12).toList()
+                    : List.of();
+            var props = presentation.path("props");
+            var propNames = props.isArray()
+                    ? java.util.stream.StreamSupport.stream(props.spliterator(), false)
+                        .map(item -> item.asText()).filter(StringUtils::hasText).distinct().limit(12).toList()
+                    : List.of();
+            visualIntent = "%s %s layout=%s actors=%s props=%s effects=%s series=%s".formatted(
+                    visualization.path("scene").asText(), presentation.path("environment").asText(),
+                    presentation.path("layout").asText(), actorHints, propNames, effectNames, labels);
+        }
+        return "%s | topic=%s | model=%s | required quantities=%s | entity types=%s | visual intent=%s".formatted(
+                schema.getName(), schema.getTopic(), definition == null ? "" : definition.path("model").asText(schema.getSchemaId()),
+                quantities, entities, visualIntent);
     }
 
     private double clamp(double value) {

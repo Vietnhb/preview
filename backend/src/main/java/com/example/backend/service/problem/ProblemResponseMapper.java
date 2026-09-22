@@ -2,6 +2,7 @@ package com.example.backend.service.problem;
 
 import org.springframework.stereotype.Component;
 
+import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 import com.example.backend.dto.problem.AmbiguityResponse;
 import com.example.backend.dto.problem.ExtractionRunResponse;
 import com.example.backend.dto.problem.ProblemResponse;
@@ -13,9 +14,13 @@ import com.example.backend.entity.problem.ExtractionRun;
 import com.example.backend.entity.problem.ProblemSubmission;
 import com.example.backend.entity.problem.SourceAsset;
 import com.example.backend.entity.problem.Specification;
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class ProblemResponseMapper {
+
+    private final SchemaDefinitionService schemaDefinitions;
 
     public ProblemSummaryResponse toSummary(ProblemSubmission problem) {
         return new ProblemSummaryResponse(
@@ -55,6 +60,7 @@ public class ProblemResponseMapper {
                 specification.getQuantities(),
                 specification.getRelations(),
                 specification.getEndCondition(),
+                endConditionCapabilities(specification),
                 specification.getAmbiguity(),
                 specification.getConfirmationState(),
                 specification.getAmbiguityCases().stream().map(this::toAmbiguity).toList(),
@@ -62,6 +68,18 @@ public class ProblemResponseMapper {
                 specification.getValidationStatus(),
                 specification.getValidationResult(),
                 specification.getCreatedAt());
+    }
+
+    private java.util.List<String> endConditionCapabilities(Specification specification) {
+        if (specification.getSchemaId() == null || specification.getSchemaId().isBlank()) return java.util.List.of();
+        try {
+            return CandidateContractProjection.declaredEndConditionCapabilities(
+                    schemaDefinitions.approvedDefinitionSnapshot(specification.getSchemaId()).definition());
+        } catch (RuntimeException ignored) {
+            // Keep legacy specification reads available when their historical
+            // schema is no longer present in the active catalog.
+            return java.util.List.of();
+        }
     }
 
     private SourceAssetResponse toAsset(SourceAsset asset) {

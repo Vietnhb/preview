@@ -27,9 +27,14 @@ public final class PhysicsOutputFrameMapper {
         Map<String, String> units = declaredUnits == null ? Map.of() : Map.copyOf(declaredUnits);
         List<PhysicsOutput> outputs = new ArrayList<>();
         appendSeries(outputs, output.values(), output.time(), units, true);
-        appendSeries(outputs, output.positions(), output.time(), units, false);
-        appendSeries(outputs, output.velocities(), output.time(), units, false);
-        appendSeries(outputs, output.accelerations(), output.time(), units, false);
+        // Legacy solver groups reuse component keys (for example `x` appears
+        // in position, velocity and acceleration maps), while the typed
+        // contract exposes distinct output keys such as x, vx and ax. Prefer
+        // an explicitly produced values-series when both shapes carry the
+        // same key; otherwise the groups would collide during adaptation.
+        appendSeries(outputs, output.positions(), output.time(), units, false, output.values());
+        appendSeries(outputs, output.velocities(), output.time(), units, false, output.values());
+        appendSeries(outputs, output.accelerations(), output.time(), units, false, output.values());
         if (output.scalarOutputs() != null) {
             output.scalarOutputs().forEach((key, value) -> appendUnique(outputs,
                     new ScalarOutput(key, Optional.ofNullable(units.get(key)), value)));
@@ -134,8 +139,21 @@ public final class PhysicsOutputFrameMapper {
     private static void appendSeries(List<PhysicsOutput> target, Map<String, List<Double>> source,
                                      List<Double> time, Map<String, String> units,
                                      boolean allowScalar) {
+        appendSeries(target, source, time, units, allowScalar, Map.of());
+    }
+
+    private static void appendSeries(List<PhysicsOutput> target, Map<String, List<Double>> source,
+                                     List<Double> time, Map<String, String> units,
+                                     boolean allowScalar, Map<String, List<Double>> preferredSeries) {
         if (source == null) return;
         source.forEach((key, values) -> {
+            List<Double> preferred = preferredSeries.get(key);
+            if (preferred != null) {
+                if (!preferred.equals(values)) {
+                    throw new IllegalArgumentException("Conflicting duplicate output key " + key);
+                }
+                return;
+            }
             Optional<String> unit = Optional.ofNullable(units.get(key));
             if (allowScalar && values != null && values.size() == 1 && time != null && time.size() == 1) {
                 appendUnique(target, new ScalarOutput(key, unit, values.getFirst()));

@@ -1,6 +1,5 @@
 import type { Simulation, VisualizationBinding, VisualizationNode } from "../types/physlive";
 import { presentationFor } from "../components/simulation-canvas/model";
-import { inferScenePresentation } from "./SceneProfile";
 
 export type Binding = VisualizationBinding;
 
@@ -45,11 +44,14 @@ function specEntityNode(entity: Record<string, unknown>, index: number): Visuali
   const transform = entity.transform;
   return {
     id,
-    type: typeof entity.type === "string" ? entity.type : "body",
+    // Physical entity types are data, not renderer primitives. Asset/render
+    // capabilities are resolved separately from the semantic entity type.
+    type: "body",
     layer: "dynamic",
-    transform: transform && typeof transform === "object" ? transform as Record<string, Binding> : { x: 0, y: 0 },
+    transform: transform && typeof transform === "object" ? transform as Record<string, Binding> : {},
     properties: {
-      asset: typeof entity.asset === "string" ? entity.asset : "object.block.amber",
+      ...(typeof entity.assetHint === "string" ? { assetHint: entity.assetHint } : {}),
+      ...(typeof entity.type === "string" ? { entityType: entity.type } : {}),
       label: typeof entity.label === "string" ? entity.label : undefined,
       ...(typeof entity.properties === "object" && entity.properties !== null ? entity.properties as Record<string, unknown> : {}),
     },
@@ -59,23 +61,21 @@ function specEntityNode(entity: Record<string, unknown>, index: number): Visuali
 /** Build a usable scene from schema presentation/series without inspecting a lesson or schema id. */
 function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
   const presentation = presentationFor(simulation);
-  const inferred = inferScenePresentation(simulation);
-  const environment = presentation?.environment ?? "track.engineering";
-  const actors = presentation?.actors ?? [];
+  const environment = presentation.environment;
+  const actors = (presentation.actors ?? []).filter(actor => Boolean(actor.x));
   const hasSecondDimension = actors.some(actor => Boolean(actor.y));
-  const lanes = new Set(actors.map(actor => actor.lane ?? 0));
-  // The canvas is always the default coordinate plane. A single scalar series
-  // is still plotted on that plane; it must not switch renderer modes.
-  const layout = presentation.layout ?? inferred.layout ?? (hasSecondDimension || lanes.size <= 1 ? "dataPlane" : "lanes");
+  // A missing layout is intentionally the renderer's neutral data plane. The
+  // client must not infer a physical apparatus or coordinate system from text.
+  const layout = presentation.layout;
   const nodes: SceneNode[] = [
     normalizeNode({ id: "background", type: "background", layer: "static" }, "scene", 0),
     normalizeNode({ id: "grid", type: "grid", layer: "static" }, "scene", 1),
-    normalizeNode({
+    ...(environment ? [normalizeNode({
       id: "environment",
       type: "environment",
       layer: "static",
       properties: { environment, layout },
-    }, "scene", 2),
+    }, "scene", 2)] : []),
   ];
 
   for (let index = 0; index < actors.length; index++) {
@@ -87,14 +87,14 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
       layer: "dynamic",
       transform: { x: binding(actor.x), y: binding(actor.y) },
       properties: {
-        asset: actor.asset,
+        ...(actor.assetHint ? { assetHint: actor.assetHint } : {}),
         label: actor.label,
         lane: actor.lane ?? 0,
         vx: actor.vx,
         vy: actor.vy,
         ax: actor.ax,
         ay: actor.ay,
-        layout,
+        ...(layout ? { layout } : {}),
       },
     }, "scene", 3 + index));
 
@@ -104,7 +104,7 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
         type: "trajectory",
         layer: "trajectory",
         transform: { x: binding(actor.x), y: binding(actor.y) },
-        properties: { actorId, lane: actor.lane ?? 0, layout, previewAll: hasSecondDimension },
+        properties: { actorId, lane: actor.lane ?? 0, ...(layout ? { layout } : {}), previewAll: hasSecondDimension },
       }, "scene", 100 + index));
     }
     if (actor.vx || actor.vy) {
@@ -114,7 +114,7 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
         layer: "dynamic",
         transform: { x: binding(actor.x), y: binding(actor.y) },
         style: { color: "green" },
-        properties: { actorId, vectorX: actor.vx, vectorY: actor.vy, kind: "velocity", layout },
+        properties: { actorId, vectorX: actor.vx, vectorY: actor.vy, kind: "velocity", ...(layout ? { layout } : {}) },
       }, "scene", 200 + index));
     }
     if (actor.ax || actor.ay) {
@@ -124,7 +124,7 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
         layer: "dynamic",
         transform: { x: binding(actor.x), y: binding(actor.y) },
         style: { color: "red" },
-        properties: { actorId, vectorX: actor.ax, vectorY: actor.ay, kind: "acceleration", layout },
+        properties: { actorId, vectorX: actor.ax, vectorY: actor.ay, kind: "acceleration", ...(layout ? { layout } : {}) },
       }, "scene", 300 + index));
     }
     for (const effect of presentation?.effects ?? []) {
@@ -133,7 +133,7 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
         id: `${actorId}-${effect}`,
         type: "effect",
         layer: "dynamic",
-        properties: { effect, actorId, layout },
+        properties: { effect, actorId, ...(layout ? { layout } : {}) },
       }, "scene", 400 + index));
     }
   }
@@ -146,9 +146,9 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
       type: "prop",
       layer: "dynamic",
       properties: {
-        asset: prop,
+        assetHint: prop,
         anchorId: actors[0]?.id,
-        layout,
+        ...(layout ? { layout } : {}),
         ...(actors.length ? {} : { anchorXRatio: 0.25 + (propIndex / Math.max(1, props.length - 1)) * 0.5, anchorYRatio: 0.42 }),
       },
     }, "scene", nodes.length));
@@ -161,8 +161,8 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
       layer: "dynamic",
       properties: {
         field: fieldId,
-        probeX: presentation.wave?.probeX ?? 0,
-        displayExaggeration: presentation.wave?.displayExaggeration ?? 1,
+        ...(typeof presentation.wave?.probeX !== "undefined" ? { probeX: presentation.wave.probeX } : {}),
+        ...(typeof presentation.wave?.displayExaggeration !== "undefined" ? { displayExaggeration: presentation.wave.displayExaggeration } : {}),
       },
     }, "scene", nodes.length));
   }
@@ -181,36 +181,10 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
       properties: { source, label: series.label, unit: series.unit, color: series.color, slot: seriesIndex, total: declaredSeries.length },
     }, "scene", nodes.length));
   }
-  nodes.push(normalizeNode({ id: "ruler", type: "ruler", layer: "static", properties: { layout } }, "scene", nodes.length));
   return nodes;
 }
 
-/**
- * Older approved scene graphs often contain only background/environment/graph
- * nodes. Add declared capability props to those graphs while preserving any
- * authored vectorScene or prop nodes. This keeps historical schemas replayable
- * and gives the same semantic asset coverage as the fallback path.
- */
-function supplementCapabilityProps(simulation: Simulation, nodes: VisualizationNode[]): VisualizationNode[] {
-  const inferred = inferScenePresentation(simulation);
-  if (!inferred.props?.length || nodes.some(node => node.type === "prop" || node.type === "vectorScene")) return nodes;
-  return [
-    ...nodes,
-    ...inferred.props.map((asset, index) => ({
-      id: `capability-prop-${index}`,
-      type: "prop",
-      layer: "dynamic" as const,
-      properties: {
-        asset,
-        anchorXRatio: 0.25 + (index / Math.max(1, inferred.props!.length - 1)) * 0.5,
-        anchorYRatio: 0.42,
-      },
-    })),
-  ];
-}
-
-function normalizeWaveFieldBindings(simulation: Simulation, nodes: VisualizationNode[]): VisualizationNode[] {
-  const authoredWave = simulation.visualization?.presentation?.wave;
+function normalizeWaveFieldBindings(nodes: VisualizationNode[]): VisualizationNode[] {
   return nodes.map(node => {
     if (node.type !== "waveField") return node;
     const properties = node.properties ?? {};
@@ -218,10 +192,6 @@ function normalizeWaveFieldBindings(simulation: Simulation, nodes: Visualization
       ...node,
       properties: {
         ...properties,
-        // A wave field cannot be sampled without a probe coordinate. Keep
-        // authored values when present; otherwise use the physical origin.
-        probeX: properties.probeX ?? authoredWave?.probeX ?? 0,
-        displayExaggeration: properties.displayExaggeration ?? authoredWave?.displayExaggeration ?? 1,
       },
     };
   });
@@ -242,7 +212,7 @@ export function compileSceneGraph(simulation: Simulation): SceneGraph {
   const authoredSceneNodes = visualization.presentation?.sceneGraph?.nodes;
   const explicitNodes = authoredSceneNodes ?? [...entityNodes, ...visualNodes, ...chartNodes];
   const nodes = explicitNodes?.length
-    ? normalizeWaveFieldBindings(simulation, supplementCapabilityProps(simulation, explicitNodes)).map((node, index) => normalizeNode(node, "scene", index))
+    ? normalizeWaveFieldBindings(explicitNodes).map((node, index) => normalizeNode(node, "scene", index))
     : schemaDrivenFallbackGraph(simulation);
   const signature = JSON.stringify(nodes);
   return { id: simulation.simulationId, nodes, signature };

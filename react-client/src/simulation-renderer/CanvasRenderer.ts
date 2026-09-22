@@ -4,6 +4,7 @@ import { probeScalarField, sampleScalarField, scalarFieldFor, seriesFor, type Ru
 import type { RuntimeFrame } from "../simulation-runtime/SimulationRuntime";
 import { BindingResolver } from "../simulation-scene/BindingResolver";
 import { flattenSceneGraph, type SceneGraph, type SceneNode } from "../simulation-scene/SceneGraph";
+import { isSupportedLayout } from "../simulation-scene/PrimitiveCapabilities";
 import { primitiveRenderers } from "./PrimitiveRendererRegistry";
 import { drawVectorScene } from './VectorSceneRenderer';
 
@@ -98,9 +99,7 @@ function sourceName(value: unknown): string {
 }
 
 function layoutMode(value: unknown): LayoutMode {
-  return value === "dataPlane" || value === "lanes" || value === "projectileRange" || value === "collisionTrack" || value === "springBench" || value === "circuitBoard" || value === "world"
-    ? value
-    : "dataPlane";
+  return typeof value === "string" && isSupportedLayout(value) ? value as LayoutMode : "dataPlane";
 }
 
 function seriesRange(data: RuntimeData, source: unknown, fallback: [number, number]): [number, number] {
@@ -121,8 +120,11 @@ function createLayout(nodes: SceneNode[], data: RuntimeData, width: number, heig
   const environment = nodes.find(node => node.type === "environment");
   const layoutNode = nodes.find(node => node.properties.layout);
   const mode = layoutMode(environment?.properties.layout ?? layoutNode?.properties.layout ?? "dataPlane");
-  let xRange: [number, number] = mode === "collisionTrack" ? [0, 8] : [-1, 1];
-  let yRange: [number, number] = mode === "projectileRange" ? [0, 10] : [-1, 1];
+  // Ranges come from the declared bindings and sampled output. Scene family
+  // names must never inject physical values such as a projectile height or a
+  // collision track length.
+  let xRange: [number, number] = [0, 1];
+  let yRange: [number, number] = [0, 1];
   for (const node of nodes) {
     if (node.type !== "body" && node.type !== "trajectory") continue;
     xRange = mergeRange(xRange, seriesRange(data, node.transform.x, xRange));
@@ -135,7 +137,6 @@ function createLayout(nodes: SceneNode[], data: RuntimeData, width: number, heig
     if (!field) continue;
     xRange = mergeRange(xRange, [field.x[0] ?? xRange[0], field.x.at(-1) ?? xRange[1]]);
   }
-  if (mode === "projectileRange") yRange = [0, Math.max(1, yRange[1])];
   const left = mode === "projectileRange" ? 90 : mode === "collisionTrack" || mode === "lanes" ? 92 : mode === "springBench" ? 190 : 88;
   const right = mode === "projectileRange" ? width - 68 : mode === "collisionTrack" ? width - 92 : mode === "springBench" ? width - 90 : width - 105;
   const top = mode === "projectileRange" || mode === "dataPlane" ? 55 : 0;
@@ -267,23 +268,25 @@ const environmentRegistry: Record<string, EnvironmentPainter> = {
 };
 
 function drawEnvironment(ctx: CanvasRenderingContext2D, node: SceneNode, layout: LayoutContext, palette: CanvasPalette) {
-  const environment = propertyString(node, "environment", "track.engineering");
-  (environmentRegistry[environment] ?? environmentRegistry["track.engineering"])(ctx, layout.width, layout.height, layout.baseline, palette);
+  const environment = propertyString(node, "environment");
+  environmentRegistry[environment]?.(ctx, layout.width, layout.height, layout.baseline, palette);
 }
 
-function drawRuler(ctx: CanvasRenderingContext2D, layout: LayoutContext, palette: CanvasPalette) {
+function drawRuler(ctx: CanvasRenderingContext2D, node: SceneNode, layout: LayoutContext, palette: CanvasPalette) {
   if (layout.mode === "world" || layout.mode === "circuitBoard") return;
   const count = layout.width < 620 ? 4 : 7;
   const y = layout.mode === "projectileRange" || layout.mode === "horizontalTrack" ? layout.baseline : layout.baseline + 88;
   const left = layout.mode === "springBench" ? layout.left + 130 : layout.left;
   ctx.save(); ctx.font = "600 10px ui-monospace, Consolas, monospace"; ctx.textAlign = "center";
+  const unit = propertyString(node, "unit");
   for (let index = 0; index < count; index++) {
     const ratio = index / (count - 1);
     const x = left + ratio * (layout.right - left);
     const value = layout.xMin + ratio * (layout.xMax - layout.xMin);
     ctx.strokeStyle = index === 0 ? palette.cyan : palette.gridStrong; ctx.lineWidth = index === 0 ? 2 : 1;
     ctx.beginPath(); ctx.moveTo(x, y - 9); ctx.lineTo(x, y + 10); ctx.stroke();
-    ctx.fillStyle = index === 0 ? palette.cyan : palette.muted; ctx.fillText(`${value.toFixed(1)} m`, x, y + 25);
+    ctx.fillStyle = index === 0 ? palette.cyan : palette.muted;
+    ctx.fillText(`${value.toFixed(1)}${unit ? ` ${unit}` : ""}`, x, y + 25);
   }
   ctx.restore();
 }
@@ -475,11 +478,20 @@ function drawEffect(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, nod
   }
   if (effect === "collision.flash") {
     if (nodes.findIndex(item => item.id === node.id) !== nodes.findIndex(item => item.type === "effect" && propertyString(item, "effect") === effect)) return;
-    const collisionSeries = seriesFor(frame.data, "values.collisionTime");
+    const collisionTimeSource = propertyString(node, "collisionTimeSource", "values.collisionTime");
+    const collisionSeries = seriesFor(frame.data, collisionTimeSource);
     if (collisionSeries.length === 0) return;
-    const collision = resolver.resolve("values.collisionTime", frame.runtime.time, frame.runtime.index);
+    const collision = resolver.resolve(collisionTimeSource, frame.runtime.time, frame.runtime.index);
     if (!Number.isFinite(collision) || Math.abs(frame.runtime.time - collision) >= .12) return;
-    const other = nodes.find(item => item.type === "body" && item.id !== target.id);
+    const bodies = nodes.filter(item => item.type === "body");
+    const declaredPair = Array.isArray(node.properties.entityIds)
+      ? node.properties.entityIds.filter((value): value is string => typeof value === "string")
+      : [];
+    const pair = declaredPair.length === 2
+      ? declaredPair.map(id => actorNode(nodes, id)).filter((item): item is SceneNode => Boolean(item))
+      : bodies.length === 2 ? bodies : [];
+    if (pair.length !== 2 || !pair.some(item => item.id === target.id)) return;
+    const other = pair.find(item => item.id !== target.id);
     if (!other) return;
     const otherState = resolver.resolveNode(other, frame.runtime.time, frame.runtime.index);
     const otherPosition = layout.mapPoint(otherState.x, otherState.y, propertyNumber(other, "lane"));
@@ -493,6 +505,8 @@ function drawEffect(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, nod
 function drawNode(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node: SceneNode, layout: LayoutContext, resolver: BindingResolver, nodes: SceneNode[]) {
   const { runtime, palette } = frame;
   if (node.type === "body") {
+    const assetHint = propertyString(node, "assetHint");
+    if (!assetHint) return;
     const state = resolver.resolveNode(node, runtime.time, runtime.index);
     const lane = propertyNumber(node, "lane");
     const position = layout.mapPoint(state.x, state.y, lane);
@@ -500,8 +514,8 @@ function drawNode(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node:
     const initialX = resolver.resolve(node.transform.x, frame.data.time[0] ?? 0, 0);
     const scale = styleNumber(node, "scale", layout.width < 620 ? .78 : 1);
     ctx.save(); ctx.fillStyle = "rgba(2,6,23,.22)"; ctx.beginPath(); ctx.ellipse(position.x, position.y + 25 * scale, 44 * scale, 6 * scale, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    canvasAssetRegistry.drawAsset(propertyString(node, "asset", "object.block.amber"), ctx, {
-      config: { id: node.id, asset: propertyString(node, "asset", "object.block.amber"), x: xSource, label: propertyString(node, "label") || undefined },
+    canvasAssetRegistry.drawAsset(assetHint, ctx, {
+      config: { id: node.id, asset: assetHint, x: xSource, label: propertyString(node, "label") || undefined },
       position, velocity: { x: vectorValue(resolver, node, "vx", runtime.time, runtime.index), y: vectorValue(resolver, node, "vy", runtime.time, runtime.index) },
       acceleration: { x: vectorValue(resolver, node, "ax", runtime.time, runtime.index), y: vectorValue(resolver, node, "ay", runtime.time, runtime.index) },
       distance: Math.abs(state.x - initialX), scale, rotation: state.rotation,
@@ -526,13 +540,15 @@ function drawNode(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node:
     return;
   }
   if (node.type === "prop") {
+    const assetHint = propertyString(node, "assetHint");
+    if (!assetHint) return;
     const anchorNode = actorNode(nodes, propertyString(node, "anchorId"));
     const anchorState = anchorNode ? resolver.resolveNode(anchorNode, frame.data.time[0] ?? 0, 0) : { x: 0, y: 0 };
     const hasScreenAnchor = !anchorNode && typeof node.properties.anchorXRatio === "number" && typeof node.properties.anchorYRatio === "number";
     const anchor = hasScreenAnchor
       ? { x: frame.width * propertyNumber(node, "anchorXRatio"), y: frame.height * propertyNumber(node, "anchorYRatio") }
       : layout.mapPoint(anchorState.x, anchorState.y, propertyNumber(anchorNode ?? node, "lane"));
-    canvasAssetRegistry.drawProp(propertyString(node, "asset"), ctx, anchor, propertyNumber(node, "angle"), palette);
+    canvasAssetRegistry.drawProp(assetHint, ctx, anchor, propertyNumber(node, "angle"), palette);
     return;
   }
   if (node.type === "circuitComponent") { drawCircuit(ctx, frame, node, resolver); return; }
@@ -713,7 +729,7 @@ export class CanvasRenderer {
         if (node.type === "grid" && frame.overlays.grid) drawGrid(staticCtx, frame.width, frame.height, frame.palette);
         else if (node.type === "environment") drawEnvironment(staticCtx, node, layout, frame.palette);
         else if (node.type === "prop") primitiveRenderers.draw(node.type, { frame: { ...frame, ctx: staticCtx }, node, layout, resolver, nodes });
-        else if (node.type === "ruler") drawRuler(staticCtx, layout, frame.palette);
+        else if (node.type === "ruler") drawRuler(staticCtx, node, layout, frame.palette);
         else primitiveRenderers.draw(node.type, { frame: { ...frame, ctx: staticCtx }, node, layout, resolver, nodes });
       }
       frame.cache.staticLayer = layer;

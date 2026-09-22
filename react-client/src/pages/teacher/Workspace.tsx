@@ -4,13 +4,30 @@ import { useSearchParams } from "react-router-dom";
 import CreateSimulationModal from "../../components/workspace/CreateSimulationModal";
 import EmptySimulationFrame from "../../components/workspace/EmptySimulationFrame";
 import LearningWorkspace from "../../components/workspace/LearningWorkspace";
-import { confirmProblem, createProblem, createProblemFromImage, extractProblem, updateProblemText, updateSpecification } from "../../api/problemApi";
+import {
+  confirmProblem,
+  createProblem,
+  createProblemFromImage,
+  extractProblem,
+  updateProblemText,
+} from "../../api/problemApi";
 import { createLibraryFolder } from "../../api/libraryApi";
-import { getSimulation, recentSimulationHistory, runSimulation } from "../../api/simulationApi";
+import {
+  getSimulation,
+  recentSimulationHistory,
+  runSimulation,
+} from "../../api/simulationApi";
 import { useTeacherLibrary } from "../../store/useTeacherLibrary";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import { getToken } from "../../utils/token";
-import type { Ambiguity, ConversationMessage, LibraryItem, Problem, Simulation, SimulationSummary, Specification } from "../../types/physlive";
+import type {
+  Ambiguity,
+  ConversationMessage,
+  LibraryItem,
+  Problem,
+  Simulation,
+  SimulationSummary,
+} from "../../types/physlive";
 import { canManageLearning } from "../../types/roles";
 import "../../styles/learning.css";
 
@@ -26,19 +43,31 @@ function rememberSimulation(value: Simulation) {
 
 function apiMessage(error: unknown) {
   if (axios.isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? "Không thể kết nối tới máy chủ PhysLive.";
+    return (
+      error.response?.data?.message ?? "Không thể kết nối tới máy chủ PhysLive."
+    );
   }
-  return error instanceof Error ? error.message : "Đã xảy ra lỗi không xác định.";
+  return error instanceof Error
+    ? error.message
+    : "Đã xảy ra lỗi không xác định.";
 }
 
 function openAmbiguities(problem: Problem | null): Ambiguity[] {
   const specification = problem?.currentSpecification;
-  return (specification?.ambiguityCases ?? specification?.ambiguities ?? [])
-    .filter(item => !item.status || item.status === "OPEN");
+  return (
+    specification?.ambiguityCases ??
+    specification?.ambiguities ??
+    []
+  ).filter((item) => !item.status || item.status === "OPEN");
 }
 
 const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
-const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const IMAGE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+]);
 
 function fileExtension(file: File) {
   return file.name.toLowerCase().split(".").pop() ?? "";
@@ -57,7 +86,9 @@ async function readPdfText(file: File) {
     for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
       const page = await document.getPage(pageNumber);
       const content = await page.getTextContent();
-      pages.push(content.items.map(item => ("str" in item ? item.str : "")).join(" "));
+      pages.push(
+        content.items.map((item) => ("str" in item ? item.str : "")).join(" "),
+      );
     }
     return pages.join("\n").trim();
   } finally {
@@ -67,12 +98,20 @@ async function readPdfText(file: File) {
 
 async function readDocumentText(file: File) {
   const extension = fileExtension(file);
-  if (extension === "txt" || file.type === "text/plain") return (await file.text()).trim();
-  if (extension === "docx" || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+  if (extension === "txt" || file.type === "text/plain")
+    return (await file.text()).trim();
+  if (
+    extension === "docx" ||
+    file.type ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
     const { default: mammoth } = await import("mammoth");
-    return (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value.trim();
+    return (
+      await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })
+    ).value.trim();
   }
-  if (extension === "pdf" || file.type === "application/pdf") return readPdfText(file);
+  if (extension === "pdf" || file.type === "application/pdf")
+    return readPdfText(file);
   throw new Error("Chỉ hỗ trợ ảnh PNG/JPEG/WebP/GIF, PDF, DOCX và TXT.");
 }
 
@@ -84,19 +123,18 @@ async function createTextProblem(file: File | null, text: string) {
 
 export default function Workspace() {
   const token = getToken();
-  const user = usePhysliveStore(state => state.user);
-  const problem = usePhysliveStore(state => state.problem);
-  const simulation = usePhysliveStore(state => state.simulation);
+  const user = usePhysliveStore((state) => state.user);
+  const problem = usePhysliveStore((state) => state.problem);
+  const simulation = usePhysliveStore((state) => state.simulation);
   const [searchParams, setSearchParams] = useSearchParams();
   const querySimulationId = searchParams.get("simulationId") ?? "";
-  const setProblem = usePhysliveStore(state => state.setProblem);
-  const setSimulation = usePhysliveStore(state => state.setSimulation);
+  const setProblem = usePhysliveStore((state) => state.setProblem);
+  const setSimulation = usePhysliveStore((state) => state.setSimulation);
   const [description, setDescription] = useState("");
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [sourceFileError, setSourceFileError] = useState("");
   const [recent, setRecent] = useState<SimulationSummary[]>([]);
   const [pendingProblem, setPendingProblem] = useState<Problem | null>(null);
-  const [specificationReview, setSpecificationReview] = useState<Specification | null>(null);
   const [ocrReviewRequired, setOcrReviewRequired] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -109,19 +147,35 @@ export default function Workspace() {
   const [typedQuestion, setTypedQuestion] = useState("");
   const [questionTyping, setQuestionTyping] = useState(false);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
-  const { folders, setFolders, libraryItems, libraryLoading, libraryError, setLibraryError, retryLibrary } = useTeacherLibrary();
+  const {
+    folders,
+    setFolders,
+    libraryItems,
+    libraryLoading,
+    libraryError,
+    setLibraryError,
+    retryLibrary,
+  } = useTeacherLibrary();
   const [openingLibraryId, setOpeningLibraryId] = useState<string | null>(null);
   const [openingRecentId, setOpeningRecentId] = useState<string | null>(null);
-  const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(() => querySimulationId || simulation?.simulationId || null);
-  const [simulationLoadingId, setSimulationLoadingId] = useState<string | null>(null);
+  const [selectedSimulationId, setSelectedSimulationId] = useState<
+    string | null
+  >(() => querySimulationId || simulation?.simulationId || null);
+  const [simulationLoadingId, setSimulationLoadingId] = useState<string | null>(
+    null,
+  );
   const selectionSourceRef = useRef<"library" | "recent">("library");
-  const [composerOrigin, setComposerOrigin] = useState<{ simulation: Simulation; problem: Problem | null } | null>(null);
+  const [composerOrigin, setComposerOrigin] = useState<{
+    simulation: Simulation;
+    problem: Problem | null;
+  } | null>(null);
   /** Create/clarify composer — open by default when no simulation is loaded. */
   const [composerOpen, setComposerOpen] = useState(() => !simulation);
   const current = simulation;
   const showTeacherLibrary = Boolean(token) && canManageLearning(user?.role);
   const ambiguities = openAmbiguities(pendingProblem);
-  const activeAmbiguity = ambiguities[Math.min(ambiguityStep, Math.max(ambiguities.length - 1, 0))];
+  const activeAmbiguity =
+    ambiguities[Math.min(ambiguityStep, Math.max(ambiguities.length - 1, 0))];
 
   const updateSimulationUrl = (simulationId: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -143,20 +197,22 @@ export default function Workspace() {
     setSimulationLoadingId(requestId);
 
     if (cached) {
-      if (usePhysliveStore.getState().simulation?.simulationId !== requestId) setProblem(null);
+      if (usePhysliveStore.getState().simulation?.simulationId !== requestId)
+        setProblem(null);
       setSimulation(cached);
       setComposerOrigin(null);
       setComposerOpen(false);
       setPendingProblem(null);
-      setSpecificationReview(null);
       setSimulationLoadingId(null);
       setOpeningLibraryId(null);
       setOpeningRecentId(null);
-      return () => { active = false; };
+      return () => {
+        active = false;
+      };
     }
 
     void getSimulation(requestId)
-      .then(loaded => {
+      .then((loaded) => {
         if (!active) return;
         rememberSimulation(loaded);
         setProblem(null);
@@ -164,11 +220,11 @@ export default function Workspace() {
         setComposerOrigin(null);
         setComposerOpen(false);
         setPendingProblem(null);
-        setSpecificationReview(null);
       })
       .catch(() => {
         if (!active) return;
-        if (source === "library") setLibraryError("Không mở được mô phỏng đã lưu.");
+        if (source === "library")
+          setLibraryError("Không mở được mô phỏng đã lưu.");
         else setHistoryError(true);
       })
       .finally(() => {
@@ -178,29 +234,48 @@ export default function Workspace() {
         setOpeningRecentId(null);
       });
 
-    return () => { active = false; };
-  // Loading is intentionally keyed only by the selected simulation ID.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      active = false;
+    };
+    // Loading is intentionally keyed only by the selected simulation ID.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSimulationId]);
 
-  const appendConversationMessage = (role: ConversationMessage["role"], text: string) => {
-    setConversation(messages => [...messages, {
-      id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      role,
-      text,
-    }]);
+  const appendConversationMessage = (
+    role: ConversationMessage["role"],
+    text: string,
+  ) => {
+    setConversation((messages) => [
+      ...messages,
+      {
+        id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        role,
+        text,
+      },
+    ]);
   };
 
   useEffect(() => {
-    if (!token) { setHistoryLoading(false); return; }
+    if (!token) {
+      setHistoryLoading(false);
+      return;
+    }
     let active = true;
     setHistoryLoading(true);
     setHistoryError(false);
     void recentSimulationHistory()
-      .then(items => { if (active) setRecent(items); })
-      .catch(() => { if (active) setHistoryError(true); })
-      .finally(() => { if (active) setHistoryLoading(false); });
-    return () => { active = false; };
+      .then((items) => {
+        if (active) setRecent(items);
+      })
+      .catch(() => {
+        if (active) setHistoryError(true);
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [token, historyAttempt]);
 
   useEffect(() => {
@@ -210,9 +285,14 @@ export default function Workspace() {
   useEffect(() => {
     const question = activeAmbiguity?.question ?? "";
     setTypedQuestion("");
-    if (!question) { setQuestionTyping(false); return; }
+    if (!question) {
+      setQuestionTyping(false);
+      return;
+    }
     if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setTypedQuestion(question); setQuestionTyping(false); return;
+      setTypedQuestion(question);
+      setQuestionTyping(false);
+      return;
     }
     setQuestionTyping(true);
     let visible = 0;
@@ -226,11 +306,15 @@ export default function Workspace() {
       lastTick = now;
       visible = Math.min(question.length, visible + 2);
       setTypedQuestion(question.slice(0, visible));
-      if (visible >= question.length) { setQuestionTyping(false); animationFrame = null; }
-      else animationFrame = requestAnimationFrame(tick);
+      if (visible >= question.length) {
+        setQuestionTyping(false);
+        animationFrame = null;
+      } else animationFrame = requestAnimationFrame(tick);
     };
     animationFrame = requestAnimationFrame(tick);
-    return () => { if (animationFrame !== null) cancelAnimationFrame(animationFrame); };
+    return () => {
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+    };
   }, [activeAmbiguity?.code, activeAmbiguity?.question]);
 
   const handleSourceFileChange = (file: File | null) => {
@@ -240,8 +324,8 @@ export default function Workspace() {
       return;
     }
     const extension = fileExtension(file);
-    const supported = IMAGE_TYPES.has(file.type)
-      || ["pdf", "docx", "txt"].includes(extension);
+    const supported =
+      IMAGE_TYPES.has(file.type) || ["pdf", "docx", "txt"].includes(extension);
     if (!supported) {
       setSourceFile(null);
       setSourceFileError("Chỉ hỗ trợ ảnh PNG/JPEG/WebP/GIF, PDF, DOCX và TXT.");
@@ -266,7 +350,6 @@ export default function Workspace() {
     setSimulation(null);
     setProblem(null);
     setPendingProblem(null);
-    setSpecificationReview(null);
     setOcrReviewRequired(false);
     setAnswers({});
     setAmbiguityStep(0);
@@ -293,7 +376,6 @@ export default function Workspace() {
     setComposerOrigin(null);
     setComposerOpen(false);
     setPendingProblem(null);
-    setSpecificationReview(null);
     setOcrReviewRequired(false);
     setAnswers({});
     setAmbiguityStep(0);
@@ -306,7 +388,6 @@ export default function Workspace() {
 
   const resetComposer = () => {
     setPendingProblem(null);
-    setSpecificationReview(null);
     setOcrReviewRequired(false);
     setAnswers({});
     setAmbiguityStep(0);
@@ -322,8 +403,11 @@ export default function Workspace() {
     setLibraryError("");
     try {
       const folder = await createLibraryFolder(name);
-      setFolders(currentFolders => [...currentFolders, folder]
-        .sort((left, right) => left.name.localeCompare(right.name, "vi")));
+      setFolders((currentFolders) =>
+        [...currentFolders, folder].sort((left, right) =>
+          left.name.localeCompare(right.name, "vi"),
+        ),
+      );
       return true;
     } catch {
       setLibraryError("Chưa tạo được thư mục. Tên thư mục có thể đã tồn tại.");
@@ -331,9 +415,13 @@ export default function Workspace() {
     }
   };
 
-  const selectSimulation = (simulationId: string, source: "library" | "recent"): boolean => {
+  const selectSimulation = (
+    simulationId: string,
+    source: "library" | "recent",
+  ): boolean => {
     updateSimulationUrl(simulationId);
-    if (simulationLoadingId || selectedSimulationId === simulationId) return false;
+    if (simulationLoadingId || selectedSimulationId === simulationId)
+      return false;
     selectionSourceRef.current = source;
     setSelectedSimulationId(simulationId);
     return true;
@@ -343,24 +431,29 @@ export default function Workspace() {
     if (simulationLoadingId) return;
     setLibraryError("");
     setHistoryError(false);
-    if (selectSimulation(item.simulationId, "library")) setOpeningLibraryId(item.id);
+    if (selectSimulation(item.simulationId, "library"))
+      setOpeningLibraryId(item.id);
   };
 
   const openRecent = async (item: SimulationSummary) => {
     if (simulationLoadingId) return;
     setHistoryError(false);
     setLibraryError("");
-    if (selectSimulation(item.simulationId, "recent")) setOpeningRecentId(item.simulationId);
+    if (selectSimulation(item.simulationId, "recent"))
+      setOpeningRecentId(item.simulationId);
   };
 
   const finishSimulation = async (resolvedProblem: Problem) => {
     const specification = resolvedProblem.currentSpecification;
     if (!specification?.id || !specification.schemaId) {
-      throw new Error("AI chưa trả về schema hợp lệ cho đề bài này.");
+      throw new Error("AI chưa trả về ngữ cảnh hợp lệ cho đề bài này.");
     }
-    setStage("Đang chạy solver và đối chiếu kết quả…");
-    appendConversationMessage("assistant", "Các dữ kiện đã đủ. Mình bắt đầu chạy mô phỏng để kiểm tra kết quả.");
-    const result = await runSimulation(specification.id, specification.schemaId, {});
+    setStage("Đang chạy kiểm thử và đối chiếu kết quả…");
+    const result = await runSimulation(
+      specification.id,
+      specification.schemaId,
+      {},
+    );
     rememberSimulation(result);
     updateSimulationUrl(result.simulationId);
     setSelectedSimulationId(result.simulationId);
@@ -373,10 +466,12 @@ export default function Workspace() {
       status: result.valid ? "READY" : "BLOCKED",
       createdAt: new Date().toISOString(),
     };
-    setRecent(items => [recentResult, ...items.filter(item => item.simulationId !== result.simulationId)]);
+    setRecent((items) => [
+      recentResult,
+      ...items.filter((item) => item.simulationId !== result.simulationId),
+    ]);
     setComposerOrigin(null);
     setPendingProblem(null);
-    setSpecificationReview(null);
     setAnswers({});
     setDescription("");
     setSourceFile(null);
@@ -386,73 +481,23 @@ export default function Workspace() {
   };
 
   const handleExtractedProblem = async (extracted: Problem) => {
-    if (!extracted.currentSpecification?.id || !extracted.currentSpecification.schemaId) {
-      throw new Error("AI chưa trả về schema hợp lệ cho đề bài này.");
+    if (
+      !extracted.currentSpecification?.id ||
+      !extracted.currentSpecification.schemaId
+    ) {
+      throw new Error("AI chưa trả về ngữ cảnh hợp lệ cho đề bài này.");
     }
     setProblem(extracted);
-    setSpecificationReview(extracted.currentSpecification);
-    appendConversationMessage("assistant", "Mình đã tạo specification từ đề bài. Bạn kiểm tra và chỉnh các trường bên dưới trước khi xác nhận.");
     const missingAmbiguities = openAmbiguities(extracted);
     if (missingAmbiguities.length > 0) {
-      appendConversationMessage(
-        "assistant",
-        `Mình đã đọc xong đề bài nhưng còn ${missingAmbiguities.length} dữ kiện cần bạn xác nhận. Mình sẽ hỏi từng ý một.`,
-      );
       setPendingProblem(extracted);
       setAnswers({});
       setAmbiguityStep(0);
       setStage("");
+      return;
     }
-  };
-
-  const saveSpecification = async (draft: Pick<Specification, "objects" | "quantities" | "relations" | "endCondition">) => {
-    if (!problem?.id || loading) return;
-    setLoading(true);
-    setError("");
-    setStage("Đang lưu specification đã chỉnh…");
-    try {
-      const updated = await updateSpecification(problem.id, draft);
-      setProblem(updated);
-      setSpecificationReview(updated.currentSpecification ?? null);
-      const remaining = openAmbiguities(updated);
-      setPendingProblem(remaining.length > 0 ? updated : null);
-      setAnswers({});
-      setAmbiguityStep(0);
-      appendConversationMessage("assistant", remaining.length > 0
-        ? "Mình đã lưu thay đổi. Vẫn còn dữ kiện cần bạn xác nhận trong khung chat."
-        : "Mình đã lưu specification. Hãy xác nhận để chạy mô phỏng.");
-    } catch (requestError) {
-      setError(apiMessage(requestError));
-    } finally {
-      setStage("");
-      setLoading(false);
-    }
-  };
-
-  const confirmSpecification = async (draft: Pick<Specification, "objects" | "quantities" | "relations" | "endCondition">) => {
-    if (!problem?.id || loading) return;
-    setLoading(true);
-    setError("");
-    setStage("Đang lưu specification và kiểm tra dữ kiện…");
-    try {
-      const updated = await updateSpecification(problem.id, draft);
-      const remaining = openAmbiguities(updated);
-      setProblem(updated);
-      setSpecificationReview(updated.currentSpecification ?? null);
-      if (remaining.length > 0) {
-        setPendingProblem(updated);
-        setAnswers({});
-        setAmbiguityStep(0);
-        appendConversationMessage("assistant", `Specification vẫn còn ${remaining.length} dữ kiện cần xác nhận.`);
-        return;
-      }
-      await finishSimulation(updated);
-    } catch (requestError) {
-      setError(apiMessage(requestError));
-    } finally {
-      setStage("");
-      setLoading(false);
-    }
+    setPendingProblem(null);
+    await finishSimulation(extracted);
   };
 
   const confirmOcrReview = async (event: FormEvent) => {
@@ -462,13 +507,12 @@ export default function Workspace() {
     setLoading(true);
     setError("");
     appendConversationMessage("user", text);
-    appendConversationMessage("assistant", "Mình đã nhận phần nội dung bạn chỉnh. Mình sẽ dùng bản này để tạo specification.");
     setStage("Đang lưu nội dung đã rà soát…");
     try {
       const updated = await updateProblemText(problem.id, text);
       setProblem(updated);
       setOcrReviewRequired(false);
-      setStage("AI đang đọc đề và tạo specification…");
+      setStage("Đang phân tích đề bài…");
       await handleExtractedProblem(await extractProblem(updated.id));
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -491,38 +535,28 @@ export default function Workspace() {
     const promptMessage = [
       text,
       sourceFile ? `Tệp đính kèm: ${sourceFile.name}` : "",
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
     const messageId = Date.now();
     setConversation([
       { id: `user-${messageId}`, role: "user", text: promptMessage },
-      {
-        id: `assistant-${messageId}`,
-        role: "assistant",
-        text: sourceFile
-          ? "Mình đã nhận đề bài và tệp đính kèm. Mình sẽ đọc nội dung rồi dựng mô hình vật lý."
-          : "Mình đã nhận đề bài. Mình sẽ đọc dữ kiện rồi dựng mô hình vật lý.",
-      },
     ]);
     try {
       setStage("Đang lưu đề bài…");
       if (sourceFile) setStage("Đang đọc tệp nguồn…");
-      const created = sourceFile && IMAGE_TYPES.has(sourceFile.type)
-        ? await createProblemFromImage(sourceFile, text || undefined)
-        : await createTextProblem(sourceFile, text);
+      const created =
+        sourceFile && IMAGE_TYPES.has(sourceFile.type)
+          ? await createProblemFromImage(sourceFile, text || undefined)
+          : await createTextProblem(sourceFile, text);
       if (sourceFile && IMAGE_TYPES.has(sourceFile.type)) {
         setProblem(created);
         setDescription(created.editableText ?? text);
         setOcrReviewRequired(true);
         setStage("");
-        appendConversationMessage(
-          "assistant",
-          created.editableText
-            ? "Mình đã đọc nội dung trong ảnh. Hãy kiểm tra, sửa nếu cần rồi gửi lại để tiếp tục."
-            : "Mình chưa đọc được chữ trong ảnh. Hãy nhập hoặc sửa nội dung đề bài rồi gửi lại để tiếp tục.",
-        );
         return;
       }
-      setStage("AI đang đọc đề và tạo specification…");
+      setStage("Đang phân tích đề bài…");
       await handleExtractedProblem(await extractProblem(created.id));
     } catch (requestError) {
       setError(apiMessage(requestError));
@@ -534,7 +568,8 @@ export default function Workspace() {
 
   const confirmAmbiguities = async (event: FormEvent) => {
     event.preventDefault();
-    if (!pendingProblem || !activeAmbiguity || loading || questionTyping) return;
+    if (!pendingProblem || !activeAmbiguity || loading || questionTyping)
+      return;
     if (!answers[activeAmbiguity.code]?.trim()) {
       setError("Hãy trả lời câu hỏi hiện tại trước khi tiếp tục.");
       return;
@@ -546,21 +581,19 @@ export default function Workspace() {
     setAnswers({ ...answers, [activeAmbiguity.code]: "" });
     if (ambiguityStep < ambiguities.length - 1) {
       setError("");
-      setAmbiguityStep(step => step + 1);
+      setAmbiguityStep((step) => step + 1);
       return;
     }
     setLoading(true);
     setError("");
-    appendConversationMessage("assistant", "Mình đã nhận câu trả lời. Đang cập nhật mô hình và kiểm tra xem còn thiếu dữ kiện nào không.");
-    setStage("AI đang đọc câu trả lời và cập nhật specification…");
+    setStage("Đang cập nhật yêu cầu…");
     try {
-      const resolved = await confirmProblem(pendingProblem.id, submittedAnswers);
+      const resolved = await confirmProblem(
+        pendingProblem.id,
+        submittedAnswers,
+      );
       const remaining = openAmbiguities(resolved);
       if (remaining.length > 0) {
-        appendConversationMessage(
-          "assistant",
-          `Mình đã cập nhật mô hình, nhưng vẫn còn ${remaining.length} dữ kiện cần làm rõ.`,
-        );
         setProblem(resolved);
         setPendingProblem(resolved);
         setAnswers({});
@@ -601,25 +634,29 @@ export default function Workspace() {
     onClose: closeComposer,
     onCreate: create,
     onConfirmOcrReview: confirmOcrReview,
-    specificationReview,
-    onSaveSpecification: saveSpecification,
-    onConfirmSpecification: confirmSpecification,
     onConfirmAmbiguities: confirmAmbiguities,
-    onBackAmbiguity: () => { setError(""); setAmbiguityStep(step => Math.max(0, step - 1)); },
+    onBackAmbiguity: () => {
+      setError("");
+      setAmbiguityStep((step) => Math.max(0, step - 1));
+    },
     onResetComposer: resetComposer,
   };
-  const composer = composerOpen ? <CreateSimulationModal {...composerProps} inline /> : null;
+  const composer = composerOpen ? (
+    <CreateSimulationModal {...composerProps} inline />
+  ) : null;
 
   const frame = current ? (
-      <LearningWorkspace
-        simulation={current}
-        problem={problem}
-        onUpdate={setSimulation}
-        onNewSimulation={openComposer}
-        onSelectSimulation={simulationId => selectSimulation(simulationId, "library")}
-        simulationLoading={Boolean(simulationLoadingId)}
-        loadingSimulationId={simulationLoadingId}
-      />
+    <LearningWorkspace
+      simulation={current}
+      problem={problem}
+      onUpdate={setSimulation}
+      onNewSimulation={openComposer}
+      onSelectSimulation={(simulationId) =>
+        selectSimulation(simulationId, "library")
+      }
+      simulationLoading={Boolean(simulationLoadingId)}
+      loadingSimulationId={simulationLoadingId}
+    />
   ) : (
     <EmptySimulationFrame
       showTeacherLibrary={showTeacherLibrary}
@@ -636,7 +673,7 @@ export default function Workspace() {
       recent={recent}
       historyLoading={historyLoading}
       historyError={historyError}
-      onRetryHistory={() => setHistoryAttempt(value => value + 1)}
+      onRetryHistory={() => setHistoryAttempt((value) => value + 1)}
       onOpenRecent={openRecent}
       openingRecentId={openingRecentId}
       onExampleSelect={setDescription}

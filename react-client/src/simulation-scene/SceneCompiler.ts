@@ -2,9 +2,14 @@ import type { Simulation } from "../types/physlive";
 import type { RuntimeData } from "../simulation-runtime/SimulationData";
 import { compileSceneGraph, flattenSceneGraph, type SceneGraph } from "./SceneGraph";
 import { validateVectorScene } from './VectorScene';
-import { isSupportedPrimitive } from './PrimitiveCapabilities';
+import { isSupportedEffect, isSupportedEnvironment, isSupportedLayout, isSupportedPrimitive } from './PrimitiveCapabilities';
+import { canvasAssetRegistry } from "../simulation-assets/AssetRegistry";
 
-export type SceneValidationResult = { valid: boolean; errors: string[] };
+export type SceneValidationResult = {
+  valid: boolean;
+  errors: string[];
+  status: "READY" | "ASSET_CONFIRMATION_REQUIRED" | "UNSUPPORTED";
+};
 
 function bindingError(binding: unknown, data: RuntimeData, graph: SceneGraph, depth = 0): string | undefined {
   if (depth > 32) return 'cyclic or excessively nested entity binding';
@@ -65,11 +70,29 @@ function validateWaveField(graph: SceneGraph, node: ReturnType<typeof flattenSce
   }
 }
 
-export function validateSceneGraph(graph: SceneGraph, data?: RuntimeData): SceneValidationResult {
+export function validateSceneGraph(graph: SceneGraph, data?: RuntimeData, simulation?: Simulation): SceneValidationResult {
   const errors: string[] = [];
+  const presentation = simulation?.visualization?.presentation;
+  for (const effect of presentation?.effects ?? []) {
+    if (typeof effect !== "string" || !isSupportedEffect(effect)) errors.push(`Unsupported visual effect: ${String(effect)}`);
+  }
+  if (presentation?.environment && !isSupportedEnvironment(presentation.environment)) {
+    errors.push(`Unsupported visual environment: ${presentation.environment}`);
+  }
+  if (presentation?.layout && !isSupportedLayout(presentation.layout)) {
+    errors.push(`Unsupported visual layout: ${presentation.layout}`);
+  }
   for (const node of flattenSceneGraph(graph.nodes)) {
     if (!node.id) errors.push("Scene node is missing id");
     if (!isSupportedPrimitive(node.type)) errors.push(`Unsupported primitive: ${node.type}`);
+    const nodeEnvironment = typeof node.properties.environment === "string" ? node.properties.environment : "";
+    if (nodeEnvironment && !isSupportedEnvironment(nodeEnvironment)) errors.push(`Unsupported visual environment: ${nodeEnvironment}`);
+    const nodeLayout = typeof node.properties.layout === "string" ? node.properties.layout : "";
+    if (nodeLayout && !isSupportedLayout(nodeLayout)) errors.push(`Unsupported visual layout: ${nodeLayout}`);
+    if (node.type === "effect") {
+      const effect = typeof node.properties.effect === "string" ? node.properties.effect : "";
+      if (!effect || !isSupportedEffect(effect)) errors.push(`Unsupported visual effect: ${effect || "missing"}`);
+    }
     if (node.type === 'vectorScene') {
       errors.push(...validateVectorScene(node.properties.vector, value => {
         if (typeof value === 'number') return Number.isFinite(value) ? undefined : 'must be finite';
@@ -77,9 +100,24 @@ export function validateSceneGraph(graph: SceneGraph, data?: RuntimeData): Scene
       }).map(error => `${node.id}: ${error}`));
     }
     if (node.type === "body" && typeof node.transform.x === "undefined") errors.push(`Body ${node.id} is missing transform.x`);
+    if (node.type === "body") {
+      const hint = typeof node.properties.assetHint === "string" ? node.properties.assetHint : "";
+      if (!hint.trim()) errors.push(`Body ${node.id} is missing an approved asset hint; ask the teacher to confirm an asset.`);
+      else if (!canvasAssetRegistry.hasAsset(hint, "actor")) errors.push(`Body ${node.id} has no matching approved asset for '${hint}'; ask the teacher to confirm or stop the simulation.`);
+    }
+    if (node.type === "prop") {
+      const hint = typeof node.properties.assetHint === "string" ? node.properties.assetHint : "";
+      if (!hint.trim()) errors.push(`Prop ${node.id} is missing an approved asset hint; ask the teacher to confirm an asset.`);
+      else if (!canvasAssetRegistry.hasAsset(hint, "prop")) errors.push(`Prop ${node.id} has no matching approved asset for '${hint}'; ask the teacher to confirm or stop the simulation.`);
+    }
     if (node.type === "waveField") validateWaveField(graph, node, data, errors);
   }
-  return { valid: errors.length === 0, errors };
+  const assetConfirmationRequired = errors.some(error => error.includes("approved asset") || error.includes("matching approved asset"));
+  return {
+    valid: errors.length === 0,
+    errors,
+    status: errors.length === 0 ? "READY" : assetConfirmationRequired ? "ASSET_CONFIRMATION_REQUIRED" : "UNSUPPORTED",
+  };
 }
 
 /** Public compiler boundary used by CanvasPhysicsScene and future AI specs. */

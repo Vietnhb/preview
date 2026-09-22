@@ -28,7 +28,10 @@ export type VisualizationControl = { key: string; label: string; symbol: string;
 export type VisualizationSeries = { key: string; source: string; label: string; symbol: string; unit: string; color: string };
 export type VisualizationActor = {
   id: string;
-  asset: string;
+  /** @deprecated Legacy wire field; use assetHint. */
+  asset?: string;
+  /** Semantic asset hint resolved against the reviewed SVG catalog. */
+  assetHint?: string;
   x: string;
   y?: string;
   vx?: string;
@@ -42,9 +45,11 @@ export type VisualizationPresentation = {
   theme?: string;
   environment?: string;
   /** Frontend layout capability; absent means the renderer chooses dataPlane. */
-  layout?: "dataPlane" | "horizontalTrack" | "projectileRange" | "collisionTrack" | "springBench" | "circuitBoard" | "world";
+  layout?: "dataPlane" | "lanes" | "horizontalTrack" | "projectileRange" | "collisionTrack" | "springBench" | "circuitBoard" | "world";
   actors?: VisualizationActor[];
+  /** Semantic prop hints approved by the backend visual intent contract. */
   props?: string[];
+  /** Renderer capability ids; never inferred from physics text on the client. */
   effects?: string[];
   /** Optional defaults for the versioned scalar-field wave view. */
   wave?: {
@@ -146,6 +151,7 @@ export type VisualizationDefinition = {
 export type Specification = {
   id?: string; schemaVersion?: string; schemaId?: string; topic?: string; confidence: number;
   objects: unknown[]; quantities: Quantity[]; relations: unknown[]; endCondition?: EndCondition | null; ambiguity?: unknown;
+  endConditionCapabilities?: string[];
   ambiguityCases?: Ambiguity[]; ambiguities?: Ambiguity[]; confirmationState: string; validationStatus?: string; validationResult?: unknown;
 };
 export type Problem = { id: string; editableText?: string; originalText?: string; sourceMode: string; status: string; currentSpecification?: Specification; sourceAssets?: { id: string; originalFilename: string }[] };

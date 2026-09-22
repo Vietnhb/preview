@@ -13,10 +13,13 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 import com.example.backend.ai.client.ChatCompletionClient;
 import com.example.backend.ai.extraction.model.AmbiguityItem;
+import com.example.backend.ai.extraction.model.PhysicalObject;
 import com.example.backend.ai.extraction.model.PhysicalQuantity;
 import com.example.backend.ai.extraction.model.ProviderExtractionResult;
 import com.example.backend.ai.extraction.model.SpecificationDocument;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
+import com.example.backend.ai.extraction.prompt.CandidateContractProjection.EntityTypeProjection;
+import com.example.backend.ai.extraction.prompt.CandidateContractProjection.QuantityProjection;
 import com.example.backend.ai.extraction.prompt.ExtractionPromptBuilder;
 import com.example.backend.ai.normalization.UnitNormalizer;
 import com.example.backend.config.properties.AiProviderProperties;
@@ -90,7 +93,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         return complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
                 client.textMessage("user", messages.userMessage())), routingDecision,
                 routingDecision.status() == SchemaRoutingDecision.Status.AMBIGUOUS,
-                "AI response does not match the strict candidate extraction contract.");
+                "AI response does not match the strict candidate extraction contract.", text.trim());
     }
 
     @Override
@@ -130,13 +133,33 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 new VerificationEvidence(1, 1, 1, List.of("PINNED_SCHEMA_VERSION")), 1);
         SchemaRoutingDecision decision = new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
                 "PINNED_FOR_AMBIGUITY_RESOLUTION", List.of(candidate), 1, 1);
+        String confirmedEvidence = confirmedEvidence(originalText, currentSpecification, answers);
         return complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
                 client.textMessage("user", messages.userMessage())), decision, false,
-                "AI ambiguity response does not match the pinned schema contract.");
+                "AI ambiguity response does not match the pinned schema contract.", confirmedEvidence);
+    }
+
+    /**
+     * Source evidence for duplicate-ambiguity protection. It includes the
+     * original wording plus facts already accepted in the current document and
+     * the teacher's answers, so the validator never relies on a schema-specific
+     * list of phrases.
+     */
+    private String confirmedEvidence(String originalText, JsonNode currentSpecification,
+            Map<String, String> answers) {
+        try {
+            return (originalText == null ? "" : originalText.trim())
+                    + "\nConfirmed specification:\n"
+                    + objectMapper.writeValueAsString(currentSpecification)
+                    + "\nTeacher answers:\n"
+                    + objectMapper.writeValueAsString(answers);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Cannot prepare ambiguity evidence.", exception);
+        }
     }
 
     private ProviderExtractionResult complete(List<Map<String, Object>> messages, SchemaRoutingDecision routingDecision,
-            boolean forceRoutingAmbiguity, String invalidMessage) {
+            boolean forceRoutingAmbiguity, String invalidMessage, String originalText) {
         List<Map<String, Object>> attemptMessages = new ArrayList<>(messages);
         RuntimeException lastFailure = null;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
@@ -153,6 +176,8 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 StrictSpecificationValidator.validate(json);
                 SchemaCandidate candidate = StrictSpecificationValidator.validateCandidateMembership(json, routingDecision,
                         unitNormalizer);
+                StrictSpecificationValidator.rejectAmbiguitiesCoveredBySource(json, originalText,
+                        candidate.contract());
                 SchemaVersion pinned = schemaDefinitions.requireCurrentApproved(candidate.schemaId(), candidate.schemaVersion());
                 SpecificationDocument parsed = objectMapper.treeToValue(json, SpecificationDocument.class);
                 if (parsed == null) throw new IllegalStateException("AI response does not contain a specification.");
@@ -190,6 +215,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 Regenerate the complete JSON object using only the original request and pinned candidate contracts.
                 Each ambiguity must contain exactly: code, fieldPath, question, options.
                 Check every requiredQuantities entry: provide exactly one stated quantity or one ambiguity for it. Do not ask for optionalQuantities.
+                If an entityTypes contract is present, repeat that coverage for every returned object using its entity-local quantities array.
                 Preserve raw stated values and original units; do not add inferred values or explanatory fields.
                 """.formatted(detail).trim();
     }
@@ -224,6 +250,23 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                     normalized.normalizedValue(), normalized.normalizedUnit(), clamp(quantity.confidence()), quantity.sourceText()));
         }
 
+        CandidateContractProjection contract = CandidateContractProjection.from(schema.getSchemaId(),
+                schema.getVersion(), schema.getTopic(), schema.getName(), schema.getDefinition());
+        List<PhysicalObject> objects = new ArrayList<>();
+        for (PhysicalObject object : document.objects()) {
+            EntityTypeProjection entity = contract.entityTypes().stream()
+                    .filter(item -> item.type().equals(object.type())).findFirst().orElse(null);
+            if (entity == null) {
+                if (!object.quantities().isEmpty()) {
+                    throw new IllegalStateException("AI returned entity-local quantities outside the selected entity contract.");
+                }
+                objects.add(object);
+                continue;
+            }
+            List<PhysicalQuantity> local = normalizeEntityQuantities(object.quantities(), entity);
+            objects.add(new PhysicalObject(object.id(), object.label(), object.type(), local));
+        }
+
         JsonNode endCondition = document.endCondition();
         if (endCondition == null || endCondition.isNull()) throw new IllegalStateException("AI response is missing endCondition.");
         List<String> errors = EndConditionResolver.validateNode(endCondition,
@@ -242,8 +285,47 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                     routedCandidates.stream().map(item -> item.schemaId() + "@" + item.schemaVersion()).toList()));
         }
         return new SpecificationDocument(schema.getVersion(), schema.getTopic(),
-                schema.getSchemaId(), document.objects(), quantities, document.relations(), endCondition,
+                schema.getSchemaId(), objects, quantities, document.relations(), endCondition,
                 clamp(document.confidence()), ambiguities, SpecificationDocument.CURRENT_SCHEMA_VERSION);
+    }
+
+    private List<PhysicalQuantity> normalizeEntityQuantities(List<PhysicalQuantity> source,
+            EntityTypeProjection entity) {
+        List<PhysicalQuantity> result = new ArrayList<>();
+        for (PhysicalQuantity quantity : source) {
+            if (!StringUtils.hasText(quantity.name()) || quantity.value() == null
+                    || !StringUtils.hasText(quantity.originalUnit())) {
+                throw new IllegalStateException("AI returned an incomplete entity physical quantity.");
+            }
+            String canonicalName = canonicalQuantityName(entity.requiredQuantities(), entity.optionalQuantities(), quantity.name());
+            QuantityProjection projection = quantityProjection(entity, canonicalName);
+            if (!StringUtils.hasText(canonicalName) || projection == null) {
+                throw new IllegalStateException("AI entity quantity has no canonical contract key.");
+            }
+            UnitNormalizer.NormalizedQuantity normalized = unitNormalizer.normalize(quantity.value(), quantity.originalUnit());
+            if (!normalized.knownUnit() || !allowsUnit(projection.acceptedInputUnits(), normalized.normalizedUnit())) {
+                throw new IllegalStateException("AI returned an entity quantity unit outside the selected contract.");
+            }
+            validatePhysicalDomain(projection.constraints(), normalized.normalizedValue(), canonicalName);
+            result.add(new PhysicalQuantity(canonicalName, quantity.symbol(), quantity.value(), quantity.originalUnit(),
+                    normalized.normalizedValue(), normalized.normalizedUnit(), clamp(quantity.confidence()), quantity.sourceText()));
+        }
+        return List.copyOf(result);
+    }
+
+    private QuantityProjection quantityProjection(EntityTypeProjection entity, String key) {
+        return java.util.stream.Stream.concat(entity.requiredQuantities().stream(), entity.optionalQuantities().stream())
+                .filter(item -> item.key().equals(key)).findFirst().orElse(null);
+    }
+
+    private String canonicalQuantityName(List<QuantityProjection> required,
+            List<QuantityProjection> optional, String suppliedName) {
+        java.util.Set<String> matches = new java.util.HashSet<>();
+        java.util.stream.Stream.concat(required.stream(), optional.stream()).forEach(item -> {
+            if (item.key().equals(suppliedName) || item.aliases().contains(suppliedName)
+                    || item.symbols().contains(suppliedName)) matches.add(item.key());
+        });
+        return matches.size() == 1 ? matches.iterator().next() : null;
     }
 
     private JsonNode findQuantityDefinition(JsonNode definition, String key) {
@@ -262,6 +344,15 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         return false;
     }
 
+    private boolean allowsUnit(List<String> allowedUnits, String normalizedUnit) {
+        for (String allowed : allowedUnits) {
+            UnitNormalizer.NormalizedQuantity normalized = unitNormalizer.normalize(BigDecimal.ONE, allowed);
+            String canonical = normalized.knownUnit() ? normalized.normalizedUnit() : allowed;
+            if (canonical.equals(normalizedUnit)) return true;
+        }
+        return false;
+    }
+
     private void validatePhysicalDomain(JsonNode definition, BigDecimal value, String key) {
         double numeric = value.doubleValue();
         if (!Double.isFinite(numeric) || (definition.path("positive").asBoolean(false) && numeric <= 0)
@@ -271,6 +362,27 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 || (definition.path("max").isNumber() && numeric > definition.path("max").asDouble())) {
             throw new IllegalStateException("AI quantity violates the physical domain for " + key + ".");
         }
+    }
+
+    private void validatePhysicalDomain(Map<String, Object> constraints, BigDecimal value, String key) {
+        double numeric = value.doubleValue();
+        if (!Double.isFinite(numeric)
+                || bool(constraints.get("positive")) && numeric <= 0
+                || bool(constraints.get("nonNegative")) && numeric < 0
+                || bool(constraints.get("integer")) && value.stripTrailingZeros().scale() > 0
+                || number(constraints.get("min"), constraints.get("minimum"), constraints.get("minInclusive")) != null
+                    && numeric < number(constraints.get("min"), constraints.get("minimum"), constraints.get("minInclusive"))
+                || number(constraints.get("max"), constraints.get("maximum"), constraints.get("maxInclusive")) != null
+                    && numeric > number(constraints.get("max"), constraints.get("maximum"), constraints.get("maxInclusive"))) {
+            throw new IllegalStateException("AI quantity violates the physical domain for " + key + ".");
+        }
+    }
+
+    private boolean bool(Object value) { return value instanceof Boolean booleanValue && booleanValue; }
+
+    private Double number(Object... values) {
+        for (Object value : values) if (value instanceof Number number) return number.doubleValue();
+        return null;
     }
 
     private BigDecimal clamp(BigDecimal value) {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import type { Ambiguity, ConversationMessage, Problem, Specification } from "../../types/physlive";
+import type { Ambiguity, ConversationMessage, Problem } from "../../types/physlive";
 import "../../styles/workspace-modal.css";
 import { useCameraCapture } from "./create-simulation/useCameraCapture";
 import { CreateChatMessages } from "./create-simulation/CreateChatMessages";
@@ -11,7 +11,6 @@ type Props = {
   description: string;
   onDescriptionChange: (value: string) => void;
   pendingProblem: Problem | null;
-  specificationReview: Specification | null;
   ocrReviewRequired: boolean;
   answers: Record<string, string>;
   onAnswersChange: (value: Record<string, string>) => void;
@@ -28,8 +27,6 @@ type Props = {
   onClose: () => void;
   onCreate: (event: FormEvent) => void;
   onConfirmOcrReview: (event: FormEvent) => void;
-  onSaveSpecification: (specification: Pick<Specification, "objects" | "quantities" | "relations">) => void;
-  onConfirmSpecification: (specification: Pick<Specification, "objects" | "quantities" | "relations">) => void;
   onConfirmAmbiguities: (event: FormEvent) => void;
   onBackAmbiguity: () => void;
   onResetComposer: () => void;
@@ -45,10 +42,9 @@ function getPanelCopy(ocrReviewRequired: boolean, pendingProblem: Problem | null
   return { title: "Tạo mô phỏng mới", subtitle: "Trao đổi với PhysLive AI để xây dựng mô phỏng." };
 }
 
-function getComposerCopy(specificationReview: Specification | null, ocrReviewRequired: boolean, pendingProblem: Problem | null) {
+function getComposerCopy(ocrReviewRequired: boolean, pendingProblem: Problem | null) {
   if (pendingProblem) return { placeholder: "Nhập câu trả lời cho PhysLive AI…", ariaLabel: "Câu trả lời cho PhysLive AI" };
   if (ocrReviewRequired) return { placeholder: "Kiểm tra và chỉnh nội dung nhận dạng…", ariaLabel: "Nội dung nhận dạng cần rà soát" };
-  if (specificationReview) return { placeholder: "Specification đã hiển thị ở trên…", ariaLabel: "Specification đang được rà soát" };
   return { placeholder: "Mô tả đề bài cần mô phỏng…", ariaLabel: "Mô tả đề bài cần mô phỏng" };
 }
 
@@ -79,7 +75,6 @@ export default function CreateSimulationModal({
   description,
   onDescriptionChange,
   pendingProblem,
-  specificationReview,
   ocrReviewRequired,
   answers,
   onAnswersChange,
@@ -96,8 +91,6 @@ export default function CreateSimulationModal({
   onClose,
   onCreate,
   onConfirmOcrReview,
-  onSaveSpecification,
-  onConfirmSpecification,
   onConfirmAmbiguities,
   onBackAmbiguity,
   onResetComposer,
@@ -123,9 +116,9 @@ export default function CreateSimulationModal({
   const composerValue = pendingProblem && activeAmbiguity
     ? answers[activeAmbiguity.code] ?? ""
     : description;
-  const hasChatContent = conversation.length > 0 || Boolean(stage || error || pendingProblem || specificationReview);
+  const hasChatContent = conversation.length > 0 || Boolean(stage || error || pendingProblem);
   const panelCopy = getPanelCopy(ocrReviewRequired, pendingProblem);
-  const composerCopy = getComposerCopy(specificationReview, ocrReviewRequired, pendingProblem);
+  const composerCopy = getComposerCopy(ocrReviewRequired, pendingProblem);
   const submitHandler = getSubmitHandler(ocrReviewRequired, pendingProblem, onCreate, onConfirmOcrReview, onConfirmAmbiguities);
   const sendLabel = getSendLabel(pendingProblem, ambiguityStep, ambiguities.length);
   const sendAriaLabel = getSendAriaLabel(ocrReviewRequired, pendingProblem);
@@ -188,10 +181,6 @@ export default function CreateSimulationModal({
           typedQuestion={typedQuestion}
           stage={stage}
           error={error}
-          specificationReview={specificationReview}
-          onSaveSpecification={onSaveSpecification}
-          ambiguities={ambiguities}
-          onConfirmSpecification={onConfirmSpecification}
         />
         <form id="create-sim-form" className="create-chat-composer-wrap" onSubmit={submitHandler}>
           <CreateChatSupport
@@ -229,7 +218,6 @@ export default function CreateSimulationModal({
             onComposerKeyDown={handleComposerKeyDown}
             loading={loading}
             questionTyping={questionTyping}
-            specificationReview={specificationReview}
             ocrReviewRequired={ocrReviewRequired}
             composerPlaceholder={composerCopy.placeholder}
             composerAriaLabel={composerCopy.ariaLabel}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { inferScenePresentation } from "../src/simulation-scene/SceneProfile.ts";
+import { declaredScenePresentation, inferScenePresentation } from "../src/simulation-scene/SceneProfile.ts";
 
 function simulation(scene, series, extra = {}) {
   return {
@@ -11,38 +11,24 @@ function simulation(scene, series, extra = {}) {
 
 const series = (key, label = key) => ({ source: `values.${key}`, key, label, symbol: key, unit: "1", color: "#38bdf8" });
 
-test("scene profiles choose physical environments from capabilities, not schema ids", () => {
-  const profile = inferScenePresentation(simulation("diode_characteristic", [series("current", "Current"), series("power", "Power")]));
-  assert.equal(profile.family, "circuit");
+test("scene profiles use only backend-declared visual intent", () => {
+  const profile = declaredScenePresentation({
+    visualization: {
+      scene: "arbitrary_teacher_name",
+      series: [],
+      presentation: { environment: "board.circuit", layout: "circuitBoard", effects: ["circuit.current-flow"] },
+    },
+  });
   assert.equal(profile.environment, "board.circuit");
   assert.equal(profile.layout, "circuitBoard");
 });
 
-test("optical interference is not mistaken for a mechanical wave", () => {
+test("scene names and series labels do not trigger frontend classification", () => {
   const profile = inferScenePresentation(simulation("light_interference", [series("intensity", "Light intensity")]));
-  assert.equal(profile.family, "optics");
-  assert.equal(profile.environment, "optical.bench");
+  assert.deepEqual(profile, {});
 });
 
-test("scalar wave profiles expose the field to the generic scene graph", () => {
-  const profile = inferScenePresentation(simulation("wave_superposition", [series("displacement")], {
-    scalarFields: { superpositionDisplacement: { id: "superpositionDisplacement" } },
-  }));
-  assert.equal(profile.family, "wave");
-  assert.equal(profile.environment, "track.engineering");
-  assert.equal(profile.wave?.fieldId, "superpositionDisplacement");
-});
-
-test("mechanics profiles bind an actor only when a compatible series exists", () => {
-  const profile = inferScenePresentation(simulation("linear_drag_motion", [series("position"), series("velocity")]));
-  assert.equal(profile.family, "mechanics");
-  assert.equal(profile.actors?.[0]?.x, "values.position");
-  assert.equal(profile.actors?.[0]?.vx, "values.velocity");
-});
-
-test("thermal and measurement profiles expose apparatus assets", () => {
-  const thermal = inferScenePresentation(simulation("ideal_gas_isothermal", [series("finalVolume", "Final volume")]));
-  const measurement = inferScenePresentation(simulation("measurement_uncertainty", [series("measuredValue", "Measured value")]));
-  assert.equal(thermal.props?.[0], "thermal.piston");
-  assert.equal(measurement.props?.[0], "measurement.probe");
+test("explicit empty intent stays empty instead of inventing apparatus", () => {
+  const profile = declaredScenePresentation({ visualization: { scene: "unknown", series: [], presentation: {} } });
+  assert.deepEqual(profile, {});
 });

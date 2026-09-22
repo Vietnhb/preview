@@ -57,6 +57,11 @@ function score(definition: SelectableAssetDefinition, variant: SelectableAssetVa
     + tokenScore(hintTokens, [variant.id, ...variant.tags, ...(variant.aliases ?? [])], exactHint);
 }
 
+function definitionScore(definition: SelectableAssetDefinition, hint: string): number {
+  const hintTokens = tokenizeAssetHint(hint);
+  return tokenScore(hintTokens, [definition.id, ...definition.tags, ...(definition.aliases ?? [])], hint.toLowerCase());
+}
+
 /** Return the best semantic match, or null when no metadata matches the hint. */
 export function selectAsset<T extends SelectableAssetVariant>(
   hint: string,
@@ -67,6 +72,9 @@ export function selectAsset<T extends SelectableAssetVariant>(
   const candidates: AssetSelection<T>[] = [];
   for (const definition of definitions) {
     if (definition.kind !== kind) continue;
+    // A variant-only match (for example the colour "blue") is too weak to
+    // select a physical asset. Require semantic evidence for the asset family.
+    if (definitionScore(definition, hint) <= 0) continue;
     for (const variant of definition.variants) {
       const variantScore = score(definition, variant, hint);
       if (variantScore > 0) candidates.push({ definition, variant, score: variantScore });

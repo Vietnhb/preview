@@ -14,6 +14,30 @@ export const SUPPORTED_EFFECTS = [
   "collision.flash", "circuit.current-flow", "circuit.capacitor-glow",
 ] as const;
 
+/** Renderer capabilities are an allowlist, not a physics classifier. */
+export const SUPPORTED_ENVIRONMENTS = [
+  "track.engineering", "road.highway", "range.projectile", "track.collision", "bench.spring",
+  "board.circuit", "room.thermodynamics", "room.acoustics", "wave.tank", "optical.bench",
+  "lab.radiation", "lab.measurement",
+] as const;
+
+export const SUPPORTED_LAYOUTS = [
+  "dataPlane", "lanes", "horizontalTrack", "projectileRange", "collisionTrack", "springBench",
+  "circuitBoard", "world",
+] as const;
+
 export function isSupportedPrimitive(value: string): value is SupportedPrimitive {
   return (SUPPORTED_PRIMITIVES as readonly string[]).includes(value);
+}
+
+export function isSupportedEffect(value: string): boolean {
+  return (SUPPORTED_EFFECTS as readonly string[]).includes(value);
+}
+
+export function isSupportedEnvironment(value: string): boolean {
+  return (SUPPORTED_ENVIRONMENTS as readonly string[]).includes(value);
+}
+
+export function isSupportedLayout(value: string): boolean {
+  return (SUPPORTED_LAYOUTS as readonly string[]).includes(value);
 }

@@ -55,7 +55,7 @@ export default function CanvasPhysicsScene(props: CanvasPhysicsSceneProps) {
   const presentation = useMemo(() => presentationFor(props.simulation), [props.simulation]);
   const graph = useMemo(() => compileSimulationScene(props.simulation), [props.simulation]);
   const palette = useMemo(() => paletteFor(presentation.theme, darkMode), [darkMode, presentation.theme]);
-  const validation = useMemo(() => validateSceneGraph(graph, data), [data, graph]);
+  const validation = useMemo(() => validateSceneGraph(graph, data, props.simulation), [data, graph, props.simulation]);
   const supported = validation.valid && hasRenderableNodes(graph);
   const renderStateRef = useRef<RenderState>({
     simulation: props.simulation, data, graph, overlays: props.overlays, palette, supported,
@@ -220,7 +220,11 @@ export default function CanvasPhysicsScene(props: CanvasPhysicsSceneProps) {
     <div ref={containerRef} className="physics-scene canvas-physics-scene">
       {supported ? (
         <canvas ref={canvasRef} className="physics-scene-canvas" aria-label={`Mô phỏng ${scene} tại thời điểm ${displayTime.toFixed(2)} giây`} />
-      ) : <div className="learn-blocked" role="alert">Spec chưa khai báo primitive renderer hợp lệ.</div>}
+      ) : <div className="learn-blocked" role="alert">
+        {validation.status === "ASSET_CONFIRMATION_REQUIRED"
+          ? "Không tìm thấy asset phù hợp trong catalog; cần giáo viên xác nhận hoặc từ chối để dừng mô phỏng."
+          : "Visual intent hoặc primitive renderer chưa được phê duyệt; mô phỏng đã dừng."}
+      </div>}
     </div>
   );
 }

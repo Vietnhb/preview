@@ -41,6 +41,7 @@ test("selector is deterministic for one actor and can diversify other actors", (
   assert.ok(variants.size > 1);
 });
 
-test("unknown semantic categories are allowed to use a renderer fallback", () => {
+test("unknown semantic categories remain unresolved for teacher confirmation", () => {
   assert.equal(selectAsset("laboratory.spring", "actor", "mass", definitions), null);
+  assert.equal(selectAsset("blue", "actor", "mass", definitions), null);
 });

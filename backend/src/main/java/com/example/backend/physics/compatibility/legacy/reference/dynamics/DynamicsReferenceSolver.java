@@ -6,6 +6,8 @@ import com.example.backend.physics.model.AnalyticalPoint;
 import com.example.backend.physics.compatibility.legacy.PhysicsValues;
 
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -15,7 +17,10 @@ public class DynamicsReferenceSolver implements ReferenceSolver {
     public String solverId() { return "dynamics_reference"; }
     public AnalyticalPoint solve(JsonNode spec, Map<String, Double> overrides, double seconds) {
         String model = PhysicsValues.model(spec);
-        if (model.equals("elastic_collision")) return collision(spec, overrides, seconds);
+        if (model.equals("elastic_collision")) {
+            if (hasEntityBodies(spec)) return entityCollision(spec, overrides, seconds);
+            return collision(spec, overrides, seconds);
+        }
         if (model.equals("spring")) return spring(spec, overrides, seconds);
         if (!model.equals("forces")) throw new IllegalArgumentException("Unsupported dynamics reference model: " + model);
         double mass = positive(PhysicsValues.require(spec, overrides, "mass"));
@@ -65,6 +70,102 @@ public class DynamicsReferenceSolver implements ReferenceSolver {
                 "x2", event > 0 && t > event ? x2Event + after2 * (t-event) : x2 + v2*t,
                 "v1", event > 0 && t >= event ? after1 : v1, "v2", event > 0 && t >= event ? after2 : v2));
     }
+
+    private AnalyticalPoint entityCollision(JsonNode spec, Map<String, Double> overrides, double seconds) {
+        List<EntityBody> state = new ArrayList<>();
+        for (JsonNode object : spec.path("objects")) {
+            String id = object.path("id").asText("").trim();
+            if (id.isBlank()) throw new IllegalArgumentException("Collision entity id is required");
+            state.add(new EntityBody(id, positive(entityQuantity(object, overrides, "mass", "m")),
+                    entityQuantity(object, overrides, "initial_position", "position", "x"),
+                    entityQuantity(object, overrides, "initial_velocity", "velocity", "v")));
+        }
+        if (state.size() < 2) throw new IllegalArgumentException("At least two collision entities are required");
+        double target = Math.max(0, seconds);
+        double elapsed = 0;
+        while (elapsed < target - 1e-10) {
+            CollisionEvent event = nextCollision(state);
+            double remaining = target - elapsed;
+            if (event == null || event.afterSeconds() > remaining + 1e-10) {
+                advance(state, remaining);
+                break;
+            }
+            if (event.afterSeconds() <= 1e-10) {
+                throw new IllegalArgumentException("Simultaneous or overlapping collision is unsupported");
+            }
+            advance(state, event.afterSeconds());
+            EntityBody first = state.get(event.firstIndex());
+            EntityBody second = state.get(event.secondIndex());
+            double firstVelocity = ((first.mass() - second.mass()) * first.velocity()
+                    + 2 * second.mass() * second.velocity()) / (first.mass() + second.mass());
+            double secondVelocity = ((second.mass() - first.mass()) * second.velocity()
+                    + 2 * first.mass() * first.velocity()) / (first.mass() + second.mass());
+            state.set(event.firstIndex(), first.withVelocity(firstVelocity));
+            state.set(event.secondIndex(), second.withVelocity(secondVelocity));
+            elapsed += event.afterSeconds();
+        }
+        Map<String, Double> values = new java.util.LinkedHashMap<>();
+        for (EntityBody body : state) {
+            values.put(body.id(), body.position());
+            values.put("velocity." + body.id(), body.velocity());
+        }
+        return new AnalyticalPoint(values);
+    }
+
+    private double entityQuantity(JsonNode object, Map<String, Double> overrides, String... names) {
+        String id = object.path("id").asText("");
+        for (String name : names) {
+            for (String overrideKey : List.of("objects." + id + "." + name, id + "." + name,
+                    id + ":" + name)) {
+                if (overrides != null && overrides.containsKey(overrideKey)) return overrides.get(overrideKey);
+            }
+            for (JsonNode quantity : object.path("quantities")) {
+                if (!name.equals(quantity.path("name").asText(""))) continue;
+                JsonNode value = quantity.has("normalizedValue") ? quantity.get("normalizedValue") : quantity.get("value");
+                if (value != null && value.isNumber() && Double.isFinite(value.asDouble())) return value.asDouble();
+            }
+        }
+        throw new IllegalArgumentException("Missing entity quantity for " + id + ": " + names[0]);
+    }
+
+    private CollisionEvent nextCollision(List<EntityBody> state) {
+        CollisionEvent best = null;
+        for (int i = 0; i < state.size(); i++) {
+            for (int j = i + 1; j < state.size(); j++) {
+                EntityBody first = state.get(i);
+                EntityBody second = state.get(j);
+                double after = collisionTime(first.position(), second.position(), first.velocity(), second.velocity());
+                if (after <= 0 || best != null && after > best.afterSeconds() + 1e-9) continue;
+                if (best != null && Math.abs(after - best.afterSeconds()) <= 1e-9) {
+                    throw new IllegalArgumentException("Simultaneous collision is unsupported without a declared contact model");
+                }
+                best = new CollisionEvent(i, j, after);
+            }
+        }
+        return best;
+    }
+
+    private void advance(List<EntityBody> state, double seconds) {
+        for (int i = 0; i < state.size(); i++) {
+            EntityBody body = state.get(i);
+            state.set(i, body.withPosition(body.position() + body.velocity() * seconds));
+        }
+    }
+
+    private boolean hasEntityBodies(JsonNode specification) {
+        JsonNode objects = specification.path("objects");
+        if (!objects.isArray() || objects.size() < 2) return false;
+        if (objects.size() > 512) throw new IllegalArgumentException("Collision entity count exceeds 512");
+        for (JsonNode object : objects) if (!object.path("quantities").isArray() || object.path("quantities").isEmpty()) return false;
+        return true;
+    }
+
+    private record EntityBody(String id, double mass, double position, double velocity) {
+        EntityBody withPosition(double value) { return new EntityBody(id, mass, value, velocity); }
+        EntityBody withVelocity(double value) { return new EntityBody(id, mass, position, value); }
+    }
+
+    private record CollisionEvent(int firstIndex, int secondIndex, double afterSeconds) { }
     private AnalyticalPoint spring(JsonNode spec, Map<String, Double> overrides, double seconds) {
         double amplitude = positive(PhysicsValues.require(spec, overrides, "amplitude"));
         double mass = positive(PhysicsValues.require(spec, overrides, "mass"));

@@ -25,7 +25,8 @@ public record CandidateContractProjection(
         List<QuantityProjection> requiredQuantities,
         List<QuantityProjection> optionalQuantities,
         List<String> relationTypes,
-        List<String> endConditionCapabilities) {
+        List<String> endConditionCapabilities,
+        List<EntityTypeProjection> entityTypes) {
 
     private static final Set<String> CONSTRAINT_FIELDS = Set.of(
             "positive", "nonNegative", "integer", "sameUnitAs",
@@ -42,9 +43,22 @@ public record CandidateContractProjection(
         relationTypes = List.copyOf(Objects.requireNonNull(relationTypes, "relationTypes"));
         endConditionCapabilities = List.copyOf(Objects.requireNonNull(endConditionCapabilities,
                 "endConditionCapabilities"));
-        if (requiredQuantities.isEmpty() && optionalQuantities.isEmpty()) {
+        entityTypes = List.copyOf(Objects.requireNonNull(entityTypes, "entityTypes"));
+        Set<String> entityNames = new LinkedHashSet<>();
+        for (EntityTypeProjection entity : entityTypes) {
+            if (!entityNames.add(entity.type())) throw new IllegalArgumentException("Duplicate entity type.");
+        }
+        if (requiredQuantities.isEmpty() && optionalQuantities.isEmpty() && entityTypes.isEmpty()) {
             throw new IllegalArgumentException("Candidate contract must declare at least one quantity.");
         }
+    }
+
+    /** Source-compatible constructor for schemas that only have global quantities. */
+    public CandidateContractProjection(String schemaId, String schemaVersion, String topic, String name,
+            String modelId, List<QuantityProjection> requiredQuantities, List<QuantityProjection> optionalQuantities,
+            List<String> relationTypes, List<String> endConditionCapabilities) {
+        this(schemaId, schemaVersion, topic, name, modelId, requiredQuantities, optionalQuantities,
+                relationTypes, endConditionCapabilities, List.of());
     }
 
     /**
@@ -63,10 +77,42 @@ public record CandidateContractProjection(
         List<QuantityProjection> optional = quantities(definition.get("optionalQuantities"),
                 "optionalQuantities", symbolsByKey);
         if (required.isEmpty() && optional.isEmpty()) {
-            throw new IllegalArgumentException("Candidate contract must declare at least one quantity.");
+            if (entityTypes(definition, symbolsByKey).isEmpty()) {
+                throw new IllegalArgumentException("Candidate contract must declare at least one quantity or entity type.");
+            }
         }
         return new CandidateContractProjection(schemaId, schemaVersion, topic, name, modelId, required, optional,
-                declaredRelationTypes(definition), declaredEndConditionCapabilities(definition));
+                declaredRelationTypes(definition), declaredEndConditionCapabilities(definition),
+                entityTypes(definition, symbolsByKey));
+    }
+
+    private static List<EntityTypeProjection> entityTypes(JsonNode definition,
+            Map<String, List<String>> symbolsByKey) {
+        JsonNode contract = definition.path("entityContract");
+        JsonNode nodes = contract.path("types");
+        if (!nodes.isArray()) nodes = definition.path("entityTypes");
+        if (nodes.isMissingNode() || nodes.isNull()) return List.of();
+        if (!nodes.isArray()) throw new IllegalArgumentException("Candidate entityContract.types must be an array.");
+        List<EntityTypeProjection> result = new ArrayList<>();
+        for (JsonNode node : nodes) {
+            if (!node.isObject()) throw new IllegalArgumentException("Candidate entity type must be an object.");
+            String type = text(node.get("type"), "entity type");
+            int min = integer(node.has("min") ? node.get("min") : node.get("minCount"), 1, "entity min");
+            int max = integer(node.has("max") ? node.get("max") : node.get("maxCount"), min, "entity max");
+            if (min < 0 || max < min || max > 512) throw new IllegalArgumentException("Entity count bounds are invalid.");
+            List<QuantityProjection> required = quantities(node.get("requiredQuantities"),
+                    "entity requiredQuantities", symbolsByKey);
+            List<QuantityProjection> optional = quantities(node.get("optionalQuantities"),
+                    "entity optionalQuantities", symbolsByKey);
+            result.add(new EntityTypeProjection(type, min, max, required, optional));
+        }
+        return List.copyOf(result);
+    }
+
+    private static int integer(JsonNode node, int defaultValue, String label) {
+        if (node == null || node.isMissingNode() || node.isNull()) return defaultValue;
+        if (!node.isIntegralNumber()) throw new IllegalArgumentException(label + " must be an integer.");
+        return node.asInt();
     }
 
     private static List<QuantityProjection> quantities(JsonNode nodes, String field,
@@ -170,7 +216,7 @@ public record CandidateContractProjection(
         }
     }
 
-    private static List<String> declaredEndConditionCapabilities(JsonNode definition) {
+    public static List<String> declaredEndConditionCapabilities(JsonNode definition) {
         LinkedHashSet<String> result = new LinkedHashSet<>();
         addEndCapabilities(result, definition.get("endConditionCapabilities"));
         addEndCapabilities(result, definition.path("execution").get("endConditionCapabilities"));
@@ -251,6 +297,24 @@ public record CandidateContractProjection(
             if (acceptedInputUnits.isEmpty()) {
                 throw new IllegalArgumentException("Candidate quantity must declare accepted input units.");
             }
+        }
+    }
+
+    public record EntityTypeProjection(String type, int minCount, int maxCount,
+            List<QuantityProjection> requiredQuantities, List<QuantityProjection> optionalQuantities) {
+        public EntityTypeProjection {
+            type = required(type, "entity type");
+            if (minCount < 0 || maxCount < minCount || maxCount > 512) {
+                throw new IllegalArgumentException("Entity count bounds are invalid.");
+            }
+            requiredQuantities = List.copyOf(Objects.requireNonNull(requiredQuantities, "requiredQuantities"));
+            optionalQuantities = List.copyOf(Objects.requireNonNull(optionalQuantities, "optionalQuantities"));
+        }
+
+        public List<QuantityProjection> allQuantities() {
+            List<QuantityProjection> result = new ArrayList<>(requiredQuantities);
+            result.addAll(optionalQuantities);
+            return List.copyOf(result);
         }
     }
 }

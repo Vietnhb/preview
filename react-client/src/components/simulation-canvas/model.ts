@@ -1,5 +1,4 @@
 import type { Simulation, VisualizationActor, VisualizationPresentation } from "../../types/physlive";
-import { inferScenePresentation } from "../../simulation-scene/SceneProfile";
 
 export type OverlayState = {
   grid: boolean;
@@ -63,56 +62,21 @@ export type ActorFrame = {
   label?: string;
 };
 
-// Kept for historical simulations whose saved schema response predates
-// presentation metadata. Current schema releases define these visuals in the catalog.
-const DEFAULT_PRESENTATIONS: Record<string, VisualizationPresentation> = {
-  motion: {
-    theme: "lab-night",
-    environment: "road.highway",
-    actors: [{ id: "body", asset: "vehicle.sport.blue", x: "positions.x", vx: "velocities.x", ax: "accelerations.x", label: "m" }],
-    effects: ["motion.trail", "vehicle.headlight", "vehicle.brake-smoke"],
-  },
-  projectile: {
-    theme: "lab-night",
-    environment: "range.projectile",
-    actors: [{ id: "projectile", asset: "projectile.energy", x: "positions.x", y: "positions.y", vx: "velocities.x", vy: "velocities.y" }],
-    props: ["structure.launch-tower", "launcher.cannon"],
-    effects: ["motion.trail", "projectile.glow"],
-  },
-  collision: {
-    theme: "lab-night",
-    environment: "track.collision",
-    actors: [
-      { id: "body-1", asset: "object.cart.blue", x: "positions.x1", vx: "velocities.v1", lane: 0, label: "1" },
-      { id: "body-2", asset: "object.cart.orange", x: "positions.x2", vx: "velocities.v2", lane: 1, label: "2" },
-    ],
-    effects: ["motion.trail", "collision.flash"],
-  },
-  spring: {
-    theme: "lab-night",
-    environment: "bench.spring",
-    actors: [{ id: "mass", asset: "object.block.amber", x: "positions.x", vx: "velocities.x", ax: "accelerations.x", label: "m" }],
-    props: ["spring.coil"],
-    effects: ["motion.trail"],
-  },
-  rc_circuit: {
-    theme: "lab-night",
-    environment: "board.circuit",
-    effects: ["circuit.current-flow", "circuit.capacitor-glow"],
-  },
-};
-
 export function presentationFor(simulation: Simulation): VisualizationPresentation {
-  const configured = simulation.visualization?.presentation;
-  const inferred = inferScenePresentation(simulation);
-  const fallback = DEFAULT_PRESENTATIONS[simulation.visualization?.scene] ?? inferred;
+  const configured = simulation.visualization?.presentation ?? {};
+  const configuredActors = configured?.actors?.length
+    ? configured.actors.map(actor => {
+      const withoutLegacyAsset = { ...actor };
+      delete withoutLegacyAsset.asset;
+      return {
+        ...withoutLegacyAsset,
+        ...(actor.assetHint ? { assetHint: actor.assetHint } : {}),
+      };
+    })
+    : undefined;
   return {
-    ...inferred,
-    ...fallback,
     ...configured,
-    actors: configured?.actors?.length ? configured.actors : fallback.actors ?? inferred.actors,
-    props: configured?.props ?? fallback.props ?? inferred.props,
-    effects: configured?.effects ?? fallback.effects ?? inferred.effects,
+    ...(configuredActors ? { actors: configuredActors } : {}),
   };
 }
 

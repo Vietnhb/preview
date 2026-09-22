@@ -84,4 +84,24 @@ class LegacyCorePhysicsTest {
         assertEquals(dischargingReference.values().get("voltage"), dischargingOutput.values().get("voltage").get(5), 1e-12);
         assertEquals(dischargingReference.values().get("current"), dischargingOutput.values().get("current").get(5), 1e-12);
     }
+
+    @Test void entityCollisionUsesEveryBodyAndMatchesReference() {
+        ObjectNode collision = model("elastic_collision");
+        addBody(collision, "a", 0, 4);
+        addBody(collision, "b", 3, 0);
+        addBody(collision, "c", 10, -1);
+
+        SolverOutput output = new DynamicsSolver().solve(collision, Map.of(), 3, .25);
+        var reference = new DynamicsReferenceSolver().solve(collision, Map.of(), 3);
+        assertEquals(3, output.positions().size());
+        assertEquals(reference.values().get("a"), output.positions().get("a").getLast(), 1e-12);
+        assertEquals(reference.values().get("velocity.c"), output.velocities().get("c").getLast(), 1e-12);
+    }
+
+    private void addBody(ObjectNode collision, String id, double position, double velocity) {
+        ObjectNode body = collision.withArray("objects").addObject().put("id", id).put("type", "moving_body");
+        body.putArray("quantities").addObject().put("name", "mass").put("value", 1).put("originalUnit", "kg");
+        body.withArray("quantities").addObject().put("name", "position").put("value", position).put("originalUnit", "m");
+        body.withArray("quantities").addObject().put("name", "velocity").put("value", velocity).put("originalUnit", "m/s");
+    }
 }

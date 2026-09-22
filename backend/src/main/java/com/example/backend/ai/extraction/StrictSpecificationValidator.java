@@ -3,6 +3,7 @@ package com.example.backend.ai.extraction;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
+import com.example.backend.ai.extraction.prompt.CandidateContractProjection.EntityTypeProjection;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection.QuantityProjection;
 import com.example.backend.ai.normalization.UnitNormalizer;
 import com.example.backend.schema.routing.model.SchemaCandidate;
@@ -11,15 +12,18 @@ import com.example.backend.schema.routing.model.SchemaRoutingDecision;
 import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 /** Validates the provider JSON shape before Jackson binds it to domain records. */
 public final class StrictSpecificationValidator {
     private static final Set<String> ROOT_FIELDS = Set.of("contractVersion", "schemaVersion", "topic", "schemaId", "objects",
             "quantities", "relations", "endCondition", "confidence", "ambiguities");
-    private static final Set<String> OBJECT_FIELDS = Set.of("id", "label", "type");
+    private static final Set<String> OBJECT_FIELDS = Set.of("id", "label", "type", "quantities");
     private static final Set<String> QUANTITY_FIELDS = Set.of("name", "symbol", "value", "originalUnit",
             "confidence", "sourceText");
     private static final Set<String> RELATION_FIELDS = Set.of("type", "subject", "object", "value", "unit", "sourceText");
@@ -42,7 +46,11 @@ public final class StrictSpecificationValidator {
     public static int removeUnknownFields(JsonNode root) {
         if (!(root instanceof ObjectNode object)) return 0;
         int removed = removeUnknown(object, ROOT_FIELDS);
-        removed += removeUnknownFromArray(root.path("objects"), OBJECT_FIELDS);
+        JsonNode objects = root.path("objects");
+        removed += removeUnknownFromArray(objects, OBJECT_FIELDS);
+        if (objects.isArray()) {
+            for (JsonNode item : objects) removed += removeUnknownFromArray(item.path("quantities"), QUANTITY_FIELDS);
+        }
         removed += removeUnknownFromArray(root.path("quantities"), QUANTITY_FIELDS);
         removed += removeUnknownFromArray(root.path("relations"), RELATION_FIELDS);
         removed += removeUnknownFromArray(root.path("ambiguities"), AMBIGUITY_FIELDS);
@@ -130,6 +138,48 @@ public final class StrictSpecificationValidator {
             }
             if (unitNormalizer != null) validateQuantityUnit(quantity, canonicalName, contract, unitNormalizer);
         }
+        Map<String, EntityTypeProjection> entityById = new HashMap<>();
+        Map<String, Set<String>> entityQuantityNames = new HashMap<>();
+        Map<String, Integer> entityCounts = new HashMap<>();
+        if (!contract.entityTypes().isEmpty()) {
+            for (JsonNode object : root.path("objects")) {
+                String id = object.path("id").asText("");
+                EntityTypeProjection entity = contract.entityTypes().stream()
+                        .filter(item -> item.type().equals(object.path("type").asText(""))).findFirst().orElse(null);
+                if (entity == null) fail("object type is outside the selected entity contract");
+                entityById.put(id, entity);
+                entityCounts.merge(entity.type(), 1, Integer::sum);
+                Set<String> accepted = new HashSet<>();
+                entity.requiredQuantities().forEach(item -> addAcceptedNames(item, accepted));
+                entity.optionalQuantities().forEach(item -> addAcceptedNames(item, accepted));
+                Set<String> supplied = new HashSet<>();
+                for (JsonNode quantity : object.path("quantities")) {
+                    String name = quantity.path("name").asText("");
+                    if (!accepted.contains(name)) fail("entity quantity name is outside the selected candidate contract");
+                    String canonical = canonicalQuantityName(entity.requiredQuantities(), entity.optionalQuantities(), name);
+                    if (canonical == null || !supplied.add(canonical)) {
+                        fail("duplicate entity quantity resolves to the same canonical schema key");
+                    }
+                    if (unitNormalizer != null) {
+                        validateQuantityUnit(quantity, canonical, entity.requiredQuantities(), entity.optionalQuantities(),
+                                unitNormalizer);
+                    }
+                }
+                entityQuantityNames.put(id, supplied);
+            }
+            for (EntityTypeProjection entity : contract.entityTypes()) {
+                int count = entityCounts.getOrDefault(entity.type(), 0);
+                if (count < entity.minCount() || count > entity.maxCount()) {
+                    fail("entity count is outside the selected candidate contract for type " + entity.type());
+                }
+            }
+        } else {
+            for (JsonNode object : root.path("objects")) {
+                if (object.has("quantities") && object.path("quantities").size() > 0) {
+                    fail("entity-local quantities require an entity contract");
+                }
+            }
+        }
         for (JsonNode relation : root.path("relations")) {
             String type = relation.path("type").asText("");
             if (!contract.relationTypes().contains(type)) {
@@ -145,6 +195,7 @@ public final class StrictSpecificationValidator {
             if (!supported) fail("endCondition type is outside the selected candidate capabilities");
         }
         Set<String> ambiguityQuantityNames = new HashSet<>();
+        Map<String, Set<String>> entityAmbiguities = new HashMap<>();
         for (JsonNode ambiguity : root.path("ambiguities")) {
             String fieldPath = ambiguity.path("fieldPath").asText("");
             if (fieldPath.startsWith("quantities.")) {
@@ -154,6 +205,18 @@ public final class StrictSpecificationValidator {
                 if (!required && !optional) fail("quantity ambiguity fieldPath is outside the selected candidate contract");
                 if (optional) fail("ambiguity must not request an optional quantity");
                 ambiguityQuantityNames.add(key);
+            }
+            int entityMarker = fieldPath.indexOf(".quantities.");
+            if (fieldPath.startsWith("objects.") && entityMarker > "objects.".length()) {
+                String objectId = fieldPath.substring("objects.".length(), entityMarker);
+                String key = fieldPath.substring(entityMarker + ".quantities.".length());
+                EntityTypeProjection entity = entityById.get(objectId);
+                if (entity == null) fail("entity quantity ambiguity references an unknown object");
+                boolean required = entity.requiredQuantities().stream().anyMatch(item -> item.key().equals(key));
+                boolean optional = entity.optionalQuantities().stream().anyMatch(item -> item.key().equals(key));
+                if (!required && !optional) fail("entity quantity ambiguity is outside the selected candidate contract");
+                if (optional) fail("ambiguity must not request an optional entity quantity");
+                entityAmbiguities.computeIfAbsent(objectId, ignored -> new HashSet<>()).add(key);
             }
             if ("schemaId".equals(fieldPath) || "schema.schemaId".equals(fieldPath)) {
                 List<String> options = new java.util.ArrayList<>();
@@ -172,11 +235,115 @@ public final class StrictSpecificationValidator {
                 fail("missing required quantity or ambiguity: " + required.key());
             }
         }
+        for (Map.Entry<String, EntityTypeProjection> entry : entityById.entrySet()) {
+            Set<String> supplied = entityQuantityNames.getOrDefault(entry.getKey(), Set.of());
+            Set<String> questioned = entityAmbiguities.getOrDefault(entry.getKey(), Set.of());
+            for (QuantityProjection required : entry.getValue().requiredQuantities()) {
+                boolean hasValue = supplied.contains(required.key());
+                boolean hasQuestion = questioned.contains(required.key());
+                if (hasValue && hasQuestion) fail("entity quantity cannot be both supplied and ambiguous: " + required.key());
+                if (!hasValue && !hasQuestion) {
+                    fail("missing required entity quantity or ambiguity: objects." + entry.getKey()
+                            + ".quantities." + required.key());
+                }
+            }
+        }
         return candidate;
+    }
+
+    /**
+     * Rejects a quantity ambiguity when the original teacher text already
+     * states a numeric value next to the quantity key, alias, or symbol. This
+     * keeps the ambiguity engine from asking for facts that were supplied in
+     * the same request while remaining conservative for unrelated numbers.
+     */
+    public static void rejectAmbiguitiesCoveredBySource(JsonNode root, String sourceText,
+            CandidateContractProjection contract) {
+        if (root == null || contract == null || sourceText == null || sourceText.isBlank()) return;
+        String source = sourceText.trim();
+        for (JsonNode ambiguity : root.path("ambiguities")) {
+            String fieldPath = ambiguity.path("fieldPath").asText("");
+            QuantityProjection quantity = null;
+            if (fieldPath.startsWith("quantities.")) {
+                quantity = quantityProjection(contract, fieldPath.substring("quantities.".length()));
+            } else {
+                int marker = fieldPath.indexOf(".quantities.");
+                if (fieldPath.startsWith("objects.") && marker > "objects.".length()) {
+                    String objectId = fieldPath.substring("objects.".length(), marker);
+                    String key = fieldPath.substring(marker + ".quantities.".length());
+                    for (JsonNode object : root.path("objects")) {
+                        if (!objectId.equals(object.path("id").asText(""))) continue;
+                        EntityTypeProjection entity = contract.entityTypes().stream()
+                                .filter(item -> item.type().equals(object.path("type").asText(""))).findFirst().orElse(null);
+                        if (entity != null) quantity = quantityProjection(entity.requiredQuantities(), entity.optionalQuantities(), key);
+                        break;
+                    }
+                }
+            }
+            if (quantity == null) continue;
+            Set<String> labels = new HashSet<>();
+            labels.add(quantity.key());
+            labels.addAll(quantity.aliases());
+            labels.addAll(quantity.symbols());
+            String question = ambiguity.path("question").asText("");
+            if (labels.stream().anyMatch(label -> explicitValueNearLabel(source, label))
+                    || questionPhraseNearValue(source, question)) {
+                fail("quantity ambiguity repeats a value already stated in the original problem: " + fieldPath);
+            }
+        }
+    }
+
+    private static boolean questionPhraseNearValue(String source, String question) {
+        if (question == null || question.isBlank()) return false;
+        List<String> terms = java.util.Arrays.stream(question.split("[^\\p{L}\\p{N}_]+"))
+                .map(String::trim)
+                .filter(token -> token.length() >= 2)
+                .filter(token -> !Set.of("là", "la", "bao", "nhiêu", "what", "is", "the", "value", "of", "how")
+                        .contains(token.toLowerCase(java.util.Locale.ROOT)))
+                .toList();
+        if (terms.size() < 2) return false;
+        // Require a contiguous semantic phrase from the ambiguity question.
+        // This catches "vận tốc ... 10 m/s" without treating a generic word
+        // such as "đầu" as proof that an initial position was supplied.
+        for (int start = 0; start < terms.size(); start++) {
+            for (int length = Math.min(4, terms.size() - start); length >= 2; length--) {
+                String phrase = String.join("\\s+", terms.subList(start, start + length).stream()
+                        .map(Pattern::quote).toList());
+                String number = "[+-]?(?:\\d+(?:[.,]\\d+)?|[.,]\\d+)";
+                Pattern near = Pattern.compile(phrase + "[^\\r\\n]{0,64}?" + number,
+                        Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+                if (near.matcher(source).find()) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean explicitValueNearLabel(String source, String label) {
+        if (label == null || label.isBlank()) return false;
+        String escaped = Pattern.quote(label.trim());
+        String number = "[+-]?(?:\\d+(?:[.,]\\d+)?|[.,]\\d+)";
+        String boundary = "(?<![\\p{L}\\p{N}_])" + escaped + "(?![\\p{L}\\p{N}_])";
+        // One-character symbols (s, v, a, ...) also occur inside units such as
+        // m/s. Only treat them as stated quantities when the source uses an
+        // explicit assignment, avoiding false "already supplied" ambiguities.
+        if (label.trim().length() < 2) {
+            return Pattern.compile(boundary + "\\s*(?:=|:)\\s*" + number,
+                    Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE).matcher(source).find();
+        }
+        Pattern after = Pattern.compile(boundary + "[^\\r\\n]{0,64}?" + number,
+                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+        Pattern before = Pattern.compile(number + "[^\\r\\n]{0,64}?" + boundary,
+                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+        return after.matcher(source).find() || before.matcher(source).find();
     }
 
     private static void validateQuantityUnit(JsonNode quantity, String canonicalName,
             CandidateContractProjection contract, UnitNormalizer unitNormalizer) {
+        validateQuantityUnit(quantity, canonicalName, contract.requiredQuantities(), contract.optionalQuantities(), unitNormalizer);
+    }
+
+    private static void validateQuantityUnit(JsonNode quantity, String canonicalName,
+            List<QuantityProjection> required, List<QuantityProjection> optional, UnitNormalizer unitNormalizer) {
         JsonNode originalUnit = quantity.get("originalUnit");
         if (originalUnit == null || !originalUnit.isTextual() || originalUnit.asText().isBlank()) {
             fail("quantity originalUnit must be a non-empty text value");
@@ -184,7 +351,7 @@ public final class StrictSpecificationValidator {
         UnitNormalizer.NormalizedQuantity normalized = unitNormalizer.normalize(BigDecimal.ONE,
                 originalUnit.asText());
         if (!normalized.knownUnit()) fail("quantity unit is outside the unit catalog");
-        QuantityProjection projection = quantityProjection(contract, canonicalName);
+        QuantityProjection projection = quantityProjection(required, optional, canonicalName);
         if (projection == null || projection.acceptedInputUnits().stream()
                 .map(allowed -> unitNormalizer.normalize(BigDecimal.ONE, allowed))
                 .filter(UnitNormalizer.NormalizedQuantity::knownUnit)
@@ -194,8 +361,12 @@ public final class StrictSpecificationValidator {
     }
 
     private static QuantityProjection quantityProjection(CandidateContractProjection contract, String key) {
-        return java.util.stream.Stream.concat(contract.requiredQuantities().stream(),
-                        contract.optionalQuantities().stream())
+        return quantityProjection(contract.requiredQuantities(), contract.optionalQuantities(), key);
+    }
+
+    private static QuantityProjection quantityProjection(List<QuantityProjection> required,
+            List<QuantityProjection> optional, String key) {
+        return java.util.stream.Stream.concat(required.stream(), optional.stream())
                 .filter(item -> item.key().equals(key)).findFirst().orElse(null);
     }
 
@@ -206,11 +377,16 @@ public final class StrictSpecificationValidator {
     }
 
     private static String canonicalQuantityName(CandidateContractProjection contract, String suppliedName) {
+        return canonicalQuantityName(contract.requiredQuantities(), contract.optionalQuantities(), suppliedName);
+    }
+
+    private static String canonicalQuantityName(List<QuantityProjection> required,
+            List<QuantityProjection> optional, String suppliedName) {
         Set<String> matches = new HashSet<>();
-        for (QuantityProjection quantity : contract.requiredQuantities()) {
+        for (QuantityProjection quantity : required) {
             if (accepts(quantity, suppliedName)) matches.add(quantity.key());
         }
-        for (QuantityProjection quantity : contract.optionalQuantities()) {
+        for (QuantityProjection quantity : optional) {
             if (accepts(quantity, suppliedName)) matches.add(quantity.key());
         }
         return matches.size() == 1 ? matches.iterator().next() : null;
@@ -231,10 +407,17 @@ public final class StrictSpecificationValidator {
 
     private static void validateObjects(JsonNode values) {
         limit(values, "objects");
+        Set<String> ids = new HashSet<>();
         for (JsonNode item : values) {
             object(item, "object");
             rejectUnknown(item, OBJECT_FIELDS, "object");
             requiredText(item, "id"); requiredText(item, "label"); requiredText(item, "type");
+            if (!ids.add(item.path("id").asText())) fail("duplicate object id");
+            JsonNode quantities = item.get("quantities");
+            if (quantities != null && !quantities.isNull()) {
+                if (!quantities.isArray()) fail("object.quantities must be an array");
+                validateQuantities(quantities);
+            }
         }
     }
 

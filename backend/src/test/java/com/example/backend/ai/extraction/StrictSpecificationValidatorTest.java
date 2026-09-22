@@ -252,6 +252,75 @@ class StrictSpecificationValidatorTest {
                 () -> StrictSpecificationValidator.validateCandidateMembership(root, decision));
     }
 
+    @Test
+    void doesNotAskForAQuantityThatIsExplicitlyPresentInOriginalText() throws Exception {
+        var definition = mapper.readTree("""
+                {"model":"motion","requiredQuantities":[{"key":"velocity",
+                 "aliases":["v"],"allowedUnits":["m/s"]}],"optionalQuantities":[]}
+                """);
+        var contract = CandidateContractProjection.from("motion", "1.0", "KINEMATICS", "Motion", definition);
+        ObjectNode root = (ObjectNode) mapper.readTree("""
+                {"contractVersion":"1.0","schemaVersion":"1.0","topic":"KINEMATICS","schemaId":"motion",
+                 "objects":[],"quantities":[],"relations":[],"endCondition":{"type":"time_limit","duration":1},
+                 "confidence":0.5,"ambiguities":[{"code":"missing.velocity","fieldPath":"quantities.velocity",
+                 "question":"Vận tốc là bao nhiêu?","options":[]}]}
+                """);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                StrictSpecificationValidator.rejectAmbiguitiesCoveredBySource(root,
+                        "Một vật chuyển động với vận tốc đầu 10 m/s trong 8 giây.", contract));
+        assertDoesNotThrow(() -> StrictSpecificationValidator.rejectAmbiguitiesCoveredBySource(root,
+                "Hãy mô phỏng chuyển động của vật.", contract));
+    }
+
+    @Test
+    void doesNotAskForAQuantityAlreadyPresentInConfirmedSpecificationEvidence() throws Exception {
+        var definition = mapper.readTree("""
+                {"model":"motion","requiredQuantities":[{"key":"initial_position",
+                 "aliases":["x0"],"allowedUnits":["m"]}],"optionalQuantities":[]}
+                """);
+        var contract = CandidateContractProjection.from("motion", "1.0", "KINEMATICS", "Motion", definition);
+        ObjectNode root = (ObjectNode) mapper.readTree("""
+                {"contractVersion":"1.0","schemaVersion":"1.0","topic":"KINEMATICS","schemaId":"motion",
+                 "objects":[],"quantities":[],"relations":[],"endCondition":{"type":"time_limit","duration":1},
+                 "confidence":0.5,"ambiguities":[{"code":"missing.initial_position","fieldPath":"quantities.initial_position",
+                 "question":"Vị trí ban đầu là bao nhiêu?","options":[]}]}
+                """);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                StrictSpecificationValidator.rejectAmbiguitiesCoveredBySource(root,
+                        "Confirmed specification: {\"quantities\":[{\"name\":\"initial_position\",\"value\":0,\"originalUnit\":\"m\"}]}\n"
+                                + "Teacher answers: {\"missing.initial_position\":\"0 m\"}", contract));
+    }
+
+    @Test
+    void validatesDynamicEntityQuantitiesAgainstTheEntityContract() throws Exception {
+        var definition = mapper.readTree("""
+                {"model":"multi_body_motion","requiredQuantities":[],"optionalQuantities":[],
+                 "entityContract":{"types":[{"type":"moving_body","min":2,"max":4,
+                   "requiredQuantities":[{"key":"mass","aliases":["m"],"allowedUnits":["kg"]},
+                     {"key":"velocity","aliases":["v"],"allowedUnits":["m/s"]}],"optionalQuantities":[]}]}}
+                """);
+        SchemaRoutingDecision decision = decisionFor("multi_body_motion", "1.0", "DYNAMICS", "Multi-body motion", definition);
+        ObjectNode root = (ObjectNode) mapper.readTree("""
+                {"contractVersion":"1.0","schemaVersion":"1.0","topic":"DYNAMICS","schemaId":"multi_body_motion",
+                 "objects":[
+                   {"id":"body-a","label":"A","type":"moving_body","quantities":[
+                     {"name":"m","value":2,"originalUnit":"kg"},{"name":"v","value":3,"originalUnit":"m/s"}]},
+                   {"id":"body-b","label":"B","type":"moving_body","quantities":[
+                     {"name":"mass","value":3,"originalUnit":"kg"},{"name":"velocity","value":-1,"originalUnit":"m/s"}]}],
+                 "quantities":[],"relations":[],"endCondition":{"type":"time_limit","duration":1},
+                 "confidence":1,"ambiguities":[]}
+                """);
+        StrictSpecificationValidator.validate(root);
+        assertEquals(decision.candidates().getFirst(),
+                StrictSpecificationValidator.validateCandidateMembership(root, decision, new UnitNormalizer(mapper)));
+
+        ((ObjectNode) root.withArray("objects").get(1).withArray("quantities").get(1)).put("originalUnit", "s");
+        assertThrows(IllegalArgumentException.class,
+                () -> StrictSpecificationValidator.validateCandidateMembership(root, decision, new UnitNormalizer(mapper)));
+    }
+
     private SchemaRoutingDecision decisionFor(String schemaId, String schemaVersion, String topic, String name,
             com.fasterxml.jackson.databind.JsonNode definition) {
         CandidateContractProjection contract = CandidateContractProjection.from(

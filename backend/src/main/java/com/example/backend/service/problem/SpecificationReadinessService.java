@@ -57,7 +57,8 @@ public class SpecificationReadinessService {
             if (exists) continue;
             AmbiguityCase ambiguity = new AmbiguityCase();
             ambiguity.setCode(code);
-            ambiguity.setFieldPath("quantities." + gap.key());
+            ambiguity.setFieldPath(gap.key().startsWith("objects.")
+                    ? gap.key() : "quantities." + gap.key());
             ambiguity.setQuestion(fallbackQuestion(gap, schema.getDefinition()));
             ambiguity.setOptions(objectMapper.createArrayNode());
             ambiguity.setStatus(AmbiguityStatus.OPEN);
@@ -112,7 +113,7 @@ public class SpecificationReadinessService {
             String code;
             if (gap != null) {
                 code = "schema.required." + gap.key();
-                ambiguity.setFieldPath("quantities." + gap.key());
+                ambiguity.setFieldPath(fieldPathFor(gap.key()));
             } else code = semanticCode(ambiguity);
             if (seen.add(code)) ambiguity.setCode(code);
             else {
@@ -127,6 +128,10 @@ public class SpecificationReadinessService {
         Set<String> source = tokens(String.join(" ", safe(ambiguity.getCode()), safe(ambiguity.getFieldPath())));
         Set<String> required = tokens(key);
         return !required.isEmpty() && source.containsAll(required);
+    }
+
+    private String fieldPathFor(String key) {
+        return key != null && key.startsWith("objects.") ? key : "quantities." + key;
     }
 
     private String semanticCode(AmbiguityCase ambiguity) {

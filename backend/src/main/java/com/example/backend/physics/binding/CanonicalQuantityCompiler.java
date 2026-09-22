@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 /** Compiles already-canonical specification quantities once at physics ingress. */
 @Component
 public final class CanonicalQuantityCompiler {
+    private static final double NORMALIZED_VALUE_TOLERANCE = 1e-12;
     private final UnitNormalizer units;
 
     public CanonicalQuantityCompiler(UnitNormalizer units) {
@@ -126,7 +127,7 @@ public final class CanonicalQuantityCompiler {
                     + schema.schemaId() + "." + key);
         }
         if (normalizedValue != null && (!normalizedValue.isNumber()
-                || normalized.normalizedValue().compareTo(normalizedValue.decimalValue()) != 0)) {
+                || !approximatelyEqual(normalized.normalizedValue(), normalizedValue.decimalValue()))) {
             throw new CanonicalContractException("Stored normalized quantity disagrees with raw value for "
                     + schema.schemaId() + "." + key);
         }
@@ -136,6 +137,21 @@ public final class CanonicalQuantityCompiler {
                     + schema.schemaId() + "." + key);
         }
         return new NormalizedValue(normalized.normalizedValue(), normalized.normalizedUnit());
+    }
+
+    /**
+     * JSON persistence may round a high-precision BigDecimal to the numeric
+     * representation used by the API (for example 45 degrees to radians).
+     * Accept that serialization round-off while still rejecting a materially
+     * different stored normalized value.
+     */
+    private boolean approximatelyEqual(BigDecimal expected, BigDecimal actual) {
+        if (expected == null || actual == null) return false;
+        double left = expected.doubleValue();
+        double right = actual.doubleValue();
+        if (!Double.isFinite(left) || !Double.isFinite(right)) return false;
+        double tolerance = NORMALIZED_VALUE_TOLERANCE * Math.max(1.0, Math.abs(left));
+        return Math.abs(left - right) <= tolerance;
     }
 
     private void requireContract(CompiledSchema schema, CompiledSchema.QuantityDefinition definition,

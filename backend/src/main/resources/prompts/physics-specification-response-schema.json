@@ -14,9 +14,25 @@
         "properties": {
           "id": { "type": "string" },
           "label": { "type": "string" },
-          "type": { "type": "string" }
+          "type": { "type": "string" },
+          "quantities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string" },
+                "symbol": { "type": ["string", "null"] },
+                "value": { "type": "number" },
+                "originalUnit": { "type": "string" },
+                "confidence": { "type": ["number", "null"] },
+                "sourceText": { "type": ["string", "null"] }
+              },
+              "required": ["name", "symbol", "value", "originalUnit", "confidence", "sourceText"]
+            }
+          }
         },
-        "required": ["id", "label", "type"]
+        "required": ["id", "label", "type", "quantities"]
       }
     },
     "quantities": {

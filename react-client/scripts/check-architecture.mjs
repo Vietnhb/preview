@@ -16,7 +16,10 @@ async function visit(directory) {
     const source = ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true);
     const relative = path.relative(root, file).replaceAll("\\", "/");
     if (/^(simulation-scene|simulation-renderer)\//.test(relative)
-      && /(schemaId\s*===|schemaId\s*!==|visualization\??\.scene\s*===|environment\s*===)/.test(content)) {
+      // Do not mistake capability/property validation such as
+      // `node.properties.environment === ...` for a schema-identity dispatch.
+      // Only a bare environment identifier is an architectural violation.
+      && /(schemaId\s*===|schemaId\s*!==|visualization\??\.scene\s*===|(?<![\w.])environment\s*===)/.test(content)) {
       errors.push(relative + ": rendering must dispatch by declared capabilities, not schema/lesson/environment identity");
     }
     const check = (specifier) => {

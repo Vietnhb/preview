@@ -4,6 +4,7 @@ import com.example.backend.entity.curriculum.Topic;
 import com.example.backend.repository.curriculum.TopicRepository;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -326,10 +327,82 @@ public class SchemaDefinitionService {
                 blockers.add("Unit for " + key + " must match " + field.path("sameUnitAs").asText());
             }
         }
+        blockers.addAll(validateEntityObjects(specification, definition));
         double fallbackDuration = definition.path("execution").path(DURATION_SECONDS).asDouble();
         blockers.addAll(EndConditionResolver.validate(specification, fallbackDuration));
         blockers.addAll(validateEndConditionBindings(specification, definition));
         return List.copyOf(blockers);
+    }
+
+    /** Validate dynamic entity quantities without assuming a fixed object count. */
+    private List<String> validateEntityObjects(JsonNode specification, JsonNode definition) {
+        JsonNode objects = specification == null ? null : specification.path("objects");
+        if (!objects.isArray() || objects.isEmpty()) return List.of();
+        JsonNode types = definition.path("entityContract").path("types");
+        if (!types.isArray()) types = definition.path("entityTypes");
+        List<String> errors = new ArrayList<>();
+        if (!types.isArray()) {
+            for (JsonNode object : objects) {
+                if (object.path("quantities").isArray() && !object.path("quantities").isEmpty()) {
+                    errors.add("Entity-local quantities require an entity contract");
+                }
+            }
+            return errors;
+        }
+        Map<String, Integer> counts = new HashMap<>();
+        Set<String> ids = new HashSet<>();
+        for (JsonNode object : objects) {
+            String id = object.path("id").asText("").trim();
+            String type = object.path("type").asText("").trim();
+            if (id.isBlank() || !ids.add(id)) {
+                errors.add("Entity ids must be present and unique");
+                continue;
+            }
+            JsonNode contract = java.util.stream.StreamSupport.stream(types.spliterator(), false)
+                    .filter(item -> type.equals(item.path("type").asText(""))).findFirst().orElse(null);
+            if (contract == null) {
+                errors.add("Entity type is outside the schema contract: " + type);
+                continue;
+            }
+            counts.merge(type, 1, Integer::sum);
+            JsonNode quantities = object.path("quantities");
+            for (JsonNode field : contract.path("requiredQuantities")) {
+                JsonNode matched = findQuantity(quantities, names(field));
+                if (matched == null || !matched.path(NORMALIZED_VALUE).isNumber()) {
+                    errors.add("Missing required entity quantity: objects." + id + "." + field.path("key").asText());
+                    continue;
+                }
+                double value = matched.path(NORMALIZED_VALUE).asDouble();
+                if (invalidNumericValue(field, value)) {
+                    errors.add("Invalid entity quantity: objects." + id + "." + field.path("key").asText());
+                }
+                Set<String> units = textSet(field.path(ALLOWED_UNITS));
+                if (!units.isEmpty() && !units.contains(matched.path(NORMALIZED_UNIT).asText())) {
+                    errors.add("Invalid unit for entity quantity: objects." + id + "." + field.path("key").asText());
+                }
+            }
+            for (JsonNode field : contract.path("optionalQuantities")) {
+                JsonNode matched = findQuantity(quantities, names(field));
+                if (matched == null || !matched.path(NORMALIZED_VALUE).isNumber()) continue;
+                String key = field.path("key").asText();
+                double value = matched.path(NORMALIZED_VALUE).asDouble();
+                if (invalidNumericValue(field, value)) errors.add("Invalid optional entity quantity: objects." + id + "." + key);
+                Set<String> units = textSet(field.path(ALLOWED_UNITS));
+                if (!units.isEmpty() && !units.contains(matched.path(NORMALIZED_UNIT).asText())) {
+                    errors.add("Invalid unit for optional entity quantity: objects." + id + "." + key);
+                }
+            }
+        }
+        for (JsonNode contract : types) {
+            String type = contract.path("type").asText("");
+            int min = contract.has("min") ? contract.path("min").asInt(1) : contract.path("minCount").asInt(1);
+            int max = contract.has("max") ? contract.path("max").asInt(min) : contract.path("maxCount").asInt(min);
+            int count = counts.getOrDefault(type, 0);
+            if (count < min || count > max) {
+                errors.add("Entity count is outside the schema contract for type " + type);
+            }
+        }
+        return errors;
     }
 
     private List<String> validateEndConditionBindings(JsonNode specification, JsonNode definition) {
@@ -387,6 +460,36 @@ public class SchemaDefinitionService {
             if (invalid) gaps.add(new RequiredGap(field.path("key").asText(),
                     field.path(ALLOWED_UNITS).isArray() && !field.path(ALLOWED_UNITS).isEmpty()
                             ? field.path(ALLOWED_UNITS).get(0).asText() : "SI"));
+        }
+        JsonNode entityTypes = definition.path("entityContract").path("types");
+        if (!entityTypes.isArray()) entityTypes = definition.path("entityTypes");
+        if (entityTypes.isArray() && specification != null && specification.path("objects").isArray()) {
+            Map<String, Integer> entityCounts = new HashMap<>();
+            for (JsonNode object : specification.path("objects")) {
+                JsonNode entity = java.util.stream.StreamSupport.stream(entityTypes.spliterator(), false)
+                        .filter(item -> item.path("type").asText().equals(object.path("type").asText()))
+                        .findFirst().orElse(null);
+                if (entity == null) continue;
+                entityCounts.merge(entity.path("type").asText(), 1, Integer::sum);
+                for (JsonNode field : entity.path("requiredQuantities")) {
+                    JsonNode matched = findQuantity(object.path(QUANTITIES), names(field));
+                    boolean invalid = matched == null || !matched.path(NORMALIZED_VALUE).isNumber()
+                            || invalidNumericValue(field, matched.path(NORMALIZED_VALUE).asDouble())
+                            || (!textSet(field.path(ALLOWED_UNITS)).isEmpty()
+                                && !textSet(field.path(ALLOWED_UNITS)).contains(matched.path(NORMALIZED_UNIT).asText()));
+                    if (invalid) gaps.add(new RequiredGap("objects." + object.path("id").asText()
+                            + ".quantities." + field.path("key").asText(),
+                            field.path(ALLOWED_UNITS).isArray() && !field.path(ALLOWED_UNITS).isEmpty()
+                                    ? field.path(ALLOWED_UNITS).get(0).asText() : "SI"));
+                }
+            }
+            for (JsonNode entity : entityTypes) {
+                String type = entity.path("type").asText("");
+                int min = entity.has("min") ? entity.path("min").asInt(1) : entity.path("minCount").asInt(1);
+                int max = entity.has("max") ? entity.path("max").asInt(min) : entity.path("maxCount").asInt(min);
+                int count = entityCounts.getOrDefault(type, 0);
+                if (count < min || count > max) gaps.add(new RequiredGap("objects." + type, ""));
+            }
         }
         return List.copyOf(gaps);
     }
@@ -545,6 +648,22 @@ public class SchemaDefinitionService {
 
     public JsonNode visualization(JsonNode definition) {
         ObjectNode presentation = definition.path("visualization").deepCopy();
+        // Keep visual intent separate from physics. Legacy catalog entries may
+        // still use `asset`; expose it only as a semantic hint so the client
+        // resolves it through the approved catalog instead of pinning an SVG.
+        JsonNode visualPresentation = presentation.path("presentation");
+        if (visualPresentation instanceof ObjectNode visualObject) {
+            JsonNode actors = visualObject.path("actors");
+            if (actors.isArray()) {
+                for (JsonNode actor : actors) {
+                    if (!(actor instanceof ObjectNode actorObject)) continue;
+                    if (!actorObject.has("assetHint") && actorObject.has("asset")) {
+                        actorObject.set("assetHint", actorObject.get("asset"));
+                    }
+                    actorObject.remove("asset");
+                }
+            }
+        }
         presentation.set("controls", definition.path(ADJUSTABLE_PARAMETERS));
         return presentation;
     }
@@ -582,6 +701,7 @@ public class SchemaDefinitionService {
         }
         validateValidationContract(validation, schemaId);
         validateQuantityDefinitions(definition, schemaId);
+        validateEntityContract(definition, schemaId);
         validateVisualization(definition.path("visualization"), schemaId);
         try {
             if (legacyInferredIdentity) schemaCompiler.compile(definition, schemaId);
@@ -699,6 +819,60 @@ public class SchemaDefinitionService {
                     || control.path("step").asDouble() <= 0) {
                 throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                         "Invalid adjustable parameter bounds: " + schemaId + "." + key);
+            }
+        }
+    }
+
+    private void validateEntityContract(JsonNode definition, String schemaId) {
+        JsonNode contract = definition.path("entityContract");
+        if (contract.isMissingNode() || contract.isNull()) return;
+        JsonNode types = contract.path("types");
+        if (!types.isArray() || types.isEmpty()) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Entity contract types are required: " + schemaId);
+        }
+        Set<String> entityTypes = new HashSet<>();
+        for (JsonNode entity : types) {
+            String type = entity.path("type").asText("").trim();
+            JsonNode minNode = entity.has("min") ? entity.get("min") : entity.get("minCount");
+            JsonNode maxNode = entity.has("max") ? entity.get("max") : entity.get("maxCount");
+            int min = minNode == null || minNode.isNull() ? 1 : minNode.asInt(-1);
+            int max = maxNode == null || maxNode.isNull() ? min : maxNode.asInt(-1);
+            if (type.isBlank() || !entityTypes.add(type) || min < 0 || max < min || max > 512
+                    || minNode != null && !minNode.isNull() && !minNode.isIntegralNumber()
+                    || maxNode != null && !maxNode.isNull() && !maxNode.isIntegralNumber()) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid entity type contract: " + schemaId);
+            }
+            Set<String> quantityKeys = new HashSet<>();
+            Set<String> quantityAliases = new HashSet<>();
+            validateEntityQuantities(entity.path("requiredQuantities"), schemaId, type, quantityKeys, quantityAliases);
+            validateEntityQuantities(entity.path("optionalQuantities"), schemaId, type, quantityKeys, quantityAliases);
+        }
+    }
+
+    private void validateEntityQuantities(JsonNode fields, String schemaId, String entityType,
+            Set<String> keys, Set<String> aliases) {
+        if (fields.isMissingNode() || fields.isNull()) return;
+        if (!fields.isArray()) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Entity quantities must be arrays: " + schemaId + "." + entityType);
+        }
+        for (JsonNode field : fields) {
+            String key = field.path("key").asText("").trim();
+            if (key.isBlank() || !keys.add(key.toLowerCase(java.util.Locale.ROOT))
+                    || !field.path(ALLOWED_UNITS).isArray() || field.path(ALLOWED_UNITS).isEmpty()) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Invalid entity quantity: " + schemaId + "." + entityType + "." + key);
+            }
+            for (JsonNode alias : field.path("aliases")) {
+                String value = alias.asText("").trim();
+                if (value.isBlank() || !aliases.add(value) || value.equals(key)) {
+                    throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                            "Duplicate entity quantity alias: " + schemaId + "." + entityType + "." + key);
+                }
+            }
+            if (field.path("positive").asBoolean(false) && field.path("nonNegative").asBoolean(false)) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Entity quantity cannot be both positive and nonNegative: " + schemaId + "." + key);
             }
         }
     }
