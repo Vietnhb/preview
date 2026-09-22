@@ -90,6 +90,7 @@ type LearningInspectorProps = {
   index: number;
   validData: boolean;
   dirty: boolean;
+  adjusting: boolean;
   savedItem: LibraryItem | null;
   error: string;
   exportError: string;
@@ -327,6 +328,7 @@ type LearningExperimentPanelProps = Pick<
   | "draft"
   | "dirty"
   | "error"
+  | "adjusting"
   | "onParamChange"
   | "onResetDraft"
   | "onInspectorChange"
@@ -339,6 +341,7 @@ function LearningExperimentPanel({
   draft,
   dirty,
   error,
+  adjusting,
   onParamChange,
   onResetDraft,
   onInspectorChange,
@@ -352,15 +355,16 @@ function LearningExperimentPanel({
           className="learn-icon-button"
           aria-label="Hoàn tác thông số"
           title="Hoàn tác về đề ban đầu"
-          disabled={!dirty}
+          disabled={!dirty || adjusting}
           onClick={onResetDraft}
         >
           <Icon name="reset" />
         </button>
       </div>
-      <p className="learn-note">
-        Kéo thanh trượt để thay đổi. Mô phỏng tự động cập nhật theo thời gian
-        thực.
+      <p className="learn-note" aria-live="polite">
+        {adjusting
+          ? "Đang tính lại mô phỏng… Vui lòng đợi."
+          : "Kéo thanh trượt để thay đổi. Mô phỏng tự động cập nhật theo thời gian thực."}
       </p>
       <div className="learn-parameters">
         {controls.map((control) => {
@@ -395,7 +399,7 @@ function LearningExperimentPanel({
                   min={control.min}
                   max={control.max}
                   value={draftValue}
-                  disabled={!validBounds}
+                  disabled={!validBounds || adjusting}
                   onChange={(event) =>
                     onParamChange(control.key, event.target.value)
                   }
@@ -409,7 +413,7 @@ function LearningExperimentPanel({
                 max={control.max}
                 step={control.step}
                 value={rangeValue}
-                disabled={!validBounds}
+                disabled={!validBounds || adjusting}
                 onChange={(event) =>
                   onParamChange(control.key, event.target.value)
                 }
@@ -830,6 +834,7 @@ type LearningInspectorBodyProps = Pick<
   | "draft"
   | "dirty"
   | "error"
+  | "adjusting"
   | "bottomTab"
   | "selectedSeries"
   | "allSeries"

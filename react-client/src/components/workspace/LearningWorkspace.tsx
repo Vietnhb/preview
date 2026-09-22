@@ -310,8 +310,8 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
               </div>}
 
               {/* Canvas viewport container */}
-              <div className="learn-canvas-container">
-                {simulationLoading && <div className="learn-simulation-loading" role="status" aria-live="polite"><span className="learn-loading-spinner" aria-hidden="true" />Đang mở simulation…</div>}
+              <div className="learn-canvas-container" aria-busy={simulationLoading || adjusting}>
+                {(simulationLoading || adjusting) && <div className="learn-simulation-loading" role="status" aria-live="polite"><span className="learn-loading-spinner" aria-hidden="true" />{adjusting ? "Đang cập nhật mô phỏng…" : "Đang mở simulation…"}</div>}
                 <div className="learn-canvas">
                   {canPlay ? <PhysicsScene simulation={simulation} index={index} overlays={overlays} time={time} seekRevision={seekRevision} playing={playing} speed={speed} onTimeChange={handleCanvasTimeChange} onPlaybackEnd={handlePlaybackEnd} />
                     : <div className="learn-blocked" role="alert"><Icon name="book" /><h2>{validData ? "Mô hình cần được kiểm tra lại" : "Chưa có đủ dữ liệu để quan sát"}</h2><p>Trở về đề bài, kiểm tra thông tin và chạy lại mô phỏng.</p><Link to="/workspace" className="learn-primary-link">Về đề bài <Icon name="arrow" /></Link></div>}
@@ -326,7 +326,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
 
               {/* Floating Playback Dock */}
               {canPlay && <div className="floating-playback-dock" aria-label="Điều khiển phát">
-                <button className="studio-play" onClick={togglePlayback} disabled={!canPlay} aria-label={playing ? "Tạm dừng" : "Chạy mô phỏng"}>
+                <button className="studio-play" onClick={togglePlayback} disabled={!canPlay || adjusting} aria-label={playing ? "Tạm dừng" : "Chạy mô phỏng"}>
                   {playing ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pause" aria-hidden="true">
                       <rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>
@@ -390,6 +390,7 @@ export default function LearningWorkspace({ simulation, problem, onUpdate, onNew
           index={index}
           validData={validData}
           dirty={dirty}
+          adjusting={adjusting}
           savedItem={savedItem}
           error={error}
           saveError={saveError}
