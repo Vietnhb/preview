@@ -280,23 +280,24 @@ function drawRuler(ctx: CanvasRenderingContext2D, node: SceneNode, layout: Layou
     : layout.baseline + 30;
   // Keep the scale below the actor/track while reserving enough room for its
   // labels on short canvases.
-  const y = Math.min(layout.height - 34, requestedY);
+  // Reserve room for both tick labels and the x0 label; otherwise the last
+  // line is clipped when the ruler is close to the bottom edge of the canvas.
+  const y = Math.max(18, Math.min(layout.height - 48, requestedY));
   const left = layout.mode === "springBench" ? layout.left + 130 : layout.left;
   ctx.save(); ctx.font = "600 10px ui-monospace, Consolas, monospace"; ctx.textAlign = "center";
   const unit = propertyString(node, "unit");
   const originSource = propertyString(node, "originSource");
   const originSeries = originSource ? data.series.get(originSource) : undefined;
   const originValue = originSeries?.[0];
-  const finalValue = originSeries?.[originSeries.length - 1];
-  const movesForward = typeof originValue === "number" && typeof finalValue === "number"
-    ? finalValue >= originValue
-    : true;
   const hasOrigin = typeof originValue === "number" && Number.isFinite(originValue)
     && originValue >= layout.xMin && originValue <= layout.xMax;
-  const rulerMin = hasOrigin && movesForward ? originValue : layout.xMin;
-  const rulerMax = hasOrigin && movesForward ? layout.xMax : hasOrigin ? originValue : layout.xMax;
-  const rulerLeft = hasOrigin && movesForward ? layout.mapX(originValue) : left;
-  const rulerRight = hasOrigin && !movesForward ? layout.mapX(originValue) : layout.right;
+  // The ruler is the scene's stable horizontal reference, not a segment that
+  // starts at the moving object. Keeping the full axis prevents ticks from
+  // collapsing to one side when the object travels farther after adjustment.
+  const rulerMin = layout.xMin;
+  const rulerMax = layout.xMax;
+  const rulerLeft = left;
+  const rulerRight = layout.right;
   const rulerSpan = Math.max(Number.EPSILON, rulerMax - rulerMin);
   for (let index = 0; index < count; index++) {
     const ratio = index / (count - 1);
