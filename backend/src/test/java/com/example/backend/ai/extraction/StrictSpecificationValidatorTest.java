@@ -331,6 +331,18 @@ class StrictSpecificationValidatorTest {
         StrictSpecificationValidator.validate(root);
     }
 
+    @Test
+    void rejectsUnboundActorVisualTargetsBeforeAssetSelection() throws Exception {
+        var root = mapper.readTree("""
+                {"contractVersion":"1.0","schemaVersion":"1.0","topic":"KINEMATICS","schemaId":"motion",
+                 "objects":[],"quantities":[],"relations":[],"confidence":1,"ambiguities":[],
+                 "endCondition":{"type":"time_limit","duration":1},
+                 "visualBindings":[{"targetId":"/presentation/actors/0","entityId":null,
+                   "assetId":"block-cyan","match":"SUBSTITUTE","sourceText":"một vật"}]}
+                """);
+        assertThrows(IllegalArgumentException.class, () -> StrictSpecificationValidator.validate(root));
+    }
+
     private SchemaRoutingDecision decisionFor(String schemaId, String schemaVersion, String topic, String name,
             com.fasterxml.jackson.databind.JsonNode definition) {
         CandidateContractProjection contract = CandidateContractProjection.from(

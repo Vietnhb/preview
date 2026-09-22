@@ -59,6 +59,8 @@ public final class StrictSpecificationValidator {
         if (root.has("visualBindings")) {
             array(root, "visualBindings");
             Set<String> targets = new HashSet<>();
+            Set<String> objectIds = new HashSet<>();
+            root.path("objects").forEach(object -> objectIds.add(object.path("id").asText()));
             for (JsonNode binding : root.path("visualBindings")) {
                 rejectUnknown(binding, Set.of("targetId", "entityId", "assetId", "match", "sourceText"), "visual binding");
                 requiredText(binding, "targetId");
@@ -66,8 +68,18 @@ public final class StrictSpecificationValidator {
                 optionalTextOrNull(binding, "entityId");
                 optionalTextOrNull(binding, "assetId");
                 optionalTextOrNull(binding, "sourceText");
-                if (!Set.of("EXACT", "SUBSTITUTE", "UNSUPPORTED", "OMITTED").contains(binding.path("match").asText())) {
+                String match = binding.path("match").asText();
+                if (!Set.of("EXACT", "SUBSTITUTE", "UNSUPPORTED", "OMITTED").contains(match)) {
                     fail("invalid visual match classification");
+                }
+                if (!"OMITTED".equals(match)) {
+                    String entityId = binding.path("entityId").asText("");
+                    if (entityId.isBlank()) {
+                        fail("Every non-omitted visual target must reference a physical object via entityId");
+                    }
+                    if (!objectIds.contains(entityId)) {
+                        fail("Visual binding entityId must exactly match an objects[].id in the same response");
+                    }
                 }
             }
         }

@@ -121,7 +121,29 @@ public final class JevSchemaRoutingService {
         }
         return "%s | topic=%s | model=%s | required quantities=%s | entity types=%s".formatted(
                 schema.getName(), schema.getTopic(), definition == null ? "" : definition.path("model").asText(schema.getSchemaId()),
-                quantities, entities);
+                quantities, entities) + " | visual actor capacity=" + visualActorCapacity(definition);
+    }
+
+    /**
+     * Exposes the renderer capacity to JEV without maintaining a schema-to-asset
+     * mapping. This lets routing reject a one-actor scene for a multi-body request
+     * before extraction can collapse several bodies into one label.
+     */
+    private int visualActorCapacity(com.fasterxml.jackson.databind.JsonNode definition) {
+        if (definition == null) return 0;
+        var presentation = definition.path("visualization").path("presentation");
+        if (presentation.path("actors").isArray()) return presentation.path("actors").size();
+        return countBodyNodes(presentation.path("sceneGraph").path("nodes"));
+    }
+
+    private int countBodyNodes(com.fasterxml.jackson.databind.JsonNode nodes) {
+        if (!nodes.isArray()) return 0;
+        int count = 0;
+        for (var node : nodes) {
+            if ("body".equals(node.path("type").asText())) count++;
+            count += countBodyNodes(node.path("children"));
+        }
+        return count;
     }
 
     private double clamp(double value) {

@@ -61,7 +61,10 @@ public final class JevSchemaClassifier {
                             "question", "How faithfully does this SVG depict any physical object or apparatus "
                                     + "described in the user's text? Judge appearance and the named object, not physics topic. "
                                     + "Unspecified generic bodies require SUBSTITUTE. Respect explicitly requested colors. "
-                                    + "Do not add apparatus not described in the text.",
+                                    + "Do not add apparatus not described in the text. If the text describes one or more "
+                                    + "moving bodies but does not specify their appearance, at least one actor SVG must be "
+                                    + "classified SUBSTITUTE; do not classify every actor candidate IRRELEVANT. "
+                                    + "A SUBSTITUTE is a catalog choice for teacher approval, not an invented physical fact.",
                             "asset", Map.of("label", asset.label(), "description", asset.description(), "kind", asset.kind())),
                     "criteria", Map.of(
                             "EXACT", "The SVG faithfully depicts an explicitly described object's appearance.",

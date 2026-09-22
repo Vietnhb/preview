@@ -223,6 +223,9 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 Each ambiguity must contain exactly: code, fieldPath, question, options.
                 Check every requiredQuantities entry: provide exactly one stated quantity or one ambiguity for it. Do not ask for optionalQuantities.
                 If an entityTypes contract is present, repeat that coverage for every returned object using its entity-local quantities array.
+                For every visualBindings entry whose match is not OMITTED, first include the represented physical object in objects with a stable unique id, then copy that exact id into entityId. Never return objects=[] when an actor target is present. Only decorative OMITTED props may use entityId=null.
+                If the original text says two or more physical bodies, enumerate them as separate objects; never use a single label such as 'hai vật' for multiple bodies. If the selected scene has fewer actor targets than the stated bodies, return a visualization entity-count ambiguity instead of merging or dropping objects.
+                For endCondition type time_limit, use the stated positive duration; if the teacher did not state one, use the candidate executionDurationSeconds as duration. Never emit a null, zero, NaN, or missing duration.
                 Preserve raw stated values and original units; do not add inferred values or explanatory fields.
                 """.formatted(detail).trim();
     }
@@ -292,7 +295,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
             objects.add(new PhysicalObject(object.id(), object.label(), object.type(), local));
         }
 
-        JsonNode endCondition = document.endCondition();
+        JsonNode endCondition = defaultTimeLimitWhenOmitted(document.endCondition(), schema);
         if (endCondition == null || endCondition.isNull()) throw new IllegalStateException("AI response is missing endCondition.");
         List<String> errors = EndConditionResolver.validateNode(endCondition,
                 schema.getDefinition().path("execution").path("durationSeconds").asDouble());
@@ -313,6 +316,23 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 schema.getSchemaId(), objects, quantities, document.relations(), endCondition,
                 clamp(document.confidence()), ambiguities, SpecificationDocument.CURRENT_SCHEMA_VERSION,
                 document.visualBindings());
+    }
+
+    /**
+     * A time limit without a teacher-provided duration uses the approved
+     * schema execution horizon. This is catalog configuration, not an AI
+     * inference. Explicit non-positive values remain invalid and are retried.
+     */
+    private JsonNode defaultTimeLimitWhenOmitted(JsonNode source, SchemaVersion schema) {
+        if (!(source instanceof com.fasterxml.jackson.databind.node.ObjectNode object)) return source;
+        if (!"time_limit".equalsIgnoreCase(object.path("type").asText())) return source;
+        JsonNode duration = object.get("duration");
+        if (duration != null && !duration.isNull()) return source;
+        double fallback = schema.getDefinition().path("execution").path("durationSeconds").asDouble(Double.NaN);
+        if (!Double.isFinite(fallback) || fallback <= 0) return source;
+        var normalized = object.deepCopy();
+        normalized.put("duration", fallback);
+        return normalized;
     }
 
     private List<PhysicalQuantity> normalizeEntityQuantities(List<PhysicalQuantity> source,
