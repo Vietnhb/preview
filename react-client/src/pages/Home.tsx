@@ -1,179 +1,250 @@
-import { Link, useNavigate } from "react-router-dom";
-import { getToken } from "../utils/token";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "motion/react";
+import { Link } from "react-router-dom";
+import { getRegistrationPlans, type LicensePlan } from "../api/authApi";
 import { usePhysliveStore } from "../store/usePhysliveStore";
-import LearningIcon from "../components/common/LearningIcon";
-import "../styles/home.css";
+import ProjectileExperiment from "../components/simulation/ProjectileExperiment";
+import s from "./Home.module.css";
 
-function Home() {
-  const navigate = useNavigate();
-  const token = getToken();
-  const user = usePhysliveStore((state) => state.user);
-  const isStudent = user?.role === "STUDENT";
+const money = (value: number) =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const count = (value: number) => value.toLocaleString("vi-VN");
+
+function Reveal({
+  children,
+  className = "",
+}: Readonly<{ children: ReactNode; className?: string }>) {
+  const prefersReducedMotion = Boolean(useReducedMotion());
+  return (
+    <motion.div
+      className={className}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+      whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.16 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function HomePlanCatalog() {
+  const [plans, setPlans] = useState<LicensePlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getRegistrationPlans()
+      .then((nextPlans) => {
+        if (active) setPlans(nextPlans);
+      })
+      .catch(() => {
+        if (active) setError("Không thể tải danh mục gói lúc này.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
-    <div className="home-page">
-      <main>
-        <section className="home-hero">
-          <div className="home-container home-hero-grid">
-            <div className="home-hero-copy">
-              <span className="home-eyebrow">PhysLive</span>
-              <h1>Vật lý, nhìn thấy được.</h1>
-              <p>
-                {isStudent
-                  ? "Làm bài được giao, gửi dự đoán và quan sát mô phỏng sau khi mở khóa."
-                  : "Tạo mô phỏng, thay đổi thông số và quan sát kết quả ngay trong Workspace."}
-              </p>
-              <div className="home-actions">
-                <button
-                  type="button"
-                  className="home-button home-button-primary"
-                  onClick={() =>
-                    navigate(
-                      user?.role === "STUDENT" ? "/assignments" : "/workspace",
-                    )
-                  }
-                >
-                  {user?.role === "STUDENT" ? "Xem bài tập" : "Mở Workspace"}{" "}
-                  <LearningIcon name="arrow" />
-                </button>
-                {user?.role === "STUDENT" && (
-                  <button
-                    type="button"
-                    className="home-button home-button-secondary"
-                    onClick={() => navigate("/community")}
-                  >
-                    Kho cộng đồng
-                  </button>
-                )}
-                {!token && (
-                  <button
-                    type="button"
-                    className="home-button home-button-secondary"
-                    onClick={() => navigate("/login")}
-                  >
-                    Đăng nhập
-                  </button>
-                )}
+    <div className={s.catalog} aria-live="polite">
+      {loading && (
+        <p className={s.state}>Đang tải danh mục gói từ cấu hình admin…</p>
+      )}
+      {!loading && error && (
+        <p className={s.error} role="status">
+          {error} Bạn vẫn có thể mở trang đăng ký để thử lại.
+        </p>
+      )}
+      {!loading && !error && plans.length === 0 && (
+        <p className={s.state}>Hiện chưa có gói đăng ký khả dụng.</p>
+      )}
+      {!loading && !error && plans.length > 0 && (
+        <div className={s.planList}>
+          {plans.map((plan) => (
+            <article className={s.planRow} key={plan.code}>
+              <div>
+                <span className={s.code}>{plan.code}</span>
+                <h3>{plan.name}</h3>
+                <p>{plan.description}</p>
               </div>
-              {user && (
-                <p className="home-welcome">Xin chào, {user.fullName}.</p>
-              )}
-            </div>
-
-            <div
-              className="home-simulation-card"
-              aria-label="Minh họa mô phỏng chuyển động"
-            >
-              <div className="home-card-heading">
-                <span>{isStudent ? "Mô phỏng lớp học" : "Workspace"}</span>
-                <span className="home-status">
-                  <i /> Đang chạy
-                </span>
-              </div>
-              <div className="home-simulation-stage">
-                <svg viewBox="0 0 440 220" aria-label="Đường đi của vật thể">
-                  <line
-                    x1="38"
-                    y1="184"
-                    x2="404"
-                    y2="184"
-                    className="home-axis"
-                  />
-                  <line
-                    x1="38"
-                    y1="30"
-                    x2="38"
-                    y2="184"
-                    className="home-axis"
-                  />
-                  <path
-                    d="M48 174 C126 160 176 118 230 112 S330 74 392 45"
-                    className="home-trajectory"
-                  />
-                  <circle cx="230" cy="112" r="7" className="home-point" />
-                </svg>
-              </div>
-              <div className="home-card-values">
+              <dl>
                 <div>
-                  <span>Vận tốc</span>
-                  <strong>12.5 m/s</strong>
+                  <dt>Giá năm</dt>
+                  <dd>{money(plan.annualPriceVnd)}</dd>
                 </div>
                 <div>
-                  <span>Gia tốc</span>
-                  <strong>2.0 m/s²</strong>
+                  <dt>Học sinh</dt>
+                  <dd>{count(plan.studentQuota)}</dd>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="home-features">
-          <div className="home-container">
-            <div className="home-section-heading">
-              <span className="home-eyebrow">Bắt đầu từ một thí nghiệm</span>
-              <h2>Các công cụ ở cùng một nơi</h2>
-            </div>
-            <div className="home-feature-grid">
-              {isStudent ? (
-                <>
-                  <article className="home-feature-card">
-                    <LearningIcon name="book" />
-                    <h3>Bài tập được giao</h3>
-                    <p>Xem các mô phỏng và câu hỏi giáo viên gửi cho bạn.</p>
-                  </article>
-                  <article className="home-feature-card">
-                    <LearningIcon name="check" />
-                    <h3>Dự đoán trước</h3>
-                    <p>Gửi câu trả lời trước khi xem kết quả mô phỏng.</p>
-                  </article>
-                  <article className="home-feature-card">
-                    <LearningIcon name="folder" />
-                    <h3>Tài nguyên lớp học</h3>
-                    <p>Chạy các mô phỏng đã được chia sẻ để tự luyện tập.</p>
-                  </article>
-                </>
-              ) : (
-                <>
-                  <article className="home-feature-card">
-                    <LearningIcon name="grid" />
-                    <h3>Tạo mô phỏng</h3>
-                    <p>
-                      Chọn một bài toán và bắt đầu từ các thông số cần thiết.
-                    </p>
-                  </article>
-                  <article className="home-feature-card">
-                    <LearningIcon name="sliders" />
-                    <h3>Chỉnh và quan sát</h3>
-                    <p>
-                      Thay đổi giá trị, chạy thử và xem chuyển động thay đổi ra
-                      sao.
-                    </p>
-                  </article>
-                  <article className="home-feature-card">
-                    <LearningIcon name="book" />
-                    <h3>Lưu để dùng tiếp</h3>
-                    <p>Lưu bài làm trong Workspace để mở lại khi cần.</p>
-                  </article>
-                </>
-              )}
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <footer className="home-footer">
-        <div className="home-container home-footer-inner">
-          <span className="home-footer-brand">
-            <img src="/favicon.ico" alt="" /> PhysLive
-          </span>
-          <nav aria-label="Liên kết chân trang">
-            <Link to="/about">Giới thiệu</Link>
-            <Link to="/terms">Điều khoản</Link>
-          </nav>
+                <div>
+                  <dt>Token AI</dt>
+                  <dd>
+                    {plan.monthlyTokenQuota === null
+                      ? "Không giới hạn"
+                      : count(plan.monthlyTokenQuota)}
+                  </dd>
+                </div>
+              </dl>
+            </article>
+          ))}
         </div>
-      </footer>
+      )}
     </div>
   );
 }
 
-export default Home;
+export default function Home() {
+  const user = usePhysliveStore((state) => state.user);
+  const reduced = useReducedMotion();
+  const { scrollYProgress } = useScroll();
+  const progress = useTransform(scrollYProgress, [0, 1], [0, 1]);
+
+  return (
+    <div className={s.home}>
+      {!reduced && (
+        <motion.div
+          className={s.progress}
+          style={{ scaleX: progress }}
+          aria-hidden="true"
+        />
+      )}
+      <main className={s.container}>
+        <section className={s.hero}>
+          <div>
+            <p className={s.kicker}>PHÒNG THÍ NGHIỆM SỐ</p>
+            <h1>
+              Vật lý,
+              <br />
+              <em>nhìn thấy được.</em>
+            </h1>
+          </div>
+          <div className={s.intro}>
+            <p>
+              Thay đổi điều kiện. <br />
+              Quan sát chuyển động. <br />
+              Hiểu điều đang xảy ra.
+            </p>
+            <a className={s.primary} href="#projectile-experiment">
+              Thử một thí nghiệm <span aria-hidden="true">↘</span>
+            </a>
+            <Link className={s.textLink} to="/signup">
+              Dành cho nhà trường ↗
+            </Link>
+            {user && (
+              <Link
+                className={s.textLink}
+                to={user.role === "STUDENT" ? "/assignments" : "/workspace"}
+              >
+                Tiếp tục học tập →
+              </Link>
+            )}
+          </div>
+        </section>
+        <div className={s.experiment}>
+          <ProjectileExperiment />
+        </div>
+        <section className={s.story}>
+          <p className={s.kicker}>02 / TỪ DỰ ĐOÁN ĐẾN BẰNG CHỨNG</p>
+          <Reveal className={s.storyCopy}>
+            <h2>
+              Một thay đổi nhỏ.
+              <br />
+              Một quỹ đạo khác.
+            </h2>
+            <p>
+              Giữ nguyên vận tốc. Chọn Đối chiếu để lưu quỹ đạo, rồi thay đổi
+              góc ném. Vật bay cao hơn có luôn bay xa hơn?
+            </p>
+            <a className={s.textLink} href="#projectile-experiment">
+              Kiểm tra dự đoán của bạn ↑
+            </a>
+          </Reveal>
+        </section>
+        <section className={s.school}>
+          <div>
+            <p className={s.kicker}>03 / DẠY VÀ HỌC</p>
+            <h2>
+              Cho câu hỏi
+              <br />
+              một nơi để thử.
+            </h2>
+            <Link className={s.textLink} to="/workspace">
+              Mở Workspace thực tế ↗
+            </Link>
+          </div>
+          <ol className={s.tasks}>
+            <li>
+              <span>01</span>
+              <div>
+                <h3>Dự đoán</h3>
+                <p>Đặt câu hỏi về một đại lượng trước khi chạy thí nghiệm.</p>
+              </div>
+            </li>
+            <li>
+              <span>02</span>
+              <div>
+                <h3>Thử nghiệm</h3>
+                <p>
+                  Thay đổi điều kiện đầu vào, quan sát chuyển động và ghi lại số
+                  đo.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span>03</span>
+              <div>
+                <h3>Giải thích</h3>
+                <p>
+                  Đối chiếu kết quả với mô hình. Nêu giả thiết và giới hạn của
+                  lời giải.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </section>
+        <section className={s.plans} aria-labelledby="home-plans-title">
+          <div className={s.planHeading}>
+            <div>
+              <p className={s.kicker}>04 / DÀNH CHO NHÀ TRƯỜNG</p>
+              <h2 id="home-plans-title">
+                Không gian cho
+                <br />
+                những khám phá mới.
+              </h2>
+            </div>
+            <Link className={s.primary} to="/signup">
+              Chọn gói cho trường ↗
+            </Link>
+          </div>
+          <HomePlanCatalog />
+        </section>
+      </main>
+      <footer className={s.footer}>
+        <div>
+          <strong>PhysLive</strong>
+          <span>Vật lý, nhìn thấy được.</span>
+        </div>
+        <nav aria-label="Liên kết chân trang">
+          <Link to="/about">Giới thiệu</Link>
+          <Link to="/terms">Điều khoản</Link>
+          <Link to="/signup">Đăng ký cho trường</Link>
+        </nav>
+      </footer>
+    </div>
+  );
+}

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { createSchoolCheckout, getRegistrationPlans, type LicensePlan } from "../../api/authApi";
+import PlanCard from "../../components/billing/PlanCard";
 import "../../styles/account.css";
 
 const money = (value: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
@@ -50,12 +51,7 @@ export default function Signup() {
       {error && <div className="school-signup-error" role="alert">{error}{step === 0 && <button type="button" onClick={() => void loadPlans()}>Thử lại</button>}</div>}
       {step === 0 ? <section aria-labelledby="plans-heading">
         <div className="school-signup-section-heading"><div><h2 id="plans-heading">Một gói cho cả nhà trường</h2><p>Thanh toán theo năm. Quota AI tính theo token thực tế.</p></div><span className="school-signup-billing">Gói năm</span></div>
-        {loading ? <p role="status">Đang tải các gói…</p> : plans.length === 0 ? <p>Chưa có gói đăng ký khả dụng.</p> : <div className="school-signup-plans" role="radiogroup" aria-label="Gói đăng ký">{plans.map(plan => <label key={plan.code} className={`school-signup-plan ${selected?.code === plan.code ? "is-selected" : ""}`}>
-          <div className="school-signup-plan-title"><h3>{plan.name}</h3><input type="radio" name="plan" value={plan.code} checked={selected?.code === plan.code} onChange={() => field("planCode", plan.code)} /></div><p>{plan.description}</p>
-          <div className="school-signup-price">{money(plan.annualPriceVnd)}<span>/ năm</span></div>
-          <ul><li><span aria-hidden="true">✓</span><strong>{count(plan.studentQuota)}</strong> học sinh</li><li><span aria-hidden="true">✓</span>{plan.monthlyTokenQuota === null ? "Token AI không giới hạn" : `${count(plan.monthlyTokenQuota)} token AI / tháng`}</li><li><span aria-hidden="true">✓</span>Giáo viên và lớp học không giới hạn</li><li><span aria-hidden="true">✓</span>Học sinh chạy mô phỏng miễn phí</li></ul>
-          <span className="school-signup-plan-select">{selected?.code === plan.code ? "Đã chọn gói" : "Chọn gói này"}</span>
-        </label>)}</div>}
+        {loading ? <p role="status">Đang tải các gói…</p> : plans.length === 0 ? <p>Chưa có gói đăng ký khả dụng.</p> : <div className="school-signup-plans" role="radiogroup" aria-label="Gói đăng ký">{plans.map(plan => <PlanCard key={plan.code} plan={plan} name="plan" selected={selected?.code === plan.code} onSelect={(code) => field("planCode", code)} />)}</div>}
         <div className="school-signup-bottom"><p>Giáo viên và học sinh nhận tài khoản từ quản lý trường.</p><button type="button" className="school-signup-primary" disabled={!selected || loading} onClick={() => setStep(1)}>Tiếp tục <span aria-hidden="true">→</span></button></div>
       </section> : <div className="school-signup-layout"><section className="school-signup-card">
         {step === 1 ? <form onSubmit={next}>

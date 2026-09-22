@@ -1,16 +1,16 @@
-.learning-navbar { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid #e5e7eb; background: rgba(255,255,255,.8); box-shadow: 0 4px 12px rgba(15,23,42,.08); backdrop-filter: blur(12px); }
+.learning-navbar { position: sticky; top: 0; z-index: 50; border-bottom: 0; background: #ffdb2a; color: #0e1312; box-shadow: none; }
 .learning-nav-container { width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 16px; }
 .learning-nav-inner { display: flex; height: 64px; align-items: center; justify-content: space-between; gap: 12px; }
-.learning-brand { display: flex; min-width: 0; flex-shrink: 0; align-items: center; gap: 8px; white-space: nowrap; color: #111827; font-size: 20px; font-weight: 700; letter-spacing: -.025em; text-decoration: none; transition: color .18s; }
-.learning-brand:hover { color: #2563eb; }
+.learning-brand { display: flex; min-width: 0; flex-shrink: 0; align-items: center; gap: 8px; white-space: nowrap; color: #0e1312; font-size: 20px; font-weight: 800; letter-spacing: -.04em; text-decoration: none; transition: opacity .18s; }
+.learning-brand:hover { color: #0e1312; opacity: .72; }
 .learning-brand img { width: 36px; height: 36px; border-radius: 6px; background: #fff; padding: 2px; object-fit: contain; box-shadow: 0 1px 4px rgba(15,23,42,.08); }
 .learning-desktop-nav { display: none; align-items: center; gap: 8px; }
-.learning-nav-link { display: inline-flex; align-items: center; gap: 6px; padding: 1px 4px; white-space: nowrap; color: #374151; font-size: 14px; font-weight: 500; text-decoration: none; transition: color .18s; }
-.learning-nav-link:hover { color: #2563eb; }
+.learning-nav-link { display: inline-flex; align-items: center; gap: 6px; padding: 1px 4px; white-space: nowrap; color: #0e1312; font-size: 12px; font-weight: 700; text-decoration: none; transition: opacity .18s; }
+.learning-nav-link:hover { color: #0e1312; opacity: .62; }
 .learning-nav-link .learn-icon { width: 16px; height: 16px; }
 .learning-theme-anchor { position: relative; display: inline-flex; }
-.learning-icon-button { display: inline-flex; width: 36px; height: 36px; min-height: 36px; align-items: center; justify-content: center; padding: 0 !important; border: 0; border-radius: 6px; background: transparent !important; color: #eab308; cursor: pointer; }
-.learning-icon-button:hover { background: #f3f4f6 !important; }
+.learning-icon-button { display: inline-flex; width: 36px; height: 36px; min-height: 36px; align-items: center; justify-content: center; padding: 0 !important; border: 0; border-radius: 2px; background: transparent !important; color: #0e1312; cursor: pointer; }
+.learning-icon-button:hover { background: rgb(14 19 18 / 10%) !important; }
 .learning-icon-button .learn-icon { width: 20px; height: 20px; }
 .learning-theme-menu { position: absolute; top: 40px; right: 0; z-index: 80; display: grid; min-width: 128px; gap: 2px; padding: 4px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; box-shadow: 0 8px 16px rgba(15,23,42,.12); }
 .learning-theme-menu button { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 6px 8px !important; border: 0; border-radius: 4px; background: transparent !important; color: #374151; font-size: 13px; font-weight: 500; text-align: left; }
@@ -25,11 +25,11 @@
 .learning-avatar { display: grid; width: 32px; height: 32px; place-items: center; overflow: hidden; border: 1px solid #d1d5db; border-radius: 50%; background: #3347a8; color: #fff; font-size: 12px; font-weight: 700; }
 .learning-auth-button { display: inline-flex; min-height: 32px; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #374151; font-size: 12px; font-weight: 500; text-decoration: none; cursor: pointer; transition: color .18s, background .18s, border-color .18s; }
 .learning-auth-button:hover { border-color: #93c5fd; background: #eff6ff; color: #2563eb; }
-.learning-auth-button-primary { border-color: #2563eb; background: #2563eb; color: #fff; font-weight: 600; }
-.learning-auth-button-primary:hover { border-color: #1d4ed8; background: #1d4ed8; color: #fff; }
+.learning-auth-button-primary { border-color: #0e1312; background: #0e1312; color: #ededec; font-weight: 700; }
+.learning-auth-button-primary:hover { border-color: #29302e; background: #29302e; color: #ededec; }
 .learning-auth-button .learn-icon { width: 16px; height: 16px; }
 .learning-mobile-nav { display: flex; align-items: center; gap: 8px; }
-.learning-mobile-menu-button { display: inline-flex; width: 36px; height: 36px; min-height: 36px; align-items: center; justify-content: center; padding: 0 !important; border: 1px solid #d1d5db; border-radius: 6px; background: #fff !important; color: #374151; cursor: pointer; }
+.learning-mobile-menu-button { display: inline-flex; width: 36px; height: 36px; min-height: 36px; align-items: center; justify-content: center; padding: 0 !important; border: 1px solid #0e1312; border-radius: 2px; background: #0e1312 !important; color: #ededec; cursor: pointer; }
 .learning-mobile-menu-button .learn-icon { width: 20px; height: 20px; }
 .learning-mobile-menu { position: absolute; top: 64px; right: 16px; z-index: 70; display: grid; width: 240px; gap: 2px; padding: 4px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; box-shadow: 0 8px 20px rgba(15,23,42,.14); }
 .learning-mobile-menu .learning-nav-link, .learning-mobile-logout { min-height: 36px; padding: 7px 8px; border-radius: 4px; }
