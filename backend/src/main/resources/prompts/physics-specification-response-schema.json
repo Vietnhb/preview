@@ -115,7 +115,22 @@
         },
         "required": ["code", "fieldPath", "question", "options"]
       }
+    },
+    "visualBindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "targetId": { "type": "string" },
+          "entityId": { "type": ["string", "null"] },
+          "assetId": { "type": ["string", "null"] },
+          "match": { "type": "string", "enum": ["EXACT", "SUBSTITUTE", "UNSUPPORTED", "OMITTED"] },
+          "sourceText": { "type": ["string", "null"] }
+        },
+        "required": ["targetId", "entityId", "assetId", "match", "sourceText"]
+      }
     }
   },
-  "required": ["contractVersion", "schemaVersion", "topic", "schemaId", "objects", "quantities", "relations", "endCondition", "confidence", "ambiguities"]
+  "required": ["contractVersion", "schemaVersion", "topic", "schemaId", "objects", "quantities", "relations", "endCondition", "confidence", "ambiguities", "visualBindings"]
 }

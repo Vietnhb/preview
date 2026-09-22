@@ -4,13 +4,21 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.example.backend.simulation.assets.AssetRoutingDecision;
+
 /** Bounded route decision. Candidate identities stay pinned through extraction retries. */
 public record SchemaRoutingDecision(
         Status status,
         String reasonCode,
         List<SchemaCandidate> candidates,
         double confidence,
-        double margin) {
+        double margin,
+        AssetRoutingDecision assets) {
+    public SchemaRoutingDecision(Status status, String reasonCode, List<SchemaCandidate> candidates,
+            double confidence, double margin) {
+        this(status, reasonCode, candidates, confidence, margin, null);
+    }
+
     public SchemaRoutingDecision {
         Objects.requireNonNull(status, "status");
         if (reasonCode == null || reasonCode.isBlank()) throw new IllegalArgumentException("reasonCode is required");
@@ -24,6 +32,10 @@ public record SchemaRoutingDecision(
 
     public Optional<SchemaCandidate> selectedCandidate() {
         return status == Status.SELECTED ? Optional.of(candidates.getFirst()) : Optional.empty();
+    }
+
+    public List<SchemaCandidate> extractionCandidates() {
+        return selectedCandidate().map(List::of).orElse(candidates);
     }
 
     public enum Status { SELECTED, AMBIGUOUS }

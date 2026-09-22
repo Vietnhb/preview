@@ -59,6 +59,7 @@ class SimulationServiceLegacyBoundaryTest {
         specification.setId(specificationId);
         specification.setSchemaId("current_untyped_model");
         specification.setSchemaVersion("2.0");
+        com.example.backend.simulation.assets.AssetSelectionFixtures.approve(specification, mapper);
         specification.setConfirmationState(ConfirmationState.CONFIRMED);
         JsonNode input = mapper.readTree("{\"quantities\":[],\"relations\":[]}");
         SchemaVersion schema = schema("current_untyped_model", "2.0", "TEST");
@@ -106,6 +107,7 @@ class SimulationServiceLegacyBoundaryTest {
         specification.setId(specificationId);
         specification.setSchemaId("motion_2d");
         specification.setSchemaVersion("1.0");
+        com.example.backend.simulation.assets.AssetSelectionFixtures.approve(specification, mapper);
         specification.setConfirmationState(ConfirmationState.CONFIRMED);
         JsonNode input = mapper.readTree("{\"quantities\":[],\"relations\":[]}");
 

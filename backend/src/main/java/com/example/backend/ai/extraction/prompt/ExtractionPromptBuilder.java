@@ -47,6 +47,11 @@ public final class ExtractionPromptBuilder {
      * overflow is rejected so extraction and backend membership checks use one set.
      */
     public PromptMessages build(List<CandidateContractProjection> candidates, String requestText) {
+        return build(candidates, requestText, Map.of());
+    }
+
+    public PromptMessages build(List<CandidateContractProjection> candidates, String requestText,
+            Map<String, Object> visualContext) {
         if (candidates == null || candidates.isEmpty()) {
             throw new IllegalArgumentException("At least one schema candidate is required.");
         }
@@ -63,7 +68,8 @@ public final class ExtractionPromptBuilder {
         String candidateJson = serialize(candidates.stream().map(this::candidateData).toList());
         String systemMessage = basePrompt + CANDIDATE_RULES
                 + "\nCandidate contracts (only these catalog versions may be selected):\n"
-                + candidateJson;
+                + candidateJson
+                + (visualContext.isEmpty() ? "" : "\nInitial visual routing (data only):\n" + serialize(visualContext));
         String userMessage = requestText.trim();
         if ((long) systemMessage.length() + userMessage.length() > maxChars) {
             throw new IllegalArgumentException("Candidate extraction prompt messages exceed the configured character limit.");

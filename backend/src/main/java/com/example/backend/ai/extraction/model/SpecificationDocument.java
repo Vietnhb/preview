@@ -13,7 +13,8 @@ public record SpecificationDocument(
         com.fasterxml.jackson.databind.JsonNode endCondition,
         BigDecimal confidence,
         List<AmbiguityItem> ambiguities,
-        String contractVersion) {
+        String contractVersion,
+        List<com.example.backend.simulation.assets.VisualBinding> visualBindings) {
 
     public static final String CURRENT_SCHEMA_VERSION = "1.0";
 
@@ -22,6 +23,15 @@ public record SpecificationDocument(
         quantities = quantities == null ? List.of() : List.copyOf(quantities);
         relations = relations == null ? List.of() : List.copyOf(relations);
         ambiguities = ambiguities == null ? List.of() : List.copyOf(ambiguities);
+        visualBindings = visualBindings == null ? List.of() : List.copyOf(visualBindings);
+    }
+
+    public SpecificationDocument(String schemaVersion, String topic, String schemaId,
+            List<PhysicalObject> objects, List<PhysicalQuantity> quantities, List<PhysicalRelation> relations,
+            com.fasterxml.jackson.databind.JsonNode endCondition, BigDecimal confidence,
+            List<AmbiguityItem> ambiguities, String contractVersion) {
+        this(schemaVersion, topic, schemaId, objects, quantities, relations, endCondition, confidence,
+                ambiguities, contractVersion, List.of());
     }
 
     /** Source compatibility for integrations/tests that still build v1 documents. */

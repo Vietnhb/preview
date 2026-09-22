@@ -67,7 +67,8 @@ public class ProblemResponseMapper {
                 specification.getSchemaId(),
                 specification.getValidationStatus(),
                 specification.getValidationResult(),
-                specification.getCreatedAt());
+                specification.getCreatedAt(),
+                specification.getAssetSelection());
     }
 
     private java.util.List<String> endConditionCapabilities(Specification specification) {

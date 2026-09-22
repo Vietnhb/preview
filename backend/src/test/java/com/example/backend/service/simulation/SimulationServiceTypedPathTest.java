@@ -55,6 +55,7 @@ class SimulationServiceTypedPathTest {
         specification.setSchemaId("ac_waveform");
         specification.setSchemaVersion("1.0");
         specification.setConfirmationState(ConfirmationState.CONFIRMED);
+        com.example.backend.simulation.assets.AssetSelectionFixtures.approve(specification, mapper);
 
         SchemaVersion schema = new SchemaVersion();
         schema.setSchemaId("ac_waveform");
@@ -134,6 +135,12 @@ class SimulationServiceTypedPathTest {
         var response = service.run(new SimulationRequest(specificationId, Map.of()));
 
         assertTrue(response.success());
+        assertEquals("fixture", response.visualization().path("scene").asText());
+        assertEquals(response.visualization(), response.rawResult().path("visualization"));
+        ((com.fasterxml.jackson.databind.node.ObjectNode) specification.getAssetSelection()).put("status", "REJECTED");
+        org.junit.jupiter.api.Assertions.assertThrows(com.example.backend.exception.ApiException.class,
+                () -> service.run(new SimulationRequest(specificationId, Map.of())));
+        verify(runs, org.mockito.Mockito.times(1)).save(any(SimulationRun.class));
         assertTrue(response.validationPassed());
         assertEquals(runId, response.simulationRunId());
         assertEquals(5, response.time().size());

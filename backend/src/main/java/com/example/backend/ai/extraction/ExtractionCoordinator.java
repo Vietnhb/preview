@@ -38,6 +38,7 @@ public class ExtractionCoordinator {
                 provider.modelVersion(),
                 result.rawResponse(),
                 null,
-                routingDecision);
+                routingDecision,
+                result.assetSelection());
     }
 }

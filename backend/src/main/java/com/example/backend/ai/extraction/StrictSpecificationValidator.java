@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 /** Validates the provider JSON shape before Jackson binds it to domain records. */
 public final class StrictSpecificationValidator {
     private static final Set<String> ROOT_FIELDS = Set.of("contractVersion", "schemaVersion", "topic", "schemaId", "objects",
-            "quantities", "relations", "endCondition", "confidence", "ambiguities");
+            "quantities", "relations", "endCondition", "confidence", "ambiguities", "visualBindings");
     private static final Set<String> OBJECT_FIELDS = Set.of("id", "label", "type", "quantities");
     private static final Set<String> QUANTITY_FIELDS = Set.of("name", "symbol", "value", "originalUnit",
             "confidence", "sourceText");
@@ -56,6 +56,21 @@ public final class StrictSpecificationValidator {
         validateQuantities(root.path("quantities"));
         validateRelations(root.path("relations"));
         validateAmbiguities(root.path("ambiguities"));
+        if (root.has("visualBindings")) {
+            array(root, "visualBindings");
+            Set<String> targets = new HashSet<>();
+            for (JsonNode binding : root.path("visualBindings")) {
+                rejectUnknown(binding, Set.of("targetId", "entityId", "assetId", "match", "sourceText"), "visual binding");
+                requiredText(binding, "targetId");
+                if (!targets.add(binding.path("targetId").asText())) fail("duplicate visual target");
+                optionalTextOrNull(binding, "entityId");
+                optionalTextOrNull(binding, "assetId");
+                optionalTextOrNull(binding, "sourceText");
+                if (!Set.of("EXACT", "SUBSTITUTE", "UNSUPPORTED", "OMITTED").contains(binding.path("match").asText())) {
+                    fail("invalid visual match classification");
+                }
+            }
+        }
         if (!root.path("endCondition").isObject()) fail("endCondition must be an object");
         validateEndCondition(root.path("endCondition"));
     }

@@ -24,14 +24,28 @@ export type ResolvedEnd = {
 
 export type Ambiguity = { id?: string; code: string; fieldPath?: string; field?: string; question: string; options?: string[]; status?: string; resolution?: string; resolvedAt?: string };
 export type ConversationMessage = { id: string; role: "user" | "assistant"; text: string };
+export type AssetSelection = {
+  id: string;
+  status: "READY" | "NEEDS_CONFIRMATION" | "REJECTED" | "UNSUPPORTED";
+  choices: {
+    targetId: string;
+    entityId: string;
+    entityLabel: string;
+    assetId: string | null;
+    assetLabel: string | null;
+    match: string;
+    requiresConfirmation: boolean;
+  }[];
+};
 export type VisualizationControl = { key: string; label: string; symbol: string; unit: string; min: number; max: number; step: number };
 export type VisualizationSeries = { key: string; source: string; label: string; symbol: string; unit: string; color: string };
 export type VisualizationActor = {
   id: string;
   /** @deprecated Legacy wire field; use assetHint. */
   asset?: string;
-  /** Semantic asset hint resolved against the reviewed SVG catalog. */
+  /** Exact backend-selected SVG ID. Legacy exact aliases remain readable. */
   assetHint?: string;
+  effects?: string[];
   x: string;
   y?: string;
   vx?: string;
@@ -47,7 +61,7 @@ export type VisualizationPresentation = {
   /** Frontend layout capability; absent means the renderer chooses dataPlane. */
   layout?: "dataPlane" | "lanes" | "horizontalTrack" | "projectileRange" | "collisionTrack" | "springBench" | "circuitBoard" | "world";
   actors?: VisualizationActor[];
-  /** Semantic prop hints approved by the backend visual intent contract. */
+  /** Exact backend-selected SVG IDs for apparatus. */
   props?: string[];
   /** Renderer capability ids; never inferred from physics text on the client. */
   effects?: string[];
@@ -152,6 +166,7 @@ export type Specification = {
   id?: string; schemaVersion?: string; schemaId?: string; topic?: string; confidence: number;
   objects: unknown[]; quantities: Quantity[]; relations: unknown[]; endCondition?: EndCondition | null; ambiguity?: unknown;
   endConditionCapabilities?: string[];
+  assetSelection?: AssetSelection | null;
   ambiguityCases?: Ambiguity[]; ambiguities?: Ambiguity[]; confirmationState: string; validationStatus?: string; validationResult?: unknown;
 };
 export type Problem = { id: string; editableText?: string; originalText?: string; sourceMode: string; status: string; currentSpecification?: Specification; sourceAssets?: { id: string; originalFilename: string }[] };

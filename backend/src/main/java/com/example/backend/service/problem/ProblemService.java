@@ -198,6 +198,9 @@ public class ProblemService {
                     || !input.ownerId().equals(currentUserService.requireCurrentUser().getId())) {
                 throw new ApiException(HttpStatus.NOT_FOUND, "Problem not found");
             }
+            if (!input.text().equals(problem.getEditableText())) {
+                throw new ApiException(HttpStatus.CONFLICT, "Đề bài đã được chỉnh sửa trong lúc phân tích. Hãy phân tích lại.");
+            }
             ExtractionRun run = extractionRunRepository.findById(input.runId())
                     .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Extraction run not found"));
             if (run.getStatus() != ExtractionRunStatus.RUNNING) {
@@ -205,6 +208,7 @@ public class ProblemService {
             }
             applyResult(run, result);
             Specification specification = createSpecification(problem, run, result.document());
+            specification.setAssetSelection(result.assetSelection());
             readinessService.ensureRequiredAmbiguities(specification);
             specificationRepository.save(specification);
             problem.setCurrentSpecification(specification);

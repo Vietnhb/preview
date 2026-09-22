@@ -49,3 +49,9 @@ export const problemHistory = (page = 0, size = 20) =>
 
 export const getSpecification = (specificationId: string) => 
   axiosClient.get<Specification>(`/specifications/${specificationId}`).then(r => r.data);
+
+export const decideAssets = (specificationId: string, selectionId: string, accepted: boolean) =>
+  axiosClient.post<Specification>(`/specifications/${specificationId}/assets/decision`, {
+    selectionId,
+    accepted,
+  }).then(r => r.data);

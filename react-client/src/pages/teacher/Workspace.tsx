@@ -12,6 +12,7 @@ import {
   confirmProblem,
   createProblem,
   createProblemFromImage,
+  decideAssets,
   extractProblem,
   updateProblemText,
 } from "../../api/problemApi";
@@ -139,9 +140,11 @@ export default function Workspace() {
   const [sourceFileError, setSourceFileError] = useState("");
   const [recent, setRecent] = useState<SimulationSummary[]>([]);
   const [pendingProblem, setPendingProblem] = useState<Problem | null>(null);
+  const [assetProblem, setAssetProblem] = useState<Problem | null>(null);
   const [ocrReviewRequired, setOcrReviewRequired] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const requestInFlight = useRef(false);
   const [historyLoading, setHistoryLoading] = useState(Boolean(token));
   const [historyError, setHistoryError] = useState(false);
   const [historyAttempt, setHistoryAttempt] = useState(0);
@@ -212,6 +215,7 @@ export default function Workspace() {
       setComposerOrigin(null);
       setComposerOpen(false);
       setPendingProblem(null);
+      setAssetProblem(null);
       setSimulationLoadingId(null);
       setOpeningLibraryId(null);
       setOpeningRecentId(null);
@@ -229,6 +233,7 @@ export default function Workspace() {
         setComposerOrigin(null);
         setComposerOpen(false);
         setPendingProblem(null);
+        setAssetProblem(null);
       })
       .catch(() => {
         if (!active) return;
@@ -372,6 +377,7 @@ export default function Workspace() {
 
   /** Open a fresh three-column workspace for creating a simulation. */
   const openComposer = () => {
+    if (requestInFlight.current) return;
     setSimulationLoadingId(null);
     setOpeningLibraryId(null);
     setOpeningRecentId(null);
@@ -381,6 +387,7 @@ export default function Workspace() {
     setSimulation(null);
     setProblem(null);
     setPendingProblem(null);
+    setAssetProblem(null);
     setOcrReviewRequired(false);
     setAnswers({});
     setAmbiguityStep(0);
@@ -394,7 +401,7 @@ export default function Workspace() {
   };
 
   const closeComposer = () => {
-    if (loading) return;
+    if (requestInFlight.current) return;
     if (composerOrigin) {
       updateSimulationUrl(composerOrigin.simulation.simulationId);
       setSelectedSimulationId(composerOrigin.simulation.simulationId);
@@ -407,6 +414,7 @@ export default function Workspace() {
     setComposerOrigin(null);
     setComposerOpen(false);
     setPendingProblem(null);
+    setAssetProblem(null);
     setOcrReviewRequired(false);
     setAnswers({});
     setAmbiguityStep(0);
@@ -418,7 +426,10 @@ export default function Workspace() {
   };
 
   const resetComposer = () => {
+    if (requestInFlight.current) return;
     setPendingProblem(null);
+    setAssetProblem(null);
+    setProblem(null);
     setOcrReviewRequired(false);
     setAnswers({});
     setAmbiguityStep(0);
@@ -450,6 +461,7 @@ export default function Workspace() {
     simulationId: string,
     source: "library" | "recent",
   ): boolean => {
+    if (requestInFlight.current) return false;
     updateSimulationUrl(simulationId);
     if (simulationLoadingId || selectedSimulationId === simulationId)
       return false;
@@ -479,6 +491,17 @@ export default function Workspace() {
     if (!specification?.id || !specification.schemaId) {
       throw new Error("AI chưa trả về ngữ cảnh hợp lệ cho đề bài này.");
     }
+    if (openAmbiguities(resolvedProblem).length > 0) {
+      setAssetProblem(null);
+      setPendingProblem(resolvedProblem);
+      setStage("");
+      return;
+    }
+    setAssetProblem(resolvedProblem);
+    if (specification.assetSelection?.status !== "READY") {
+      setStage("");
+      return;
+    }
     setStage("Đang chạy kiểm thử và đối chiếu kết quả…");
     const result = await runSimulation(
       specification.id,
@@ -507,6 +530,7 @@ export default function Workspace() {
     ]);
     setComposerOrigin(null);
     setPendingProblem(null);
+    setAssetProblem(null);
     setAnswers({});
     setDescription("");
     setSourceFile(null);
@@ -523,6 +547,7 @@ export default function Workspace() {
       throw new Error("AI chưa trả về ngữ cảnh hợp lệ cho đề bài này.");
     }
     setProblem(extracted);
+    setAssetProblem(null);
     const missingAmbiguities = openAmbiguities(extracted);
     if (missingAmbiguities.length > 0) {
       setPendingProblem(extracted);
@@ -538,7 +563,8 @@ export default function Workspace() {
   const confirmOcrReview = async (event: FormEvent) => {
     event.preventDefault();
     const text = description.trim();
-    if (!problem?.id || !text || loading) return;
+    if (!problem?.id || !text || requestInFlight.current) return;
+    requestInFlight.current = true;
     setLoading(true);
     setError("");
     appendConversationMessage("user", text);
@@ -553,6 +579,7 @@ export default function Workspace() {
       setError(apiMessage(requestError));
       setStage("");
     } finally {
+      requestInFlight.current = false;
       setLoading(false);
     }
   };
@@ -560,11 +587,13 @@ export default function Workspace() {
   const create = async (event: FormEvent) => {
     event.preventDefault();
     const text = description.trim();
-    if ((!text && !sourceFile) || loading) return;
+    if ((!text && !sourceFile) || requestInFlight.current) return;
     if (!token) {
       setError("Bạn cần đăng nhập để dùng AI Problem Understanding.");
       return;
     }
+    requestInFlight.current = true;
+    setAssetProblem(null);
     setLoading(true);
     setError("");
     const promptMessage = [
@@ -597,13 +626,14 @@ export default function Workspace() {
       setError(apiMessage(requestError));
       setStage("");
     } finally {
+      requestInFlight.current = false;
       setLoading(false);
     }
   };
 
   const confirmAmbiguities = async (event: FormEvent) => {
     event.preventDefault();
-    if (!pendingProblem || !activeAmbiguity || loading || questionTyping)
+    if (!pendingProblem || !activeAmbiguity || requestInFlight.current || questionTyping)
       return;
     if (!answers[activeAmbiguity.code]?.trim()) {
       setError("Hãy trả lời câu hỏi hiện tại trước khi tiếp tục.");
@@ -622,6 +652,7 @@ export default function Workspace() {
       setAmbiguityStep((step) => step + 1);
       return;
     }
+    requestInFlight.current = true;
     setLoading(true);
     setError("");
     setStage("Đang cập nhật yêu cầu…");
@@ -651,6 +682,32 @@ export default function Workspace() {
       setError(apiMessage(requestError));
       setStage("");
     } finally {
+      requestInFlight.current = false;
+      setLoading(false);
+    }
+  };
+
+  const continueWithAssets = async (accepted?: boolean) => {
+    const specification = assetProblem?.currentSpecification;
+    const selection = specification?.assetSelection;
+    if (!assetProblem || !specification?.id || !selection || requestInFlight.current) return;
+    if (accepted === undefined ? selection.status !== "READY" : selection.status !== "NEEDS_CONFIRMATION") return;
+    requestInFlight.current = true;
+    setLoading(true);
+    setError("");
+    try {
+      const resolved = accepted === undefined ? assetProblem : {
+        ...assetProblem,
+        currentSpecification: await decideAssets(specification.id, selection.id, accepted),
+      };
+      setProblem(resolved);
+      setAssetProblem(resolved);
+      if (accepted !== false) await finishSimulation(resolved);
+    } catch (requestError) {
+      setError(apiMessage(requestError));
+      setStage("");
+    } finally {
+      requestInFlight.current = false;
       setLoading(false);
     }
   };
@@ -663,6 +720,9 @@ export default function Workspace() {
     sourceFileError,
     onSourceFileChange: handleSourceFileChange,
     pendingProblem,
+    assetProblem,
+    onAssetDecision: (accepted: boolean) => { void continueWithAssets(accepted); },
+    onRetrySimulation: () => { void continueWithAssets(); },
     ocrReviewRequired,
     answers,
     onAnswersChange: setAnswers,

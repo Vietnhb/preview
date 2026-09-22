@@ -1,33 +1,28 @@
 import type { ActorFrame, CanvasPalette, Point } from "../components/simulation-canvas/model";
-import { selectAsset } from "./AssetSelector";
-import { svgAssetManifest, type SvgAssetDefinition, type SvgAssetVariant } from "./SvgAssetManifest";
+import { getSvgAsset, type SvgAsset } from "./SvgAssetManifest";
 
 /**
- * Registry for visual assets. SVG variants are selected from semantic metadata
- * first. There is deliberately no generic painter fallback: an unrecognised
- * asset is a contract error and must be resolved/confirmed before rendering.
+ * Draw the exact SVG selected and approved by the backend. Unknown IDs are
+ * contract errors reported by the scene compiler before playback.
  */
 export class AssetRegistry {
   private readonly svgImageCache = new Map<string, CanvasImageSource>();
   private readonly svgLoading = new Map<string, Promise<void>>();
-  private readonly svgDefinitions: SvgAssetDefinition[] = [...svgAssetManifest];
   private svgGeneration = 0;
 
-  public registerSvgAsset(definition: SvgAssetDefinition): void { this.svgDefinitions.push(definition); }
-
-  public hasAsset(hint: string, kind: "actor" | "prop"): boolean {
-    return Boolean(hint.trim() && selectAsset(hint, kind, hint, this.svgDefinitions));
+  public hasAsset(id: string, kind: "actor" | "prop"): boolean {
+    return Boolean(getSvgAsset(id, kind));
   }
 
   public drawAsset(key: string, ctx: CanvasRenderingContext2D, actor: ActorFrame, palette: CanvasPalette): void {
-    const selection = selectAsset(key, "actor", actor.config.id, this.svgDefinitions);
-    if (selection) {
-      const svgImage = this.svgImageCache.get(selection.variant.id);
+    const asset = getSvgAsset(key, "actor");
+    if (asset) {
+      const svgImage = this.svgImageCache.get(asset.id);
       if (svgImage) {
-        this.drawImage(ctx, svgImage, actor.position, actor.scale ?? 1, actor.rotation ?? 0, palette, actor.label, selection.variant.viewBox);
+        this.drawImage(ctx, svgImage, actor.position, actor.scale ?? 1, actor.rotation ?? 0, palette, actor.label, asset.viewBox);
         return;
       }
-      this.ensureSvgImage(selection.variant);
+      this.ensureSvgImage(asset);
     }
 
     // Do not silently substitute a different physical object. The scene
@@ -35,18 +30,18 @@ export class AssetRegistry {
   }
 
   public drawProp(key: string, ctx: CanvasRenderingContext2D, anchor: Point, angle: number, palette: CanvasPalette): void {
-    const selection = selectAsset(key, "prop", key, this.svgDefinitions);
-    if (selection) {
-      const svgImage = this.svgImageCache.get(selection.variant.id);
+    const asset = getSvgAsset(key, "prop");
+    if (asset) {
+      const svgImage = this.svgImageCache.get(asset.id);
       if (svgImage) {
-        const [,, width, height] = selection.variant.viewBox;
-        const position = selection.variant.anchor === "topRight"
+        const [,, width, height] = asset.viewBox;
+        const position = asset.anchor === "topRight"
           ? { x: anchor.x - width / 2, y: anchor.y + height / 2 }
-          : selection.variant.anchor === "right" ? { x: anchor.x - width / 2, y: anchor.y } : anchor;
-        this.drawImage(ctx, svgImage, position, 1, angle, palette, undefined, selection.variant.viewBox);
+          : asset.anchor === "right" ? { x: anchor.x - width / 2, y: anchor.y } : anchor;
+        this.drawImage(ctx, svgImage, position, 1, angle, palette, undefined, asset.viewBox);
         return;
       }
-      this.ensureSvgImage(selection.variant);
+      this.ensureSvgImage(asset);
     }
     // Do not silently substitute a different apparatus when a hint is absent.
   }
@@ -77,7 +72,7 @@ export class AssetRegistry {
     ctx.restore();
   }
 
-  private ensureSvgImage(variant: SvgAssetVariant): void {
+  private ensureSvgImage(variant: SvgAsset): void {
     if (this.svgImageCache.has(variant.id) || this.svgLoading.has(variant.id) || typeof Image === "undefined") return;
     const generation = this.svgGeneration;
     const image = new Image();

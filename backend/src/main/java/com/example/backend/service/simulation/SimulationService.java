@@ -3,6 +3,7 @@ package com.example.backend.service.simulation;
 import com.example.backend.service.account.CurrentUserService;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import com.example.backend.service.problem.SpecificationReadinessService;
+import com.example.backend.simulation.assets.AssetSelectionService;
 
 import com.example.backend.dto.simulation.ParameterAdjustmentRequest;
 import com.example.backend.dto.simulation.SimulationRequest;
@@ -118,6 +119,7 @@ public class SimulationService {
         User user = currentUserService.requireCurrentUser();
         Specification specification = requireOwnedSpecification(request.specificationId(), user);
         assertReady(specification);
+        AssetSelectionService.requireReady(specification);
         String requestedSchemaId = specification.getSchemaId();
         JsonNode input = readinessService.toJson(specification);
         Map<String, Double> requestedParams = request.adjustableParams() == null
@@ -212,6 +214,8 @@ public class SimulationService {
             baseResult = baseRun.getResult();
         }
 
+        JsonNode visual = runVisualization(simulation, baseResult);
+
         Map<String, Double> previousParams = mapNumbers(baseResult, PARAMETERS);
         Map<String, Double> params = schemaDefinitions.effectiveAdjustments(input, schema.getDefinition(), requested, previousParams);
         List<Double> previousTime = list(baseResult, "time");
@@ -241,6 +245,7 @@ public class SimulationService {
         ValidationResponse validation = validateCalculation(input, simulation.getSchemaId(), schemaVersion,
                 calculation, params, runtimeBinding.typedModule());
         JsonNode result = resultJson(output, params, validation, resolvedEnd, compiledSchema, binding);
+        ((ObjectNode) result).set("visualization", visual);
         double elapsed = (System.nanoTime() - started) / 1_000_000.0;
         return new SimulationResponse(simulation.getId(), baseRunId, simulation.getSpecification().getId(),
                 simulation.getSchemaId(), validation.passed(), validation.passed(), output.time(),
@@ -248,7 +253,7 @@ public class SimulationService {
                 LegacyScalarOutputSeriesAdapter.project(output.values(), output.scalarOutputs(), output.time().size()),
                 output.scalarOutputs(),
                 output.scalarFields(), params,
-                visualization(simulation.getSchemaId(), schemaVersion), validation, result, resolvedEnd, elapsed,
+                visual, validation, result, resolvedEnd, elapsed,
                 validation.passed() ? "Preview adjustment passed" : "Preview adjustment failed validation");
     }
 
@@ -331,6 +336,7 @@ public class SimulationService {
     }
 
     private SimulationResponse calculateAndPersist(Simulation simulation, CalculationContext context) {
+        JsonNode visual = runVisualization(simulation, latestResult(simulation));
         long started = System.nanoTime();
         CalculationResult calculation;
         try {
@@ -346,6 +352,7 @@ public class SimulationService {
                 calculation, context.params(), context.typedModule());
         JsonNode result = resultJson(output, context.params(), validation, resolvedEnd,
                 context.compiledSchema(), context.binding());
+        ((ObjectNode) result).set("visualization", visual);
         SimulationRun run = new SimulationRun();
         run.setSimulation(simulation);
         run.setRunType(context.runType());
@@ -366,6 +373,7 @@ public class SimulationService {
                 validation.tolerance(), validation.checkpoints(), validation.errors(), validation.validationTimeMs());
         result = resultJson(output, context.params(), validation, resolvedEnd,
                 context.compiledSchema(), context.binding());
+        ((ObjectNode) result).set("visualization", visual);
         run.setResult(result);
         simulation.setLatestRun(run);
         simulation.setStatus(validation.passed() ? SimulationStatus.READY : SimulationStatus.BLOCKED);
@@ -377,7 +385,7 @@ public class SimulationService {
                 output.accelerations(),
                 LegacyScalarOutputSeriesAdapter.project(output.values(), output.scalarOutputs(), output.time().size()),
                 output.scalarOutputs(), output.scalarFields(), context.params(),
-                visualization(context.schemaId(), context.schemaVersion()), validation, result, resolvedEnd, elapsed,
+                visual, validation, result, resolvedEnd, elapsed,
                 validation.passed() ? "Validation passed" : "Simulation blocked because validation failed");
     }
 
@@ -536,7 +544,8 @@ public class SimulationService {
                 map(result, "accelerations"),
                 LegacyScalarOutputSeriesAdapter.project(map(result, "values"), scalarOutputs, time.size()), scalarOutputs,
                 scalarFields(result), parameters,
-                safeVisualization(simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion()),
+                result != null && result.path("visualization").isObject() ? result.path("visualization")
+                        : safeVisualization(simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion()),
                 validationFromResult(result), result, resolvedEnd, 0, message);
     }
 
@@ -646,9 +655,18 @@ public class SimulationService {
         });
     }
 
-    private JsonNode visualization(String schemaId, String schemaVersion) {
-        return schemaDefinitions.visualization(
-                schemaDefinitions.requirePublishedVersion(schemaId, schemaVersion).getDefinition());
+    private JsonNode runVisualization(Simulation simulation, JsonNode previousResult) {
+        Specification specification = simulation.getSpecification();
+        // An existing run pins its visual identity just as it pins its solver output.
+        if (specification.getAssetSelection() != null) AssetSelectionService.requireReady(specification);
+        if (previousResult != null && previousResult.path("visualization").isObject()) {
+            return previousResult.path("visualization").deepCopy();
+        }
+        if (specification.getAssetSelection() != null || previousResult == null) {
+            return AssetSelectionService.requireReady(specification);
+        }
+        // Runs predating visual selections retain their exact historical catalog IDs.
+        return safeVisualization(simulation.getSchemaId(), specification.getSchemaVersion());
     }
 
     /** Returns null instead of throwing when the schema version is stale/unapproved.

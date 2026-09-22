@@ -67,6 +67,8 @@ public class AmbiguityResolutionApplier {
             current.set("endCondition", specification.getEndCondition());
         current.put("confidence", specification.getConfidence());
         current.set("ambiguities", specification.getAmbiguity());
+        current.set("visualBindings", specification.getAssetSelection() == null
+                ? objectMapper.createArrayNode() : specification.getAssetSelection().path("bindings"));
         return current;
     }
 

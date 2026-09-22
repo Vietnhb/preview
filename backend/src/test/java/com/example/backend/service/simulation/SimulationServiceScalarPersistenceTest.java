@@ -55,6 +55,7 @@ class SimulationServiceScalarPersistenceTest {
         specification.setSchemaId("radiation_safety");
         specification.setSchemaVersion("1.1");
         specification.setConfirmationState(ConfirmationState.CONFIRMED);
+        com.example.backend.simulation.assets.AssetSelectionFixtures.approve(specification, mapper);
 
         JsonNode definition = mapper.readTree("""
                 {
@@ -152,6 +153,7 @@ class SimulationServiceScalarPersistenceTest {
 
         when(runs.findById(runId)).thenReturn(Optional.of(persisted));
         var replay = service.replay(persisted.getSimulation(), runId);
+        assertEquals(response.visualization(), replay.visualization());
         assertEquals(Map.of("doseRate", 1.0), replay.scalarOutputs());
         assertEquals(List.of(1.0, 1.0, 1.0, 1.0, 1.0), replay.values().get("doseRate"));
         assertEquals(1.0, replay.rawResult().path("scalarOutputs").path("doseRate").asDouble(), 0.0);

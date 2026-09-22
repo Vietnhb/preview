@@ -58,6 +58,11 @@ public class Specification extends AuditedEntity {
     @Column(name = "validation_result", columnDefinition = "jsonb")
     private JsonNode validationResult;
 
+    /** Catalog selections and teacher consent are separate from physics facts. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "asset_selection", columnDefinition = "jsonb")
+    private JsonNode assetSelection;
+
     @Column(nullable = false, precision = 5, scale = 4)
     private BigDecimal confidence;
 

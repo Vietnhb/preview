@@ -90,6 +90,7 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
 
   for (let index = 0; index < actors.length; index++) {
     const actor = actors[index];
+    const actorEffects = actor.effects ?? presentation.effects ?? [];
     const actorId = actor.id || `body-${index}`;
     nodes.push(normalizeNode({
       id: actorId,
@@ -111,7 +112,7 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
     // A one-dimensional actor already has its position represented by the
     // track/ruler. Avoid drawing an unexplained horizontal stroke across the
     // scene; retain the trail when the declared actor has a second coordinate.
-    if (presentation?.effects?.includes("motion.trail") && actor.y) {
+    if (actorEffects.includes("motion.trail") && actor.y) {
       nodes.push(normalizeNode({
         id: `${actorId}-trajectory`,
         type: "trajectory",
@@ -140,7 +141,7 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
         properties: { actorId, vectorX: actor.ax, vectorY: actor.ay, kind: "acceleration", ...(layout ? { layout } : {}) },
       }, "scene", 300 + index));
     }
-    for (const effect of presentation?.effects ?? []) {
+    for (const effect of actorEffects) {
       if (effect === "motion.trail") continue;
       nodes.push(normalizeNode({
         id: `${actorId}-${effect}`,

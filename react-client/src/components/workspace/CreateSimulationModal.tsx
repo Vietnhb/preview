@@ -5,12 +5,16 @@ import { useCameraCapture } from "./create-simulation/useCameraCapture";
 import { CreateChatMessages } from "./create-simulation/CreateChatMessages";
 import { CreateChatSupport } from "./create-simulation/CreateChatSupport";
 import { CreateChatComposer } from "./create-simulation/CreateChatComposer";
+import { AssetSelectionReview } from "./create-simulation/AssetSelectionReview";
 
 type Props = {
   token: string | null;
   description: string;
   onDescriptionChange: (value: string) => void;
   pendingProblem: Problem | null;
+  assetProblem: Problem | null;
+  onAssetDecision: (accepted: boolean) => void;
+  onRetrySimulation: () => void;
   ocrReviewRequired: boolean;
   answers: Record<string, string>;
   onAnswersChange: (value: Record<string, string>) => void;
@@ -76,6 +80,9 @@ export default function CreateSimulationModal({
   description,
   onDescriptionChange,
   pendingProblem,
+  assetProblem,
+  onAssetDecision,
+  onRetrySimulation,
   ocrReviewRequired,
   answers,
   onAnswersChange,
@@ -119,7 +126,9 @@ export default function CreateSimulationModal({
     ? answers[activeAmbiguity.code] ?? ""
     : description;
   const hasChatContent = conversation.length > 0 || Boolean(stage || error || pendingProblem);
-  const panelCopy = getPanelCopy(ocrReviewRequired, pendingProblem);
+  const panelCopy = assetProblem
+    ? { title: "Hình minh họa mô phỏng", subtitle: "Chọn hình có sẵn phù hợp với các vật trong đề bài." }
+    : getPanelCopy(ocrReviewRequired, pendingProblem);
   const composerCopy = getComposerCopy(ocrReviewRequired, pendingProblem);
   const submitHandler = getSubmitHandler(ocrReviewRequired, pendingProblem, onCreate, onConfirmOcrReview, onConfirmAmbiguities);
   const sendLabel = getSendLabel(pendingProblem, ambiguityStep, ambiguities.length);
@@ -185,7 +194,17 @@ export default function CreateSimulationModal({
           stage={stage}
           error={error}
         />
-        <form id="create-sim-form" className="create-chat-composer-wrap" onSubmit={submitHandler}>
+        {assetProblem ? (
+          <div className="create-chat-composer-wrap">
+            <AssetSelectionReview
+              selection={assetProblem.currentSpecification?.assetSelection}
+              loading={loading}
+              onDecision={onAssetDecision}
+              onRetry={onRetrySimulation}
+              onReset={onResetComposer}
+            />
+          </div>
+        ) : <form id="create-sim-form" className="create-chat-composer-wrap" onSubmit={submitHandler}>
           <CreateChatSupport
             pendingProblem={pendingProblem}
             activeAmbiguity={activeAmbiguity}
@@ -231,7 +250,7 @@ export default function CreateSimulationModal({
             description={description}
             sourceFile={sourceFile}
           />
-        </form>
+        </form>}
       </div>
     </div>
   );

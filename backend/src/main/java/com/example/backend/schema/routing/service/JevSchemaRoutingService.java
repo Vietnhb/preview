@@ -1,7 +1,6 @@
 package com.example.backend.schema.routing.service;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +20,7 @@ import com.example.backend.schema.routing.model.SchemaRoutingDecision;
 import com.example.backend.schema.routing.model.SchemaSelectionScore;
 import com.example.backend.service.problem.SchemaDefinitionService;
 
-/** Jev-only schema routing. The database remains the authority for approved contracts. */
+/** Routes approved physics contracts and SVG candidates together from the source text. */
 @Service
 public final class JevSchemaRoutingService {
     private final SchemaDefinitionService schemas;
@@ -84,7 +83,7 @@ public final class JevSchemaRoutingService {
         else meters.counter("physlive.schema.routing.jev.ambiguous").increment();
         return new SchemaRoutingDecision(selected ? SchemaRoutingDecision.Status.SELECTED
                 : SchemaRoutingDecision.Status.AMBIGUOUS, reason, candidates,
-                clamp(first.confidence()), clamp(margin));
+                clamp(first.confidence()), clamp(margin), result.assets());
     }
 
     private SchemaCandidate candidate(SchemaVersion schema, double probability, int rank) {
@@ -120,39 +119,9 @@ public final class JevSchemaRoutingService {
                         .filter(StringUtils::hasText).sorted().limit(16).toList().toString();
             }
         }
-        String visualIntent = "";
-        if (definition != null) {
-            var visualization = definition.path("visualization");
-            var series = visualization.path("series");
-            var labels = series.isArray()
-                    ? java.util.stream.StreamSupport.stream(series.spliterator(), false)
-                        .flatMap(item -> java.util.stream.Stream.of(item.path("key").asText(), item.path("label").asText()))
-                        .filter(StringUtils::hasText).distinct().limit(16).toList()
-                    : List.of();
-            var presentation = visualization.path("presentation");
-            var actors = presentation.path("actors");
-            var actorHints = actors.isArray()
-                    ? java.util.stream.StreamSupport.stream(actors.spliterator(), false)
-                        .flatMap(item -> java.util.stream.Stream.of(item.path("assetHint").asText(), item.path("asset").asText()))
-                        .filter(StringUtils::hasText).distinct().limit(12).toList()
-                    : List.of();
-            var effects = presentation.path("effects");
-            var effectNames = effects.isArray()
-                    ? java.util.stream.StreamSupport.stream(effects.spliterator(), false)
-                        .map(item -> item.asText()).filter(StringUtils::hasText).distinct().limit(12).toList()
-                    : List.of();
-            var props = presentation.path("props");
-            var propNames = props.isArray()
-                    ? java.util.stream.StreamSupport.stream(props.spliterator(), false)
-                        .map(item -> item.asText()).filter(StringUtils::hasText).distinct().limit(12).toList()
-                    : List.of();
-            visualIntent = "%s %s layout=%s actors=%s props=%s effects=%s series=%s".formatted(
-                    visualization.path("scene").asText(), presentation.path("environment").asText(),
-                    presentation.path("layout").asText(), actorHints, propNames, effectNames, labels);
-        }
-        return "%s | topic=%s | model=%s | required quantities=%s | entity types=%s | visual intent=%s".formatted(
+        return "%s | topic=%s | model=%s | required quantities=%s | entity types=%s".formatted(
                 schema.getName(), schema.getTopic(), definition == null ? "" : definition.path("model").asText(schema.getSchemaId()),
-                quantities, entities, visualIntent);
+                quantities, entities);
     }
 
     private double clamp(double value) {

@@ -37,6 +37,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public final class StructuredExtractionProvider implements ExtractionProvider {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(StructuredExtractionProvider.class);
     private static final String SYSTEM_ROLE = "system";
     private static final int MAX_RETRY_ERROR_CHARACTERS = 500;
 
@@ -49,11 +50,13 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
     private final String providerName;
     private final int maxAttempts;
     private final MeterRegistry meters;
+    private final com.example.backend.simulation.assets.AssetSelectionService assetSelections;
 
     public StructuredExtractionProvider(ChatCompletionClient client, ObjectMapper objectMapper,
             UnitNormalizer unitNormalizer, SchemaDefinitionService schemaDefinitions,
             AiProviderProperties properties, JevProperties routingProperties,
-            ResourceLoader resourceLoader, MeterRegistry meters) {
+            ResourceLoader resourceLoader, MeterRegistry meters,
+            com.example.backend.simulation.assets.AssetSelectionService assetSelections) {
         this.client = client;
         this.objectMapper = objectMapper;
         this.unitNormalizer = unitNormalizer;
@@ -62,6 +65,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         this.providerName = properties.name();
         this.maxAttempts = properties.maxAttempts();
         this.meters = meters;
+        this.assetSelections = assetSelections;
         String baseSystemPrompt;
         try (var input = resourceLoader.getResource(properties.systemPromptResource()).getInputStream()) {
             baseSystemPrompt = new String(input.readAllBytes(), StandardCharsets.UTF_8).trim();
@@ -87,13 +91,14 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         if (!StringUtils.hasText(text)) throw new IllegalArgumentException("Problem text must not be blank.");
         if (routingDecision == null) throw new IllegalArgumentException("Schema routing decision is required.");
         requireCurrentCandidates(routingDecision);
-        List<CandidateContractProjection> candidates = routingDecision.candidates().stream()
+        List<CandidateContractProjection> candidates = routingDecision.extractionCandidates().stream()
                 .map(SchemaCandidate::contract).toList();
-        ExtractionPromptBuilder.PromptMessages messages = prompts.build(candidates, text.trim());
+        ExtractionPromptBuilder.PromptMessages messages = prompts.build(candidates, text.trim(),
+                assetSelections.promptContext(routingDecision));
         return complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
                 client.textMessage("user", messages.userMessage())), routingDecision,
                 routingDecision.status() == SchemaRoutingDecision.Status.AMBIGUOUS,
-                "AI response does not match the strict candidate extraction contract.", text.trim());
+                "AI response does not match the strict candidate extraction contract.", text.trim(), null);
     }
 
     @Override
@@ -136,7 +141,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         String confirmedEvidence = confirmedEvidence(originalText, currentSpecification, answers);
         return complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
                 client.textMessage("user", messages.userMessage())), decision, false,
-                "AI ambiguity response does not match the pinned schema contract.", confirmedEvidence);
+                "AI ambiguity response does not match the pinned schema contract.", confirmedEvidence, currentSpecification);
     }
 
     /**
@@ -159,7 +164,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
     }
 
     private ProviderExtractionResult complete(List<Map<String, Object>> messages, SchemaRoutingDecision routingDecision,
-            boolean forceRoutingAmbiguity, String invalidMessage, String originalText) {
+            boolean forceRoutingAmbiguity, String invalidMessage, String originalText, JsonNode currentSpecification) {
         List<Map<String, Object>> attemptMessages = new ArrayList<>(messages);
         RuntimeException lastFailure = null;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
@@ -169,6 +174,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 JsonNode json = client.parseJson(completion.content());
                 if (!json.isObject()) throw new IllegalStateException("AI response root must be a JSON object.");
                 StrictSpecificationValidator.validate(json);
+                preserveVisualIdentity(json, currentSpecification);
                 SchemaCandidate candidate = StrictSpecificationValidator.validateCandidateMembership(json, routingDecision,
                         unitNormalizer);
                 StrictSpecificationValidator.rejectAmbiguitiesCoveredBySource(json, originalText,
@@ -176,13 +182,19 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 SchemaVersion pinned = schemaDefinitions.requireCurrentApproved(candidate.schemaId(), candidate.schemaVersion());
                 SpecificationDocument parsed = objectMapper.treeToValue(json, SpecificationDocument.class);
                 if (parsed == null) throw new IllegalStateException("AI response does not contain a specification.");
-                return new ProviderExtractionResult(normalize(parsed, pinned, forceRoutingAmbiguity,
-                        routingDecision.candidates()), null);
+                SpecificationDocument normalized = normalize(parsed, pinned, forceRoutingAmbiguity,
+                        routingDecision.candidates());
+                JsonNode selection = routingDecision.assets() == null ? null
+                        : assetSelections.create(normalized, routingDecision.assets(), originalText);
+                return new ProviderExtractionResult(normalized, null, selection);
             } catch (RuntimeException exception) {
                 lastFailure = exception;
             } catch (Exception exception) {
                 lastFailure = new IllegalStateException(exception);
             }
+            String failureDetail = lastFailure.getMessage() == null ? "Invalid structured response" : lastFailure.getMessage();
+            log.warn("Extraction contract rejected attempt {}: {}", attempt + 1,
+                    failureDetail.substring(0, Math.min(failureDetail.length(), MAX_RETRY_ERROR_CHARACTERS)));
             if (attempt + 1 < maxAttempts) {
                 try {
                     attemptMessages = new ArrayList<>(prompts.appendRetryInstruction(attemptMessages,
@@ -213,6 +225,24 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 If an entityTypes contract is present, repeat that coverage for every returned object using its entity-local quantities array.
                 Preserve raw stated values and original units; do not add inferred values or explanatory fields.
                 """.formatted(detail).trim();
+    }
+
+    private void preserveVisualIdentity(JsonNode response, JsonNode current) {
+        if (current == null || current.path("visualBindings").isEmpty()) return;
+        java.util.Set<JsonNode> before = new java.util.HashSet<>();
+        java.util.Set<JsonNode> after = new java.util.HashSet<>();
+        current.path("visualBindings").forEach(before::add);
+        response.path("visualBindings").forEach(after::add);
+        if (!before.equals(after) || !objectIdentities(current).equals(objectIdentities(response))) {
+            throw new IllegalStateException("Preserve existing visualBindings and object id/label/type exactly; only update answered physics quantities.");
+        }
+    }
+
+    private java.util.Set<List<String>> objectIdentities(JsonNode document) {
+        java.util.Set<List<String>> result = new java.util.HashSet<>();
+        document.path("objects").forEach(object -> result.add(List.of(object.path("id").asText(),
+                object.path("label").asText(), object.path("type").asText())));
+        return result;
     }
 
     private void requireCurrentCandidates(SchemaRoutingDecision routingDecision) {
@@ -281,7 +311,8 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         }
         return new SpecificationDocument(schema.getVersion(), schema.getTopic(),
                 schema.getSchemaId(), objects, quantities, document.relations(), endCondition,
-                clamp(document.confidence()), ambiguities, SpecificationDocument.CURRENT_SCHEMA_VERSION);
+                clamp(document.confidence()), ambiguities, SpecificationDocument.CURRENT_SCHEMA_VERSION,
+                document.visualBindings());
     }
 
     private List<PhysicalQuantity> normalizeEntityQuantities(List<PhysicalQuantity> source,

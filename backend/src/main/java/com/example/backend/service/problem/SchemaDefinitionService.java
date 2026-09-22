@@ -648,9 +648,8 @@ public class SchemaDefinitionService {
 
     public JsonNode visualization(JsonNode definition) {
         ObjectNode presentation = definition.path("visualization").deepCopy();
-        // Keep visual intent separate from physics. Legacy catalog entries may
-        // still use `asset`; expose it only as a semantic hint so the client
-        // resolves it through the approved catalog instead of pinning an SVG.
+        // Normalize legacy wire names for historical replay. New runs replace
+        // these IDs with their independently selected, persisted visual plan.
         JsonNode visualPresentation = presentation.path("presentation");
         if (visualPresentation instanceof ObjectNode visualObject) {
             JsonNode actors = visualObject.path("actors");
