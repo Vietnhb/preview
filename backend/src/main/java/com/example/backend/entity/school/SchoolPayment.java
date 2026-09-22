@@ -11,10 +11,20 @@ import java.util.UUID;
 public class SchoolPayment {
     @Id @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @ManyToOne(optional = false) @JoinColumn(nullable = false)
+    @ManyToOne @JoinColumn
     private School school;
-    @ManyToOne(optional = false) @JoinColumn(nullable = false)
+    @ManyToOne @JoinColumn
     private User manager;
+    // Registration details stay here until VNPAY confirms the payment.
+    private String registrationSchoolName;
+    private String registrationSchoolCode;
+    @Column(length = 300)
+    private String registrationAddress;
+    private String registrationManagerName;
+    private String registrationEmail;
+    @Column(length = 20)
+    private String registrationPhoneNumber;
+    private String registrationPasswordHash;
     @Column(nullable = false)
     private String planCode;
     @Column(nullable = false)

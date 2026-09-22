@@ -21,7 +21,7 @@ class SchoolPaymentRevenueSummaryTest {
         when(totals.getGrossPaidVnd()).thenReturn(125_000L);
 
         SchoolPaymentService service = new SchoolPaymentService(null, payments, null, null, null, null,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
 
         assertEquals(new SchoolPaymentService.RevenueSummary(4, 2, 1, 125_000), service.revenueSummary());
         verify(payments).summarizeRevenue();

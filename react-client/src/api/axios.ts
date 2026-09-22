@@ -2,6 +2,7 @@ import axios, { type InternalAxiosRequestConfig } from "axios";
 import { API_URL } from "../config/api";
 import { clearToken, getToken } from "../utils/token";
 import { usePhysliveStore } from "../store/usePhysliveStore";
+import { realtimeClientId } from "../realtime/useRealtimeRevision";
 
 const axiosClient = axios.create({
     baseURL: API_URL
@@ -13,6 +14,7 @@ axiosClient.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }
+    config.headers["X-PhysLive-Client"] = realtimeClientId;
     return config;
 });
 type ReadRetryConfig = InternalAxiosRequestConfig & { readRetryCount?: number };

@@ -29,6 +29,9 @@ public interface SchoolPaymentRepository extends JpaRepository<SchoolPayment, UU
     Optional<SchoolPayment> findLockedById(@Param("id") UUID id);
     List<SchoolPayment> findTop20ByStatusInOrderByPaidAtDesc(List<String> statuses);
     Optional<SchoolPayment> findFirstByManagerIdOrderByCreatedAtDesc(Integer managerId);
+    Optional<SchoolPayment> findFirstByRegistrationEmailIgnoreCaseOrderByCreatedAtDesc(String registrationEmail);
+    @Query("select count(p) > 0 from SchoolPayment p where p.purpose = 'REGISTRATION' and p.status = 'PENDING' and (lower(p.registrationEmail) = lower(:email) or upper(p.registrationSchoolCode) = upper(:code) or lower(p.registrationSchoolName) = lower(:name))")
+    boolean hasPendingRegistrationConflict(@Param("email") String email, @Param("code") String code, @Param("name") String name);
     List<SchoolPayment> findBySchoolIdOrderByCreatedAtDesc(UUID schoolId);
     List<SchoolPayment> findByStatusAndCreatedAtBefore(String status, java.time.Instant cutoff);
 }

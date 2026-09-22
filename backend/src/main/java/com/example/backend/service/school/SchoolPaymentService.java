@@ -12,6 +12,7 @@ import com.example.backend.repository.school.LicensePlanRepository;
 import com.example.backend.repository.school.SchoolPaymentRepository;
 import com.example.backend.repository.school.SchoolRepository;
 import com.example.backend.service.account.CurrentUserService;
+import com.example.backend.service.realtime.RealtimeEventService;
 
 import com.example.backend.entity.enums.RoleName;
 import com.example.backend.exception.ApiException;
@@ -52,6 +53,7 @@ public class SchoolPaymentService {
     private final jakarta.persistence.EntityManager entityManager;
     private final VnpayProperties vnpay;
     private final HttpClient http;
+    private final RealtimeEventService realtime;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     public record Checkout(UUID paymentId, String paymentUrl) { }
@@ -72,27 +74,26 @@ public class SchoolPaymentService {
             .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Gói đăng ký không còn khả dụng."));
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         String code = request.schoolCode().trim().toUpperCase(Locale.ROOT);
-        var existing = users.findByEmail(email);
-        if (existing.isPresent()) {
-            var user = existing.get();
-            if (Boolean.FALSE.equals(user.getActive()) && user.getSchool() != null && code.equals(user.getSchool().getCode())
-                && passwords.matches(request.password(), user.getPassword())) return recover(new SchoolPaymentRecoveryRequest(email, request.password()), ip);
+        if (users.findByEmail(email).isPresent()) {
             throw new ApiException(HttpStatus.CONFLICT, "Email đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.");
         }
         if (schools.existsByCode(code) || schools.findByName(request.schoolName().trim()).isPresent())
             throw new ApiException(HttpStatus.CONFLICT, "Trường đã đăng ký. Vui lòng liên hệ người quản lý trường.");
-        School school = new School();
-        school.setCode(code); school.setName(request.schoolName().trim()); school.setAddress(request.address().trim());
-        // active is an administrator-controlled suspension flag. A school
-        // without a paid license remains active so its manager can sign in
-        // and finish purchasing a plan.
-        school.setContactEmail(email); school.setPhoneNumber(request.phoneNumber().trim()); school.setActive(true);
-        schools.save(school);
-        User manager = new User(); manager.setEmail(email); manager.setFullName(request.fullName().trim());
-        manager.setPassword(passwords.encode(request.password())); manager.setSchool(school); manager.setActive(true);
-        manager.setRole(roles.findByName(RoleName.SCHOOL_MANAGER.name()).orElseThrow(() -> new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Role quản lý trường chưa được cấu hình.")));
-        users.save(manager);
-        SchoolPayment payment = new SchoolPayment(); payment.setSchool(school); payment.setManager(manager);
+        var previous = payments.findFirstByRegistrationEmailIgnoreCaseOrderByCreatedAtDesc(email);
+        if (previous.isPresent() && "PENDING".equals(previous.get().getStatus())) {
+            var pending = previous.get();
+            if (code.equals(pending.getRegistrationSchoolCode())
+                    && passwords.matches(request.password(), pending.getRegistrationPasswordHash()))
+                return recover(new SchoolPaymentRecoveryRequest(email, request.password()), ip);
+            throw new ApiException(HttpStatus.CONFLICT, "Email hoặc thông tin trường đang có giao dịch chờ thanh toán.");
+        }
+        if (payments.hasPendingRegistrationConflict(email, code, request.schoolName().trim()))
+            throw new ApiException(HttpStatus.CONFLICT, "Email hoặc trường đang có giao dịch chờ thanh toán.");
+        SchoolPayment payment = new SchoolPayment();
+        payment.setRegistrationSchoolName(request.schoolName().trim()); payment.setRegistrationSchoolCode(code);
+        payment.setRegistrationAddress(request.address().trim()); payment.setRegistrationManagerName(request.fullName().trim());
+        payment.setRegistrationEmail(email); payment.setRegistrationPhoneNumber(request.phoneNumber().trim());
+        payment.setRegistrationPasswordHash(passwords.encode(request.password()));
         payment.setPlanCode(plan.getCode()); payment.setAmountVnd(plan.getAnnualPriceVnd()); payment.setMonthlyTokenQuota(plan.getMonthlyTokenQuota());
         payment.setStudentQuota(plan.getStudentQuota());
         payment.setAnnualPriceVnd(plan.getAnnualPriceVnd());
@@ -157,7 +158,7 @@ public class SchoolPaymentService {
         if (id == null) return reply("01", "Order not found");
         var reference = payments.findById(id);
         if (reference.isEmpty()) return reply("01", "Order not found");
-        lockedSchool(reference.get().getSchool().getId());
+        if (reference.get().getSchool() != null) lockedSchool(reference.get().getSchool().getId());
         var found = payments.findLockedById(id);
         if (found.isEmpty()) return reply("01", "Order not found");
         var payment = found.get();
@@ -173,6 +174,10 @@ public class SchoolPaymentService {
     private static Map<String, String> reply(String code, String message) { return Map.of("RspCode", code, "Message", message); }
 
     private void activate(SchoolPayment payment, String transactionNo) {
+        if ("REGISTRATION".equals(payment.getPurpose()) && payment.getSchool() == null) {
+            createPaidRegistration(payment, transactionNo);
+            return;
+        }
         var school = lockedSchool(payment.getSchool().getId());
         if (("REGISTRATION".equals(payment.getPurpose()) && school.getPlanCode() != null)
             || (!"REGISTRATION".equals(payment.getPurpose()) && !Objects.equals(school.getPlanCode(), payment.getPreviousPlanCode()))
@@ -191,10 +196,46 @@ public class SchoolPaymentService {
         payment.setStatus("PAID"); payment.setPaidAt(Instant.now()); payment.setProviderTransactionNo(transactionNo);
     }
 
+    private void createPaidRegistration(SchoolPayment payment, String transactionNo) {
+        String email = payment.getRegistrationEmail();
+        String code = payment.getRegistrationSchoolCode();
+        if (email == null || code == null || payment.getRegistrationPasswordHash() == null
+                || users.findByEmail(email).isPresent() || schools.existsByCode(code)
+                || schools.findByName(payment.getRegistrationSchoolName()).isPresent()) {
+            payment.setStatus("REQUIRES_REVIEW"); payment.setPaidAt(Instant.now());
+            payment.setProviderTransactionNo(transactionNo); return;
+        }
+        School school = new School();
+        school.setCode(code); school.setName(payment.getRegistrationSchoolName());
+        school.setAddress(payment.getRegistrationAddress()); school.setContactEmail(email);
+        school.setPhoneNumber(payment.getRegistrationPhoneNumber()); school.setActive(true);
+        LocalDate start = LocalDate.now(vnpay.zoneId());
+        school.setLicenseStart(start); school.setLicenseEnd(start.plusYears(1).minusDays(1));
+        school.setMonthlyTokenQuota(payment.getMonthlyTokenQuota()); school.setStudentQuota(payment.getStudentQuota());
+        school.setPlanCode(payment.getPlanCode());
+        school.setAnnualPriceVnd(payment.getAnnualPriceVnd() == null ? payment.getAmountVnd() : payment.getAnnualPriceVnd());
+        schools.save(school);
+
+        User manager = new User(); manager.setEmail(email); manager.setFullName(payment.getRegistrationManagerName());
+        manager.setPassword(payment.getRegistrationPasswordHash()); manager.setSchool(school); manager.setActive(true);
+        manager.setRole(roles.findByName(RoleName.SCHOOL_MANAGER.name()).orElseThrow(() ->
+            new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Role quản lý trường chưa được cấu hình.")));
+        users.save(manager);
+        payment.setSchool(school); payment.setManager(manager);
+        payment.setRegistrationPasswordHash(null);
+        payment.setLicenseStart(start); payment.setLicenseEnd(start.plusYears(1).minusDays(1));
+        payment.setStatus("PAID"); payment.setPaidAt(Instant.now()); payment.setProviderTransactionNo(transactionNo);
+    }
+
     @Transactional
     public Checkout recover(SchoolPaymentRecoveryRequest credentials, String ip) {
         requireConfigured();
-        var user = users.findByEmail(credentials.email().trim().toLowerCase(Locale.ROOT))
+        String email = credentials.email().trim().toLowerCase(Locale.ROOT);
+        var registration = payments.findFirstByRegistrationEmailIgnoreCaseOrderByCreatedAtDesc(email)
+            .filter(p -> p.getRegistrationPasswordHash() != null
+                && passwords.matches(credentials.password(), p.getRegistrationPasswordHash()));
+        if (registration.isPresent()) return recoverPayment(registration.get(), ip);
+        var user = users.findByEmail(email)
             .filter(u -> passwords.matches(credentials.password(), u.getPassword()))
             .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không đúng."));
         if (user.getSchool() == null || user.getRole() == null || !RoleName.SCHOOL_MANAGER.matches(user.getRole().getName()))
@@ -202,6 +243,10 @@ public class SchoolPaymentService {
         lockedSchool(user.getSchool().getId());
         var latest = payments.findFirstByManagerIdOrderByCreatedAtDesc(user.getId())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy đăng ký cần thanh toán."));
+        return recoverPayment(latest, ip);
+    }
+
+    private Checkout recoverPayment(SchoolPayment latest, String ip) {
         var payment = payments.findLockedById(latest.getId()).orElseThrow();
         if ("PAID".equals(payment.getStatus())) return new Checkout(payment.getId(), null);
         if ("PENDING".equals(payment.getStatus()) && !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now())) reconcile(payment);
@@ -218,6 +263,10 @@ public class SchoolPaymentService {
         retry.setMonthlyTokenQuota(payment.getMonthlyTokenQuota()); retry.setStudentQuota(payment.getStudentQuota());
         retry.setPurpose(payment.getPurpose()); retry.setLicenseStart(payment.getLicenseStart()); retry.setLicenseEnd(payment.getLicenseEnd());
         retry.setPreviousPlanCode(payment.getPreviousPlanCode());
+        retry.setRegistrationSchoolName(payment.getRegistrationSchoolName()); retry.setRegistrationSchoolCode(payment.getRegistrationSchoolCode());
+        retry.setRegistrationAddress(payment.getRegistrationAddress()); retry.setRegistrationManagerName(payment.getRegistrationManagerName());
+        retry.setRegistrationEmail(payment.getRegistrationEmail()); retry.setRegistrationPhoneNumber(payment.getRegistrationPhoneNumber());
+        retry.setRegistrationPasswordHash(payment.getRegistrationPasswordHash());
         payments.save(retry); return new Checkout(retry.getId(), buildUrl(retry, ip));
     }
 
@@ -261,8 +310,11 @@ public class SchoolPaymentService {
         if (vnpay.tmnCode().isBlank() || vnpay.hashSecret().isBlank()) return;
         Instant cutoff = Instant.now().minusSeconds(900);
         for (SchoolPayment payment : payments.findByStatusAndCreatedAtBefore("PENDING", cutoff)) {
+            String before = payment.getStatus();
             try { reconcile(payments.findLockedById(payment.getId()).orElse(payment)); }
             catch (RuntimeException ex) { payment.setStatus("REQUIRES_REVIEW"); payments.save(payment); }
+            if (!Objects.equals(before, payment.getStatus()))
+                realtime.publish("/api/auth/payments/" + payment.getId(), "scheduler");
         }
     }
 
@@ -276,7 +328,10 @@ public class SchoolPaymentService {
     @Transactional(readOnly = true)
     public List<AdminPaymentRow> adminPayments() {
         return payments.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")).stream()
-                .map(payment -> new AdminPaymentRow(payment.getId(), payment.getSchool().getName(), payment.getManager().getEmail(), payment.getPlanCode(), payment.getPurpose(), payment.getAmountVnd(), payment.getStatus(), payment.getCreatedAt(), payment.getPaidAt())).toList();
+                .map(payment -> new AdminPaymentRow(payment.getId(),
+                    payment.getSchool() == null ? payment.getRegistrationSchoolName() : payment.getSchool().getName(),
+                    payment.getManager() == null ? payment.getRegistrationEmail() : payment.getManager().getEmail(),
+                    payment.getPlanCode(), payment.getPurpose(), payment.getAmountVnd(), payment.getStatus(), payment.getCreatedAt(), payment.getPaidAt())).toList();
     }
 
     @Transactional(readOnly = true)
@@ -405,6 +460,7 @@ public class SchoolPaymentService {
     @Transactional(readOnly=true)
     public List<Notification> notifications() {
         return payments.findTop20ByStatusInOrderByPaidAtDesc(List.of("PAID", "REQUIRES_REVIEW")).stream()
-            .map(p -> new Notification(p.getId(), p.getSchool().getName(), p.getPlanCode(), p.getAmountVnd(), p.getPaidAt(), p.getStatus())).toList();
+            .map(p -> new Notification(p.getId(), p.getSchool() == null ? p.getRegistrationSchoolName() : p.getSchool().getName(),
+                p.getPlanCode(), p.getAmountVnd(), p.getPaidAt(), p.getStatus())).toList();
     }
 }
