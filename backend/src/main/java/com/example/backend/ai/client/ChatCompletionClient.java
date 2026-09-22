@@ -1,40 +1,49 @@
 package com.example.backend.ai.client;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
-import com.example.backend.config.properties.OpenRouterProperties;
+import com.example.backend.config.properties.AiProviderProperties;
 import com.example.backend.service.school.SchoolService;
 import com.example.backend.ai.extraction.validation.StrictJsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
-public class OpenRouterClient {
+public class ChatCompletionClient {
 
     private static final String CONTENT = "content";
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final String apiKey;
-    private final int maxTokens;
-    private final OpenRouterProperties properties;
+    private final int maxCompletionTokens;
+    private final AiProviderProperties properties;
     private final SchoolService schoolService;
+    private final JsonNode specificationSchema;
 
-    public OpenRouterClient(RestClient.Builder builder, ObjectMapper objectMapper, OpenRouterProperties properties,
-            SchoolService schoolService) {
+    public ChatCompletionClient(RestClient.Builder builder, ObjectMapper objectMapper, AiProviderProperties properties,
+            SchoolService schoolService, ResourceLoader resourceLoader) {
         this.schoolService = schoolService;
         this.objectMapper = objectMapper;
         this.properties = properties;
         this.apiKey = properties.apiKey();
-        this.maxTokens = properties.maxTokens();
+        this.maxCompletionTokens = properties.maxCompletionTokens();
+        try (var input = resourceLoader.getResource(
+                "classpath:prompts/physics-specification-response-schema.json").getInputStream()) {
+            this.specificationSchema = objectMapper.readTree(input);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Cannot load the AI structured-output schema", exception);
+        }
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(properties.connectTimeout());
         requestFactory.setReadTimeout(properties.readTimeout());
@@ -45,41 +54,50 @@ public class OpenRouterClient {
         return StringUtils.hasText(apiKey);
     }
 
-    public Completion complete(String model, List<Map<String, Object>> messages) {
+    public Completion completeStructured(String model, List<Map<String, Object>> messages) {
+        Map<String, Object> format = properties.strictStructuredOutput()
+                ? specificationResponseFormat() : Map.of("type", "json_object");
+        return complete(model, messages, format, true);
+    }
+
+    public Completion completeJson(String model, List<Map<String, Object>> messages) {
+        return complete(model, messages, Map.of("type", "json_object"), false);
+    }
+
+    private Completion complete(String model, List<Map<String, Object>> messages,
+            Map<String, Object> responseFormat, boolean reasoning) {
         if (!isAvailable()) {
-            throw new IllegalStateException("OpenRouter is not configured.");
+            throw new IllegalStateException("AI provider is not configured.");
         }
         if (!StringUtils.hasText(model)) {
-            throw new IllegalStateException("OpenRouter model is not configured.");
+            throw new IllegalStateException("AI model is not configured.");
         }
 
-        Map<String, Object> body = Map.of(
-                "model", model,
-                "messages", messages,
-                "temperature", 0,
-                "max_tokens", maxTokens,
-                "response_format", Map.of("type", "json_object"));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("messages", messages);
+        body.put("temperature", properties.temperature());
+        body.put("max_completion_tokens", maxCompletionTokens);
+        body.put("response_format", responseFormat);
+        if (reasoning) {
+            body.put("reasoning_effort", properties.reasoningEffort());
+            body.put("include_reasoning", false);
+        }
 
         JsonNode response = schoolService.meterAiCall(() -> {
-            RestClient.RequestBodySpec request = restClient.post()
+            return restClient.post()
                     .uri("/chat/completions")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
-                    .contentType(MediaType.APPLICATION_JSON);
-            if (StringUtils.hasText(properties.appUrl())) {
-                request.header("HTTP-Referer", properties.appUrl());
-            }
-            if (StringUtils.hasText(properties.appName())) {
-                request.header("X-OpenRouter-Title", properties.appName());
-            }
-            return request.body(body).retrieve().body(JsonNode.class);
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body).retrieve().body(JsonNode.class);
         });
 
         if (response == null || response.path("choices").isEmpty()) {
-            throw new IllegalStateException("OpenRouter returned an empty response.");
+            throw new IllegalStateException("AI provider returned an empty response.");
         }
         String content = response.path("choices").path(0).path("message").path(CONTENT).asText();
         if (!StringUtils.hasText(content)) {
-            throw new IllegalStateException("OpenRouter returned empty content.");
+            throw new IllegalStateException("AI provider returned empty content.");
         }
         return new Completion(response.path("model").asText(model), content, response);
     }
@@ -101,8 +119,15 @@ public class OpenRouterClient {
         try {
             return StrictJsonParser.parse(objectMapper, content);
         } catch (Exception exception) {
-            throw new IllegalStateException("OpenRouter returned invalid JSON.", exception);
+            throw new IllegalStateException("AI provider returned invalid JSON.", exception);
         }
+    }
+
+    private Map<String, Object> specificationResponseFormat() {
+        return Map.of("type", "json_schema", "json_schema", Map.of(
+                "name", "physics_specification",
+                "strict", true,
+                "schema", specificationSchema));
     }
 
     public record Completion(String model, String content, JsonNode rawResponse) {

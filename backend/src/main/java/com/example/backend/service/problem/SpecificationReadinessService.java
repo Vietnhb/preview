@@ -1,5 +1,6 @@
 package com.example.backend.service.problem;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class SpecificationReadinessService {
+    private static final BigDecimal MAX_UNRESOLVED_CONFIDENCE = new BigDecimal("0.8500");
+
     private final SchemaDefinitionService schemas;
     private final ObjectMapper objectMapper;
 
@@ -55,14 +58,19 @@ public class SpecificationReadinessService {
             AmbiguityCase ambiguity = new AmbiguityCase();
             ambiguity.setCode(code);
             ambiguity.setFieldPath("quantities." + gap.key());
-            ambiguity.setQuestion("Chưa xác định đại lượng " + gap.key()
-                    + ". Vui lòng cung cấp giá trị và đơn vị " + gap.unit() + ".");
+            ambiguity.setQuestion(fallbackQuestion(gap, schema.getDefinition()));
             ambiguity.setOptions(objectMapper.createArrayNode());
             ambiguity.setStatus(AmbiguityStatus.OPEN);
             specification.addAmbiguityCase(ambiguity);
         }
         boolean open = specification.getAmbiguityCases().stream().anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
-        if (open) specification.setConfirmationState(ConfirmationState.UNRESOLVED);
+        if (open) {
+            specification.setConfirmationState(ConfirmationState.UNRESOLVED);
+            if (specification.getConfidence() == null
+                    || specification.getConfidence().compareTo(MAX_UNRESOLVED_CONFIDENCE) > 0) {
+                specification.setConfidence(MAX_UNRESOLVED_CONFIDENCE);
+            }
+        }
         specification.setAmbiguity(objectMapper.valueToTree(specification.getAmbiguityCases().stream()
                 .filter(item -> item.getStatus() == AmbiguityStatus.OPEN)
                 .map(item -> new AmbiguityView(item.getCode(), item.getFieldPath(), item.getQuestion(), item.getOptions()))
@@ -138,6 +146,27 @@ public class SpecificationReadinessService {
     }
 
     private String safe(String value) { return value == null ? "" : value; }
+
+    private String fallbackQuestion(SchemaDefinitionService.RequiredGap gap, JsonNode definition) {
+        String label = null;
+        for (JsonNode quantity : definition.path("requiredQuantities")) {
+            if (gap.key().equals(quantity.path("key").asText()) && StringUtils.hasText(quantity.path("label").asText())) {
+                label = quantity.path("label").asText().trim();
+                break;
+            }
+        }
+        if (!StringUtils.hasText(label)) {
+            for (JsonNode parameter : definition.path("adjustableParameters")) {
+                if (gap.key().equals(parameter.path("key").asText()) && StringUtils.hasText(parameter.path("label").asText())) {
+                    label = parameter.path("label").asText().trim();
+                    break;
+                }
+            }
+        }
+        String subject = StringUtils.hasText(label) ? "“" + label + "”" : "dữ kiện bắt buộc này";
+        String unit = StringUtils.hasText(gap.unit()) ? " (đơn vị " + gap.unit() + ")" : "";
+        return "Đề bài chưa cung cấp " + subject + unit + ". Vui lòng bổ sung giá trị.";
+    }
     private record AmbiguityView(String code, String fieldPath, String question, JsonNode options) { }
 
     public JsonNode toJson(Specification specification) {

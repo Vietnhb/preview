@@ -7,6 +7,10 @@ Use only quantities declared by the selected candidate. A quantity name may be i
 
 If a required quantity is missing or unclear, omit it and return an ambiguity with fieldPath exactly `quantities.<canonical key>`. Use unique, stable ambiguity codes and at most one ambiguity per fieldPath. If the problem omits a value, do not emit zero or a placeholder.
 
+Perform a complete coverage check before responding: for every entry in the selected candidate's `requiredQuantities`, return exactly one of (a) one extracted quantity when the value is explicitly stated, or (b) one ambiguity when it is missing or unclear. Never leave a required quantity unaccounted for, and never create an ambiguity for an `optionalQuantities` entry because optional values must not block the teacher.
+
+Every ambiguity object must contain exactly these four fields: `code`, `fieldPath`, `question`, and `options`. Do not add reason, severity, required, type, suggestedValue, metadata, or any explanatory field. Ask the question naturally in the same language as the user's problem; never expose canonical keys such as `initial_position` in the question text.
+
 Choose an end condition only from the declared candidate capability or the generic contract `time_limit`, `threshold`, `event`, `cycle_count`, or `manual`. Do not calculate a resolved end time. Include a bounded `maxTime` for dynamic conditions when the problem states a safety horizon. Describe only relations supported by the candidate contract. Preserve explicit units and assumptions from the problem.
 
 Return this exact shape. `objects` and `relations` may be empty arrays. Use `null` for optional text fields when unknown:

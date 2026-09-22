@@ -1,6 +1,6 @@
 package com.example.backend.entity.enums;
 
 public enum ExtractionPath {
-    OPENROUTER,
+    AI_PROVIDER,
     RULE_BASED
 }

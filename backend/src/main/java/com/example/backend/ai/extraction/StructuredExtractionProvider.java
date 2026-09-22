@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 
-import com.example.backend.ai.client.OpenRouterClient;
+import com.example.backend.ai.client.ChatCompletionClient;
 import com.example.backend.ai.extraction.model.AmbiguityItem;
 import com.example.backend.ai.extraction.model.PhysicalQuantity;
 import com.example.backend.ai.extraction.model.ProviderExtractionResult;
@@ -19,7 +19,7 @@ import com.example.backend.ai.extraction.model.SpecificationDocument;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 import com.example.backend.ai.extraction.prompt.ExtractionPromptBuilder;
 import com.example.backend.ai.normalization.UnitNormalizer;
-import com.example.backend.config.properties.OpenRouterProperties;
+import com.example.backend.config.properties.AiProviderProperties;
 import com.example.backend.config.properties.JevProperties;
 import com.example.backend.entity.enums.ExtractionPath;
 import com.example.backend.entity.problem.SchemaVersion;
@@ -33,29 +33,31 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
-public final class OpenRouterExtractionProvider implements ExtractionProvider {
+public final class StructuredExtractionProvider implements ExtractionProvider {
     private static final String SYSTEM_ROLE = "system";
-    private static final String RETRY_INSTRUCTION = """
-            The previous response violated the strict contract. Regenerate the complete JSON object using only the original request and pinned candidate contracts. Preserve raw stated values and original units; do not add inferred values.
-            """.trim();
+    private static final int MAX_RETRY_ERROR_CHARACTERS = 500;
 
-    private final OpenRouterClient client;
+    private final ChatCompletionClient client;
     private final ObjectMapper objectMapper;
     private final UnitNormalizer unitNormalizer;
     private final SchemaDefinitionService schemaDefinitions;
     private final ExtractionPromptBuilder prompts;
     private final String model;
+    private final String providerName;
+    private final int maxAttempts;
     private final MeterRegistry meters;
 
-    public OpenRouterExtractionProvider(OpenRouterClient client, ObjectMapper objectMapper,
+    public StructuredExtractionProvider(ChatCompletionClient client, ObjectMapper objectMapper,
             UnitNormalizer unitNormalizer, SchemaDefinitionService schemaDefinitions,
-            OpenRouterProperties properties, JevProperties routingProperties,
+            AiProviderProperties properties, JevProperties routingProperties,
             ResourceLoader resourceLoader, MeterRegistry meters) {
         this.client = client;
         this.objectMapper = objectMapper;
         this.unitNormalizer = unitNormalizer;
         this.schemaDefinitions = schemaDefinitions;
-        this.model = properties.model();
+        this.model = properties.textModel();
+        this.providerName = properties.name();
+        this.maxAttempts = properties.maxAttempts();
         this.meters = meters;
         String baseSystemPrompt;
         try (var input = resourceLoader.getResource(properties.systemPromptResource()).getInputStream()) {
@@ -67,9 +69,9 @@ public final class OpenRouterExtractionProvider implements ExtractionProvider {
                 routingProperties.maximumPromptCharacters());
     }
 
-    @Override public String providerName() { return "openrouter"; }
+    @Override public String providerName() { return providerName; }
     @Override public String modelVersion() { return model; }
-    @Override public ExtractionPath path() { return ExtractionPath.OPENROUTER; }
+    @Override public ExtractionPath path() { return ExtractionPath.AI_PROVIDER; }
     @Override public boolean isAvailable() { return client.isAvailable() && StringUtils.hasText(model); }
 
     @Override
@@ -137,12 +139,17 @@ public final class OpenRouterExtractionProvider implements ExtractionProvider {
             boolean forceRoutingAmbiguity, String invalidMessage) {
         List<Map<String, Object>> attemptMessages = new ArrayList<>(messages);
         RuntimeException lastFailure = null;
-        for (int attempt = 0; attempt < 2; attempt++) {
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
             meters.summary("physlive.ai.prompt.characters").record(prompts.messageCharacterCount(attemptMessages));
-            OpenRouterClient.Completion completion = client.complete(model, attemptMessages);
+            ChatCompletionClient.Completion completion = client.completeStructured(model, attemptMessages);
             try {
                 JsonNode json = client.parseJson(completion.content());
                 if (!json.isObject()) throw new IllegalStateException("AI response root must be a JSON object.");
+                int repairedFields = StrictSpecificationValidator.removeUnknownFields(json);
+                if (repairedFields > 0) {
+                    meters.counter("physlive.ai.response.repaired", "reason", "unknown_fields")
+                            .increment(repairedFields);
+                }
                 StrictSpecificationValidator.validate(json);
                 SchemaCandidate candidate = StrictSpecificationValidator.validateCandidateMembership(json, routingDecision,
                         unitNormalizer);
@@ -156,16 +163,35 @@ public final class OpenRouterExtractionProvider implements ExtractionProvider {
             } catch (Exception exception) {
                 lastFailure = new IllegalStateException(exception);
             }
-            if (attempt + 1 < 2) {
+            if (attempt + 1 < maxAttempts) {
                 try {
-                    attemptMessages = new ArrayList<>(prompts.appendRetryInstruction(attemptMessages, RETRY_INSTRUCTION));
+                    attemptMessages = new ArrayList<>(prompts.appendRetryInstruction(attemptMessages,
+                            retryInstruction(lastFailure)));
                 } catch (IllegalArgumentException capFailure) {
                     throw new IllegalStateException(invalidMessage + " Retry was skipped because the prompt would exceed the configured character limit.",
                             lastFailure);
                 }
             }
         }
-        throw new IllegalStateException(invalidMessage + " The AI failed two structured-output attempts.", lastFailure);
+        throw new IllegalStateException(invalidMessage + " The AI failed " + maxAttempts
+                + " structured-output attempt(s).", lastFailure);
+    }
+
+    private String retryInstruction(RuntimeException failure) {
+        String detail = failure == null || !StringUtils.hasText(failure.getMessage())
+                ? "The response did not satisfy the JSON contract."
+                : failure.getMessage().replaceAll("[\\r\\n\\t]+", " ").trim();
+        if (detail.length() > MAX_RETRY_ERROR_CHARACTERS) {
+            detail = detail.substring(0, MAX_RETRY_ERROR_CHARACTERS);
+        }
+        return """
+                The previous response violated the strict contract.
+                Validator error: %s
+                Regenerate the complete JSON object using only the original request and pinned candidate contracts.
+                Each ambiguity must contain exactly: code, fieldPath, question, options.
+                Check every requiredQuantities entry: provide exactly one stated quantity or one ambiguity for it. Do not ask for optionalQuantities.
+                Preserve raw stated values and original units; do not add inferred values or explanatory fields.
+                """.formatted(detail).trim();
     }
 
     private void requireCurrentCandidates(SchemaRoutingDecision routingDecision) {

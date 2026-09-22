@@ -225,6 +225,33 @@ class StrictSpecificationValidatorTest {
         assertDoesNotThrow(() -> StrictSpecificationValidator.validateCandidateMembership(root, decision));
     }
 
+    @Test
+    void everyMissingRequiredQuantityMustHaveOneQuestionAndOptionalQuantitiesMustNotBlock() throws Exception {
+        SchemaRoutingDecision decision = decisionFor("motion", "1.0", "KINEMATICS", "Motion",
+                mapper.readTree("""
+                        {"model":"motion","requiredQuantities":[{"key":"velocity",
+                         "aliases":["v"],"allowedUnits":["m/s"]}],
+                         "optionalQuantities":[{"key":"color","aliases":[],"allowedUnits":["1"]}]}
+                        """));
+        ObjectNode root = (ObjectNode) mapper.readTree("""
+                {"contractVersion":"1.0","schemaVersion":"1.0","topic":"KINEMATICS","schemaId":"motion",
+                 "objects":[],"quantities":[],"relations":[],"endCondition":{"type":"time_limit","duration":1},
+                 "confidence":0.5,"ambiguities":[]}
+                """);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> StrictSpecificationValidator.validateCandidateMembership(root, decision));
+
+        root.withArray("ambiguities").addObject().put("code", "missing.velocity")
+                .put("fieldPath", "quantities.velocity").put("question", "Vận tốc là bao nhiêu?")
+                .putArray("options");
+        assertDoesNotThrow(() -> StrictSpecificationValidator.validateCandidateMembership(root, decision));
+
+        ((ObjectNode) root.withArray("ambiguities").get(0)).put("fieldPath", "quantities.color");
+        assertThrows(IllegalArgumentException.class,
+                () -> StrictSpecificationValidator.validateCandidateMembership(root, decision));
+    }
+
     private SchemaRoutingDecision decisionFor(String schemaId, String schemaVersion, String topic, String name,
             com.fasterxml.jackson.databind.JsonNode definition) {
         CandidateContractProjection contract = CandidateContractProjection.from(

@@ -1,0 +1,105 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "contractVersion": { "type": "string", "const": "1.0" },
+    "schemaVersion": { "type": "string" },
+    "topic": { "type": ["string", "null"] },
+    "schemaId": { "type": "string" },
+    "objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "type": { "type": "string" }
+        },
+        "required": ["id", "label", "type"]
+      }
+    },
+    "quantities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "symbol": { "type": ["string", "null"] },
+          "value": { "type": "number" },
+          "originalUnit": { "type": "string" },
+          "confidence": { "type": ["number", "null"] },
+          "sourceText": { "type": ["string", "null"] }
+        },
+        "required": ["name", "symbol", "value", "originalUnit", "confidence", "sourceText"]
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": { "type": "string" },
+          "subject": { "type": "string" },
+          "object": { "type": ["string", "null"] },
+          "value": { "type": ["number", "string", "boolean", "null"] },
+          "unit": { "type": ["string", "null"] },
+          "sourceText": { "type": ["string", "null"] }
+        },
+        "required": ["type", "subject", "object", "value", "unit", "sourceText"]
+      }
+    },
+    "endCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["time_limit", "threshold", "event", "cycle_count", "manual"] },
+        "duration": { "type": ["number", "null"] },
+        "maxTime": { "type": ["number", "null"] },
+        "quantity": { "type": ["string", "null"] },
+        "operator": { "type": ["string", "null"] },
+        "value": { "type": ["number", "null"] },
+        "count": { "type": ["number", "null"] },
+        "event": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "type": { "type": "string" },
+                "entities": { "type": ["array", "null"], "items": { "type": "string" } },
+                "quantity": { "type": ["string", "null"] },
+                "operator": { "type": ["string", "null"] },
+                "value": { "type": ["number", "null"] },
+                "firstQuantity": { "type": ["string", "null"] },
+                "secondQuantity": { "type": ["string", "null"] },
+                "markerQuantity": { "type": ["string", "null"] }
+              },
+              "required": ["type", "entities", "quantity", "operator", "value", "firstQuantity", "secondQuantity", "markerQuantity"]
+            }
+          ]
+        }
+      },
+      "required": ["type", "duration", "maxTime", "quantity", "operator", "value", "count", "event"]
+    },
+    "confidence": { "type": "number" },
+    "ambiguities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string" },
+          "fieldPath": { "type": "string" },
+          "question": { "type": "string" },
+          "options": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["code", "fieldPath", "question", "options"]
+      }
+    }
+  },
+  "required": ["contractVersion", "schemaVersion", "topic", "schemaId", "objects", "quantities", "relations", "endCondition", "confidence", "ambiguities"]
+}

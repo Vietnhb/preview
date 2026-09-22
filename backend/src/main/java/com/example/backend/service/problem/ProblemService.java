@@ -182,7 +182,7 @@ public class ProblemService {
 
             ExtractionRun run = new ExtractionRun();
             run.setSubmission(problem);
-            run.setExtractionPath(com.example.backend.entity.enums.ExtractionPath.OPENROUTER);
+            run.setExtractionPath(com.example.backend.entity.enums.ExtractionPath.AI_PROVIDER);
             run.setProviderName("pending");
             run.setStatus(ExtractionRunStatus.RUNNING);
             extractionRunRepository.saveAndFlush(run);

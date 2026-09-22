@@ -1,6 +1,7 @@
 package com.example.backend.ai.extraction;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection.QuantityProjection;
 import com.example.backend.ai.normalization.UnitNormalizer;
@@ -31,6 +32,28 @@ public final class StrictSpecificationValidator {
     private static final int MAX_TEXT = 2_000;
 
     private StrictSpecificationValidator() {
+    }
+
+    /**
+     * Remove explanatory provider metadata while retaining the exact executable
+     * contract. Validation remains separate so missing fields and invalid values
+     * can never be hidden by this normalization step.
+     */
+    public static int removeUnknownFields(JsonNode root) {
+        if (!(root instanceof ObjectNode object)) return 0;
+        int removed = removeUnknown(object, ROOT_FIELDS);
+        removed += removeUnknownFromArray(root.path("objects"), OBJECT_FIELDS);
+        removed += removeUnknownFromArray(root.path("quantities"), QUANTITY_FIELDS);
+        removed += removeUnknownFromArray(root.path("relations"), RELATION_FIELDS);
+        removed += removeUnknownFromArray(root.path("ambiguities"), AMBIGUITY_FIELDS);
+        JsonNode condition = root.path("endCondition");
+        if (condition instanceof ObjectNode conditionObject) {
+            removed += removeUnknown(conditionObject, END_CONDITION_FIELDS);
+            if (condition.path("event") instanceof ObjectNode eventObject) {
+                removed += removeUnknown(eventObject, EVENT_FIELDS);
+            }
+        }
+        return removed;
     }
 
     public static void validate(JsonNode root) {
@@ -121,13 +144,16 @@ public final class StrictSpecificationValidator {
                     .anyMatch(endConditionType::equals);
             if (!supported) fail("endCondition type is outside the selected candidate capabilities");
         }
+        Set<String> ambiguityQuantityNames = new HashSet<>();
         for (JsonNode ambiguity : root.path("ambiguities")) {
             String fieldPath = ambiguity.path("fieldPath").asText("");
             if (fieldPath.startsWith("quantities.")) {
                 String key = fieldPath.substring("quantities.".length());
-                boolean declared = contract.requiredQuantities().stream().anyMatch(item -> item.key().equals(key))
-                        || contract.optionalQuantities().stream().anyMatch(item -> item.key().equals(key));
-                if (!declared) fail("quantity ambiguity fieldPath is outside the selected candidate contract");
+                boolean required = contract.requiredQuantities().stream().anyMatch(item -> item.key().equals(key));
+                boolean optional = contract.optionalQuantities().stream().anyMatch(item -> item.key().equals(key));
+                if (!required && !optional) fail("quantity ambiguity fieldPath is outside the selected candidate contract");
+                if (optional) fail("ambiguity must not request an optional quantity");
+                ambiguityQuantityNames.add(key);
             }
             if ("schemaId".equals(fieldPath) || "schema.schemaId".equals(fieldPath)) {
                 List<String> options = new java.util.ArrayList<>();
@@ -136,6 +162,14 @@ public final class StrictSpecificationValidator {
                         !candidateLabels.contains(option) && !candidateIds.contains(option))) {
                     fail("schema ambiguity options are outside the routed candidate set");
                 }
+            }
+        }
+        for (QuantityProjection required : contract.requiredQuantities()) {
+            boolean supplied = canonicalQuantityNames.contains(required.key());
+            boolean questioned = ambiguityQuantityNames.contains(required.key());
+            if (supplied && questioned) fail("required quantity cannot be both supplied and ambiguous: " + required.key());
+            if (!supplied && !questioned) {
+                fail("missing required quantity or ambiguity: " + required.key());
             }
         }
         return candidate;
@@ -278,7 +312,28 @@ public final class StrictSpecificationValidator {
 
     private static void rejectUnknown(JsonNode object, Set<String> allowed, String label) {
         Iterator<String> names = object.fieldNames();
-        while (names.hasNext()) if (!allowed.contains(names.next())) fail("Unknown field in " + label);
+        while (names.hasNext()) {
+            String field = names.next();
+            if (!allowed.contains(field)) fail("Unknown field '" + field + "' in " + label);
+        }
+    }
+
+    private static int removeUnknownFromArray(JsonNode values, Set<String> allowed) {
+        if (!values.isArray()) return 0;
+        int removed = 0;
+        for (JsonNode value : values) {
+            if (value instanceof ObjectNode object) removed += removeUnknown(object, allowed);
+        }
+        return removed;
+    }
+
+    private static int removeUnknown(ObjectNode object, Set<String> allowed) {
+        List<String> unknown = new java.util.ArrayList<>();
+        object.fieldNames().forEachRemaining(field -> {
+            if (!allowed.contains(field)) unknown.add(field);
+        });
+        object.remove(unknown);
+        return unknown.size();
     }
 
     private static void requiredText(JsonNode object, String key) {

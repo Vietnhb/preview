@@ -10,6 +10,6 @@ physics problems into validated specification documents.
 - `normalization`: deterministic normalization applied after AI output.
 
 Application services depend on `ExtractionProvider` and `OcrProvider`, never on
-an OpenRouter implementation. Provider-specific HTTP details stay in `client`.
+an OpenAI-compatible implementation. Provider-specific HTTP details stay in `client`.
 Prompts belong in `src/main/resources/prompts`, with resource locations supplied
 through environment-backed configuration.

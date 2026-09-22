@@ -24,7 +24,7 @@ com.example.backend
    entity layers (`problem`, `simulation`, `school`, and so on).
 2. Controllers depend on services; they do not call repositories directly.
 3. Services depend on repositories and provider interfaces, not concrete
-   OpenRouter implementations.
+   provider-neutral OpenAI-compatible implementations.
 4. Repositories only expose persistence queries and never contain use-case
    logic.
 5. JPA entities do not depend on controllers, DTOs, services, or repositories.
