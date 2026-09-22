@@ -141,14 +141,20 @@ export default function SchoolBilling() {
           </button>
         </div>
       )}
-      {notice && <p role="status">{notice}</p>}
+      {notice && (
+        <p className={s.notice} role="status">
+          {notice}
+        </p>
+      )}
       {loading ? (
         <p role="status">Đang tải thông tin gói…</p>
       ) : (
         billing && (
           <>
-            <section className="admin-panel school-billing-plan-panel">
-              <div className="school-signup-section-heading">
+            <section
+              className={`admin-panel school-billing-plan-panel ${s.planPanel}`}
+            >
+              <div className={`school-signup-section-heading ${s.planHeading}`}>
                 <div>
                   <h2>
                     {user?.billingRequired
@@ -160,7 +166,7 @@ export default function SchoolBilling() {
                     hạn. Hạ gói áp dụng kỳ sau. Gia hạn mở khi gói hết hạn.
                   </p>
                 </div>
-                <span className="school-signup-billing">Gói năm</span>
+                <span className="school-signup-billing">GÓI NĂM</span>
               </div>
               {licenseWritable === false && (
                 <p className="school-license-unavailable" role="status">
@@ -175,7 +181,7 @@ export default function SchoolBilling() {
                 </p>
               )}
               {plans.length === 0 ? (
-                <p>Chưa có gói đăng ký khả dụng.</p>
+                <p className={s.emptyState}>Chưa có gói đăng ký khả dụng.</p>
               ) : (
                 <div
                   className="school-signup-plans school-billing-plans"
@@ -222,7 +228,7 @@ export default function SchoolBilling() {
                 </button>
               </div>
               {quote && (
-                <div className="admin-billing-quote">
+                <div className={`admin-billing-quote ${s.quote}`}>
                   <h3>{purposes[quote.purpose]}</h3>
                   <p>
                     Thời hạn: {date(quote.licenseStart)} —{" "}
@@ -244,7 +250,7 @@ export default function SchoolBilling() {
               )}
             </section>
             <section
-              className="admin-panel"
+              className={`admin-panel ${s.currentPanel}`}
               aria-label="Gói hiện tại và mức sử dụng"
             >
               <div className="admin-panel-heading">
@@ -288,7 +294,7 @@ export default function SchoolBilling() {
                 </p>
               )}
             </section>
-            <section className="admin-panel">
+            <section className={`admin-panel ${s.historyPanel}`}>
               <div className="admin-panel-heading">
                 <h2>Lịch sử thanh toán</h2>
               </div>

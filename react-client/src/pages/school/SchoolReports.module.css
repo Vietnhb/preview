@@ -1,0 +1,77 @@
+.reports {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.summary {
+  gap: 14px;
+  margin: 0;
+}
+
+.summary :global(.admin-stat-card) {
+  min-height: 124px;
+  padding: 20px;
+}
+
+.summary :global(.admin-stat-card) p {
+  margin-bottom: 8px;
+}
+
+.summary :global(.admin-stat-card) strong {
+  font-size: 30px;
+}
+
+.importPanel,
+.dataPanel {
+  min-width: 0;
+  margin: 0;
+}
+
+.importPanel :global(.admin-panel-heading),
+.dataPanel :global(.admin-panel-heading) {
+  margin-bottom: 18px;
+}
+
+.importPanel :global(.school-csv-format) {
+  max-width: 720px;
+  margin-top: 2px;
+}
+
+.formatNote {
+  padding-top: 2px;
+}
+
+.dataPanel {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.dataPanel :global(.admin-panel-heading) {
+  padding-inline: 0;
+}
+
+.dataPanel :global(.admin-table-scroll) {
+  margin-inline: -22px;
+  padding-inline: 22px;
+}
+
+.dataPanel :global(.admin-table) {
+  min-width: 640px;
+}
+
+.dataPanel :global(.admin-table tbody td:first-child strong) {
+  color: var(--admin-heading);
+  font-weight: 650;
+}
+
+@media (max-width: 700px) {
+  .summary {
+    gap: 12px;
+  }
+
+  .dataPanel :global(.admin-table-scroll) {
+    margin-inline: -18px;
+    padding-inline: 18px;
+  }
+}

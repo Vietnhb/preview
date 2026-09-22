@@ -21,7 +21,6 @@ function SummaryCard({ label, value, icon, tone, detail }: Readonly<{ label: str
 
 export default function SchoolDashboard() {
   const schoolId = usePhysliveStore(state => state.user?.schoolId);
-  const fullName = usePhysliveStore(state => state.user?.fullName);
   const [summary, setSummary] = useState<SchoolReportSummary | null>(null);
   const [classes, setClasses] = useState<SchoolReportClass[]>([]);
   const [license, setLicense] = useState<LicenseStatus | null>(null);
@@ -69,17 +68,6 @@ export default function SchoolDashboard() {
     : tokenUsage > 0 ? 100 : 0;
 
   return <div className="admin-content school-dashboard">
-    <section className="school-welcome">
-      <div>
-        <p className="admin-eyebrow">KHÔNG GIAN TRƯỜNG HỌC</p>
-        <h1>Xin chào{fullName ? `, ${fullName}` : ""}</h1>
-        <p>{summary?.schoolName ?? "Theo dõi tài khoản, lớp học và license của trường tại đây."}</p>
-      </div>
-      <button type="button" className="admin-secondary-button" onClick={() => void load()} disabled={loading}>
-        <LearningIcon name="refresh" />{loading ? "Đang tải…" : "Làm mới dữ liệu"}
-      </button>
-    </section>
-
     {error && <div className="admin-error-banner" role="alert">{error}<button type="button" className="admin-inline-button" onClick={() => void load()}>Thử lại</button></div>}
     {loading && !summary ? <div className="admin-loading"><span className="admin-loading-spinner" /><p>Đang tải dữ liệu trường…</p></div> : summary && <>
       <section className="admin-stats-grid school-summary-grid" aria-label="Chỉ số trường học">

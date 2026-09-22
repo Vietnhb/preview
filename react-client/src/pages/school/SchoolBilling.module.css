@@ -1,82 +1,243 @@
 .billing {
-  background: #ededec;
-  color: #0e1312;
-  font-family: "Segoe UI", sans-serif;
-  gap: 48px;
+  display: grid;
+  gap: 20px;
+  color: var(--admin-text);
 }
+
 .billing :global(.admin-panel) {
-  background: transparent;
-  box-shadow: none;
-  border: 0;
-  border-radius: 0;
-  padding: 0 0 32px;
-  border-bottom: 1px solid #d3d2c9;
+  width: 100%;
+  margin: 0;
+  padding: 22px;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: var(--admin-surface);
+  box-shadow: 0 1px 2px rgb(32 33 36 / 4%);
 }
+
+.billing :global(.admin-panel:hover) {
+  border-color: var(--admin-border-strong);
+}
+
+.planPanel {
+  min-width: 0;
+}
+
+.planHeading {
+  align-items: flex-start !important;
+  margin-bottom: 20px !important;
+}
+
 .billing :global(.admin-panel) h2 {
-  font-size: 28px;
-  line-height: 1.2;
-  font-weight: 500;
-  letter-spacing: -0.035em;
+  margin: 0;
+  color: var(--admin-heading);
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
 }
-.billing :global(.admin-stats-grid) {
-  gap: 32px;
+
+.planHeading p {
+  max-width: 660px;
+  margin: 6px 0 0 !important;
+  color: var(--admin-muted) !important;
+  font-size: 13px !important;
+  line-height: 1.55;
 }
-.billing :global(.admin-stat-card) {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-  padding: 16px 0;
+
+.billing :global(.school-signup-billing) {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: 1px solid #d8ccf2;
+  border-radius: 6px;
+  background: #f5f0ff;
+  color: #6f56a0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
-.billing :global(.admin-stat-card) strong {
-  font-size: 24px;
-  font-weight: 500;
+
+.billing :global(.admin-error-banner) {
+  margin: 0;
 }
-.billing :global(.admin-primary-button) {
-  background: #0e1312;
-  border-color: #0e1312;
-  color: #ededec;
-  border-radius: 2px;
-  box-shadow: none;
+
+.notice {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #c6e7cf;
+  border-radius: 10px;
+  background: #f0faf2;
+  color: #216e39;
+  font-size: 13px;
+  line-height: 1.5;
 }
-.billing :global(.admin-secondary-button) {
-  background: transparent;
-  color: #0e1312;
-  border-color: #c5c5ba;
-  border-radius: 2px;
-  box-shadow: none;
+
+.billing :global(.school-license-unavailable) {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid #f4d49c;
+  border-radius: 10px;
+  background: #fff8e8;
+  color: #785313;
+  font-size: 13px;
+  line-height: 1.5;
 }
+
 .billing :global(.school-billing-plans) {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  gap: 16px;
+  margin: 0;
 }
+
 .billing :global(.school-billing-plan-actions) {
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 20px;
 }
+
+.billing :global(.admin-primary-button),
+.billing :global(.admin-secondary-button) {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
 .billing :global(.admin-billing-quote) {
-  background: #ffdb2a;
-  border: 0;
-  border-radius: 2px;
-  padding: 24px;
-  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px 24px;
+  margin-top: 20px;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--admin-border);
 }
-.billing :is(button, a, input):focus-visible {
-  outline: 3px solid #5a8eff;
-  outline-offset: 4px;
+
+.quote h3 {
+  margin: 0 0 7px;
+  color: var(--admin-heading) !important;
+  font-size: 16px !important;
+  letter-spacing: -0.01em;
 }
+
+.quote p {
+  margin: 5px 0;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+
+.quote strong {
+  color: var(--admin-heading);
+}
+
+.quote :global(.admin-primary-button) {
+  border-color: #7b5bb5;
+  background: #7b5bb5;
+}
+
+.quote :global(.admin-primary-button:hover:not(:disabled)) {
+  border-color: #684a9d;
+  background: #684a9d;
+}
+
+.emptyState {
+  margin: 0;
+  color: var(--admin-muted);
+}
+
+.currentPanel,
+.historyPanel {
+  min-width: 0;
+}
+
+.currentPanel :global(.admin-panel-heading),
+.historyPanel :global(.admin-panel-heading) {
+  margin-bottom: 18px;
+}
+
+.currentPanel :global(.admin-panel-heading h2),
+.historyPanel :global(.admin-panel-heading h2) {
+  font-size: 18px;
+}
+
+.currentPanel :global(.admin-panel-description) {
+  margin-top: 6px;
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
 .eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: #66685f;
-  margin: 0 0 16px;
+  margin: 0 0 6px;
+  color: var(--admin-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
 }
-@media (max-width: 1050px) {
+
+.currentPanel :global(.admin-stats-grid) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.currentPanel :global(.admin-stat-card) {
+  min-height: 112px;
+}
+
+.currentPanel > p:last-child {
+  margin: 18px 0 0;
+  padding: 11px 13px;
+  border: 1px solid #d8ccf2;
+  border-radius: 8px;
+  background: #f5f0ff;
+  color: #5f4b87;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.historyPanel :global(.admin-table-scroll) {
+  overflow-x: auto;
+}
+
+.historyPanel :global(.admin-table) {
+  min-width: 720px;
+}
+
+.historyPanel :global(.admin-table a) {
+  color: var(--admin-accent);
+  font-weight: 600;
+}
+
+.billing :is(button, a, input):focus-visible {
+  outline: 3px solid #a990d8;
+  outline-offset: 3px;
+}
+
+@media (max-width: 1100px) {
   .billing :global(.school-billing-plans) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .billing :global(.school-billing-plans) {
+    grid-template-columns: 1fr;
+  }
+
+  .billing :global(.school-billing-plan-actions) {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .billing :global(.admin-billing-quote) {
+    grid-template-columns: 1fr;
+  }
+
+  .quote :global(.admin-primary-button) {
+    width: 100%;
+  }
+
+  .currentPanel :global(.admin-stats-grid) {
     grid-template-columns: 1fr;
   }
 }

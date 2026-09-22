@@ -125,39 +125,41 @@ export default function Home() {
       )}
       <main className={s.container}>
         <section className={s.hero}>
-          <div>
-            <p className={s.kicker}>PHÒNG THÍ NGHIỆM SỐ</p>
-            <h1>
-              Vật lý,
-              <br />
-              <em>nhìn thấy được.</em>
-            </h1>
-          </div>
-          <div className={s.intro}>
-            <p>
-              Thay đổi điều kiện. <br />
-              Quan sát chuyển động. <br />
-              Hiểu điều đang xảy ra.
-            </p>
-            <a className={s.primary} href="#projectile-experiment">
-              Thử một thí nghiệm <span aria-hidden="true">↘</span>
-            </a>
-            <Link className={s.textLink} to="/signup">
-              Dành cho nhà trường ↗
-            </Link>
-            {user && (
-              <Link
-                className={s.textLink}
-                to={user.role === "STUDENT" ? "/assignments" : "/workspace"}
-              >
-                Tiếp tục học tập →
+          <div className={s.heroCopy}>
+            <div>
+              <p className={s.kicker}>PHÒNG THÍ NGHIỆM SỐ</p>
+              <h1>
+                Vật lý,
+                <br />
+                <em>nhìn thấy được.</em>
+              </h1>
+            </div>
+            <div className={s.intro}>
+              <p>
+                Thay đổi điều kiện. <br />
+                Quan sát chuyển động. <br />
+                Hiểu điều đang xảy ra.
+              </p>
+              <a className={s.primary} href="#projectile-experiment">
+                Thử một thí nghiệm <span aria-hidden="true">↘</span>
+              </a>
+              <Link className={s.textLink} to="/signup">
+                Dành cho nhà trường ↗
               </Link>
-            )}
+              {user && (
+                <Link
+                  className={s.textLink}
+                  to={user.role === "STUDENT" ? "/assignments" : "/workspace"}
+                >
+                  Tiếp tục học tập →
+                </Link>
+              )}
+            </div>
+          </div>
+          <div className={s.experiment}>
+            <ProjectileExperiment />
           </div>
         </section>
-        <div className={s.experiment}>
-          <ProjectileExperiment />
-        </div>
         <section className={s.story}>
           <p className={s.kicker}>02 / TỪ DỰ ĐOÁN ĐẾN BẰNG CHỨNG</p>
           <Reveal className={s.storyCopy}>

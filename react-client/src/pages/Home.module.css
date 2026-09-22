@@ -3,7 +3,8 @@
   --paper: #ededec;
   --accent: #ffdb2a;
   --muted: #aeb3af;
-  --gutter: max(48px, calc((100% - 1184px) / 2));
+  --gutter: max(40px, calc((100% - 1440px) / 2));
+  --section-gap: clamp(32px, 4vw, 64px);
   background: var(--ink);
   color: var(--paper);
   font-family: "Segoe UI", sans-serif;
@@ -12,13 +13,16 @@
   width: 100%;
   margin: auto;
   padding: 0;
+  background:
+    radial-gradient(circle at 12% 14%, rgb(255 219 42 / 92%), transparent 26%),
+    radial-gradient(circle at 88% 18%, rgb(255 87 142 / 88%), transparent 30%),
+    linear-gradient(118deg, #38d6c6 0%, #6e78ef 52%, #ff7b4d 100%);
 }
 .experiment {
-  padding: clamp(16px, 2vw, 28px) var(--gutter) 80px;
-  background:
-    radial-gradient(circle at 12% 85%, rgb(255 219 42 / 92%), transparent 34%),
-    radial-gradient(circle at 88% 18%, rgb(255 87 142 / 88%), transparent 38%),
-    linear-gradient(118deg, #38d6c6 0%, #6e78ef 52%, #ff7b4d 100%);
+  min-width: 0;
+  width: 100%;
+  justify-self: end;
+  padding: 0;
 }
 .progress {
   position: fixed;
@@ -32,12 +36,18 @@
 }
 .hero {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 64px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.65fr);
+  gap: var(--section-gap);
   align-items: center;
-  padding: 56px var(--gutter) 44px;
-  background: var(--accent);
+  padding: 64px var(--gutter) 80px;
+  background: transparent;
   color: var(--ink);
+}
+.heroCopy {
+  display: grid;
+  align-content: center;
+  gap: 32px;
+  min-width: 0;
 }
 .kicker {
   font-size: 11px;
@@ -48,7 +58,7 @@
   opacity: 0.62;
 }
 .home h1 {
-  font-size: clamp(44px, 5.4vw, 76px);
+  font-size: clamp(44px, 4.3vw, 68px);
   font-weight: 550;
   line-height: 1.12;
   letter-spacing: -0.055em;
@@ -59,7 +69,7 @@
   color: inherit;
 }
 .intro {
-  justify-self: end;
+  justify-self: start;
 }
 .intro > p {
   font-size: 18px;
@@ -112,9 +122,9 @@
 }
 .story {
   display: grid;
-  grid-template-columns: 1fr 1.25fr;
-  gap: 96px;
-  padding: 112px var(--gutter);
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.65fr);
+  gap: var(--section-gap);
+  padding: 96px var(--gutter);
   background: var(--ink);
   color: var(--paper);
 }
@@ -130,9 +140,11 @@
 }
 .school {
   display: grid;
-  grid-template-columns: 1fr 1.25fr;
-  gap: 96px;
-  padding: 112px var(--gutter);
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.65fr);
+  gap: var(--section-gap);
+  padding: 96px var(--gutter);
+  color: var(--ink);
+  --muted: #303531;
   border: 0;
 }
 .tasks {
@@ -144,7 +156,7 @@
   display: flex;
   gap: 32px;
   padding: 24px 0;
-  border-bottom: 1px solid #ffffff24;
+  border-bottom: 1px solid rgb(14 19 18 / 20%);
 }
 .tasks li:first-child {
   padding-top: 0;
@@ -156,7 +168,7 @@
   font:
     12px Consolas,
     monospace;
-  color: var(--accent);
+  color: inherit;
   padding-top: 8px;
 }
 .tasks h3 {
@@ -199,8 +211,8 @@
 }
 .planRow {
   display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 48px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.65fr);
+  gap: var(--section-gap);
   padding: 28px 0;
   border-top: 1px solid #d3d2c9;
 }
@@ -249,9 +261,8 @@
   color: var(--accent);
 }
 .footer {
-  max-width: 1280px;
   margin: auto;
-  padding: 32px 48px;
+  padding: 32px var(--gutter);
   display: flex;
   justify-content: space-between;
   gap: 32px;
@@ -281,27 +292,38 @@
     --gutter: 32px;
   }
   .hero {
-    gap: 40px;
+    gap: 28px;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
   }
   .story,
   .school {
-    gap: 48px;
+    gap: 28px;
   }
   .footer {
     padding-inline: 32px;
+  }
+}
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .experiment {
+    width: 100%;
+    max-width: none;
   }
 }
 @media (max-width: 700px) {
   .home {
     --gutter: 20px;
   }
-  .experiment {
-    padding-bottom: 48px;
-  }
   .hero {
     grid-template-columns: 1fr;
     gap: 28px;
     padding: 36px var(--gutter) 32px;
+  }
+  .experiment {
+    max-width: none;
   }
   .kicker {
     font-size: 10px;

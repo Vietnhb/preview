@@ -34,7 +34,9 @@ export default function PlanCard({
       className={s.card}
       data-selected={selected}
       data-disabled={disabled}
-      whileTap={reduced || disabled ? undefined : { scale: 0.99 }}
+      layout
+      whileHover={reduced || disabled ? undefined : { y: -4 }}
+      whileTap={reduced || disabled ? undefined : { scale: 0.985 }}
       transition={{ type: "spring", stiffness: 400, damping: 32 }}
     >
       <div className={s.heading}>
@@ -52,6 +54,13 @@ export default function PlanCard({
           disabled={disabled}
           onChange={() => onSelect(plan.code)}
         />
+        {selected && (
+          <motion.span
+            className={s.selectionMarker}
+            layoutId={`${name}-selection`}
+            aria-hidden="true"
+          />
+        )}
       </div>
       <p className={s.description}>{plan.description}</p>
       <div className={s.price}>
