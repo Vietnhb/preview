@@ -1,7 +1,6 @@
 package com.example.backend.ai.extraction;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection.EntityTypeProjection;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection.QuantityProjection;
@@ -36,32 +35,6 @@ public final class StrictSpecificationValidator {
     private static final int MAX_TEXT = 2_000;
 
     private StrictSpecificationValidator() {
-    }
-
-    /**
-     * Remove explanatory provider metadata while retaining the exact executable
-     * contract. Validation remains separate so missing fields and invalid values
-     * can never be hidden by this normalization step.
-     */
-    public static int removeUnknownFields(JsonNode root) {
-        if (!(root instanceof ObjectNode object)) return 0;
-        int removed = removeUnknown(object, ROOT_FIELDS);
-        JsonNode objects = root.path("objects");
-        removed += removeUnknownFromArray(objects, OBJECT_FIELDS);
-        if (objects.isArray()) {
-            for (JsonNode item : objects) removed += removeUnknownFromArray(item.path("quantities"), QUANTITY_FIELDS);
-        }
-        removed += removeUnknownFromArray(root.path("quantities"), QUANTITY_FIELDS);
-        removed += removeUnknownFromArray(root.path("relations"), RELATION_FIELDS);
-        removed += removeUnknownFromArray(root.path("ambiguities"), AMBIGUITY_FIELDS);
-        JsonNode condition = root.path("endCondition");
-        if (condition instanceof ObjectNode conditionObject) {
-            removed += removeUnknown(conditionObject, END_CONDITION_FIELDS);
-            if (condition.path("event") instanceof ObjectNode eventObject) {
-                removed += removeUnknown(eventObject, EVENT_FIELDS);
-            }
-        }
-        return removed;
     }
 
     public static void validate(JsonNode root) {
@@ -484,7 +457,7 @@ public final class StrictSpecificationValidator {
             rejectUnknown(event, EVENT_FIELDS, "endCondition.event");
             requiredText(event, "type");
             JsonNode entities = event.get("entities");
-            if (entities != null && (!entities.isArray() || entities.size() > MAX_ITEMS)) {
+            if (entities != null && !entities.isNull() && (!entities.isArray() || entities.size() > MAX_ITEMS)) {
                 fail("endCondition.event.entities must be an array");
             }
             for (String key : Set.of("quantity", "firstQuantity", "secondQuantity", "markerQuantity", "operator")) {
@@ -499,24 +472,6 @@ public final class StrictSpecificationValidator {
             String field = names.next();
             if (!allowed.contains(field)) fail("Unknown field '" + field + "' in " + label);
         }
-    }
-
-    private static int removeUnknownFromArray(JsonNode values, Set<String> allowed) {
-        if (!values.isArray()) return 0;
-        int removed = 0;
-        for (JsonNode value : values) {
-            if (value instanceof ObjectNode object) removed += removeUnknown(object, allowed);
-        }
-        return removed;
-    }
-
-    private static int removeUnknown(ObjectNode object, Set<String> allowed) {
-        List<String> unknown = new java.util.ArrayList<>();
-        object.fieldNames().forEachRemaining(field -> {
-            if (!allowed.contains(field)) unknown.add(field);
-        });
-        object.remove(unknown);
-        return unknown.size();
     }
 
     private static void requiredText(JsonNode object, String key) {

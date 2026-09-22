@@ -11,6 +11,7 @@ type ChatMessagesProps = {
   hasChatContent: boolean;
   pendingProblem: Problem | null;
   activeAmbiguity: Ambiguity | undefined;
+  activeQuestionRecorded: boolean;
   ambiguityStep: number;
   loading: boolean;
   questionTyping: boolean;
@@ -25,6 +26,7 @@ export function CreateChatMessages({
   hasChatContent,
   pendingProblem,
   activeAmbiguity,
+  activeQuestionRecorded,
   ambiguityStep,
   loading,
   questionTyping,
@@ -58,7 +60,7 @@ export function CreateChatMessages({
               </div>
             </div>
           ))}
-          {pendingProblem && activeAmbiguity && !loading && (
+          {pendingProblem && activeAmbiguity && !activeQuestionRecorded && !loading && (
             <div
               className="create-chat-message assistant create-chat-question"
               key={`${activeAmbiguity.code}-${ambiguityStep}`}

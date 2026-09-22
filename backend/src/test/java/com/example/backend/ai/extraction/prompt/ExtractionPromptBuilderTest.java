@@ -34,7 +34,7 @@ class ExtractionPromptBuilderTest {
                   "relationTypes":["contact"],
                   "endConditionCapabilities":["time_limit","threshold"],
                   "formula":"SECRET_FORMULA",
-                  "execution":{"durationBindings":[{"relationTypes":["requested_duration"]}]},
+                  "execution":{"durationSeconds":17,"durationBindings":[{"relationTypes":["requested_duration"]}]},
                   "output":{"samples":[{"value":"SECRET_OUTPUT_VALUE"}]},
                   "visualization":{"scene":"SECRET_SCENE","sceneGraph":{"nodes":["SECRET_VISUALIZATION"]}}
                 }
@@ -61,6 +61,7 @@ class ExtractionPromptBuilderTest {
         assertTrue(messages.systemMessage().contains("motion_schema"));
         assertTrue(messages.systemMessage().contains("\"schemaVersion\":\"3.2\""));
         assertTrue(messages.systemMessage().contains("\"modelId\":\"motion_model\""));
+        assertTrue(messages.systemMessage().contains("\"executionDurationSeconds\":17"));
         assertFalse(messages.systemMessage().contains("secret_solver_id"));
         assertFalse(messages.systemMessage().contains("secret_reference_id"));
         assertFalse(messages.systemMessage().contains("SECRET_FORMULA"));

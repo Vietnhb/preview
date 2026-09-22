@@ -76,7 +76,7 @@ class StructuredExtractionProviderPinningTest {
     }
 
     @Test
-    void harmlessAmbiguityMetadataDoesNotDiscardAValidExtraction() throws Exception {
+    void unexpectedMetadataIsRejectedWithoutSilentlyChangingTheResponse() throws Exception {
         ChatCompletionClient client = mock(ChatCompletionClient.class);
         SchemaDefinitionService schemas = mock(SchemaDefinitionService.class);
         when(schemas.requireCurrentApproved("test_schema", "1.0")).thenReturn(pinnedSchema());
@@ -92,10 +92,10 @@ class StructuredExtractionProviderPinningTest {
                 new ChatCompletionClient.Completion("test-model", "{}", mapper.createObjectNode()));
         when(client.parseJson(anyString())).thenReturn(response);
 
-        var result = assertDoesNotThrow(() -> provider(client, schemas).extract("A sample problem", decision()));
-
-        assertEquals(1, result.document().ambiguities().size());
-        verify(client, times(1)).completeStructured(eq("test-model"), anyList());
+        assertThrows(IllegalStateException.class,
+                () -> provider(client, schemas).extract("A sample problem", decision()));
+        assertEquals("not stated", response.path("ambiguities").get(0).path("reason").asText());
+        verify(client, times(2)).completeStructured(eq("test-model"), anyList());
     }
 
     @Test

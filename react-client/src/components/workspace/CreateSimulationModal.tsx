@@ -22,6 +22,7 @@ type Props = {
   questionTyping: boolean;
   ambiguities: Ambiguity[];
   activeAmbiguity: Ambiguity | undefined;
+  activeQuestionRecorded: boolean;
   conversation: ConversationMessage[];
   canDismiss: boolean;
   onClose: () => void;
@@ -86,6 +87,7 @@ export default function CreateSimulationModal({
   questionTyping,
   ambiguities,
   activeAmbiguity,
+  activeQuestionRecorded,
   conversation,
   canDismiss,
   onClose,
@@ -175,6 +177,7 @@ export default function CreateSimulationModal({
           hasChatContent={hasChatContent}
           pendingProblem={pendingProblem}
           activeAmbiguity={activeAmbiguity}
+          activeQuestionRecorded={activeQuestionRecorded}
           ambiguityStep={ambiguityStep}
           loading={loading}
           questionTyping={questionTyping}

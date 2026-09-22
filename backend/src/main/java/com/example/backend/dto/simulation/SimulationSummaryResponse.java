@@ -7,6 +7,7 @@ import java.util.UUID;
 public record SimulationSummaryResponse(
         UUID simulationId,
         UUID specificationId,
+        String title,
         String schemaId,
         String status,
         Instant createdAt) {

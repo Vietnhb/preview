@@ -27,6 +27,27 @@ type Props = {
   onExampleSelect: (example: string) => void;
 };
 
+const SIMULATION_STATUS_LABELS: Record<string, string> = {
+  READY: "Đã kiểm chứng",
+  VALIDATING: "Đang kiểm chứng",
+  BLOCKED: "Không đạt kiểm chứng",
+  FAILED: "Mô phỏng lỗi",
+  ARCHIVED: "Đã lưu trữ",
+};
+
+function recentSimulationDetail(item: SimulationSummary): string {
+  const status = SIMULATION_STATUS_LABELS[item.status] ?? item.status;
+  const createdAt = new Date(item.createdAt);
+  if (Number.isNaN(createdAt.getTime())) return status;
+  const time = new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(createdAt);
+  return `${status} · ${time}`;
+}
+
 /** Same chrome as LearningWorkspace (header + library + stage + inspector) with an empty stage CTA. */
 export default function EmptySimulationFrame({
   showTeacherLibrary,
@@ -136,13 +157,16 @@ export default function EmptySimulationFrame({
                     {!historyLoading && !historyError && recent.length === 0 && <p className="create-resources-note">Chưa có mô phỏng nào.</p>}
                     {!historyLoading && !historyError && recent.length > 0 && (
                       <div className="create-recent-list">
-                        {recent.slice(0, 6).map(item => (
-                          <button type="button" className="create-recent-item" key={item.simulationId} disabled={Boolean(openingRecentId)} aria-busy={openingRecentId === item.simulationId} onClick={() => onOpenRecent(item)}>
-                            <span className="create-recent-icon"><Icon name="atom" /></span>
-                            <span><strong>{openingRecentId === item.simulationId ? "Đang mở…" : item.schemaId}</strong><small>{item.status === "READY" ? "Đã kiểm chứng" : "Đang xử lý"}</small></span>
-                            <Icon name="arrow" />
-                          </button>
-                        ))}
+                        {recent.slice(0, 6).map(item => {
+                          const title = item.title?.trim() || item.schemaId;
+                          return (
+                            <button type="button" className="create-recent-item" key={item.simulationId} title={title} disabled={Boolean(openingRecentId)} aria-busy={openingRecentId === item.simulationId} onClick={() => onOpenRecent(item)}>
+                              <span className="create-recent-icon"><Icon name="atom" /></span>
+                              <span><strong>{openingRecentId === item.simulationId ? "Đang mở…" : title}</strong><small>{recentSimulationDetail(item)}</small></span>
+                              <Icon name="arrow" />
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

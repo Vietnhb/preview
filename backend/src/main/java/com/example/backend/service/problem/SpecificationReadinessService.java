@@ -114,6 +114,7 @@ public class SpecificationReadinessService {
             if (gap != null) {
                 code = "schema.required." + gap.key();
                 ambiguity.setFieldPath(fieldPathFor(gap.key()));
+                ambiguity.setQuestion(withExpectedUnit(ambiguity.getQuestion(), gap.unit()));
             } else code = semanticCode(ambiguity);
             if (seen.add(code)) ambiguity.setCode(code);
             else {
@@ -168,10 +169,27 @@ public class SpecificationReadinessService {
                 }
             }
         }
-        String subject = StringUtils.hasText(label) ? "“" + label + "”" : "dữ kiện bắt buộc này";
-        String unit = StringUtils.hasText(gap.unit()) ? " (đơn vị " + gap.unit() + ")" : "";
-        return "Đề bài chưa cung cấp " + subject + unit + ". Vui lòng bổ sung giá trị.";
+        String question = StringUtils.hasText(label)
+                ? label + " là bao nhiêu?"
+                : "Giá trị của dữ kiện còn thiếu là bao nhiêu?";
+        return withExpectedUnit(question, gap.unit());
     }
+
+    /**
+     * The AI supplies the natural wording; the schema supplies the expected unit.
+     * This guard keeps the UX deterministic without quantity-specific templates.
+     */
+    private String withExpectedUnit(String question, String unit) {
+        String normalizedQuestion = StringUtils.hasText(question)
+                ? question.trim() : "Giá trị của dữ kiện còn thiếu là bao nhiêu?";
+        String normalizedUnit = unit == null ? "" : unit.trim();
+        if (normalizedUnit.isBlank() || "SI".equalsIgnoreCase(normalizedUnit)
+                || normalizedQuestion.toLowerCase(Locale.ROOT).contains(normalizedUnit.toLowerCase(Locale.ROOT))) {
+            return normalizedQuestion;
+        }
+        return normalizedQuestion + " (" + normalizedUnit + ")";
+    }
+
     private record AmbiguityView(String code, String fieldPath, String question, JsonNode options) { }
 
     public JsonNode toJson(Specification specification) {

@@ -168,11 +168,6 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
             try {
                 JsonNode json = client.parseJson(completion.content());
                 if (!json.isObject()) throw new IllegalStateException("AI response root must be a JSON object.");
-                int repairedFields = StrictSpecificationValidator.removeUnknownFields(json);
-                if (repairedFields > 0) {
-                    meters.counter("physlive.ai.response.repaired", "reason", "unknown_fields")
-                            .increment(repairedFields);
-                }
                 StrictSpecificationValidator.validate(json);
                 SchemaCandidate candidate = StrictSpecificationValidator.validateCandidateMembership(json, routingDecision,
                         unitNormalizer);

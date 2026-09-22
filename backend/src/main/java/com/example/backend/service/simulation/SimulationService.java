@@ -53,6 +53,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -316,10 +317,17 @@ public class SimulationService {
     @Transactional(readOnly = true)
     public List<SimulationSummaryResponse> recent() {
         User user = currentUserService.requireCurrentUser();
-        return simulationRepository.findSummariesByOwnerId(user.getId()).stream()
+        return simulationRepository.findSummariesByOwnerId(user.getId(), PageRequest.of(0, 6)).stream()
                 .map(item -> new SimulationSummaryResponse(item.getSimulationId(), item.getSpecificationId(),
+                        recentTitle(item.getEditableText(), item.getOriginalText(), item.getSchemaId()),
                         item.getSchemaId(), item.getStatus(), item.getCreatedAt()))
                 .toList();
+    }
+
+    private static String recentTitle(String editableText, String originalText, String schemaId) {
+        if (editableText != null && !editableText.isBlank()) return editableText.trim();
+        if (originalText != null && !originalText.isBlank()) return originalText.trim();
+        return schemaId;
     }
 
     private SimulationResponse calculateAndPersist(Simulation simulation, CalculationContext context) {

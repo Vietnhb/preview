@@ -26,7 +26,8 @@ public record CandidateContractProjection(
         List<QuantityProjection> optionalQuantities,
         List<String> relationTypes,
         List<String> endConditionCapabilities,
-        List<EntityTypeProjection> entityTypes) {
+        List<EntityTypeProjection> entityTypes,
+        BigDecimal executionDurationSeconds) {
 
     private static final Set<String> CONSTRAINT_FIELDS = Set.of(
             "positive", "nonNegative", "integer", "sameUnitAs",
@@ -58,7 +59,7 @@ public record CandidateContractProjection(
             String modelId, List<QuantityProjection> requiredQuantities, List<QuantityProjection> optionalQuantities,
             List<String> relationTypes, List<String> endConditionCapabilities) {
         this(schemaId, schemaVersion, topic, name, modelId, requiredQuantities, optionalQuantities,
-                relationTypes, endConditionCapabilities, List.of());
+                relationTypes, endConditionCapabilities, List.of(), null);
     }
 
     /**
@@ -83,7 +84,9 @@ public record CandidateContractProjection(
         }
         return new CandidateContractProjection(schemaId, schemaVersion, topic, name, modelId, required, optional,
                 declaredRelationTypes(definition), declaredEndConditionCapabilities(definition),
-                entityTypes(definition, symbolsByKey));
+                entityTypes(definition, symbolsByKey),
+                definition.path("execution").path("durationSeconds").isNumber()
+                        ? definition.path("execution").path("durationSeconds").decimalValue() : null);
     }
 
     private static List<EntityTypeProjection> entityTypes(JsonNode definition,

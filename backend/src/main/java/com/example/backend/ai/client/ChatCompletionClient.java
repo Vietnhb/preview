@@ -55,9 +55,7 @@ public class ChatCompletionClient {
     }
 
     public Completion completeStructured(String model, List<Map<String, Object>> messages) {
-        Map<String, Object> format = properties.strictStructuredOutput()
-                ? specificationResponseFormat() : Map.of("type", "json_object");
-        return complete(model, messages, format, true);
+        return complete(model, messages, specificationResponseFormat(), true);
     }
 
     public Completion completeJson(String model, List<Map<String, Object>> messages) {
@@ -126,7 +124,7 @@ public class ChatCompletionClient {
     private Map<String, Object> specificationResponseFormat() {
         return Map.of("type", "json_schema", "json_schema", Map.of(
                 "name", "physics_specification",
-                "strict", true,
+                "strict", properties.strictStructuredOutput(),
                 "schema", specificationSchema));
     }
 

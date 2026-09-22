@@ -321,6 +321,16 @@ class StrictSpecificationValidatorTest {
                 () -> StrictSpecificationValidator.validateCandidateMembership(root, decision, new UnitNormalizer(mapper)));
     }
 
+    @Test
+    void acceptsNullableEventEntitiesDeclaredByTheResponseSchema() throws Exception {
+        var root = mapper.readTree("""
+                {"contractVersion":"1.0","schemaVersion":"1.0","topic":"DYNAMICS","schemaId":"test",
+                 "objects":[],"quantities":[],"relations":[],"confidence":1,"ambiguities":[],
+                 "endCondition":{"type":"event","event":{"type":"threshold","entities":null}}}
+                """);
+        StrictSpecificationValidator.validate(root);
+    }
+
     private SchemaRoutingDecision decisionFor(String schemaId, String schemaVersion, String topic, String name,
             com.fasterxml.jackson.databind.JsonNode definition) {
         CandidateContractProjection contract = CandidateContractProjection.from(

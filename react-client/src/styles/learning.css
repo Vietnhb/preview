@@ -2726,6 +2726,13 @@
   line-height: 1.45;
 }
 
+.create-recent-item strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .create-recent-item {
   align-items: center;
 }

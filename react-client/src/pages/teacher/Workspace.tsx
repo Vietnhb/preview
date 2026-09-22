@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import CreateSimulationModal from "../../components/workspace/CreateSimulationModal";
+import {
+  ambiguityQuestionPrefix,
+  retainAmbiguityAnswer,
+} from "../../components/workspace/create-simulation/ambiguityFlow";
 import EmptySimulationFrame from "../../components/workspace/EmptySimulationFrame";
 import LearningWorkspace from "../../components/workspace/LearningWorkspace";
 import {
@@ -176,6 +180,11 @@ export default function Workspace() {
   const ambiguities = openAmbiguities(pendingProblem);
   const activeAmbiguity =
     ambiguities[Math.min(ambiguityStep, Math.max(ambiguities.length - 1, 0))];
+  const activeQuestionRecorded = Boolean(activeAmbiguity && conversation.some(
+    (message) => message.role === "assistant"
+      && message.id.startsWith(ambiguityQuestionPrefix(activeAmbiguity.code))
+      && message.text === activeAmbiguity.question,
+  ));
 
   const updateSimulationUrl = (simulationId: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -255,6 +264,23 @@ export default function Workspace() {
     ]);
   };
 
+  const appendAmbiguityExchange = (ambiguity: Ambiguity, answer: string) => {
+    const exchangeId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setConversation((messages) => [
+      ...messages,
+      {
+        id: `${ambiguityQuestionPrefix(ambiguity.code)}${exchangeId}`,
+        role: "assistant",
+        text: ambiguity.question,
+      },
+      {
+        id: `ambiguity-answer:${encodeURIComponent(ambiguity.code)}:${exchangeId}`,
+        role: "user",
+        text: answer,
+      },
+    ]);
+  };
+
   useEffect(() => {
     if (!token) {
       setHistoryLoading(false);
@@ -289,6 +315,11 @@ export default function Workspace() {
       setQuestionTyping(false);
       return;
     }
+    if (activeQuestionRecorded) {
+      setTypedQuestion(question);
+      setQuestionTyping(false);
+      return;
+    }
     if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setTypedQuestion(question);
       setQuestionTyping(false);
@@ -315,7 +346,7 @@ export default function Workspace() {
     return () => {
       if (animationFrame !== null) cancelAnimationFrame(animationFrame);
     };
-  }, [activeAmbiguity?.code, activeAmbiguity?.question]);
+  }, [activeAmbiguity?.code, activeAmbiguity?.question, activeQuestionRecorded]);
 
   const handleSourceFileChange = (file: File | null) => {
     setSourceFileError("");
@@ -462,6 +493,10 @@ export default function Workspace() {
     const recentResult: SimulationSummary = {
       simulationId: result.simulationId,
       specificationId: result.specificationId,
+      title:
+        resolvedProblem.editableText?.trim() ||
+        resolvedProblem.originalText?.trim() ||
+        result.schemaId,
       schemaId: result.schemaId,
       status: result.valid ? "READY" : "BLOCKED",
       createdAt: new Date().toISOString(),
@@ -575,9 +610,13 @@ export default function Workspace() {
       return;
     }
     const answer = answers[activeAmbiguity.code].trim();
-    const submittedAnswers = { ...answers, [activeAmbiguity.code]: answer };
-    appendConversationMessage("user", answer);
-    setAnswers({ ...answers, [activeAmbiguity.code]: "" });
+    const submittedAnswers = retainAmbiguityAnswer(
+      answers,
+      activeAmbiguity.code,
+      answer,
+    );
+    appendAmbiguityExchange(activeAmbiguity, answer);
+    setAnswers(submittedAnswers);
     if (ambiguityStep < ambiguities.length - 1) {
       setError("");
       setAmbiguityStep((step) => step + 1);
@@ -635,6 +674,7 @@ export default function Workspace() {
     questionTyping,
     ambiguities,
     activeAmbiguity,
+    activeQuestionRecorded,
     conversation,
     canDismiss: !pendingProblem && !loading,
     onClose: closeComposer,

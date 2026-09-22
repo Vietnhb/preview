@@ -15,6 +15,7 @@ test("one-dimensional position scenes use the ruler without an unexplained trail
   const nodes = compileSceneGraph(simulation({ id: "body", x: "positions.x" })).nodes;
   assert.equal(nodes.filter(node => node.type === "ruler").length, 1);
   assert.equal(nodes.filter(node => node.type === "trajectory").length, 0);
+  assert.equal(nodes.filter(node => node.type === "graph").length, 0);
   assert.equal(nodes.find(node => node.type === "ruler")?.properties.unit, "m");
   assert.equal(nodes.find(node => node.type === "ruler")?.properties.originSource, "positions.x");
 });
@@ -23,4 +24,17 @@ test("two-dimensional position scenes retain the declared trajectory", () => {
   const nodes = compileSceneGraph(simulation({ id: "body", x: "positions.x", y: "positions.y" })).nodes;
   assert.equal(nodes.filter(node => node.type === "ruler").length, 1);
   assert.equal(nodes.filter(node => node.type === "trajectory").length, 1);
+});
+
+test("series-only scenes still compile their graph without overlaying a spatial scene", () => {
+  const nodes = compileSceneGraph({
+    simulationId: "graph-only",
+    visualization: {
+      scene: "graph-only",
+      series: [{ key: "velocity", source: "velocities.x", unit: "m/s" }],
+      presentation: {},
+    },
+  }).nodes;
+  assert.equal(nodes.filter(node => node.type === "body").length, 0);
+  assert.equal(nodes.filter(node => node.type === "graph").length, 1);
 });

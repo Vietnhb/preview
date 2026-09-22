@@ -580,19 +580,22 @@ function drawNode(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node:
   if (node.type === "circuitComponent") { drawCircuit(ctx, frame, node, resolver); return; }
   if (node.type === "waveField") { drawWaveField(ctx, frame, node, layout, resolver); return; }
   if (node.type === "graph" || node.type === "chart") {
+    // A spatial scene owns the canvas. Its declared series remain available
+    // to the dedicated chart/readout UI instead of obscuring the apparatus.
+    const hasBodies = nodes.some(item => item.type === "body");
+    if (hasBodies) return;
     const source = sourceName(node.properties.source);
     const values = seriesFor(frame.data, source);
     const total = Math.max(1, Math.floor(propertyNumber(node, "total", 1)));
     const slot = Math.max(0, Math.floor(propertyNumber(node, "slot", 0)));
-    const hasBodies = nodes.some(item => item.type === "body");
-    const columns = hasBodies ? 1 : Math.min(2, total);
+    const columns = Math.min(2, total);
     const rows = Math.ceil(total / columns);
     const margin = 24; const gap = 12;
-    const availableWidth = hasBodies ? frame.width * .32 : frame.width - margin * 2;
+    const availableWidth = frame.width - margin * 2;
     const panelWidth = (availableWidth - gap * (columns - 1)) / columns;
     const panelHeight = Math.max(64, (frame.height - margin * 2 - gap * (rows - 1)) / rows);
     const column = slot % columns; const row = Math.floor(slot / columns);
-    const graphLeft = (hasBodies ? frame.width - margin - availableWidth : margin) + column * (panelWidth + gap);
+    const graphLeft = margin + column * (panelWidth + gap);
     const graphTop = margin + row * (panelHeight + gap); const graphBottom = graphTop + panelHeight;
     const validValues = Array.from(values).filter(value => Number.isFinite(value));
     let observedMinimum = Number.POSITIVE_INFINITY;

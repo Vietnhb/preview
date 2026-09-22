@@ -182,17 +182,19 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
   // Schemas may provide a compact `series` declaration without a hand-authored
   // scene graph. Keep those production simulations visible in the canvas by
   // compiling each declared series into a lightweight graph node.
-  const declaredSeries = simulation.visualization?.series ?? [];
-  for (let seriesIndex = 0; seriesIndex < declaredSeries.length; seriesIndex++) {
-    const series = declaredSeries[seriesIndex];
-    const source = typeof series.source === "string" ? series.source : "";
-    if (!source) continue;
-    nodes.push(normalizeNode({
-      id: `series-${series.key || nodes.length}`,
-      type: "graph",
-      layer: "dynamic",
-      properties: { source, label: series.label, unit: series.unit, color: series.color, slot: seriesIndex, total: declaredSeries.length },
-    }, "scene", nodes.length));
+  if (actors.length === 0) {
+    const declaredSeries = simulation.visualization?.series ?? [];
+    for (let seriesIndex = 0; seriesIndex < declaredSeries.length; seriesIndex++) {
+      const series = declaredSeries[seriesIndex];
+      const source = typeof series.source === "string" ? series.source : "";
+      if (!source) continue;
+      nodes.push(normalizeNode({
+        id: `series-${series.key || nodes.length}`,
+        type: "graph",
+        layer: "dynamic",
+        properties: { source, label: series.label, unit: series.unit, color: series.color, slot: seriesIndex, total: declaredSeries.length },
+      }, "scene", nodes.length));
+    }
   }
   return nodes;
 }
