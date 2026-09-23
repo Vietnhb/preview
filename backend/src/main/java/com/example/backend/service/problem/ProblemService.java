@@ -212,7 +212,6 @@ public class ProblemService {
             }
             applyResult(run, result);
             Specification specification = createSpecification(problem, run, result.document());
-            specification.setAssetSelection(result.assetSelection());
             readinessService.ensureRequiredAmbiguities(specification);
             specificationRepository.save(specification);
             problem.setCurrentSpecification(specification);
@@ -265,18 +264,41 @@ public class ProblemService {
                 ? Map.of() : request.answers();
         List<ConversationTurn> conversation = request == null || request.conversation() == null
                 ? List.of() : List.copyOf(request.conversation());
-        for (AmbiguityCase ambiguity : specification.getAmbiguityCases()) if (ambiguity.getStatus() == AmbiguityStatus.OPEN
-                && !StringUtils.hasText(safeAnswers.get(ambiguity.getCode()))) {
-            throw new ApiException(HttpStatus.CONFLICT, "Answer every ambiguity before confirming");
+        boolean hasOpenQuestions = specification.getAmbiguityCases().stream()
+                .anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
+        if (!hasOpenQuestions) {
+            readinessService.ensureRequiredAmbiguities(specification, conversation);
+            hasOpenQuestions = specification.getAmbiguityCases().stream()
+                    .anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
+            if (!hasOpenQuestions) {
+                specification.setConfirmationState(ConfirmationState.CONFIRMED);
+                try {
+                    ambiguityResolutionApplier.prepareAssetsAfterConfirmation(specification, conversation);
+                } catch (ApiException exception) {
+                    throw exception;
+                } catch (RuntimeException exception) {
+                    log.warn("Asset preparation failed after teacher confirmation for submission {}", id, exception);
+                    throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
+                            "Dữ liệu mô phỏng đã được xác nhận nhưng chưa thể chuẩn bị hình minh họa. "
+                                    + "Chưa có mô phỏng nào được chạy; vui lòng thử lại.");
+                }
+            }
+        } else {
+            for (AmbiguityCase ambiguity : specification.getAmbiguityCases()) {
+                if (ambiguity.getStatus() == AmbiguityStatus.OPEN
+                        && !StringUtils.hasText(safeAnswers.get(ambiguity.getCode()))) {
+                    throw new ApiException(HttpStatus.CONFLICT, "Answer every ambiguity before confirming");
+                }
+            }
+            try { ambiguityResolutionApplier.applyAll(specification, safeAnswers, conversation); }
+            catch (ApiException exception) { throw exception; }
+            catch (RuntimeException exception) {
+                log.warn("Problem clarification failed for submission {}", id, exception);
+                throw new ApiException(HttpStatus.BAD_GATEWAY,
+                        "Chưa thể xử lý câu trả lời này. Spec chưa được cập nhật; hãy thử diễn đạt lại.");
+            }
+            readinessService.ensureRequiredAmbiguities(specification, conversation);
         }
-        try { ambiguityResolutionApplier.applyAll(specification, safeAnswers, conversation); }
-        catch (ApiException exception) { throw exception; }
-        catch (RuntimeException exception) {
-            log.warn("Problem clarification failed for submission {}", id, exception);
-            throw new ApiException(HttpStatus.BAD_GATEWAY,
-                    "Chưa thể xử lý câu trả lời này. Spec chưa được cập nhật; hãy thử diễn đạt lại.");
-        }
-        readinessService.ensureRequiredAmbiguities(specification, conversation);
         problem.setStatus(specification.getConfirmationState() == ConfirmationState.UNRESOLVED
                 ? SubmissionStatus.NEEDS_CONFIRMATION : SubmissionStatus.READY_FOR_VALIDATION);
         return mapper.toResponse(problem);

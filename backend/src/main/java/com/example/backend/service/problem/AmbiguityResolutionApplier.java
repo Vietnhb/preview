@@ -15,6 +15,7 @@ import com.example.backend.entity.enums.AmbiguityStatus;
 import com.example.backend.entity.enums.ConfirmationState;
 import com.example.backend.entity.problem.Specification;
 import com.example.backend.ai.extraction.ExtractionProvider;
+import com.example.backend.ai.extraction.StructuredExtractionProvider;
 import com.example.backend.ai.extraction.model.AmbiguityItem;
 import com.example.backend.ai.extraction.model.ProviderExtractionResult;
 import com.example.backend.ai.extraction.model.QuantityContractViolation;
@@ -23,6 +24,7 @@ import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.example.backend.exception.ApiException;
 import com.example.backend.schema.routing.service.JevSchemaRoutingService;
 import com.example.backend.simulation.assets.AssetSelectionService;
+import com.example.backend.simulation.assets.VisualTargets;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -32,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class AmbiguityResolutionApplier {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AmbiguityResolutionApplier.class);
     private final ObjectMapper objectMapper;
     private final ExtractionProvider aiProvider;
     private final SchemaDefinitionService schemaDefinitions;
@@ -60,7 +63,15 @@ public class AmbiguityResolutionApplier {
             if (violation == null) throw failure;
             result = reaskInvalidQuantity(specification, current, violation, conversation);
         }
-        SpecificationDocument resolvedDocument = result.document();
+        SpecificationDocument resolvedDocument;
+        try {
+            ObjectNode preservationBase = withPersistedQuantities(current, specification.getQuantities());
+            JsonNode protectedJson = StructuredExtractionProvider.preserveConfirmedPhysics(objectMapper, preservationBase,
+                    objectMapper.valueToTree(result.document()), result.resolutionDecisions());
+            resolvedDocument = objectMapper.treeToValue(protectedJson, SpecificationDocument.class);
+        } catch (Exception failure) {
+            throw new IllegalStateException("Cannot preserve confirmed physics facts during clarification.", failure);
+        }
         boolean hasOpenCompatibility = hasOpenCompatibilityDecision(specification);
         boolean hasExplicitSimplification = hasAcceptedSimplificationDecision(specification,
                 result.resolutionDecisions());
@@ -86,15 +97,22 @@ public class AmbiguityResolutionApplier {
         prepareAssetsAfterConfirmation(specification, conversation);
     }
 
-    private void prepareAssetsAfterConfirmation(Specification specification,
+    public void prepareAssetsAfterConfirmation(Specification specification,
             List<ConversationTurn> conversation) {
         if (specification.getAssetSelection() != null || specification.getSubmission() == null
+                || specification.getConfirmationState() != ConfirmationState.CONFIRMED
                 || !readinessService.blockers(specification).isEmpty()) return;
 
         String source = specification.getSubmission().getEditableText();
         SpecificationDocument physicsDocument = specificationDocument(specification);
         try {
-            var assetRoute = schemaRouting.routeAssets(source, physicsDocument, conversation);
+            var schema = schemaDefinitions.requireCurrentApproved(physicsDocument.schemaId(),
+                    physicsDocument.schemaVersion());
+            ObjectNode summaryContext = objectMapper.valueToTree(physicsDocument);
+            summaryContext.set("visualTargets", objectMapper.valueToTree(
+                    VisualTargets.read(schemaDefinitions.visualization(schema.getDefinition()))));
+            JsonNode assetRequestSummary = aiProvider.summarizeAssetRequests(source, summaryContext);
+            var assetRoute = schemaRouting.routeAssets(source, physicsDocument, conversation, assetRequestSummary);
             ProviderExtractionResult bound = aiProvider.bindVisualAssets(source,
                     objectMapper.valueToTree(physicsDocument), assetRoute, conversation);
             requirePhysicsUnchanged(physicsDocument, bound.document());
@@ -121,10 +139,19 @@ public class AmbiguityResolutionApplier {
 
     private SpecificationDocument specificationDocument(Specification specification) {
         try {
-            return objectMapper.treeToValue(currentDocument(specification), SpecificationDocument.class);
+            ObjectNode confirmed = withPersistedQuantities(currentDocument(specification), specification.getQuantities());
+            return objectMapper.treeToValue(confirmed, SpecificationDocument.class);
         } catch (Exception exception) {
             throw new IllegalStateException("Cannot read the confirmed specification for asset routing.", exception);
         }
+    }
+
+    static ObjectNode withPersistedQuantities(ObjectNode projectedSpecification, JsonNode persistedQuantities) {
+        ObjectNode complete = projectedSpecification.deepCopy();
+        if (persistedQuantities != null && persistedQuantities.isArray()) {
+            complete.set("quantities", persistedQuantities.deepCopy());
+        }
+        return complete;
     }
 
     private void requirePhysicsUnchanged(SpecificationDocument before, SpecificationDocument after) {

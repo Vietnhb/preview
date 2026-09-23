@@ -201,6 +201,221 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 currentSpecification, List.of());
     }
 
+    /**
+     * Produces only visual bindings. The confirmed specification is copied by
+     * the backend and is never round-tripped through the model during this step.
+     */
+    @Override
+    public ProviderExtractionResult bindVisualAssets(String originalText, JsonNode currentSpecification,
+            SchemaRoutingDecision assetRoute, List<ConversationTurn> conversation) {
+        if (currentSpecification == null || !currentSpecification.isObject()) {
+            throw new IllegalArgumentException("A confirmed specification is required for visual binding.");
+        }
+        if (assetRoute == null || assetRoute.assets() == null) {
+            throw new IllegalArgumentException("A classified catalog route is required for visual binding.");
+        }
+
+        String request;
+        try {
+            request = """
+                    Select visual bindings for the confirmed physical objects and the renderer targets.
+                    Return only visualBindings. The supplied specification is immutable: do not rewrite,
+                    summarize, add, remove, or alter any physics field or object identity.
+                    Include every renderer target exactly once. Use only catalog assetIds supplied in the
+                    classified candidate list and match the renderer target kind. Bind actors to distinct
+                    existing objectIds. Use EXACT only for a faithful depiction; use SUBSTITUTE for a
+                    reviewable approximate depiction and give a concrete visualDifference in Vietnamese.
+                    If no catalog item can depict a target, use UNSUPPORTED with a concrete explanation.
+                    OMITTED is allowed only for decorative prop targets, with null entityId and assetId.
+                    Never invent asset IDs, target IDs, object IDs, physical objects, or visual facts.
+
+                    Original user description:
+                    %s
+
+                    Confirmed specification (read-only):
+                    %s
+
+                    Classified catalog options and renderer targets:
+                    %s
+
+                    Conversation:
+                    %s
+                    """.formatted(originalText == null ? "" : originalText,
+                    objectMapper.writeValueAsString(currentSpecification),
+                    objectMapper.writeValueAsString(assetSelections.promptContext(assetRoute)),
+                    objectMapper.writeValueAsString(conversation == null ? List.of() : conversation));
+        } catch (Exception exception) {
+            throw new IllegalStateException("Cannot prepare the visual binding request.", exception);
+        }
+
+        List<Map<String, Object>> messages = List.of(client.textMessage("user", request));
+        RuntimeException failure = null;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                ChatCompletionClient.Completion completion = client.completeVisualBindings(model, messages);
+                JsonNode response = client.parseJson(completion.content());
+                JsonNode merged = overlayVisualBindings(objectMapper, currentSpecification, response);
+                boolean pinnedSchema = assetRoute.candidates().stream().anyMatch(candidate ->
+                        candidate.schemaId().equals(merged.path("schemaId").asText())
+                                && candidate.schemaVersion().equals(merged.path("schemaVersion").asText()));
+                if (!pinnedSchema) throw new IllegalArgumentException(
+                        "Visual binding route does not match the confirmed schema version.");
+                SpecificationDocument document = objectMapper.treeToValue(merged, SpecificationDocument.class);
+                return new ProviderExtractionResult(document, completion.rawResponse(), null, List.of());
+            } catch (RuntimeException exception) {
+                failure = exception;
+            } catch (Exception exception) {
+                failure = new IllegalStateException(exception);
+            }
+            if (attempt + 1 < maxAttempts) {
+                String detail = failure == null || failure.getMessage() == null
+                        ? "invalid visual binding response" : failure.getMessage();
+                messages = List.of(client.textMessage("user", request + "\n\nPrevious output was rejected: "
+                        + detail.substring(0, Math.min(detail.length(), MAX_RETRY_ERROR_CHARACTERS))
+                        + ". Return the full visualBindings object again."));
+            }
+        }
+        throw new IllegalStateException("AI visual binding response did not match the binding contract.", failure);
+    }
+
+    @Override
+    public JsonNode summarizeAssetRequests(String originalText, JsonNode confirmedSpecification) {
+        if (confirmedSpecification == null || !confirmedSpecification.isObject()) {
+            throw new IllegalArgumentException("A confirmed specification is required before asset classification.");
+        }
+        String request;
+        try {
+            request = """
+                    Create a short asset-request summary for catalog classification from the original description,
+                    confirmed physical specification, and declared renderer targets. Return one request per target,
+                    preserving each targetId and linking it to an existing objectId. State the target kind and only
+                    visual identity that the user actually described. If appearance is unspecified, say so; do not
+                    invent a color, shape, material, or apparatus. Do not modify or restate physics values.
+                    Do not choose, search for, or invent asset IDs. Return only assetRequests.
+
+                    Original user description:
+                    %s
+
+                    Confirmed specification and renderer targets (read-only):
+                    %s
+                    """.formatted(originalText == null ? "" : originalText,
+                    objectMapper.writeValueAsString(confirmedSpecification));
+        } catch (Exception exception) {
+            throw new IllegalStateException("Cannot prepare the asset request summary.", exception);
+        }
+
+        try {
+            var completion = client.completeAssetRequestSummary(model,
+                    List.of(client.textMessage("user", request)));
+            JsonNode response = client.parseJson(completion.content());
+            return validateAssetRequestSummary(confirmedSpecification, response);
+        } catch (RuntimeException failure) {
+            throw new IllegalStateException("AI asset request summary did not match the renderer contract.", failure);
+        }
+    }
+
+    static JsonNode validateAssetRequestSummary(JsonNode confirmedSpecification, JsonNode summary) {
+        if (confirmedSpecification == null || !confirmedSpecification.isObject()
+                || summary == null || !summary.isObject() || summary.size() != 1
+                || !summary.path("assetRequests").isArray()) {
+            throw new IllegalArgumentException("Summary must contain only an assetRequests array.");
+        }
+        java.util.Map<String, JsonNode> expectedTargets = new java.util.LinkedHashMap<>();
+        confirmedSpecification.path("visualTargets").forEach(target -> {
+            String targetId = target.path("targetId").asText();
+            if (targetId.isBlank() || expectedTargets.putIfAbsent(targetId, target) != null) {
+                throw new IllegalArgumentException("Renderer target IDs must be unique and non-empty.");
+            }
+        });
+        java.util.Set<String> objectIds = new java.util.HashSet<>();
+        confirmedSpecification.path("objects").forEach(object -> {
+            String objectId = object.path("id").asText();
+            if (objectId.isBlank() || !objectIds.add(objectId)) {
+                throw new IllegalArgumentException("Confirmed object IDs must be unique and non-empty.");
+            }
+        });
+        java.util.Set<String> seenTargets = new java.util.HashSet<>();
+        java.util.Set<String> representedObjects = new java.util.HashSet<>();
+        java.util.Set<String> actorObjects = new java.util.HashSet<>();
+        for (JsonNode item : summary.path("assetRequests")) {
+            if (!item.isObject() || item.size() != 4
+                    || !item.path("targetId").isTextual()
+                    || !item.path("objectId").isTextual()
+                    || !item.path("kind").isTextual()
+                    || !item.path("requestedDescription").isTextual()
+                    || item.path("requestedDescription").asText().isBlank()) {
+                throw new IllegalArgumentException("Every asset request needs a target, object, kind, and description.");
+            }
+            String targetId = item.path("targetId").asText();
+            String objectId = item.path("objectId").asText();
+            JsonNode target = expectedTargets.get(targetId);
+            if (target == null || !seenTargets.add(targetId)
+                    || !target.path("kind").asText().equals(item.path("kind").asText())
+                    || !objectIds.contains(objectId)) {
+                throw new IllegalArgumentException("Summary contains a duplicate or unpinned renderer/object identity.");
+            }
+            representedObjects.add(objectId);
+            if ("actor".equals(item.path("kind").asText()) && !actorObjects.add(objectId)) {
+                throw new IllegalArgumentException("Actor targets must bind distinct confirmed object IDs.");
+            }
+        }
+        if (expectedTargets.isEmpty() || !seenTargets.equals(expectedTargets.keySet())
+                || !representedObjects.containsAll(objectIds)) {
+            throw new IllegalArgumentException("Summary must cover all renderer targets and confirmed objects.");
+        }
+        return summary.deepCopy();
+    }
+
+    static JsonNode overlayVisualBindings(ObjectMapper mapper, JsonNode currentSpecification, JsonNode response) {
+        if (currentSpecification == null || !currentSpecification.isObject()
+                || response == null || !response.isObject()
+                || !response.path("visualBindings").isArray()
+                || response.size() != 1 || !response.has("visualBindings")) {
+            throw new IllegalArgumentException("AI response must contain only a visualBindings array.");
+        }
+        java.util.Set<String> objectIds = new java.util.HashSet<>();
+        currentSpecification.path("objects").forEach(object -> objectIds.add(object.path("id").asText()));
+        java.util.Set<String> targetIds = new java.util.HashSet<>();
+        for (JsonNode binding : response.path("visualBindings")) {
+            if (!binding.isObject() || binding.size() != 5
+                    || !binding.path("targetId").isTextual()
+                    || !binding.path("entityId").isTextual() && !binding.path("entityId").isNull()
+                    || !binding.path("assetId").isTextual() && !binding.path("assetId").isNull()
+                    || !binding.path("visualDifference").isTextual()
+                            && !binding.path("visualDifference").isNull()) {
+                throw new IllegalArgumentException("A visual binding has invalid fields or types.");
+            }
+            String targetId = binding.path("targetId").asText();
+            String entityId = binding.path("entityId").asText("");
+            String assetId = binding.path("assetId").asText("");
+            String match = binding.path("match").asText();
+            String difference = binding.path("visualDifference").asText("");
+            if (targetId.isBlank() || !targetIds.add(targetId)
+                    || !java.util.Set.of("EXACT", "SUBSTITUTE", "UNSUPPORTED", "OMITTED").contains(match)) {
+                throw new IllegalArgumentException("A visual binding has an invalid or duplicate target/match.");
+            }
+            boolean omitted = "OMITTED".equals(match);
+            if (omitted) {
+                if (!entityId.isBlank() || !assetId.isBlank()) {
+                    throw new IllegalArgumentException("An omitted visual target cannot reference an object or asset.");
+                }
+            } else if (entityId.isBlank() || !objectIds.contains(entityId)) {
+                throw new IllegalArgumentException("Visual binding must reference an existing objectId.");
+            }
+            if (assetId.isBlank() && !omitted && !"UNSUPPORTED".equals(match)
+                    || !assetId.isBlank() && (omitted || "UNSUPPORTED".equals(match))) {
+                throw new IllegalArgumentException("Visual binding match must agree with its catalog asset.");
+            }
+            if (("SUBSTITUTE".equals(match) || "UNSUPPORTED".equals(match)) && difference.isBlank()) {
+                throw new IllegalArgumentException("A substitute or unsupported visual needs an explanation.");
+            }
+        }
+        JsonNode merged = currentSpecification.deepCopy();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) merged)
+                .set("visualBindings", response.path("visualBindings").deepCopy());
+        return merged;
+    }
+
     @Override
     public List<AmbiguityItem> phraseVerificationQuestions(String originalText, List<String> findings) {
         return phraseVerificationQuestions(originalText, findings, List.of());
@@ -347,6 +562,87 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         }
         throw new IllegalStateException(invalidMessage + " The AI failed " + maxAttempts
                 + " structured-output attempt(s).", lastFailure);
+    }
+
+    public static JsonNode preserveConfirmedPhysics(ObjectMapper mapper, JsonNode current, JsonNode updated,
+            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
+        if (current == null || !current.isObject() || updated == null || !updated.isObject()) {
+            throw new IllegalArgumentException("Current and updated specifications must be JSON objects.");
+        }
+        java.util.Map<String, com.example.backend.ai.extraction.model.ResolutionDecision> decisionsByCode =
+                new java.util.HashMap<>();
+        if (decisions != null) decisions.forEach(decision -> decisionsByCode.put(decision.code(), decision));
+        java.util.Set<String> answeredPaths = new java.util.HashSet<>();
+        current.path("ambiguities").forEach(ambiguity -> {
+            var decision = decisionsByCode.get(ambiguity.path("code").asText());
+            if (decision != null && decision.outcome()
+                    == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED) {
+                answeredPaths.add(ambiguity.path("fieldPath").asText());
+            }
+        });
+
+        var merged = (com.fasterxml.jackson.databind.node.ObjectNode) updated.deepCopy();
+        java.util.Set<String> currentOpenPaths = new java.util.HashSet<>();
+        current.path("ambiguities").forEach(item -> currentOpenPaths.add(item.path("fieldPath").asText()));
+        java.util.Set<String> preservedQuantityPaths = new java.util.HashSet<>();
+        restoreQuantities(current.path("quantities"), merged.withArray("quantities"),
+                "quantities", answeredPaths, preservedQuantityPaths);
+        JsonNode currentObjects = current.path("objects");
+        var updatedObjects = merged.withArray("objects");
+        for (JsonNode currentObject : currentObjects) {
+            String objectId = currentObject.path("id").asText();
+            JsonNode updatedObject = null;
+            for (JsonNode candidate : updatedObjects) {
+                if (objectId.equals(candidate.path("id").asText())) {
+                    updatedObject = candidate;
+                    break;
+                }
+            }
+            if (updatedObject instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
+                restoreQuantities(currentObject.path("quantities"), object.withArray("quantities"),
+                        "objects." + objectId + ".quantities", answeredPaths, preservedQuantityPaths);
+            }
+        }
+        var retainedAmbiguities = mapper.createArrayNode();
+        updated.path("ambiguities").forEach(ambiguity -> {
+            String fieldPath = ambiguity.path("fieldPath").asText();
+            boolean contradictedByConfirmedValue = preservedQuantityPaths.contains(fieldPath)
+                    && !currentOpenPaths.contains(fieldPath) && !answeredPaths.contains(fieldPath);
+            if (!contradictedByConfirmedValue) retainedAmbiguities.add(ambiguity.deepCopy());
+        });
+        merged.set("ambiguities", retainedAmbiguities);
+        if (!answeredPaths.stream().anyMatch(path -> path.equals("relations") || path.startsWith("relations."))) {
+            merged.set("relations", current.path("relations").deepCopy());
+        }
+        if (!answeredPaths.stream().anyMatch(path -> path.equals("endCondition")
+                || path.startsWith("endCondition."))) {
+            merged.set("endCondition", current.path("endCondition").deepCopy());
+        }
+        return merged;
+    }
+
+    private static void restoreQuantities(JsonNode existing,
+            com.fasterxml.jackson.databind.node.ArrayNode target, String prefix,
+            java.util.Set<String> answeredPaths, java.util.Set<String> preservedPaths) {
+        if (!existing.isArray()) return;
+        for (JsonNode quantity : existing) {
+            String name = quantity.path("name").asText("");
+            if (name.isBlank()) continue;
+            String fieldPath = prefix + "." + name;
+            if (answeredPaths.contains(fieldPath)) continue;
+            preservedPaths.add(fieldPath);
+            int index = -1;
+            for (int i = 0; i < target.size(); i++) {
+                JsonNode value = target.get(i);
+                if (name.equals(value.path("name").asText(""))) {
+                    index = i;
+                    break;
+                }
+            }
+            JsonNode preserved = quantity.deepCopy();
+            if (index < 0) target.add(preserved);
+            else target.set(index, preserved);
+        }
     }
 
     private void rejectMachineFindingsInQuestions(JsonNode document) {

@@ -31,6 +31,8 @@ public class ChatCompletionClient {
     private final SchoolService schoolService;
     private final JsonNode specificationSchema;
     private final JsonNode ambiguityQuestionsSchema;
+    private final JsonNode visualBindingsSchema;
+    private final JsonNode assetRequestSummarySchema;
 
     public ChatCompletionClient(RestClient.Builder builder, ObjectMapper objectMapper, AiProviderProperties properties,
             SchoolService schoolService, ResourceLoader resourceLoader) {
@@ -45,6 +47,14 @@ public class ChatCompletionClient {
             try (var questionsInput = resourceLoader.getResource(
                     "classpath:prompts/ambiguity-questions-response-schema.json").getInputStream()) {
                 this.ambiguityQuestionsSchema = objectMapper.readTree(questionsInput);
+                try (var visualBindingsInput = resourceLoader.getResource(
+                        "classpath:prompts/visual-bindings-response-schema.json").getInputStream()) {
+                    this.visualBindingsSchema = objectMapper.readTree(visualBindingsInput);
+                    try (var assetSummaryInput = resourceLoader.getResource(
+                            "classpath:prompts/asset-request-summary-response-schema.json").getInputStream()) {
+                        this.assetRequestSummarySchema = objectMapper.readTree(assetSummaryInput);
+                    }
+                }
             }
         } catch (Exception exception) {
             throw new IllegalStateException("Cannot load the AI structured-output schema", exception);
@@ -70,6 +80,16 @@ public class ChatCompletionClient {
     public Completion completeAmbiguityQuestions(String model, List<Map<String, Object>> messages) {
         return complete(model, messages, structuredResponseFormat(
                 "physics_ambiguity_questions", ambiguityQuestionsSchema), false);
+    }
+
+    public Completion completeVisualBindings(String model, List<Map<String, Object>> messages) {
+        return complete(model, messages, structuredResponseFormat(
+                "physics_visual_bindings", visualBindingsSchema), false);
+    }
+
+    public Completion completeAssetRequestSummary(String model, List<Map<String, Object>> messages) {
+        return complete(model, messages, structuredResponseFormat(
+                "physics_asset_request_summary", assetRequestSummarySchema), false);
     }
 
     private Completion complete(String model, List<Map<String, Object>> messages,

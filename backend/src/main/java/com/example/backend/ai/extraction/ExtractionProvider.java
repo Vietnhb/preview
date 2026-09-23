@@ -75,4 +75,8 @@ public interface ExtractionProvider {
             SchemaRoutingDecision assetRoute, List<ConversationTurn> conversation) {
         return resolveAmbiguities(originalText, currentSpecification, Map.of(), assetRoute, conversation);
     }
+
+    default JsonNode summarizeAssetRequests(String originalText, JsonNode confirmedSpecification) {
+        throw new UnsupportedOperationException("Asset request summarization is not supported.");
+    }
 }

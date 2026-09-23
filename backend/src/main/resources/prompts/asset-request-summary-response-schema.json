@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["assetRequests"],
+  "properties": {
+    "assetRequests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["targetId", "objectId", "kind", "requestedDescription"],
+        "properties": {
+          "targetId": { "type": "string", "minLength": 1 },
+          "objectId": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["actor", "prop"] },
+          "requestedDescription": { "type": "string", "minLength": 1, "maxLength": 320 }
+        }
+      }
+    }
+  }
+}

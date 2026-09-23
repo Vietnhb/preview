@@ -1,6 +1,5 @@
 package com.example.backend.ai.extraction;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
 
@@ -14,34 +13,16 @@ import com.example.backend.ai.extraction.model.SpecificationDocument;
 import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
 import com.example.backend.schema.routing.service.JevSchemaRoutingService;
-import com.example.backend.simulation.assets.AssetSelectionService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class ExtractionCoordinator {
 
     private final ExtractionProvider provider;
     private final JevSchemaRoutingService schemaRouting;
-    private final AssetSelectionService assetSelections;
-    private final ObjectMapper objectMapper;
 
-    @Autowired
-    public ExtractionCoordinator(ExtractionProvider provider, JevSchemaRoutingService schemaRouting,
-            AssetSelectionService assetSelections, ObjectMapper objectMapper) {
+    public ExtractionCoordinator(ExtractionProvider provider, JevSchemaRoutingService schemaRouting) {
         this.provider = provider;
         this.schemaRouting = schemaRouting;
-        this.assetSelections = assetSelections;
-        this.objectMapper = objectMapper;
-    }
-
-    public ExtractionCoordinator(ExtractionProvider provider, JevSchemaRoutingService schemaRouting,
-            AssetSelectionService assetSelections) {
-        this(provider, schemaRouting, assetSelections, new ObjectMapper());
-    }
-
-    /** Source-compatible constructor for isolated extraction tests. */
-    public ExtractionCoordinator(ExtractionProvider provider, JevSchemaRoutingService schemaRouting) {
-        this(provider, schemaRouting, null);
     }
 
     public ExtractionResult extract(String text) {
@@ -50,6 +31,7 @@ public class ExtractionCoordinator {
                     "AI extraction provider is not configured");
         }
         SchemaRoutingDecision routingDecision = schemaRouting.route(text);
+        requireSupportedSchema(routingDecision);
         List<String> routeFindings = "JEV_CAPACITY_EXCEEDED".equals(routingDecision.reasonCode())
                 ? schemaRouting.capacityFindings(routingDecision) : List.of();
         ProviderExtractionResult result = routeFindings.isEmpty()
@@ -70,7 +52,7 @@ public class ExtractionCoordinator {
                 verification = verify(text, routingDecision, result.document());
             }
             if (onlyPendingCapacityConsent(verification, result.document())) {
-                return finish(text, routingDecision, result, verification);
+                return finish(routingDecision, result);
             }
             ProviderExtractionResult baseline = result;
             var baselineVerification = verification;
@@ -110,40 +92,15 @@ public class ExtractionCoordinator {
                         result.rawResponse(), result.assetSelection());
             }
         }
-        return finish(text, routingDecision, result, verification);
+        return finish(routingDecision, result);
     }
 
-    private ExtractionResult finish(String text, SchemaRoutingDecision routingDecision,
-            ProviderExtractionResult result, JevSchemaRoutingService.Verification verification) {
+    private ExtractionResult finish(SchemaRoutingDecision routingDecision, ProviderExtractionResult result) {
         SpecificationDocument document = result.document();
         boolean compatibilityPending = document.ambiguities().stream()
                 .anyMatch(item -> !isRequiredInputPath(item.fieldPath()));
         if (compatibilityPending) {
             document = document.withoutAmbiguitiesMatching(item -> isRequiredInputPath(item.fieldPath()));
-        }
-        SchemaRoutingDecision finalRouting = routingDecision;
-        com.fasterxml.jackson.databind.JsonNode assetSelection = null;
-        boolean visualPrepared = false;
-        if (verification.passed() && document.ambiguities().isEmpty()
-                && assetSelections != null && routingDecision.assets() == null) {
-            try {
-                finalRouting = schemaRouting.routeAssets(text, document, List.of());
-                ProviderExtractionResult visual = provider.bindVisualAssets(text,
-                        objectMapper.valueToTree(document), finalRouting, List.of());
-                document = visual.document();
-                verification = schemaRouting.verify(text, finalRouting, document);
-                visualPrepared = true;
-                if (!verification.passed()) {
-                    document = phraseVerifiedQuestions(text, finalRouting, document, verification);
-                }
-            } catch (RuntimeException assetFailure) {
-                org.slf4j.LoggerFactory.getLogger(ExtractionCoordinator.class)
-                        .warn("Visual preparation did not complete for a valid physics specification.", assetFailure);
-            }
-        }
-        if (verification.passed() && document.ambiguities().isEmpty()
-                && visualPrepared && assetSelections != null && finalRouting.assets() != null) {
-            assetSelection = assetSelections.create(document, finalRouting.assets(), text);
         }
         return new ExtractionResult(
                 document,
@@ -153,8 +110,16 @@ public class ExtractionCoordinator {
                 provider.modelVersion(),
                 result.rawResponse(),
                 null,
-                finalRouting,
-                assetSelection);
+                routingDecision,
+                null);
+    }
+
+    static void requireSupportedSchema(SchemaRoutingDecision routingDecision) {
+        if (routingDecision.status() == SchemaRoutingDecision.Status.AMBIGUOUS
+                && !"JEV_CAPACITY_EXCEEDED".equals(routingDecision.reasonCode())) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Xin lỗi, PhysLive chưa hỗ trợ mô tả này vì chưa xác định được schema vật lý phù hợp.");
+        }
     }
 
     private boolean isRequiredInputPath(String fieldPath) {

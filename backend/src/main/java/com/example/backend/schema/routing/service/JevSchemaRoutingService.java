@@ -108,9 +108,13 @@ public final class JevSchemaRoutingService {
     }
 
     public SchemaRoutingDecision routeAssets(String problemText, SchemaRoutingDecision schemaRoute,
-            SpecificationDocument document, List<ConversationTurn> conversation) {
+            SpecificationDocument document, List<ConversationTurn> conversation,
+            com.fasterxml.jackson.databind.JsonNode assetRequestSummary) {
         if (schemaRoute == null || document == null) {
             throw new IllegalArgumentException("A confirmed schema specification is required before asset routing.");
+        }
+        if (assetRequestSummary == null || !assetRequestSummary.path("assetRequests").isArray()) {
+            throw new IllegalArgumentException("A validated LLM asset request summary is required before JEV classification.");
         }
         SchemaCandidate pinned = schemaRoute.candidates().stream()
                 .filter(candidate -> candidate.schemaId().equals(document.schemaId())
@@ -122,6 +126,7 @@ public final class JevSchemaRoutingService {
         context.put("schema", Map.of("schemaId", document.schemaId(), "schemaVersion", document.schemaVersion()));
         context.put("objects", document.objects().stream().map(object -> Map.of(
                 "id", object.id(), "label", object.label(), "type", object.type())).toList());
+        context.put("assetRequestSummary", assetRequestSummary);
         context.put("relations", document.relations());
         context.put("visualTargets", VisualTargets.read(schemas.visualization(schema.getDefinition())));
         context.put("conversation", conversation == null ? List.of() : conversation);
@@ -136,13 +141,13 @@ public final class JevSchemaRoutingService {
      * decision from the original problem text.
      */
     public SchemaRoutingDecision routeAssets(String problemText, SpecificationDocument document,
-            List<ConversationTurn> conversation) {
+            List<ConversationTurn> conversation, com.fasterxml.jackson.databind.JsonNode assetRequestSummary) {
         if (document == null) throw new IllegalArgumentException("A confirmed specification is required.");
         SchemaVersion schema = schemas.requireCurrentApproved(document.schemaId(), document.schemaVersion());
         SchemaCandidate pinned = candidate(schema, 1, 1, null);
         SchemaRoutingDecision pinnedRoute = new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
                 "PINNED_CONFIRMED_SCHEMA", List.of(pinned), 1, 1);
-        return routeAssets(problemText, pinnedRoute, document, conversation);
+        return routeAssets(problemText, pinnedRoute, document, conversation, assetRequestSummary);
     }
 
     /**
