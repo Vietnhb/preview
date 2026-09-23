@@ -47,10 +47,11 @@ function rememberSimulation(value: Simulation) {
 }
 
 function apiMessage(error: unknown) {
-  if (axios.isAxiosError<{ message?: string }>(error)) {
-    return (
-      error.response?.data?.message ?? "Không thể kết nối tới máy chủ PhysLive."
-    );
+  if (axios.isAxiosError<{ message?: string; code?: string; step?: string }>(error)) {
+    const response = error.response?.data;
+    const message = response?.message ?? "Không thể kết nối tới máy chủ PhysLive.";
+    const diagnostic = [response?.step, response?.code].filter(Boolean).join(" · ");
+    return diagnostic ? `${message} (${diagnostic})` : message;
   }
   return error instanceof Error
     ? error.message
@@ -719,6 +720,15 @@ export default function Workspace() {
         submittedAnswers,
         conversationContext,
       );
+      if (resolved.currentSpecification?.confirmationState === "REJECTED") {
+        setProblem(resolved);
+        setPendingProblem(null);
+        setAnswers({});
+        setAmbiguityStep(0);
+        setError("Đã dừng theo lựa chọn của bạn; chưa tạo mô phỏng.");
+        setStage("");
+        return;
+      }
       const remaining = openAmbiguities(resolved);
       if (remaining.length > 0) {
         setProblem(resolved);

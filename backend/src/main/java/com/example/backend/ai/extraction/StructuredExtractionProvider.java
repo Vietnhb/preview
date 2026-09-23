@@ -30,9 +30,7 @@ import com.example.backend.entity.enums.ExtractionPath;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.physics.validation.EndConditionResolver;
 import com.example.backend.schema.routing.model.SchemaCandidate;
-import com.example.backend.schema.routing.model.SchemaCandidate.VerificationEvidence;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
-import com.example.backend.schema.routing.model.SchemaSelectionScore;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -105,7 +103,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         ProviderExtractionResult result = complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
                 client.textMessage("user", messages.userMessage())), routingDecision,
                 "AI response does not match the strict candidate extraction contract.", null,
-                verificationFindings);
+                verificationFindings, "SPECIFICATION_EXTRACTION");
         return rejectCapacityRepairViolations(result, verificationFindings);
     }
 
@@ -132,9 +130,10 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         String request;
         try {
             request = """
-                    Revise the specification using the user's answers and the full conversation below.
-                    Preserve confirmed facts and the pinned schemaId/schemaVersion. Never invent values.
-                    Keep unresolved ambiguities and add newly discovered missing required quantities from this pinned schema.
+                    Update the pinned spec from the answers. Keep confirmed facts and unresolved questions.
+                    Return one resolutionDecisions entry per answered code. For capacity consent, keep all
+                    objects and ask which one to retain; only a clear selection may remove objects.
+                    After selection, ask for missing required inputs.
 
                     Original problem:
                     %s
@@ -148,13 +147,6 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                     Conversation history, ordered oldest to newest:
                     %s
 
-                    For every answered ambiguity code, include one resolutionDecisions entry for that exact code.
-                    Classify the meaning of the answer from the full conversation: ANSWERED for a valid factual
-                    clarification; ACCEPT_SIMPLIFICATION only when the user clearly consents to the specific
-                    simplification already explained; DECLINE_SIMPLIFICATION when they refuse; REVISE_REQUEST or
-                    START_NEW_PROBLEM when that is their intent; otherwise UNRESOLVED. Never classify a bare or
-                    ambiguous response as consent. List in omittedObjectIds exactly the prior object IDs that the
-                    accepted simplification removes, and use an empty list for every other outcome.
                     """.formatted(originalText, objectMapper.writeValueAsString(currentSpecification),
                     objectMapper.writeValueAsString(answers),
                     objectMapper.writeValueAsString(conversation == null ? List.of() : conversation));
@@ -162,14 +154,13 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
             throw new IllegalStateException("Cannot prepare ambiguity resolution request.", exception);
         }
         ExtractionPromptBuilder.PromptMessages messages = prompts.build(List.of(contract), request);
-        SchemaCandidate candidate = new SchemaCandidate(contract, new SchemaSelectionScore(1, 1),
-                new VerificationEvidence(1, 1, 1, List.of("PINNED_SCHEMA_VERSION")), 1);
+        SchemaCandidate candidate = new SchemaCandidate(contract, List.of("PINNED_SCHEMA_VERSION"), 1);
         SchemaRoutingDecision decision = new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
                 "PINNED_FOR_AMBIGUITY_RESOLUTION", List.of(candidate), 1, 1);
         return complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
                 client.textMessage("user", messages.userMessage())), decision,
                 "AI ambiguity response does not match the pinned schema contract.",
-                currentSpecification, List.of());
+                currentSpecification, List.of(), "SPECIFICATION_CLARIFICATION");
     }
 
     /**
@@ -189,16 +180,11 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         String request;
         try {
             request = """
-                    Select visual bindings for the confirmed physical objects and the renderer targets.
-                    Return only visualBindings. The supplied specification is immutable: do not rewrite,
-                    summarize, add, remove, or alter any physics field or object identity.
-                    Include every renderer target exactly once. Use only catalog assetIds supplied in the
-                    classified candidate list and match the renderer target kind. Bind actors to distinct
-                    existing objectIds. Use EXACT only for a faithful depiction; use SUBSTITUTE for a
-                    reviewable approximate depiction and give a concrete visualDifference in Vietnamese.
-                    If no catalog item can depict a target, use UNSUPPORTED with a concrete explanation.
-                    OMITTED is allowed only for decorative prop targets, with null entityId and assetId.
-                    Never invent asset IDs, target IDs, object IDs, physical objects, or visual facts.
+                    Return only visualBindings: one per renderer target, using supplied asset IDs and
+                    existing object IDs. Match target kind; use EXACT for a faithful depiction,
+                    SUBSTITUTE with a concrete Vietnamese visualDifference for an approximation,
+                    or UNSUPPORTED with a reason. Only decorative props may be OMITTED.
+                    The confirmed physics spec is read-only.
 
                     Original user description:
                     %s
@@ -257,12 +243,9 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         String request;
         try {
             request = """
-                    Create a short asset-request summary for catalog classification from the original description,
-                    confirmed physical specification, and declared renderer targets. Return one request per target,
-                    preserving each targetId and linking it to an existing objectId. State the target kind and only
-                    visual identity that the user actually described. If appearance is unspecified, say so; do not
-                    invent a color, shape, material, or apparatus. Do not modify or restate physics values.
-                    Do not choose, search for, or invent asset IDs. Return only assetRequests.
+                    Return only assetRequests: one per renderer target, with its targetId, existing
+                    objectId, kind, and visual details stated by the user. If appearance is unknown,
+                    say so. Do not choose asset IDs or change physics.
 
                     Original user description:
                     %s
@@ -397,11 +380,10 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
             List<ConversationTurn> conversation) {
         if (!StringUtils.hasText(originalText) || findings == null || findings.isEmpty()) return List.of();
         String prompt = """
-                Write one concise clarification question for each contract finding below.
-                Use the same language as the original problem. Ask only what is needed to resolve the stated finding.
-                Reuse the original problem's terminology. Do not solve the problem, invent values, expose machine codes, or change fieldPath.
-                Never ask the user to repeat a value, count, condition, or relation already explicit in the original problem. When a known request exceeds schema or visual capacity, ask for the decision needed to handle that incompatibility rather than asking for the known fact again.
-                For a capacity or compatibility finding, preserve every explicitly stated object, relation, and effect in the extracted specification. Explain the concrete mismatch between the source request and the current representation. If a meaningful simplification is possible, say what will be simplified or omitted and ask for explicit consent before applying it; otherwise offer revision or stopping. State the actor capacity as a whole number when it is whole, without a fractional suffix, and never expose machine keys such as actorCapacity or fieldPath in the user-facing question. For a capacity finding, include at least one explicit consent option and one explicit refusal, revision, or stop option; never provide only revise/stop choices. Make the decision clear in the user's language; never return only a generic revise-or-stop question, ask for a known count, imply that objects were already merged or dropped, or silently reduce the request.
+                Return one short question per finding in the user's language, preserving its fieldPath.
+                Ask for a decision, not facts already given. For capacity, explain the mismatch and
+                proposed reduction, with explicit accept and refuse/revise options. Do not imply
+                any object was already removed or expose machine keys.
 
                 Original problem:
                 %s
@@ -432,7 +414,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                     }
                     List<String> options = new ArrayList<>();
                     item.path("options").forEach(option -> options.add(option.asText()));
-                    boolean capacity = "schemaId".equals(fieldPath)
+                    boolean capacity = CompatibilityFieldPaths.isCapacity(fieldPath)
                             && findings.stream().anyMatch(this::isCapacityFinding);
                     result.add(new AmbiguityItem((capacity ? "jev.capacity." : "jev.verification.")
                             + (++index), fieldPath, question, options));
@@ -484,10 +466,11 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
 
     private ProviderExtractionResult complete(List<Map<String, Object>> messages, SchemaRoutingDecision routingDecision,
             String invalidMessage, JsonNode currentSpecification,
-            List<String> verificationFindings) {
+            List<String> verificationFindings, String step) {
         List<Map<String, Object>> attemptMessages = new ArrayList<>(messages);
         RuntimeException lastFailure = null;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            boolean retainedObjectAnswered = false;
             meters.summary("physlive.ai.prompt.characters").record(prompts.messageCharacterCount(attemptMessages));
             try {
                 ChatCompletionClient.Completion completion = client.completeStructured(model, attemptMessages);
@@ -496,10 +479,11 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 StrictSpecificationValidator.validate(json);
                 rejectMachineFindingsInQuestions(json);
                 List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions = resolutionDecisions(json);
+                retainedObjectAnswered = retainedObjectAnswered(currentSpecification, decisions);
                 boolean simplificationAccepted = hasAcceptedSimplification(decisions, currentSpecification);
                 preserveVisualIdentity(json, currentSpecification, simplificationAccepted);
                 SchemaCandidate candidate = StrictSpecificationValidator.validateCandidateMembership(json, routingDecision,
-                        unitNormalizer);
+                        unitNormalizer, capacityDecisionPending(currentSpecification, decisions));
                 SchemaVersion pinned = schemaDefinitions.requireCurrentApproved(candidate.schemaId(), candidate.schemaVersion());
                 JsonNode specificationJson = json.deepCopy();
                 if (specificationJson instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
@@ -519,20 +503,25 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 lastFailure = new IllegalStateException(exception);
             }
             String failureDetail = lastFailure.getMessage() == null ? "Invalid structured response" : lastFailure.getMessage();
-            log.warn("Extraction contract rejected attempt {}: {}", attempt + 1,
+            String failureCode = isUpstreamHttpFailure(lastFailure)
+                    ? "AI_UPSTREAM_HTTP_ERROR" : "AI_STRUCTURED_RESPONSE_INVALID";
+            log.warn("AI step failed: step={} code={} attempt={} reason={}", step, failureCode, attempt + 1,
                     failureDetail.substring(0, Math.min(failureDetail.length(), MAX_RETRY_ERROR_CHARACTERS)));
             if (attempt + 1 < maxAttempts) {
                 try {
                     attemptMessages = new ArrayList<>(prompts.appendRetryInstruction(attemptMessages,
-                            retryInstruction(lastFailure)));
+                            retryInstruction(lastFailure, verificationFindings, currentSpecification,
+                                    retainedObjectAnswered)));
                 } catch (IllegalArgumentException capFailure) {
-                    throw new IllegalStateException(invalidMessage + " Retry was skipped because the prompt would exceed the configured character limit.",
-                            lastFailure);
+                    throw new AiStepException(step, "AI_RETRY_PROMPT_LIMIT", invalidMessage
+                            + " Retry was skipped because the prompt would exceed the configured character limit.", lastFailure);
                 }
             }
         }
-        throw new IllegalStateException(invalidMessage + " The AI failed " + maxAttempts
-                + " structured-output attempt(s).", lastFailure);
+        String failureCode = isUpstreamHttpFailure(lastFailure)
+                ? "AI_UPSTREAM_HTTP_ERROR" : "AI_STRUCTURED_RESPONSE_INVALID";
+        throw new AiStepException(step, failureCode, invalidMessage + " The AI failed "
+                + maxAttempts + " structured-output attempt(s).", lastFailure);
     }
 
     public static JsonNode preserveConfirmedPhysics(ObjectMapper mapper, JsonNode current, JsonNode updated,
@@ -547,7 +536,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         current.path("ambiguities").forEach(ambiguity -> {
             var decision = decisionsByCode.get(ambiguity.path("code").asText());
             if (decision != null && decision.outcome()
-                    == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED) {
+                    != com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.UNRESOLVED) {
                 answeredPaths.add(ambiguity.path("fieldPath").asText());
             }
         });
@@ -627,27 +616,77 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         }
     }
 
-    private String retryInstruction(RuntimeException failure) {
+    private String retryInstruction(RuntimeException failure, List<String> verificationFindings,
+            JsonNode currentSpecification, boolean retainedObjectAnswered) {
         String detail = failure == null || !StringUtils.hasText(failure.getMessage())
                 ? "The response did not satisfy the JSON contract."
                 : failure.getMessage().replaceAll("[\\r\\n\\t]+", " ").trim();
         if (detail.length() > MAX_RETRY_ERROR_CHARACTERS) {
             detail = detail.substring(0, MAX_RETRY_ERROR_CHARACTERS);
         }
-        return """
-                The previous response violated the strict contract.
-                Validator error: %s
-                Regenerate the complete JSON object using only the original request and pinned candidate contracts.
-                Each ambiguity must contain exactly: code, fieldPath, question, options.
-                Check every requiredQuantities entry: provide exactly one stated quantity or one ambiguity for it. Do not ask for optionalQuantities.
-                If an entityTypes contract is present, repeat that coverage for every returned object using its entity-local quantities array.
-                Populate object-local quantities only when the selected candidate declares an entityTypes contract; otherwise leave every objects[].quantities array empty and place only schema-global quantities at the root. Every ambiguity code and fieldPath must be unique; combine issues for the same field instead of repeating a code or path.
-                For a schemaId ambiguity, copy options exactly from the supplied candidate schemaId values. Never use conversational actions such as revise, omit, continue, or stop as schema options.
-                For every visualBindings entry whose match is not OMITTED, first include the represented physical object in objects with a stable unique id, then copy that exact id into entityId. Never return objects=[] when an actor target is present. Only decorative OMITTED props may use entityId=null.
-                Represent every distinct physical object in the source as a separate object. Preserve every stated object, relation, and effect even when the selected schema or visual representation cannot preserve them exactly. In that case return a compatibility or capacity ambiguity that explains the concrete simplification and asks for explicit consent before applying it; never merge or drop objects.
-                For endCondition type time_limit, use the stated positive duration; if the teacher did not state one, use the candidate executionDurationSeconds as duration. Never emit a null, zero, NaN, or missing duration.
-                Preserve each raw stated value together with its original unit. Never relabel a degree value as radians or any value with another unit; backend normalization performs conversion. Do not add inferred values or explanatory fields.
-                """.formatted(detail).trim();
+        boolean routeCapacityPending = hasCapacityFinding(verificationFindings);
+        boolean consentPending = routeCapacityPending
+                || hasOpenFieldPath(currentSpecification, CompatibilityFieldPaths.CAPACITY);
+        boolean retainedObjectPending = hasOpenFieldPath(currentSpecification,
+                CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT) && !retainedObjectAnswered;
+        String stageRule;
+        if (consentPending) {
+            stageRule = "Ask compatibility.capacity first; keep all objects. After consent ask compatibility.capacity.retainedObject. Defer missing quantities.";
+        } else if (retainedObjectPending) {
+            stageRule = "Ask compatibility.capacity.retainedObject; keep all objects until the choice is clear. Defer missing quantities.";
+        } else {
+            stageRule = "Keep confirmed facts; ask for missing required inputs after compatibility is resolved.";
+        }
+        return "Retry JSON. Validator error: " + detail + " " + stageRule;
+    }
+
+    private boolean hasCapacityFinding(List<String> findings) {
+        return findings != null && findings.stream().anyMatch(finding -> finding != null
+                && finding.contains("fieldPath=" + CompatibilityFieldPaths.CAPACITY));
+    }
+
+    private boolean isUpstreamHttpFailure(Throwable failure) {
+        Throwable current = failure;
+        while (current != null) {
+            if (current instanceof org.springframework.web.client.HttpStatusCodeException) return true;
+            if (current.getCause() == current) break;
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private boolean capacityDecisionPending(JsonNode current,
+            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
+        if (current == null || !current.path("ambiguities").isArray()) return false;
+        for (var ambiguity : current.path("ambiguities")) {
+            String path = ambiguity.path("fieldPath").asText();
+            if (!CompatibilityFieldPaths.isCapacity(path)) continue;
+            var answer = decisions.stream().filter(item -> item.code().equals(ambiguity.path("code").asText()))
+                    .findFirst().orElse(null);
+            if (CompatibilityFieldPaths.CAPACITY.equals(path)) return true;
+            if (answer == null || answer.outcome()
+                    != com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED) return true;
+        }
+        return false;
+    }
+
+    private boolean retainedObjectAnswered(JsonNode current,
+            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
+        if (!hasOpenFieldPath(current, CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT)) return false;
+        for (var ambiguity : current.path("ambiguities")) {
+            if (!CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(ambiguity.path("fieldPath").asText())) continue;
+            return decisions.stream().anyMatch(item -> item.code().equals(ambiguity.path("code").asText())
+                    && item.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED);
+        }
+        return false;
+    }
+
+    private boolean hasOpenFieldPath(JsonNode current, String fieldPath) {
+        if (current == null || !current.path("ambiguities").isArray()) return false;
+        for (var ambiguity : current.path("ambiguities")) {
+            if (fieldPath.equals(ambiguity.path("fieldPath").asText())) return true;
+        }
+        return false;
     }
 
     private List<com.example.backend.ai.extraction.model.ResolutionDecision> resolutionDecisions(JsonNode response) {
@@ -659,10 +698,15 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
     private boolean hasAcceptedSimplification(
             List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions, JsonNode current) {
         if (current == null || decisions == null || decisions.isEmpty()) return false;
-        java.util.Set<String> openCodes = new java.util.HashSet<>();
-        current.path("ambiguities").forEach(item -> openCodes.add(item.path("code").asText()));
-        return decisions.stream().anyMatch(decision -> openCodes.contains(decision.code())
-                && decision.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ACCEPT_SIMPLIFICATION);
+        java.util.Map<String, String> pathsByCode = new java.util.HashMap<>();
+        current.path("ambiguities").forEach(item -> pathsByCode.put(item.path("code").asText(),
+                item.path("fieldPath").asText()));
+        return decisions.stream().anyMatch(decision -> {
+            String path = pathsByCode.get(decision.code());
+            return decision.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ACCEPT_SIMPLIFICATION
+                    || (CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(path)
+                    && decision.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED);
+        });
     }
 
     private void preserveVisualIdentity(JsonNode response, JsonNode current, boolean simplificationAccepted) {

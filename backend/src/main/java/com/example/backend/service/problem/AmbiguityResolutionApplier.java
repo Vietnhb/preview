@@ -15,6 +15,7 @@ import com.example.backend.entity.enums.AmbiguityStatus;
 import com.example.backend.entity.enums.ConfirmationState;
 import com.example.backend.entity.problem.Specification;
 import com.example.backend.ai.extraction.ExtractionProvider;
+import com.example.backend.ai.extraction.CompatibilityFieldPaths;
 import com.example.backend.ai.extraction.StructuredExtractionProvider;
 import com.example.backend.ai.extraction.model.AmbiguityItem;
 import com.example.backend.ai.extraction.model.ProviderExtractionResult;
@@ -63,6 +64,10 @@ public class AmbiguityResolutionApplier {
             if (violation == null) throw failure;
             result = reaskInvalidQuantity(specification, current, violation, conversation);
         }
+        if (declinedCompatibilityDecision(specification, result.resolutionDecisions())) {
+            stopAfterDeclinedCompatibility(specification, safeAnswers);
+            return;
+        }
         SpecificationDocument resolvedDocument;
         try {
             ObjectNode preservationBase = withPersistedQuantities(current, specification.getQuantities());
@@ -75,26 +80,93 @@ public class AmbiguityResolutionApplier {
         boolean hasOpenCompatibility = hasOpenCompatibilityDecision(specification);
         boolean hasExplicitSimplification = hasAcceptedSimplificationDecision(specification,
                 result.resolutionDecisions());
+        boolean deferObjectReduction = hasOpenCapacityDecision(specification) && hasExplicitSimplification;
+        if (deferObjectReduction) {
+            resolvedDocument = askWhichObjectToRetain(specification, current, result.document(), conversation);
+        }
         boolean acceptedSimplification = acceptedSimplification(specification, current, resolvedDocument,
                 result.resolutionDecisions());
+        boolean capacityObjectChoicePending = hasOpenCapacityTargetDecision(specification) && !acceptedSimplification;
+        if (capacityObjectChoicePending && !deferObjectReduction) {
+            resolvedDocument = preservePhysicsWhileKeepingClarifications(current, resolvedDocument);
+        }
         boolean compatibilityResolved = !hasOpenCompatibility
                 || compatibilityDecisionsResolved(specification, result.resolutionDecisions());
-        if (hasOpenCompatibility && (!compatibilityResolved
+        if (!deferObjectReduction && hasOpenCompatibility && (!compatibilityResolved
                 || hasExplicitSimplification && !acceptedSimplification)) {
             compatibilityResolved = false;
             resolvedDocument = preservePhysicsWhileKeepingClarifications(current, resolvedDocument);
         }
-        boolean compatibilityAccepted = hasOpenCompatibility && compatibilityResolved
-                && (acceptedSimplification || hasAnsweredCompatibilityDecision(specification, result.resolutionDecisions()));
-        var verified = schemaRouting.verifyPinned(specification.getSubmission().getEditableText(), resolvedDocument,
-                compatibilityAccepted);
+        var verified = deferObjectReduction || capacityObjectChoicePending
+                ? new JevSchemaRoutingService.Verification(List.of())
+                : schemaRouting.verifyPinned(resolvedDocument);
         var document = verified.passed() ? resolvedDocument
                 : resolvedDocument.withAmbiguities(verificationAmbiguities(
                         specification.getSubmission().getEditableText(), verified.findings(), conversation));
         applyDocument(specification, document);
         synchronizeCases(specification, document, safeAnswers);
+        if (deferObjectReduction) {
+            specification.getAmbiguityCases().stream()
+                    .filter(item -> CompatibilityFieldPaths.CAPACITY.equals(item.getFieldPath())
+                            && item.getStatus() == AmbiguityStatus.RESOLVED)
+                    .forEach(item -> item.setResolution("CAPACITY_CONSENT_PENDING_OBJECT_SELECTION"));
+        }
         readinessService.ensureRequiredAmbiguities(specification, conversation);
         prepareAssetsAfterConfirmation(specification, conversation);
+    }
+
+    private boolean declinedCompatibilityDecision(Specification specification,
+            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
+        Set<String> openCodes = specification.getAmbiguityCases().stream()
+                .filter(item -> item.getStatus() == AmbiguityStatus.OPEN && !isRequiredInputPath(item.getFieldPath()))
+                .map(AmbiguityCase::getCode).collect(java.util.stream.Collectors.toSet());
+        return decisions != null && decisions.stream().anyMatch(item -> openCodes.contains(item.code())
+                && item.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.DECLINE_SIMPLIFICATION);
+    }
+
+    private void stopAfterDeclinedCompatibility(Specification specification, Map<String, String> answers) {
+        Instant now = Instant.now();
+        for (AmbiguityCase item : specification.getAmbiguityCases()) {
+            if (item.getStatus() != AmbiguityStatus.OPEN) continue;
+            item.setStatus(AmbiguityStatus.REJECTED);
+            item.setResolution(answers.getOrDefault(item.getCode(), "Stopped after compatibility was declined."));
+            item.setResolvedAt(now);
+        }
+        specification.setConfirmationState(ConfirmationState.REJECTED);
+        specification.setAmbiguity(objectMapper.createArrayNode());
+    }
+
+    private SpecificationDocument askWhichObjectToRetain(Specification specification, ObjectNode current,
+            SpecificationDocument rawCandidate,
+            List<ConversationTurn> conversation) {
+        List<AmbiguityItem> questions = new java.util.ArrayList<>(rawCandidate.ambiguities().stream()
+                .filter(item -> !isRequiredInputPath(item.fieldPath())
+                        && !CompatibilityFieldPaths.CAPACITY.equals(item.fieldPath()))
+                .toList());
+        AmbiguityItem targetQuestion = rawCandidate.ambiguities().stream()
+                .filter(item -> CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.fieldPath()))
+                .findFirst().orElse(null);
+        if (targetQuestion == null) {
+            String objectChoices = specification.getObjects().toString();
+            String finding = "issue=JEV_CAPACITY_EXCEEDED; fieldPath="
+                    + CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT
+                    + "; objects=" + objectChoices
+                    + "; guidance=The user has agreed to reduce the representation. Ask which specifically identified object must remain. Do not choose or remove an object yet.";
+            targetQuestion = aiProvider.phraseVerificationQuestions(
+                    specification.getSubmission().getEditableText(), List.of(finding), conversation).stream()
+                    .filter(item -> CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.fieldPath()))
+                    .findFirst().orElseThrow(() -> new IllegalStateException(
+                            "AI clarification did not ask which object should remain."));
+        }
+        questions.add(targetQuestion);
+        try {
+            SpecificationDocument original = objectMapper.treeToValue(current, SpecificationDocument.class);
+            return new SpecificationDocument(original.schemaVersion(), original.topic(), original.schemaId(),
+                    original.objects(), original.quantities(), original.relations(), original.endCondition(),
+                    original.confidence(), questions, original.contractVersion(), original.visualBindings());
+        } catch (Exception exception) {
+            throw new IllegalStateException("Cannot preserve objects while asking which one to retain.", exception);
+        }
     }
 
     public void prepareAssetsAfterConfirmation(Specification specification,
@@ -117,7 +189,7 @@ public class AmbiguityResolutionApplier {
                     objectMapper.valueToTree(physicsDocument), assetRoute, conversation);
             requirePhysicsUnchanged(physicsDocument, bound.document());
 
-            var verification = schemaRouting.verify(source, assetRoute, bound.document());
+            var verification = schemaRouting.verify(assetRoute, bound.document());
             SpecificationDocument visualDocument = verification.passed() ? bound.document()
                     : bound.document().withAmbiguities(verificationAmbiguities(
                             source, verification.findings(), conversation));
@@ -332,27 +404,39 @@ public class AmbiguityResolutionApplier {
                 item.getStatus() == AmbiguityStatus.OPEN && !isRequiredInputPath(item.getFieldPath()));
     }
 
-    private boolean hasAnsweredCompatibilityDecision(Specification specification,
-            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
-        Map<String, com.example.backend.ai.extraction.model.ResolutionDecision> byCode = decisions.stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        com.example.backend.ai.extraction.model.ResolutionDecision::code, item -> item, (left, right) -> left));
-        return specification.getAmbiguityCases().stream()
-                .filter(item -> item.getStatus() == AmbiguityStatus.OPEN && !isRequiredInputPath(item.getFieldPath()))
-                .map(item -> byCode.get(item.getCode())).filter(java.util.Objects::nonNull)
-                .anyMatch(item -> item.outcome()
-                        == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED);
+    private boolean hasOpenCapacityDecision(Specification specification) {
+        return specification.getAmbiguityCases().stream().anyMatch(item ->
+                item.getStatus() == AmbiguityStatus.OPEN
+                        && CompatibilityFieldPaths.CAPACITY.equals(item.getFieldPath()));
+    }
+
+    private boolean hasOpenCapacityTargetDecision(Specification specification) {
+        return specification.getAmbiguityCases().stream().anyMatch(item ->
+                item.getStatus() == AmbiguityStatus.OPEN
+                        && CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.getFieldPath()));
     }
 
     private boolean acceptedSimplification(Specification specification, ObjectNode previous,
             SpecificationDocument revised,
             List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
-        Set<String> openCompatibilityCodes = specification.getAmbiguityCases().stream()
+        Map<String, String> openCompatibilityPaths = new HashMap<>();
+        specification.getAmbiguityCases().stream()
                 .filter(item -> item.getStatus() == AmbiguityStatus.OPEN && !isRequiredInputPath(item.getFieldPath()))
-                .map(AmbiguityCase::getCode).collect(java.util.stream.Collectors.toSet());
+                .forEach(item -> openCompatibilityPaths.put(item.getCode(), item.getFieldPath()));
+        boolean priorConsent = specification.getAmbiguityCases().stream().anyMatch(item ->
+                CompatibilityFieldPaths.CAPACITY.equals(item.getFieldPath())
+                        && item.getStatus() == AmbiguityStatus.RESOLVED
+                        && "CAPACITY_CONSENT_PENDING_OBJECT_SELECTION".equals(item.getResolution()));
         List<com.example.backend.ai.extraction.model.ResolutionDecision> accepted = decisions.stream()
-                .filter(item -> openCompatibilityCodes.contains(item.code())
-                        && item.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ACCEPT_SIMPLIFICATION)
+                .filter(item -> {
+                    String path = openCompatibilityPaths.get(item.code());
+                    boolean explicitConsent = item.outcome()
+                            == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ACCEPT_SIMPLIFICATION;
+                    boolean selectedAfterConsent = priorConsent
+                            && CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(path)
+                            && item.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED;
+                    return explicitConsent || selectedAfterConsent;
+                })
                 .toList();
         if (accepted.isEmpty()) return false;
         Set<String> beforeIds = new HashSet<>();

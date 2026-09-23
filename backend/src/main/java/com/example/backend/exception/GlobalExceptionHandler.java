@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ErrorResponse> handleApiException(ApiException ex) {
-        ErrorResponse error = new ErrorResponse(ex.getStatus().value(), ex.getMessage());
+        ErrorResponse error = new ErrorResponse(ex.getStatus().value(), ex.getMessage(), ex.getCode(), ex.getStep());
         return ResponseEntity.status(ex.getStatus()).body(error);
     }
 

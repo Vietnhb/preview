@@ -13,6 +13,7 @@ import org.springframework.util.StringUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
+import com.example.backend.ai.extraction.CompatibilityFieldPaths;
 import com.example.backend.ai.extraction.model.SpecificationDocument;
 import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.example.backend.simulation.assets.VisualBinding;
@@ -21,12 +22,10 @@ import com.example.backend.config.properties.JevProperties;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.exception.SchemaRoutingException;
 import com.example.backend.schema.routing.model.SchemaCandidate;
-import com.example.backend.schema.routing.model.SchemaCandidate.VerificationEvidence;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
-import com.example.backend.schema.routing.model.SchemaSelectionScore;
 import com.example.backend.service.problem.SchemaDefinitionService;
 
-/** Routes approved physics contracts and SVG candidates together from the source text. */
+/** Classifies approved schemas first; routes catalog assets only after spec confirmation. */
 @Service
 public final class JevSchemaRoutingService {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JevSchemaRoutingService.class);
@@ -71,8 +70,7 @@ public final class JevSchemaRoutingService {
         List<SchemaCandidate> candidates = ranked.stream()
                 .filter(item -> byIdentity.containsKey(item.getKey()))
                 .limit(jev.candidateTopK())
-                .map(item -> candidate(byIdentity.get(item.getKey()), item.getValue(), ranked.indexOf(item) + 1,
-                        result.entityCountChoice()))
+                .map(item -> candidate(byIdentity.get(item.getKey()), item.getValue(), result.entityCountChoice()))
                 .toList();
         if (candidates.isEmpty()) throw new SchemaRoutingException("Jev returned a schema outside the approved catalog.");
 
@@ -88,7 +86,7 @@ public final class JevSchemaRoutingService {
         if (capacity > 0 && routedCount != null && routedCount > capacity) {
             meters.counter("physlive.schema.routing.jev.capacity_exceeded").increment();
             meters.counter("physlive.schema.routing.jev.ambiguous").increment();
-            log.warn("JEV route exceeds visual actor capacity: schemaId={}, capacity={}, routedCount={}",
+            log.info("Backend capacity conflict from classified entity count: schemaId={}, capacity={}, routedCount={}",
                     first.schemaId(), capacity, routedCount);
             return new SchemaRoutingDecision(SchemaRoutingDecision.Status.AMBIGUOUS,
                     "JEV_CAPACITY_EXCEEDED", candidates, clamp(first.confidence()), clamp(margin));
@@ -107,21 +105,17 @@ public final class JevSchemaRoutingService {
                 clamp(first.confidence()), clamp(margin));
     }
 
-    public SchemaRoutingDecision routeAssets(String problemText, SchemaRoutingDecision schemaRoute,
-            SpecificationDocument document, List<ConversationTurn> conversation,
-            com.fasterxml.jackson.databind.JsonNode assetRequestSummary) {
-        if (schemaRoute == null || document == null) {
+    /** Classify assets only after the confirmed specification pins its approved schema. */
+    public SchemaRoutingDecision routeAssets(String problemText, SpecificationDocument document,
+            List<ConversationTurn> conversation, com.fasterxml.jackson.databind.JsonNode assetRequestSummary) {
+        if (document == null) {
             throw new IllegalArgumentException("A confirmed schema specification is required before asset routing.");
         }
         if (assetRequestSummary == null || !assetRequestSummary.path("assetRequests").isArray()) {
             throw new IllegalArgumentException("A validated LLM asset request summary is required before JEV classification.");
         }
-        SchemaCandidate pinned = schemaRoute.candidates().stream()
-                .filter(candidate -> candidate.schemaId().equals(document.schemaId())
-                        && candidate.schemaVersion().equals(document.schemaVersion()))
-                .findFirst().orElseThrow(() -> new IllegalArgumentException(
-                        "The confirmed schema is outside the JEV candidate set."));
         SchemaVersion schema = schemas.requireCurrentApproved(document.schemaId(), document.schemaVersion());
+        SchemaCandidate pinned = candidate(schema, 1, null);
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("schema", Map.of("schemaId", document.schemaId(), "schemaVersion", document.schemaVersion()));
         context.put("objects", document.objects().stream().map(object -> Map.of(
@@ -132,22 +126,7 @@ public final class JevSchemaRoutingService {
         context.put("conversation", conversation == null ? List.of() : conversation);
         var assets = classifier.classifyAssets(problemText, context);
         return new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
-                "JEV_ASSETS_ROUTED", List.of(pinned), schemaRoute.confidence(), schemaRoute.margin(), assets);
-    }
-
-    /**
-     * Routes catalog assets only after the extracted schema has been pinned and
-     * accepted. Asset selection must not trigger a second, competing schema
-     * decision from the original problem text.
-     */
-    public SchemaRoutingDecision routeAssets(String problemText, SpecificationDocument document,
-            List<ConversationTurn> conversation, com.fasterxml.jackson.databind.JsonNode assetRequestSummary) {
-        if (document == null) throw new IllegalArgumentException("A confirmed specification is required.");
-        SchemaVersion schema = schemas.requireCurrentApproved(document.schemaId(), document.schemaVersion());
-        SchemaCandidate pinned = candidate(schema, 1, 1, null);
-        SchemaRoutingDecision pinnedRoute = new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
-                "PINNED_CONFIRMED_SCHEMA", List.of(pinned), 1, 1);
-        return routeAssets(problemText, pinnedRoute, document, conversation, assetRequestSummary);
+                "JEV_ASSETS_ROUTED", List.of(pinned), 1, 1, assets);
     }
 
     /**
@@ -166,9 +145,9 @@ public final class JevSchemaRoutingService {
         int actorCapacity = visualActorCapacity(schema.getDefinition());
         Integer routedCount = routedEntityCount(candidate);
         if (actorCapacity <= 0 || routedCount == null || routedCount <= actorCapacity) return List.of();
-        return List.of("issue=JEV_CAPACITY_EXCEEDED; fieldPath=schemaId; routedCount=" + routedCount
+        return List.of("issue=JEV_CAPACITY_EXCEEDED; fieldPath=" + CompatibilityFieldPaths.CAPACITY + "; routedCount=" + routedCount
                 + "; actorCapacity=" + actorCapacity
-                + "; guidance=Explain the concrete mismatch between the stated request and the selected scene. If a meaningful simplified representation is possible, describe what it will simplify or omit and ask for explicit consent before applying that simplification; otherwise offer revision or stopping. Preserve every object as a separate object until the teacher explicitly decides. Never ask for the known count again, merge objects, drop an object, or imply that the simplified result is exact.");
+                + "; guidance=Explain the capacity mismatch and ask whether the user accepts a reduction or revises the request. Keep all objects pending a specific choice.");
     }
 
     /**
@@ -176,12 +155,7 @@ public final class JevSchemaRoutingService {
      * the model may understand language, but it cannot change the approved
      * schema, object identity, renderer slots, or catalog candidates.
      */
-    public Verification verify(String problemText, SchemaRoutingDecision routing, SpecificationDocument document) {
-        return verify(problemText, routing, document, false);
-    }
-
-    private Verification verify(String problemText, SchemaRoutingDecision routing,
-            SpecificationDocument document, boolean compatibilityResolved) {
+    public Verification verify(SchemaRoutingDecision routing, SpecificationDocument document) {
         if (routing == null || document == null) {
             return new Verification(List.of("A routed schema and extracted specification are required."));
         }
@@ -255,9 +229,9 @@ public final class JevSchemaRoutingService {
                         || (routedEntityCount != null && routedEntityCount > actorTargets));
         if (visualCapacityExceeded) {
             int knownObjects = Math.max(objectIds.size(), routedEntityCount == null ? 0 : routedEntityCount);
-            findings.add("issue=VISUAL_CAPACITY_EXCEEDED; fieldPath=schemaId; knownObjects=" + knownObjects
+            findings.add("issue=VISUAL_CAPACITY_EXCEEDED; fieldPath=" + CompatibilityFieldPaths.CAPACITY + "; knownObjects=" + knownObjects
                     + "; actorCapacity=" + actorTargets
-                    + "; guidance=Explain which part of the stated request the current representation cannot preserve. If a meaningful simplified representation is possible, describe what it simplifies or omits and ask for explicit consent to continue with that simplification; otherwise offer revision or stopping. Never ask for a count already established by the source, merge objects, drop an object, or imply that the result would remain exact.");
+                    + "; guidance=Explain the visual limit and ask whether the user accepts a reduction or revises the request. Keep all objects pending a specific choice.");
         } else if (actorTargets > objectIds.size()) {
             findings.add("issue=EXTRACTED_ENTITY_MISSING; fieldPath=objects; actorCapacity=" + actorTargets
                     + "; extractedObjects=" + objectIds.size()
@@ -273,20 +247,15 @@ public final class JevSchemaRoutingService {
     }
 
     /** Re-checks a pinned document after teacher answers without re-routing it. */
-    public Verification verifyPinned(String problemText, SpecificationDocument document) {
-        return verifyPinned(problemText, document, false);
-    }
-
-    public Verification verifyPinned(String problemText, SpecificationDocument document,
-            boolean compatibilityResolved) {
+    public Verification verifyPinned(SpecificationDocument document) {
         if (document == null || !StringUtils.hasText(document.schemaId())
                 || !StringUtils.hasText(document.schemaVersion())) {
             return new Verification(List.of("The confirmed specification is missing its pinned schema."));
         }
         SchemaVersion schema = schemas.requireCurrentApproved(document.schemaId(), document.schemaVersion());
-        SchemaCandidate pinned = candidate(schema, 1, 1, null);
-        return verify(problemText, new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
-                "PINNED_AFTER_CONFIRMATION", List.of(pinned), 1, 1), document, compatibilityResolved);
+        SchemaCandidate pinned = candidate(schema, 1, null);
+        return verify(new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
+                "PINNED_AFTER_CONFIRMATION", List.of(pinned), 1, 1), document);
     }
 
     public record Verification(List<String> findings) {
@@ -297,16 +266,13 @@ public final class JevSchemaRoutingService {
         public boolean passed() { return findings.isEmpty(); }
     }
 
-    private SchemaCandidate candidate(SchemaVersion schema, double probability, int rank, String entityCountChoice) {
+    private SchemaCandidate candidate(SchemaVersion schema, double probability, String entityCountChoice) {
         CandidateContractProjection contract = CandidateContractProjection.from(schema.getSchemaId(),
                 schema.getVersion(), schema.getTopic(), schema.getName(), schema.getDefinition());
         double confidence = clamp(probability);
         List<String> signals = new ArrayList<>(List.of("JEV_CHOICE", "APPROVED_DATABASE_CONTRACT"));
         if (StringUtils.hasText(entityCountChoice)) signals.add("JEV_ENTITY_COUNT:" + entityCountChoice);
-        return new SchemaCandidate(contract,
-                new SchemaSelectionScore(rank, confidence),
-                new VerificationEvidence(confidence, 1, confidence, 0,
-                        List.copyOf(signals)), confidence);
+        return new SchemaCandidate(contract, signals, confidence);
     }
 
     private Map<String, String> entityCountCriteria(List<SchemaVersion> approved) {
@@ -325,14 +291,14 @@ public final class JevSchemaRoutingService {
     private Integer routedEntityCount(SchemaRoutingDecision routing, String schemaId, String schemaVersion) {
         return routing.candidates().stream()
                 .filter(item -> item.schemaId().equals(schemaId) && item.schemaVersion().equals(schemaVersion))
-                .flatMap(item -> item.verificationEvidence().evidenceCodes().stream())
+                .flatMap(item -> item.evidenceCodes().stream())
                 .filter(signal -> signal.startsWith("JEV_ENTITY_COUNT:"))
                 .map(signal -> parseEntityCount(signal.substring("JEV_ENTITY_COUNT:".length())))
                 .filter(java.util.Objects::nonNull).findFirst().orElse(null);
     }
 
     private Integer routedEntityCount(SchemaCandidate candidate) {
-        return candidate.verificationEvidence().evidenceCodes().stream()
+        return candidate.evidenceCodes().stream()
                 .filter(signal -> signal.startsWith("JEV_ENTITY_COUNT:"))
                 .map(signal -> parseEntityCount(signal.substring("JEV_ENTITY_COUNT:".length())))
                 .filter(java.util.Objects::nonNull).findFirst().orElse(null);

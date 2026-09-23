@@ -42,6 +42,7 @@ import com.example.backend.entity.enums.SubmissionStatus;
 import com.example.backend.entity.account.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.ai.extraction.ExtractionCoordinator;
+import com.example.backend.ai.extraction.AiStepException;
 import com.example.backend.ai.extraction.model.AmbiguityItem;
 import com.example.backend.ai.extraction.model.ExtractionResult;
 import com.example.backend.ai.extraction.model.SpecificationDocument;
@@ -169,11 +170,22 @@ public class ProblemService {
         } catch (ApiException exception) {
             markExtractionFailed(input);
             throw exception;
+        } catch (AiStepException exception) {
+            markExtractionFailed(input);
+            Throwable root = exception.getCause() == null ? exception : exception.getCause();
+            log.error("AI pipeline failure: problemId={} step={} code={} reason={} rootCause={}",
+                    input.problemId(), exception.step(), exception.code(), exception.getMessage(),
+                    root.getClass().getSimpleName() + ": " + root.getMessage(), exception);
+            throw new ApiException(HttpStatus.BAD_GATEWAY,
+                    "Không thể hoàn tất bước phân tích đặc tả. Đề chưa được lưu thành spec; vui lòng thử lại.",
+                    exception.code(), exception.step());
         } catch (RuntimeException exception) {
             markExtractionFailed(input);
-            log.warn("Problem extraction failed for submission {}", input.problemId(), exception);
+            log.error("Problem extraction failed: problemId={} step=EXTRACTION_PIPELINE code=EXTRACTION_FAILED reason={}",
+                    input.problemId(), exception.getMessage(), exception);
             throw new ApiException(HttpStatus.BAD_GATEWAY,
-                    "Chưa thể hoàn tất phân tích đề bài. Nội dung chưa được lưu thành spec; bạn có thể thử lại hoặc chỉnh sửa đề.");
+                    "Chưa thể hoàn tất phân tích đề bài. Nội dung chưa được lưu thành spec; bạn có thể thử lại hoặc chỉnh sửa đề.",
+                    "EXTRACTION_FAILED", "EXTRACTION_PIPELINE");
         }
     }
 
@@ -244,6 +256,16 @@ public class ProblemService {
         }
     }
 
+    private static <T extends Throwable> T findCause(Throwable failure, Class<T> type) {
+        Throwable current = failure;
+        while (current != null) {
+            if (type.isInstance(current)) return type.cast(current);
+            if (current.getCause() == current) break;
+            current = current.getCause();
+        }
+        return null;
+    }
+
     private TransactionTemplate transactionTemplate() {
         return new TransactionTemplate(transactionManager);
     }
@@ -293,14 +315,26 @@ public class ProblemService {
             try { ambiguityResolutionApplier.applyAll(specification, safeAnswers, conversation); }
             catch (ApiException exception) { throw exception; }
             catch (RuntimeException exception) {
+                AiStepException aiFailure = findCause(exception, AiStepException.class);
+                if (aiFailure != null) {
+                    Throwable root = aiFailure.getCause() == null ? aiFailure : aiFailure.getCause();
+                    log.error("AI pipeline failure: problemId={} step={} code={} reason={} rootCause={}",
+                            id, aiFailure.step(), aiFailure.code(), aiFailure.getMessage(),
+                            root.getClass().getSimpleName() + ": " + root.getMessage(), exception);
+                    throw new ApiException(HttpStatus.BAD_GATEWAY,
+                            "Chưa thể hoàn tất bước làm rõ đặc tả. Câu trả lời chưa được lưu; vui lòng thử lại.",
+                            aiFailure.code(), aiFailure.step());
+                }
                 log.warn("Problem clarification failed for submission {}", id, exception);
                 throw new ApiException(HttpStatus.BAD_GATEWAY,
-                        "Chưa thể xử lý câu trả lời này. Spec chưa được cập nhật; hãy thử diễn đạt lại.");
+                        "Chưa thể xử lý câu trả lời này. Spec chưa được cập nhật; hãy thử diễn đạt lại.",
+                        "CLARIFICATION_FAILED", "SPECIFICATION_CLARIFICATION");
             }
             readinessService.ensureRequiredAmbiguities(specification, conversation);
         }
         problem.setStatus(specification.getConfirmationState() == ConfirmationState.UNRESOLVED
-                ? SubmissionStatus.NEEDS_CONFIRMATION : SubmissionStatus.READY_FOR_VALIDATION);
+                ? SubmissionStatus.NEEDS_CONFIRMATION : specification.getConfirmationState() == ConfirmationState.REJECTED
+                        ? SubmissionStatus.EXTRACTED : SubmissionStatus.READY_FOR_VALIDATION);
         return mapper.toResponse(problem);
     }
 

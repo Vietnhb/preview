@@ -37,19 +37,11 @@ public class ExtractionCoordinator {
         ProviderExtractionResult result = routeFindings.isEmpty()
                 ? provider.extract(text, routingDecision)
                 : provider.extract(text, routingDecision, routeFindings);
-        if (routingDecision.status() == SchemaRoutingDecision.Status.AMBIGUOUS
-                && !"JEV_CAPACITY_EXCEEDED".equals(routingDecision.reasonCode())
-                && result.document().ambiguities().stream().noneMatch(item -> "schemaId".equals(item.fieldPath()))) {
-            result = new ProviderExtractionResult(result.document().withAmbiguities(
-                    provider.phraseVerificationQuestions(text, List.of(
-                            "issue=SCHEMA_SELECTION_UNCERTAIN; fieldPath=schemaId; guidance=Ask which of the routed approved physics models the user intends."))),
-                    result.rawResponse());
-        }
-        var verification = verify(text, routingDecision, result.document());
+        var verification = schemaRouting.verify(routingDecision, result.document());
         if (!verification.passed()) {
             if (hasCapacityFinding(verification)) {
                 result = ensureCapacityConsentQuestion(text, result, verification);
-                verification = verify(text, routingDecision, result.document());
+                verification = schemaRouting.verify(routingDecision, result.document());
             }
             if (onlyPendingCapacityConsent(verification, result.document())) {
                 return finish(routingDecision, result);
@@ -76,11 +68,11 @@ public class ExtractionCoordinator {
                 verification = baselineVerification;
             } else {
                 result = repaired;
-                verification = verify(text, routingDecision, result.document());
+                verification = schemaRouting.verify(routingDecision, result.document());
             }
             if (hasCapacityFinding(verification)) {
                 result = ensureCapacityConsentQuestion(text, result, verification);
-                verification = verify(text, routingDecision, result.document());
+                verification = schemaRouting.verify(routingDecision, result.document());
             }
             if (!verification.passed()) {
                 if (hasIssue(verification, "ENTITY_COUNT_MISMATCH")) {
@@ -156,11 +148,6 @@ public class ExtractionCoordinator {
                 || code.contains("capacity") || fieldPath.contains("capacity");
     }
 
-    private JevSchemaRoutingService.Verification verify(String text, SchemaRoutingDecision routing,
-            SpecificationDocument document) {
-        return schemaRouting.verify(text, routing, document);
-    }
-
     private String findingFieldPath(String finding) {
         if (finding == null) return null;
         return java.util.Arrays.stream(finding.split(";"))
@@ -193,7 +180,7 @@ public class ExtractionCoordinator {
                 candidate = candidate.withAmbiguities(
                         provider.phraseVerificationQuestions(text, actionableFindings));
             }
-            verification = withRouteCapacityFindings(verify(text, routing, candidate),
+            verification = withRouteCapacityFindings(schemaRouting.verify(routing, candidate),
                     schemaRouting.capacityFindings(routing));
             if (invalidQuestionPaths(verification).isEmpty()) return candidate;
         }
@@ -213,7 +200,7 @@ public class ExtractionCoordinator {
         return routing.candidates().stream()
                 .filter(candidate -> candidate.schemaId().equals(document.schemaId())
                         && candidate.schemaVersion().equals(document.schemaVersion()))
-                .flatMap(candidate -> candidate.verificationEvidence().evidenceCodes().stream())
+                .flatMap(candidate -> candidate.evidenceCodes().stream())
                 .filter(signal -> signal.startsWith("JEV_ENTITY_COUNT:"))
                 .map(signal -> signal.substring("JEV_ENTITY_COUNT:".length()))
                 .filter(value -> !value.startsWith("MORE_THAN_"))

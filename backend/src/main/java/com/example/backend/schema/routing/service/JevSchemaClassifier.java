@@ -44,7 +44,7 @@ public final class JevSchemaClassifier {
         }
         Map<String, Object> schemaQuestion = new LinkedHashMap<>();
         schemaQuestion.put("type", "choice");
-        schemaQuestion.put("instructions", "Choose the single approved physics schema that best matches the user's request. Use only the provided options. Do not invent a schema. Respect the declared entity and visual actor capacity: never choose a one-body scene for an explicitly multi-body request; return the lowest-confidence/ambiguous route when no approved candidate can represent the stated bodies.");
+        schemaQuestion.put("instructions", "Choose the best approved schema for the physics described. Use only the provided options; express uncertainty in confidence. Classify body count separately.");
         schemaQuestion.put("criteria", schemaCriteria);
         Map<String, Object> scopeQuestion = new LinkedHashMap<>();
         scopeQuestion.put("type", "noul");

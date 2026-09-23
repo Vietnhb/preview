@@ -54,14 +54,6 @@ public record CandidateContractProjection(
         }
     }
 
-    /** Source-compatible constructor for schemas that only have global quantities. */
-    public CandidateContractProjection(String schemaId, String schemaVersion, String topic, String name,
-            String modelId, List<QuantityProjection> requiredQuantities, List<QuantityProjection> optionalQuantities,
-            List<String> relationTypes, List<String> endConditionCapabilities) {
-        this(schemaId, schemaVersion, topic, name, modelId, requiredQuantities, optionalQuantities,
-                relationTypes, endConditionCapabilities, List.of(), null);
-    }
-
     /**
      * Build a projection using catalog identity supplied by the version record,
      * not identity guessed from the definition JSON.
@@ -77,14 +69,13 @@ public record CandidateContractProjection(
                 "requiredQuantities", symbolsByKey);
         List<QuantityProjection> optional = quantities(definition.get("optionalQuantities"),
                 "optionalQuantities", symbolsByKey);
-        if (required.isEmpty() && optional.isEmpty()) {
-            if (entityTypes(definition, symbolsByKey).isEmpty()) {
-                throw new IllegalArgumentException("Candidate contract must declare at least one quantity or entity type.");
-            }
+        List<EntityTypeProjection> entities = entityTypes(definition, symbolsByKey);
+        if (required.isEmpty() && optional.isEmpty() && entities.isEmpty()) {
+            throw new IllegalArgumentException("Candidate contract must declare at least one quantity or entity type.");
         }
         return new CandidateContractProjection(schemaId, schemaVersion, topic, name, modelId, required, optional,
                 declaredRelationTypes(definition), declaredEndConditionCapabilities(definition),
-                entityTypes(definition, symbolsByKey),
+                entities,
                 definition.path("execution").path("durationSeconds").isNumber()
                         ? definition.path("execution").path("durationSeconds").decimalValue() : null);
     }

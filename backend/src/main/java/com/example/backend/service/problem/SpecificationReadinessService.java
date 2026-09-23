@@ -36,6 +36,10 @@ public class SpecificationReadinessService {
 
     public List<String> blockers(Specification specification) {
         List<String> blockers = new ArrayList<>();
+        if (specification.getConfirmationState() == ConfirmationState.REJECTED) {
+            blockers.add("Teacher declined the compatibility proposal");
+            return List.copyOf(blockers);
+        }
         if (specification.getConfirmationState() == ConfirmationState.UNRESOLVED
                 || specification.getAmbiguityCases().stream().anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN)) {
             blockers.add("Unresolved ambiguity cases remain");
@@ -53,6 +57,7 @@ public class SpecificationReadinessService {
     }
 
     public void ensureRequiredAmbiguities(Specification specification, List<ConversationTurn> conversation) {
+        if (specification.getConfirmationState() == ConfirmationState.REJECTED) return;
         if (!StringUtils.hasText(specification.getSchemaId())) return;
         SchemaVersion schema = schemas.requirePublishedVersion(specification.getSchemaId(), specification.getSchemaVersion());
         removeAmbiguousRequiredQuantities(specification, schema.getDefinition());

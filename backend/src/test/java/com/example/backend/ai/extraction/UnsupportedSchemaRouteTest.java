@@ -70,7 +70,7 @@ class UnsupportedSchemaRouteTest {
                 List.of(), new ObjectMapper().readTree("{\"type\":\"time_limit\",\"duration\":8}"),
                 BigDecimal.ONE, List.of(), SpecificationDocument.CURRENT_SCHEMA_VERSION);
         when(provider.extract(text, decision)).thenReturn(new ProviderExtractionResult(document, null));
-        when(routing.verify(text, decision, document)).thenReturn(new JevSchemaRoutingService.Verification(List.of()));
+        when(routing.verify(decision, document)).thenReturn(new JevSchemaRoutingService.Verification(List.of()));
 
         var result = new ExtractionCoordinator(provider, routing).extract(text);
 
@@ -91,7 +91,7 @@ class UnsupportedSchemaRouteTest {
         List<String> findings = List.of("issue=JEV_CAPACITY_EXCEEDED; knownObjects=2; actorCapacity=1");
         when(routing.capacityFindings(decision)).thenReturn(findings);
         var question = new com.example.backend.ai.extraction.model.AmbiguityItem(
-                "jev.capacity.actor-count", "schemaId",
+                "jev.capacity.actor-count", CompatibilityFieldPaths.CAPACITY,
                 "The chosen scene represents one body; keep both objects or approve a simplification?", List.of());
         var document = new SpecificationDocument("1.0", "DYNAMICS", "two_body", List.of(
                 new com.example.backend.ai.extraction.model.PhysicalObject("body-1", "Body 1", "body", List.of()),
@@ -99,12 +99,12 @@ class UnsupportedSchemaRouteTest {
                 List.of(), List.of(), new ObjectMapper().readTree("{\"type\":\"time_limit\",\"duration\":8}"),
                 BigDecimal.ONE, List.of(question), SpecificationDocument.CURRENT_SCHEMA_VERSION);
         when(provider.extract(text, decision, findings)).thenReturn(new ProviderExtractionResult(document, null));
-        when(routing.verify(text, decision, document)).thenReturn(new JevSchemaRoutingService.Verification(List.of()));
+        when(routing.verify(decision, document)).thenReturn(new JevSchemaRoutingService.Verification(List.of()));
 
         var result = new ExtractionCoordinator(provider, routing).extract(text);
 
         assertEquals(2, result.document().objects().size(), "Both physical objects must remain separate.");
-        assertEquals("schemaId", result.document().ambiguities().getFirst().fieldPath());
+        assertEquals(CompatibilityFieldPaths.CAPACITY, result.document().ambiguities().getFirst().fieldPath());
         assertNull(result.routingDecision().assets());
         verify(provider).extract(text, decision, findings);
         verify(routing, never()).routeAssets(anyString(), any(SpecificationDocument.class), anyList(), any());
