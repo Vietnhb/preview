@@ -8,6 +8,7 @@ import java.util.HexFormat;
 import java.util.UUID;
 import java.time.Instant;
 import java.util.Map;
+import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -44,6 +45,7 @@ import com.example.backend.ai.extraction.ExtractionCoordinator;
 import com.example.backend.ai.extraction.model.AmbiguityItem;
 import com.example.backend.ai.extraction.model.ExtractionResult;
 import com.example.backend.ai.extraction.model.SpecificationDocument;
+import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.example.backend.ai.ocr.OcrProvider;
 import com.example.backend.ai.ocr.OcrResult;
 import com.example.backend.physics.validation.EndConditionResolver;
@@ -60,6 +62,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ProblemService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProblemService.class);
 
     private final ProblemSubmissionRepository problemRepository;
     private final SourceAssetRepository sourceAssetRepository;
@@ -168,8 +171,9 @@ public class ProblemService {
             throw exception;
         } catch (RuntimeException exception) {
             markExtractionFailed(input);
+            log.warn("Problem extraction failed for submission {}", input.problemId(), exception);
             throw new ApiException(HttpStatus.BAD_GATEWAY,
-                    "AI problem understanding failed; specification was not created. Cause: " + safeCause(exception));
+                    "Chưa thể hoàn tất phân tích đề bài. Nội dung chưa được lưu thành spec; bạn có thể thử lại hoặc chỉnh sửa đề.");
         }
     }
 
@@ -247,21 +251,32 @@ public class ProblemService {
 
     @Transactional
     public ProblemResponse confirm(UUID id, Map<String, String> answers) {
+        return confirm(id, new com.example.backend.dto.problem.ConfirmProblemRequest(answers));
+    }
+
+    @Transactional
+    public ProblemResponse confirm(UUID id, com.example.backend.dto.problem.ConfirmProblemRequest request) {
         ProblemSubmission problem = requireOwnedProblem(id);
         Specification specification = problem.getCurrentSpecification();
         if (specification == null) {
             throw new ApiException(HttpStatus.CONFLICT, "Extract a specification before confirming it");
         }
-        Map<String, String> safeAnswers = answers == null ? Map.of() : answers;
+        Map<String, String> safeAnswers = request == null || request.answers() == null
+                ? Map.of() : request.answers();
+        List<ConversationTurn> conversation = request == null || request.conversation() == null
+                ? List.of() : List.copyOf(request.conversation());
         for (AmbiguityCase ambiguity : specification.getAmbiguityCases()) if (ambiguity.getStatus() == AmbiguityStatus.OPEN
                 && !StringUtils.hasText(safeAnswers.get(ambiguity.getCode()))) {
             throw new ApiException(HttpStatus.CONFLICT, "Answer every ambiguity before confirming");
         }
-        try { ambiguityResolutionApplier.applyAll(specification, safeAnswers); }
+        try { ambiguityResolutionApplier.applyAll(specification, safeAnswers, conversation); }
         catch (ApiException exception) { throw exception; }
-        catch (RuntimeException exception) { throw new ApiException(HttpStatus.BAD_GATEWAY,
-                "AI ambiguity confirmation failed; no changes were saved. Cause: " + safeCause(exception)); }
-        readinessService.ensureRequiredAmbiguities(specification);
+        catch (RuntimeException exception) {
+            log.warn("Problem clarification failed for submission {}", id, exception);
+            throw new ApiException(HttpStatus.BAD_GATEWAY,
+                    "Chưa thể xử lý câu trả lời này. Spec chưa được cập nhật; hãy thử diễn đạt lại.");
+        }
+        readinessService.ensureRequiredAmbiguities(specification, conversation);
         problem.setStatus(specification.getConfirmationState() == ConfirmationState.UNRESOLVED
                 ? SubmissionStatus.NEEDS_CONFIRMATION : SubmissionStatus.READY_FOR_VALIDATION);
         return mapper.toResponse(problem);
@@ -421,15 +436,6 @@ public class ProblemService {
         if (!StringUtils.hasText(first)) return second;
         if (!StringUtils.hasText(second)) return first;
         return first + "\n\n" + second;
-    }
-
-    private String safeCause(Throwable failure) {
-        Throwable current = failure;
-        while (current.getCause() != null) current = current.getCause();
-        String message = current.getMessage();
-        if (!StringUtils.hasText(message)) return current.getClass().getSimpleName();
-        String sanitized = message.replaceAll("(?i)bearer\\s+[^\\s,]+", "Bearer [redacted]");
-        return sanitized.substring(0, Math.min(240, sanitized.length()));
     }
 
     private void validateQuantities(com.fasterxml.jackson.databind.JsonNode quantities) {

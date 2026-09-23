@@ -81,7 +81,7 @@ public class ProblemController {
 
     @PostMapping("/{id}/confirm")
     public ProblemResponse confirm(@PathVariable UUID id, @RequestBody(required = false) ConfirmProblemRequest request) {
-        return problemService.confirm(id, request == null ? null : request.answers());
+        return problemService.confirm(id, request);
     }
 
     @GetMapping("/assets/{assetId}/content")

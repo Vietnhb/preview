@@ -21,7 +21,7 @@ new Function("require", "module", "exports", compiled)(specifier => {
   return require(specifier);
 }, module, module.exports);
 const { AssetSelectionReview } = module.exports;
-const choice = (entityId, assetId) => ({ targetId: entityId, entityId, entityLabel: `Vật ${entityId}`, assetId, assetLabel: assetId, match: "SUBSTITUTE", requiresConfirmation: true });
+const choice = (entityId, assetId) => ({ targetId: entityId, entityId, entityLabel: `Vật ${entityId}`, assetId, assetLabel: assetId, match: "SUBSTITUTE", visualDifference: "Hình đề xuất có hình dạng khác vật được mô tả.", requiresConfirmation: true });
 const selection = { id: "plan-1", status: "NEEDS_CONFIRMATION", choices: [choice("1", "cart-blue"), choice("2", "block-amber")] };
 const render = (plan, props = {}) => AssetSelectionReview({ selection: plan, loading: false, onDecision() {}, onRetry() {}, onReset() {}, ...props });
 function buttons(element) {
@@ -35,6 +35,7 @@ test("confirmation previews each selected SVG and sends only the explicit teache
   const element = render(selection, { onDecision: value => { decision = value; } });
   const html = renderToStaticMarkup(element);
   for (const asset of catalog.values()) assert.ok(html.includes(encodeURIComponent(asset.markup)));
+  assert.ok(html.includes("Hình đề xuất có hình dạng khác vật được mô tả."));
   assert.equal((html.match(/<img /g) ?? []).length, 2);
   const actions = buttons(element);
   assert.equal(actions[0].props.disabled, false);
@@ -53,9 +54,12 @@ test("a missing SVG or an in-flight request prevents approval", () => {
 test("rejected, unsupported and missing plans offer no run or approval action", () => {
   for (const plan of [null, { ...selection, status: "REJECTED" }, { ...selection, status: "UNSUPPORTED" }]) {
     let reset = false;
-    const actions = buttons(render(plan, { onReset: () => { reset = true; } }));
-    assert.equal(actions.length, 1);
+    let revised = false;
+    const actions = buttons(render(plan, { onReset: () => { reset = true; }, onRevise: () => { revised = true; } }));
+    assert.equal(actions.length, 2);
     actions[0].props.onClick();
+    assert.equal(revised, true);
+    actions[1].props.onClick();
     assert.equal(reset, true);
   }
 });
@@ -63,7 +67,7 @@ test("rejected, unsupported and missing plans offer no run or approval action", 
 test("an approved plan retries execution without requesting another approval", () => {
   let retried = false;
   const actions = buttons(render({ ...selection, status: "READY" }, { onRetry: () => { retried = true; } }));
-  assert.equal(actions.length, 2);
+  assert.equal(actions.length, 3);
   actions[0].props.onClick();
   assert.equal(retried, true);
 });

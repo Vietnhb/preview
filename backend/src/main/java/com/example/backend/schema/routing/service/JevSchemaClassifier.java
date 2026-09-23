@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -33,7 +34,18 @@ public final class JevSchemaClassifier {
         this.catalog = catalog;
     }
 
-    public Result classify(String problemText, Map<String, String> schemaCriteria) {
+    public Result classify(String problemText, Map<String, String> schemaCriteria,
+            Map<String, String> entityCountCriteria) {
+        return classify(problemText, schemaCriteria, entityCountCriteria, true);
+    }
+
+    public Result classifySchemas(String problemText, Map<String, String> schemaCriteria,
+            Map<String, String> entityCountCriteria) {
+        return classify(problemText, schemaCriteria, entityCountCriteria, false);
+    }
+
+    private Result classify(String problemText, Map<String, String> schemaCriteria,
+            Map<String, String> entityCountCriteria, boolean includeAssets) {
         if (properties.apiKey().isBlank()) {
             throw new EmbeddingUnavailableException("JEV_API_KEY is required for Jev schema routing.");
         }
@@ -42,7 +54,7 @@ public final class JevSchemaClassifier {
         }
         Map<String, Object> schemaQuestion = new LinkedHashMap<>();
         schemaQuestion.put("type", "choice");
-        schemaQuestion.put("instructions", "Choose the single approved physics schema that best matches the user's request. Use only the provided options. Do not invent a schema.");
+        schemaQuestion.put("instructions", "Choose the single approved physics schema that best matches the user's request. Use only the provided options. Do not invent a schema. Respect the declared entity and visual actor capacity: never choose a one-body scene for an explicitly multi-body request; return the lowest-confidence/ambiguous route when no approved candidate can represent the stated bodies.");
         schemaQuestion.put("criteria", schemaCriteria);
         Map<String, Object> scopeQuestion = new LinkedHashMap<>();
         scopeQuestion.put("type", "noul");
@@ -51,25 +63,19 @@ public final class JevSchemaClassifier {
         Map<String, Object> questions = new LinkedHashMap<>();
         questions.put("schema", schemaQuestion);
         questions.put("in_scope", scopeQuestion);
-        var assetQuestions = new LinkedHashMap<String, String>();
-        for (SvgAssetCatalog.Asset asset : catalog.entries()) {
-            String questionId = "asset_" + asset.id();
-            assetQuestions.put(questionId, asset.id());
-            questions.put(questionId, Map.of(
+        if (entityCountCriteria != null && !entityCountCriteria.isEmpty()) {
+            questions.put("entity_count", Map.of(
                     "type", "choice",
-                    "instructions", Map.of(
-                            "question", "How faithfully does this SVG depict any physical object or apparatus "
-                                    + "described in the user's text? Judge appearance and the named object, not physics topic. "
-                                    + "Unspecified generic bodies require SUBSTITUTE. Respect explicitly requested colors. "
-                                    + "Do not add apparatus not described in the text. If the text describes one or more "
-                                    + "moving bodies but does not specify their appearance, at least one actor SVG must be "
-                                    + "classified SUBSTITUTE; do not classify every actor candidate IRRELEVANT. "
-                                    + "A SUBSTITUTE is a catalog choice for teacher approval, not an invented physical fact.",
-                            "asset", Map.of("label", asset.label(), "description", asset.description(), "kind", asset.kind())),
-                    "criteria", Map.of(
-                            "EXACT", "The SVG faithfully depicts an explicitly described object's appearance.",
-                            "SUBSTITUTE", "An object is described but this SVG is only a plausible symbolic replacement needing approval.",
-                            "IRRELEVANT", "The SVG is unrelated to the objects described or would introduce unrequested apparatus.")));
+                    "instructions", "Choose how many distinct physical bodies the user explicitly requests. Count generic numbered bodies as distinct. Do not count coordinate axes, fields, environments, or decorative apparatus. Use only the supplied catalog-derived choices.",
+                    "criteria", entityCountCriteria));
+        }
+        var assetQuestions = new LinkedHashMap<String, String>();
+        if (includeAssets) {
+            for (SvgAssetCatalog.Asset asset : catalog.entries()) {
+                String questionId = "asset_" + asset.id();
+                assetQuestions.put(questionId, asset.id());
+                questions.put(questionId, assetQuestion(asset));
+            }
         }
         Map<String, Object> request = Map.of(
                 "state", problemText,
@@ -86,6 +92,8 @@ public final class JevSchemaClassifier {
             if (response == null) throw new IllegalStateException("Jev returned no response.");
             JsonNode answers = response.path("answers");
             var schema = choice(answers.path("schema"), schemaCriteria.keySet());
+            Choice entityCount = entityCountCriteria == null || entityCountCriteria.isEmpty() ? null
+                    : choice(answers.path("entity_count"), entityCountCriteria.keySet());
             var candidates = new ArrayList<AssetRoutingDecision.Candidate>();
             for (var entry : assetQuestions.entrySet()) {
                 var asset = choice(answers.path(entry.getKey()), Set.of("EXACT", "SUBSTITUTE", "IRRELEVANT"));
@@ -99,12 +107,64 @@ public final class JevSchemaClassifier {
             }
             return new Result(schema.value(), schema.confidence(), schema.probabilities(),
                     probability(scope.path("noul")), response.path("model").asText(properties.model()),
-                    new AssetRoutingDecision(catalog.checksum(), candidates));
+                    includeAssets ? new AssetRoutingDecision(catalog.checksum(), candidates) : null,
+                    entityCount == null ? null : entityCount.value());
         } catch (EmbeddingUnavailableException failure) {
             throw failure;
         } catch (RuntimeException failure) {
             throw new EmbeddingUnavailableException("Jev schema routing request failed: " + failure.getMessage());
         }
+    }
+
+    public AssetRoutingDecision classifyAssets(String problemText, Map<String, Object> specificationContext) {
+        if (properties.apiKey().isBlank()) {
+            throw new EmbeddingUnavailableException("JEV_API_KEY is required for asset routing.");
+        }
+        Map<String, String> assetQuestions = new LinkedHashMap<>();
+        Map<String, Object> questions = new LinkedHashMap<>();
+        for (SvgAssetCatalog.Asset asset : catalog.entries()) {
+            String questionId = "asset_" + asset.id();
+            assetQuestions.put(questionId, asset.id());
+            questions.put(questionId, assetQuestion(asset));
+        }
+        Map<String, Object> request = Map.of(
+                "state", Map.of("problem", problemText, "confirmedSpecification", specificationContext),
+                "model", properties.model(),
+                "questions", questions);
+        try {
+            JsonNode response = client.post().uri("/systemone")
+                    .header("Authorization", "Bearer " + properties.apiKey())
+                    .contentType(MediaType.APPLICATION_JSON).body(request).retrieve().body(JsonNode.class);
+            if (response == null) throw new IllegalStateException("JEV returned no asset response.");
+            JsonNode answers = response.path("answers");
+            var candidates = new ArrayList<AssetRoutingDecision.Candidate>();
+            for (var entry : assetQuestions.entrySet()) {
+                var asset = choice(answers.path(entry.getKey()), Set.of("EXACT", "SUBSTITUTE", "IRRELEVANT"));
+                if (!"IRRELEVANT".equals(asset.value())) {
+                    candidates.add(new AssetRoutingDecision.Candidate(entry.getValue(), asset.value(), asset.confidence()));
+                }
+            }
+            return new AssetRoutingDecision(catalog.checksum(), candidates);
+        } catch (EmbeddingUnavailableException failure) {
+            throw failure;
+        } catch (RuntimeException failure) {
+            throw new EmbeddingUnavailableException("JEV asset routing request failed: " + failure.getMessage());
+        }
+    }
+
+    private Map<String, Object> assetQuestion(SvgAssetCatalog.Asset asset) {
+        return Map.of(
+                "type", "choice",
+                "instructions", Map.of(
+                        "question", "Evaluate whether this catalog SVG can depict a physical object in the confirmed specification. "
+                                + "Judge its actual appearance and named object, not the physics topic. Mark EXACT only for a faithful depiction; "
+                                + "mark SUBSTITUTE when it can serve as an explicitly reviewable visual replacement; otherwise mark IRRELEVANT. "
+                                + "Do not infer appearance or add apparatus.",
+                        "asset", Map.of("label", asset.label(), "description", asset.description(), "kind", asset.kind())),
+                "criteria", Map.of(
+                        "EXACT", "Faithfully depicts the described object.",
+                        "SUBSTITUTE", "Can be used as an explicitly reviewed symbolic representation.",
+                        "IRRELEVANT", "Does not represent an object in the confirmed specification."));
     }
 
     private Choice choice(JsonNode answer, Set<String> options) {
@@ -133,9 +193,9 @@ public final class JevSchemaClassifier {
     private record Choice(String value, double confidence, Map<String, Double> probabilities) {}
 
     public record Result(String choice, double confidence, Map<String, Double> probabilities,
-            double inScope, String model, AssetRoutingDecision assets) {
+            double inScope, String model, AssetRoutingDecision assets, String entityCountChoice) {
         public Result(String choice, double confidence, Map<String, Double> probabilities, double inScope, String model) {
-            this(choice, confidence, probabilities, inScope, model, null);
+            this(choice, confidence, probabilities, inScope, model, null, null);
         }
 
         public Result {

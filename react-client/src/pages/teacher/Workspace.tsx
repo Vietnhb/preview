@@ -142,6 +142,7 @@ export default function Workspace() {
   const [pendingProblem, setPendingProblem] = useState<Problem | null>(null);
   const [assetProblem, setAssetProblem] = useState<Problem | null>(null);
   const [ocrReviewRequired, setOcrReviewRequired] = useState(false);
+  const [revisingProblem, setRevisingProblem] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const requestInFlight = useRef(false);
@@ -216,6 +217,7 @@ export default function Workspace() {
       setComposerOpen(false);
       setPendingProblem(null);
       setAssetProblem(null);
+      setRevisingProblem(false);
       setSimulationLoadingId(null);
       setOpeningLibraryId(null);
       setOpeningRecentId(null);
@@ -234,6 +236,7 @@ export default function Workspace() {
         setComposerOpen(false);
         setPendingProblem(null);
         setAssetProblem(null);
+        setRevisingProblem(false);
       })
       .catch(() => {
         if (!active) return;
@@ -389,6 +392,7 @@ export default function Workspace() {
     setPendingProblem(null);
     setAssetProblem(null);
     setOcrReviewRequired(false);
+    setRevisingProblem(false);
     setAnswers({});
     setAmbiguityStep(0);
     setError("");
@@ -416,6 +420,7 @@ export default function Workspace() {
     setPendingProblem(null);
     setAssetProblem(null);
     setOcrReviewRequired(false);
+    setRevisingProblem(false);
     setAnswers({});
     setAmbiguityStep(0);
     setError("");
@@ -431,6 +436,7 @@ export default function Workspace() {
     setAssetProblem(null);
     setProblem(null);
     setOcrReviewRequired(false);
+    setRevisingProblem(false);
     setAnswers({});
     setAmbiguityStep(0);
     setError("");
@@ -439,6 +445,23 @@ export default function Workspace() {
     setSourceFile(null);
     setSourceFileError("");
     setConversation([]);
+  };
+
+  const beginRevision = () => {
+    if (requestInFlight.current) return;
+    const target = pendingProblem ?? assetProblem ?? problem;
+    if (!target?.id) return;
+    setProblem(target);
+    setPendingProblem(null);
+    setAssetProblem(null);
+    setAnswers({});
+    setAmbiguityStep(0);
+    setDescription(target.editableText ?? target.originalText ?? "");
+    setSourceFile(null);
+    setOcrReviewRequired(false);
+    setError("");
+    setStage("");
+    setRevisingProblem(true);
   };
 
   const createWorkspaceFolder = async (name: string) => {
@@ -584,6 +607,31 @@ export default function Workspace() {
     }
   };
 
+  const reviseCurrentProblem = async (event: FormEvent) => {
+    event.preventDefault();
+    const text = description.trim();
+    if (!problem?.id || !text || requestInFlight.current) return;
+    requestInFlight.current = true;
+    setLoading(true);
+    setError("");
+    appendConversationMessage("user", text);
+    setStage("Đang lưu đề bài đã chỉnh sửa…");
+    try {
+      const updated = await updateProblemText(problem.id, text);
+      setProblem(updated);
+      setRevisingProblem(false);
+      setStage("Đang phân tích lại đề bài…");
+      await handleExtractedProblem(await extractProblem(updated.id));
+    } catch (requestError) {
+      setRevisingProblem(true);
+      setError(apiMessage(requestError));
+      setStage("");
+    } finally {
+      requestInFlight.current = false;
+      setLoading(false);
+    }
+  };
+
   const create = async (event: FormEvent) => {
     event.preventDefault();
     const text = description.trim();
@@ -594,6 +642,7 @@ export default function Workspace() {
     }
     requestInFlight.current = true;
     setAssetProblem(null);
+    setRevisingProblem(false);
     setLoading(true);
     setError("");
     const promptMessage = [
@@ -647,6 +696,14 @@ export default function Workspace() {
     );
     appendAmbiguityExchange(activeAmbiguity, answer);
     setAnswers(submittedAnswers);
+    const conversationContext = conversation.map(({ role, text }) => ({ role, text }));
+    if (conversationContext.at(-1)?.role !== "user" || conversationContext.at(-1)?.text !== answer) {
+      conversationContext.push(
+        { role: "assistant", text: activeAmbiguity.question },
+        { role: "user", text: answer },
+      );
+    }
+
     if (ambiguityStep < ambiguities.length - 1) {
       setError("");
       setAmbiguityStep((step) => step + 1);
@@ -660,6 +717,7 @@ export default function Workspace() {
       const resolved = await confirmProblem(
         pendingProblem.id,
         submittedAnswers,
+        conversationContext,
       );
       const remaining = openAmbiguities(resolved);
       if (remaining.length > 0) {
@@ -724,6 +782,7 @@ export default function Workspace() {
     onAssetDecision: (accepted: boolean) => { void continueWithAssets(accepted); },
     onRetrySimulation: () => { void continueWithAssets(); },
     ocrReviewRequired,
+    revisingProblem,
     answers,
     onAnswersChange: setAnswers,
     loading,
@@ -741,6 +800,8 @@ export default function Workspace() {
     onCreate: create,
     onConfirmOcrReview: confirmOcrReview,
     onConfirmAmbiguities: confirmAmbiguities,
+    onReviseProblem: reviseCurrentProblem,
+    onBeginRevision: beginRevision,
     onBackAmbiguity: () => {
       setError("");
       setAmbiguityStep((step) => Math.max(0, step - 1));

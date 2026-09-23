@@ -16,6 +16,7 @@ type Props = {
   onAssetDecision: (accepted: boolean) => void;
   onRetrySimulation: () => void;
   ocrReviewRequired: boolean;
+  revisingProblem: boolean;
   answers: Record<string, string>;
   onAnswersChange: (value: Record<string, string>) => void;
   loading: boolean;
@@ -33,6 +34,8 @@ type Props = {
   onCreate: (event: FormEvent) => void;
   onConfirmOcrReview: (event: FormEvent) => void;
   onConfirmAmbiguities: (event: FormEvent) => void;
+  onReviseProblem: (event: FormEvent) => void;
+  onBeginRevision: () => void;
   onBackAmbiguity: () => void;
   onResetComposer: () => void;
   sourceFile: File | null;
@@ -41,31 +44,38 @@ type Props = {
   inline?: boolean;
 };
 
-function getPanelCopy(ocrReviewRequired: boolean, pendingProblem: Problem | null) {
+function getPanelCopy(ocrReviewRequired: boolean, pendingProblem: Problem | null, revisingProblem: boolean) {
   if (pendingProblem) return { title: "AI đang làm rõ đề bài", subtitle: "Trả lời từng điểm chưa rõ. Solver chỉ chạy sau khi đủ dữ kiện." };
+  if (revisingProblem) return { title: "Sửa đề bài", subtitle: "Cập nhật yêu cầu rồi gửi lại để AI tạo specification mới." };
   if (ocrReviewRequired) return { title: "Kiểm tra nội dung từ ảnh", subtitle: "Rà soát nội dung nhận dạng trước khi AI tạo specification." };
   return { title: "Tạo mô phỏng mới", subtitle: "Trao đổi với PhysLive AI để xây dựng mô phỏng." };
 }
 
-function getComposerCopy(ocrReviewRequired: boolean, pendingProblem: Problem | null) {
+function getComposerCopy(ocrReviewRequired: boolean, pendingProblem: Problem | null, revisingProblem: boolean) {
   if (pendingProblem) return { placeholder: "Nhập câu trả lời cho PhysLive AI…", ariaLabel: "Câu trả lời cho PhysLive AI" };
+  if (revisingProblem) return { placeholder: "Chỉnh sửa đề bài cần mô phỏng…", ariaLabel: "Đề bài đã chỉnh sửa" };
   if (ocrReviewRequired) return { placeholder: "Kiểm tra và chỉnh nội dung nhận dạng…", ariaLabel: "Nội dung nhận dạng cần rà soát" };
   return { placeholder: "Mô tả đề bài cần mô phỏng…", ariaLabel: "Mô tả đề bài cần mô phỏng" };
 }
 
-function getSubmitHandler(ocrReviewRequired: boolean, pendingProblem: Problem | null, onCreate: Props["onCreate"], onConfirmOcrReview: Props["onConfirmOcrReview"], onConfirmAmbiguities: Props["onConfirmAmbiguities"]) {
+function getSubmitHandler(ocrReviewRequired: boolean, pendingProblem: Problem | null, revisingProblem: boolean,
+  onCreate: Props["onCreate"], onConfirmOcrReview: Props["onConfirmOcrReview"],
+  onConfirmAmbiguities: Props["onConfirmAmbiguities"], onReviseProblem: Props["onReviseProblem"]) {
   if (pendingProblem) return onConfirmAmbiguities;
+  if (revisingProblem) return onReviseProblem;
   if (ocrReviewRequired) return onConfirmOcrReview;
   return onCreate;
 }
 
-function getSendLabel(pendingProblem: Problem | null, ambiguityStep: number, ambiguityCount: number) {
+function getSendLabel(pendingProblem: Problem | null, revisingProblem: boolean, ambiguityStep: number, ambiguityCount: number) {
+  if (revisingProblem) return "Lưu sửa đổi & phân tích lại";
   if (!pendingProblem) return "Xác nhận & phân tích";
   return ambiguityStep < ambiguityCount - 1 ? "Tiếp tục" : "Gửi cho AI";
 }
 
-function getSendAriaLabel(ocrReviewRequired: boolean, pendingProblem: Problem | null) {
+function getSendAriaLabel(ocrReviewRequired: boolean, pendingProblem: Problem | null, revisingProblem: boolean) {
   if (pendingProblem) return "Gửi câu trả lời cho AI";
+  if (revisingProblem) return "Lưu đề đã sửa và phân tích lại";
   if (ocrReviewRequired) return "Xác nhận nội dung và gửi cho AI";
   return "Gửi đề bài cho AI";
 }
@@ -84,6 +94,7 @@ export default function CreateSimulationModal({
   onAssetDecision,
   onRetrySimulation,
   ocrReviewRequired,
+  revisingProblem,
   answers,
   onAnswersChange,
   loading,
@@ -101,6 +112,8 @@ export default function CreateSimulationModal({
   onCreate,
   onConfirmOcrReview,
   onConfirmAmbiguities,
+  onReviseProblem,
+  onBeginRevision,
   onBackAmbiguity,
   onResetComposer,
   sourceFile,
@@ -128,11 +141,12 @@ export default function CreateSimulationModal({
   const hasChatContent = conversation.length > 0 || Boolean(stage || error || pendingProblem);
   const panelCopy = assetProblem
     ? { title: "Hình minh họa mô phỏng", subtitle: "Chọn hình có sẵn phù hợp với các vật trong đề bài." }
-    : getPanelCopy(ocrReviewRequired, pendingProblem);
-  const composerCopy = getComposerCopy(ocrReviewRequired, pendingProblem);
-  const submitHandler = getSubmitHandler(ocrReviewRequired, pendingProblem, onCreate, onConfirmOcrReview, onConfirmAmbiguities);
-  const sendLabel = getSendLabel(pendingProblem, ambiguityStep, ambiguities.length);
-  const sendAriaLabel = getSendAriaLabel(ocrReviewRequired, pendingProblem);
+    : getPanelCopy(ocrReviewRequired, pendingProblem, revisingProblem);
+  const composerCopy = getComposerCopy(ocrReviewRequired, pendingProblem, revisingProblem);
+  const submitHandler = getSubmitHandler(ocrReviewRequired, pendingProblem, revisingProblem,
+    onCreate, onConfirmOcrReview, onConfirmAmbiguities, onReviseProblem);
+  const sendLabel = getSendLabel(pendingProblem, revisingProblem, ambiguityStep, ambiguities.length);
+  const sendAriaLabel = getSendAriaLabel(ocrReviewRequired, pendingProblem, revisingProblem);
 
   useEffect(() => {
     const textarea = composerTextareaRef.current;
@@ -202,6 +216,7 @@ export default function CreateSimulationModal({
               onDecision={onAssetDecision}
               onRetry={onRetrySimulation}
               onReset={onResetComposer}
+              onRevise={onBeginRevision}
             />
           </div>
         ) : <form id="create-sim-form" className="create-chat-composer-wrap" onSubmit={submitHandler}>
@@ -222,6 +237,8 @@ export default function CreateSimulationModal({
             onStopCamera={camera.stopCamera}
             onRemoveFile={() => onSourceFileChange(null)}
             onResetComposer={onResetComposer}
+            onBeginRevision={onBeginRevision}
+            revisingProblem={revisingProblem}
             onBackAmbiguity={onBackAmbiguity}
             ambiguityStep={ambiguityStep}
           />

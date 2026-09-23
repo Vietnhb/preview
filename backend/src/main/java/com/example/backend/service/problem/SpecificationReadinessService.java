@@ -15,6 +15,9 @@ import com.example.backend.entity.enums.ConfirmationState;
 import com.example.backend.entity.problem.AmbiguityCase;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.entity.problem.Specification;
+import com.example.backend.ai.extraction.ExtractionProvider;
+import com.example.backend.ai.extraction.model.AmbiguityItem;
+import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -29,6 +32,7 @@ public class SpecificationReadinessService {
 
     private final SchemaDefinitionService schemas;
     private final ObjectMapper objectMapper;
+    private final ExtractionProvider aiProvider;
 
     public List<String> blockers(Specification specification) {
         List<String> blockers = new ArrayList<>();
@@ -45,11 +49,22 @@ public class SpecificationReadinessService {
     }
 
     public void ensureRequiredAmbiguities(Specification specification) {
+        ensureRequiredAmbiguities(specification, List.of());
+    }
+
+    public void ensureRequiredAmbiguities(Specification specification, List<ConversationTurn> conversation) {
         if (!StringUtils.hasText(specification.getSchemaId())) return;
         SchemaVersion schema = schemas.requirePublishedVersion(specification.getSchemaId(), specification.getSchemaVersion());
         removeAmbiguousRequiredQuantities(specification, schema.getDefinition());
         List<SchemaDefinitionService.RequiredGap> gaps = schemas.missingRequiredQuantities(toJson(specification), schema.getDefinition());
-        canonicalizeOpenAmbiguities(specification, gaps);
+        boolean compatibilityPending = specification.getAmbiguityCases().stream()
+                .anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN
+                        && !isRequiredInputPath(item.getFieldPath()));
+        if (compatibilityPending) gaps = List.of();
+        else canonicalizeOpenAmbiguities(specification, gaps);
+        List<AmbiguityItem> generatedQuestions = gaps.isEmpty() ? List.of()
+                : aiProvider.phraseVerificationQuestions(specification.getSubmission().getEditableText(),
+                        gaps.stream().map(this::requiredGapFinding).toList(), conversation);
         for (SchemaDefinitionService.RequiredGap gap : gaps) {
             String code = "schema.required." + gap.key();
             boolean exists = specification.getAmbiguityCases().stream().anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN
@@ -59,7 +74,12 @@ public class SpecificationReadinessService {
             ambiguity.setCode(code);
             ambiguity.setFieldPath(gap.key().startsWith("objects.")
                     ? gap.key() : "quantities." + gap.key());
-            ambiguity.setQuestion(fallbackQuestion(gap, schema.getDefinition()));
+            String fieldPath = ambiguity.getFieldPath();
+            AmbiguityItem generated = generatedQuestions.stream()
+                    .filter(item -> fieldPath.equals(item.fieldPath())).findFirst()
+                    .orElseThrow(() -> new IllegalStateException(
+                            "AI clarification did not cover required input " + fieldPath));
+            ambiguity.setQuestion(generated.question());
             ambiguity.setOptions(objectMapper.createArrayNode());
             ambiguity.setStatus(AmbiguityStatus.OPEN);
             specification.addAmbiguityCase(ambiguity);
@@ -76,6 +96,18 @@ public class SpecificationReadinessService {
                 .filter(item -> item.getStatus() == AmbiguityStatus.OPEN)
                 .map(item -> new AmbiguityView(item.getCode(), item.getFieldPath(), item.getQuestion(), item.getOptions()))
                 .toList()));
+    }
+
+    private boolean isRequiredInputPath(String fieldPath) {
+        return fieldPath != null && (fieldPath.startsWith("quantities.")
+                || fieldPath.startsWith("objects.") && fieldPath.contains(".quantities."));
+    }
+
+    private String requiredGapFinding(SchemaDefinitionService.RequiredGap gap) {
+        String fieldPath = gap.key().startsWith("objects.") ? gap.key() : "quantities." + gap.key();
+        return "issue=REQUIRED_INPUT_MISSING; fieldPath=" + fieldPath + "; expectedUnit=" + gap.unit()
+                + "; guidance=Ask for this required value in the user's language and context. Include the expected unit. "
+                + "Use the original request and current specification to identify the right object. Do not invent a value.";
     }
 
     private void removeAmbiguousRequiredQuantities(Specification specification, JsonNode definition) {
@@ -114,7 +146,6 @@ public class SpecificationReadinessService {
             if (gap != null) {
                 code = "schema.required." + gap.key();
                 ambiguity.setFieldPath(fieldPathFor(gap.key()));
-                ambiguity.setQuestion(withExpectedUnit(ambiguity.getQuestion(), gap.unit()));
             } else code = semanticCode(ambiguity);
             if (seen.add(code)) ambiguity.setCode(code);
             else {
@@ -136,6 +167,8 @@ public class SpecificationReadinessService {
     }
 
     private String semanticCode(AmbiguityCase ambiguity) {
+        String existingCode = safe(ambiguity.getCode()).toLowerCase(Locale.ROOT);
+        if (existingCode.startsWith("jev.capacity.")) return ambiguity.getCode();
         String identity = StringUtils.hasText(ambiguity.getFieldPath()) ? ambiguity.getFieldPath() : ambiguity.getCode();
         String slug = String.join(".", tokens(identity));
         return "ai." + (StringUtils.hasText(slug) ? slug : "unspecified");
@@ -152,43 +185,6 @@ public class SpecificationReadinessService {
     }
 
     private String safe(String value) { return value == null ? "" : value; }
-
-    private String fallbackQuestion(SchemaDefinitionService.RequiredGap gap, JsonNode definition) {
-        String label = null;
-        for (JsonNode quantity : definition.path("requiredQuantities")) {
-            if (gap.key().equals(quantity.path("key").asText()) && StringUtils.hasText(quantity.path("label").asText())) {
-                label = quantity.path("label").asText().trim();
-                break;
-            }
-        }
-        if (!StringUtils.hasText(label)) {
-            for (JsonNode parameter : definition.path("adjustableParameters")) {
-                if (gap.key().equals(parameter.path("key").asText()) && StringUtils.hasText(parameter.path("label").asText())) {
-                    label = parameter.path("label").asText().trim();
-                    break;
-                }
-            }
-        }
-        String question = StringUtils.hasText(label)
-                ? label + " là bao nhiêu?"
-                : "Giá trị của dữ kiện còn thiếu là bao nhiêu?";
-        return withExpectedUnit(question, gap.unit());
-    }
-
-    /**
-     * The AI supplies the natural wording; the schema supplies the expected unit.
-     * This guard keeps the UX deterministic without quantity-specific templates.
-     */
-    private String withExpectedUnit(String question, String unit) {
-        String normalizedQuestion = StringUtils.hasText(question)
-                ? question.trim() : "Giá trị của dữ kiện còn thiếu là bao nhiêu?";
-        String normalizedUnit = unit == null ? "" : unit.trim();
-        if (normalizedUnit.isBlank() || "SI".equalsIgnoreCase(normalizedUnit)
-                || normalizedQuestion.toLowerCase(Locale.ROOT).contains(normalizedUnit.toLowerCase(Locale.ROOT))) {
-            return normalizedQuestion;
-        }
-        return normalizedQuestion + " (" + normalizedUnit + ")";
-    }
 
     private record AmbiguityView(String code, String fieldPath, String question, JsonNode options) { }
 

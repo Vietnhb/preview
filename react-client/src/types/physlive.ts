@@ -34,6 +34,7 @@ export type AssetSelection = {
     assetId: string | null;
     assetLabel: string | null;
     match: string;
+    visualDifference?: string | null;
     requiresConfirmation: boolean;
   }[];
 };

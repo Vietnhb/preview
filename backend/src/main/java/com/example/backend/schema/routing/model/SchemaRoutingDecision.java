@@ -38,5 +38,11 @@ public record SchemaRoutingDecision(
         return selectedCandidate().map(List::of).orElse(candidates);
     }
 
+    /** Pins the already-ranked candidate while keeping the original route metadata. */
+    public SchemaRoutingDecision pinFirst(String reason) {
+        return new SchemaRoutingDecision(Status.SELECTED, reason, List.of(candidates.getFirst()),
+                confidence, margin, assets);
+    }
+
     public enum Status { SELECTED, AMBIGUOUS }
 }

@@ -1,5 +1,5 @@
 import axiosClient from "./axios";
-import type { Problem, ProblemSummary, Specification } from "../types/physlive";
+import type { ConversationMessage, Problem, ProblemSummary, Specification } from "../types/physlive";
 
 /**
  * API endpoints for problem management
@@ -19,8 +19,11 @@ export const createProblemFromImage = (file: File, text?: string) => {
 export const extractProblem = (id: string) => 
   axiosClient.post<Problem>(`/problems/${id}/extract`).then(r => r.data);
 
-export const confirmProblem = (id: string, answers: Record<string, string>) => 
-  axiosClient.post<Problem>(`/problems/${id}/confirm`, { answers }).then(r => r.data);
+export const confirmProblem = (
+  id: string,
+  answers: Record<string, string>,
+  conversation: Array<Pick<ConversationMessage, "role" | "text">> = [],
+) => axiosClient.post<Problem>(`/problems/${id}/confirm`, { answers, conversation }).then(r => r.data);
 
 export const resolveAmbiguity = (
   specificationId: string, 

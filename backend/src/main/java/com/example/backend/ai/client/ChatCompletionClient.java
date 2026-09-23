@@ -30,6 +30,7 @@ public class ChatCompletionClient {
     private final AiProviderProperties properties;
     private final SchoolService schoolService;
     private final JsonNode specificationSchema;
+    private final JsonNode ambiguityQuestionsSchema;
 
     public ChatCompletionClient(RestClient.Builder builder, ObjectMapper objectMapper, AiProviderProperties properties,
             SchoolService schoolService, ResourceLoader resourceLoader) {
@@ -41,6 +42,10 @@ public class ChatCompletionClient {
         try (var input = resourceLoader.getResource(
                 "classpath:prompts/physics-specification-response-schema.json").getInputStream()) {
             this.specificationSchema = objectMapper.readTree(input);
+            try (var questionsInput = resourceLoader.getResource(
+                    "classpath:prompts/ambiguity-questions-response-schema.json").getInputStream()) {
+                this.ambiguityQuestionsSchema = objectMapper.readTree(questionsInput);
+            }
         } catch (Exception exception) {
             throw new IllegalStateException("Cannot load the AI structured-output schema", exception);
         }
@@ -60,6 +65,11 @@ public class ChatCompletionClient {
 
     public Completion completeJson(String model, List<Map<String, Object>> messages) {
         return complete(model, messages, Map.of("type", "json_object"), false);
+    }
+
+    public Completion completeAmbiguityQuestions(String model, List<Map<String, Object>> messages) {
+        return complete(model, messages, structuredResponseFormat(
+                "physics_ambiguity_questions", ambiguityQuestionsSchema), false);
     }
 
     private Completion complete(String model, List<Map<String, Object>> messages,
@@ -122,10 +132,14 @@ public class ChatCompletionClient {
     }
 
     private Map<String, Object> specificationResponseFormat() {
+        return structuredResponseFormat("physics_specification", specificationSchema);
+    }
+
+    private Map<String, Object> structuredResponseFormat(String name, JsonNode schema) {
         return Map.of("type", "json_schema", "json_schema", Map.of(
-                "name", "physics_specification",
+                "name", name,
                 "strict", properties.strictStructuredOutput(),
-                "schema", specificationSchema));
+                "schema", schema));
     }
 
     public record Completion(String model, String content, JsonNode rawResponse) {

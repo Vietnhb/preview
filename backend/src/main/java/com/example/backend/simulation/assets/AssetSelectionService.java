@@ -86,7 +86,7 @@ public class AssetSelectionService {
         for (var target : targets) {
             VisualBinding binding = bindings.get(target.targetId());
             var entity = entities.get(binding.entityId());
-            if (binding.entityId() == null && binding.assetId() == null && binding.sourceText() == null
+            if (binding.entityId() == null && binding.assetId() == null
                     && "OMITTED".equals(binding.match()) && "prop".equals(target.kind())) {
                 omitted.add(target);
                 continue;
@@ -97,13 +97,16 @@ public class AssetSelectionService {
             if ("actor".equals(target.kind()) && !actorEntities.add(entity.id())) {
                 throw new IllegalArgumentException("Different moving render slots must reference different entities");
             }
-            if (binding.sourceText() == null || binding.sourceText().isBlank() || !text.contains(binding.sourceText())) {
-                throw new IllegalArgumentException("Visual entity evidence must be copied from the original text/OCR");
+            if (("SUBSTITUTE".equals(binding.match()) || "UNSUPPORTED".equals(binding.match()))
+                    && !org.springframework.util.StringUtils.hasText(binding.visualDifference())) {
+                throw new IllegalArgumentException("A proposed substitute or unsupported visual needs an AI explanation.");
             }
             ObjectNode choice = choices.addObject();
             choice.put("targetId", target.targetId());
             choice.put("entityId", entity.id());
-            choice.put("entityLabel", binding.sourceText());
+            choice.put("entityLabel", entity.label());
+            if (binding.visualDifference() == null) choice.putNull("visualDifference");
+            else choice.put("visualDifference", binding.visualDifference());
             choice.put("assetId", binding.assetId());
             if (binding.assetId() == null) {
                 if (!"UNSUPPORTED".equals(binding.match())) throw new IllegalArgumentException("Missing asset must be unsupported");
@@ -134,14 +137,9 @@ public class AssetSelectionService {
         VisualTargets.filterEffects(visualization, allowedEffects);
         var represented = document.visualBindings().stream().map(VisualBinding::entityId)
                 .filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
-        if (!targets.isEmpty()) {
-            for (var entity : document.objects()) {
-                if (represented.contains(entity.id())) continue;
-                choices.addObject().put("targetId", "objects." + entity.id()).put("entityId", entity.id())
-                        .put("entityLabel", entity.label()).putNull("assetId").putNull("assetLabel")
-                        .put("match", "UNSUPPORTED").put("requiresConfirmation", false);
-                unsupported = true;
-            }
+        if (!represented.containsAll(entities.keySet())) {
+            throw new IllegalArgumentException(
+                    "Every physical object needs an explicit JEV-bound visual representation or unsupported decision.");
         }
         plan.put("status", unsupported ? "UNSUPPORTED" : pending ? "NEEDS_CONFIRMATION" : "READY");
         plan.set("bindings", mapper.valueToTree(document.visualBindings()));

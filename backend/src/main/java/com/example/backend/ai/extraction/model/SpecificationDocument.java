@@ -26,6 +26,34 @@ public record SpecificationDocument(
         visualBindings = visualBindings == null ? List.of() : List.copyOf(visualBindings);
     }
 
+    public SpecificationDocument withAmbiguities(List<AmbiguityItem> additional) {
+        var merged = new java.util.ArrayList<>(ambiguities);
+        if (additional != null) {
+            for (AmbiguityItem item : additional) {
+                if (item == null || merged.stream().anyMatch(existing ->
+                        java.util.Objects.equals(existing.fieldPath(), item.fieldPath()))) continue;
+                merged.add(item);
+            }
+        }
+        return new SpecificationDocument(schemaVersion, topic, schemaId, objects, quantities, relations,
+                endCondition, confidence, merged, contractVersion, visualBindings);
+    }
+
+    public SpecificationDocument withoutAmbiguitiesAt(java.util.Set<String> fieldPaths) {
+        if (fieldPaths == null || fieldPaths.isEmpty()) return this;
+        var retained = ambiguities.stream().filter(item -> !fieldPaths.contains(item.fieldPath())).toList();
+        return new SpecificationDocument(schemaVersion, topic, schemaId, objects, quantities, relations,
+                endCondition, confidence, retained, contractVersion, visualBindings);
+    }
+
+    public SpecificationDocument withoutAmbiguitiesMatching(
+            java.util.function.Predicate<AmbiguityItem> predicate) {
+        if (predicate == null) return this;
+        var retained = ambiguities.stream().filter(item -> !predicate.test(item)).toList();
+        return new SpecificationDocument(schemaVersion, topic, schemaId, objects, quantities, relations,
+                endCondition, confidence, retained, contractVersion, visualBindings);
+    }
+
     public SpecificationDocument(String schemaVersion, String topic, String schemaId,
             List<PhysicalObject> objects, List<PhysicalQuantity> quantities, List<PhysicalRelation> relations,
             com.fasterxml.jackson.databind.JsonNode endCondition, BigDecimal confidence,

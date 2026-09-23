@@ -126,11 +126,24 @@
           "entityId": { "type": ["string", "null"] },
           "assetId": { "type": ["string", "null"] },
           "match": { "type": "string", "enum": ["EXACT", "SUBSTITUTE", "UNSUPPORTED", "OMITTED"] },
-          "sourceText": { "type": ["string", "null"] }
+          "visualDifference": { "type": ["string", "null"] }
         },
-        "required": ["targetId", "entityId", "assetId", "match", "sourceText"]
+        "required": ["targetId", "entityId", "assetId", "match", "visualDifference"]
+      }
+    },
+    "resolutionDecisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string" },
+          "outcome": { "type": "string", "enum": ["ANSWERED", "ACCEPT_SIMPLIFICATION", "DECLINE_SIMPLIFICATION", "REVISE_REQUEST", "START_NEW_PROBLEM", "UNRESOLVED"] },
+          "omittedObjectIds": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["code", "outcome", "omittedObjectIds"]
       }
     }
   },
-  "required": ["contractVersion", "schemaVersion", "topic", "schemaId", "objects", "quantities", "relations", "endCondition", "confidence", "ambiguities", "visualBindings"]
+  "required": ["contractVersion", "schemaVersion", "topic", "schemaId", "objects", "quantities", "relations", "endCondition", "confidence", "ambiguities", "visualBindings", "resolutionDecisions"]
 }
