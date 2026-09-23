@@ -67,19 +67,21 @@ class CapacityConflictContractTest {
     private final UnitNormalizer units = new UnitNormalizer(mapper);
 
     @Test
-    void realPromptAndValidatorAllowMissingQuantitiesOnlyWhileCapacityConflictIsOpen() throws Exception {
+    void realPromptAndValidatorKeepCapacityDecisionAheadOfMissingInputs() throws Exception {
         String system = new ClassPathResource("prompts/physics-specification-system.txt")
                 .getContentAsString(StandardCharsets.UTF_8);
         var prompt = new ExtractionPromptBuilder(system, 4, 20_000).build(List.of(contract), PROBLEM,
                 List.of("issue=JEV_CAPACITY_EXCEEDED; fieldPath=" + CompatibilityFieldPaths.CAPACITY
                         + "; routedCount=2; actorCapacity=1"));
         assertTrue(prompt.systemMessage().contains(CompatibilityFieldPaths.CAPACITY));
-        assertTrue(prompt.systemMessage().contains("do not ask for missing quantities yet"));
-        assertTrue(prompt.systemMessage().contains("ask which one to retain"));
+        assertTrue(prompt.systemMessage().contains("equivalent objects need no further identity question"));
+        assertTrue(prompt.systemMessage().contains("language of the user's description"));
+        assertTrue(prompt.systemMessage().contains("Omit unknown quantities entirely"));
+        assertTrue(prompt.systemMessage().contains("every object's quantities=[]"));
+        assertTrue(prompt.systemMessage().contains("objects.length must equal routedCount"));
         assertFalse(prompt.systemMessage().contains("fieldPath=schemaId"));
 
-        JsonNode initial = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
-                "jev.capacity.actor-count", "Bạn muốn giữ nguyên yêu cầu hay đồng ý rút gọn mô phỏng?")));
+        JsonNode initial = response(List.of());
         StrictSpecificationValidator.validate(initial);
         assertDoesNotThrow(() -> StrictSpecificationValidator.validateCandidateMembership(initial,
                 decision("JEV_CAPACITY_EXCEEDED", SchemaRoutingDecision.Status.AMBIGUOUS), units));
@@ -111,8 +113,7 @@ class CapacityConflictContractTest {
                 Duration.ofSeconds(2), 4, 0.5, 0.1, 2_000, 20_000);
         ChatCompletionClient client = spy(new ChatCompletionClient(RestClient.builder(), mapper, properties,
                 mock(SchoolService.class), new DefaultResourceLoader()));
-        JsonNode validResponse = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
-                "jev.capacity.actor-count", "Bạn muốn giữ nguyên hai vật hay đồng ý rút gọn mô phỏng?")));
+        JsonNode validResponse = response(List.of());
         doReturn(new ChatCompletionClient.Completion("test-model", mapper.writeValueAsString(validResponse),
                 mapper.createObjectNode())).when(client).completeStructured(anyString(), anyList());
 
@@ -142,33 +143,28 @@ class CapacityConflictContractTest {
                         "issue=JEV_CAPACITY_EXCEEDED; fieldPath=" + CompatibilityFieldPaths.CAPACITY
                                 + "; routedCount=2; actorCapacity=1"));
 
-        assertTrue(result.document().ambiguities().stream().anyMatch(item ->
-                CompatibilityFieldPaths.CAPACITY.equals(item.fieldPath())));
+        assertTrue(result.document().ambiguities().isEmpty(),
+                "Initial extraction returns facts; capacity questions follow backend verification.");
         assertTrue(result.document().objects().size() == 2, "Both stated objects must survive initial extraction.");
         verify(client).completeStructured(anyString(), anyList());
     }
 
     @Test
-    void productionRetryPromptKeepsCapacityConsentAheadOfRequiredInputs() throws Exception {
+    void invalidStructuredResponseStopsWithoutRetry() throws Exception {
         JsonNode valid = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
                 "jev.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
         var provider = providerRetrying("not-json", valid);
         List<String> findings = List.of("issue=JEV_CAPACITY_EXCEEDED; fieldPath="
                 + CompatibilityFieldPaths.CAPACITY + "; routedCount=2; actorCapacity=1");
 
-        ProviderExtractionResult result = provider.provider().extract(PROBLEM,
-                decision("JEV_CAPACITY_EXCEEDED", SchemaRoutingDecision.Status.AMBIGUOUS), findings);
-
-        assertTrue(result.document().objects().size() == 2);
-        ArgumentCaptor<List<Map<String, Object>>> messages = ArgumentCaptor.forClass(List.class);
-        verify(provider.client(), times(2)).completeStructured(anyString(), messages.capture());
-        String retry = messages.getAllValues().get(1).toString();
-        assertTrue(retry.contains("Defer missing quantities"));
-        assertTrue(retry.contains(CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT));
+        AiStepException error = assertThrows(AiStepException.class, () -> provider.provider().extract(PROBLEM,
+                decision("JEV_CAPACITY_EXCEEDED", SchemaRoutingDecision.Status.AMBIGUOUS), findings));
+        assertEquals("SPECIFICATION_EXTRACTION", error.step());
+        verify(provider.client(), times(1)).completeStructured(anyString(), anyList());
     }
 
     @Test
-    void realClarificationPromptKeepsBothObjectsAfterConsentAndAsksWhichOneToRetain() throws Exception {
+    void clarificationCanAskWhichObjectWhenIdentityMatters() throws Exception {
         JsonNode accepted = response(List.of(ambiguity(
                 CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT, "jev.capacity.retained-object",
                 "Bạn muốn giữ vật nào?")));
@@ -192,8 +188,38 @@ class CapacityConflictContractTest {
                 item.fieldPath().startsWith("quantities.")), "Do not ask for quantities before the retained object is chosen.");
         ArgumentCaptor<List<Map<String, Object>>> messages = ArgumentCaptor.forClass(List.class);
         verify(provider.client(), times(1)).completeStructured(anyString(), messages.capture());
-        assertTrue(messages.getValue().toString().contains(CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT));
-        assertTrue(messages.getValue().toString().contains("keep all objects"));
+        assertTrue(messages.getValue().toString().contains("otherwise ask which object to retain"));
+    }
+
+    @Test
+    void equivalentObjectsCanBeReducedWithoutAnIdentityQuestion() throws Exception {
+        JsonNode accepted = response(List.of(), 1);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) accepted).withArray("resolutionDecisions")
+                .add(decisionJson("jev.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of("body-2")));
+        var provider = providerReturning(accepted);
+        JsonNode current = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
+                "jev.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
+
+        ProviderExtractionResult result = provider.provider().resolveAmbiguities(PROBLEM, current,
+                Map.of("jev.capacity.actor-count", "Đồng ý rút gọn còn một vật"));
+
+        assertEquals(1, result.document().objects().size());
+        assertEquals("body-1", result.document().objects().getFirst().id());
+        assertTrue(result.document().ambiguities().isEmpty());
+        assertEquals(List.of("body-2"), result.resolutionDecisions().getFirst().omittedObjectIds());
+        verify(provider.client(), times(1)).completeStructured(anyString(), anyList());
+    }
+
+    @Test
+    void clarificationMayDeferRequiredInputButMustRespectEntityCapacity() throws Exception {
+        JsonNode reduced = response(List.of(), 1);
+        assertDoesNotThrow(() -> StrictSpecificationValidator.validateCandidateMembership(reduced,
+                decision("PINNED_FOR_AMBIGUITY_RESOLUTION", SchemaRoutingDecision.Status.SELECTED),
+                units, true, false));
+        JsonNode tooMany = response(List.of());
+        assertThrows(IllegalArgumentException.class, () -> StrictSpecificationValidator.validateCandidateMembership(
+                tooMany, decision("PINNED_FOR_AMBIGUITY_RESOLUTION", SchemaRoutingDecision.Status.SELECTED),
+                units, true, false));
     }
 
     @Test
@@ -248,8 +274,42 @@ class CapacityConflictContractTest {
         assertTrue(specification.getAmbiguityCases().stream().anyMatch(item ->
                 item.getStatus() == AmbiguityStatus.OPEN
                         && CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.getFieldPath())));
+        assertEquals(1, specification.getAmbiguity().size(), "A single unresolved choice must be shown once.");
         assertEquals(ConfirmationState.UNRESOLVED, specification.getConfirmationState());
         verifyNoInteractions(routing, assetSelections);
+    }
+
+    @Test
+    void backendApplierAcceptsRecordedReductionWithoutAskingObjectIdentity() throws Exception {
+        JsonNode accepted = response(List.of(), 1);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) accepted).withArray("resolutionDecisions")
+                .add(decisionJson("jev.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of("body-2")));
+        var fixture = providerReturning(accepted);
+        var routing = mock(JevSchemaRoutingService.class);
+        when(routing.verifyPinned(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new JevSchemaRoutingService.Verification(List.of()));
+        var readiness = mock(SpecificationReadinessService.class);
+        when(readiness.blockers(org.mockito.ArgumentMatchers.any(Specification.class)))
+                .thenReturn(List.of("Required input still missing"));
+        var assetSelections = mock(AssetSelectionService.class);
+        var schemas = mock(SchemaDefinitionService.class);
+        when(schemas.requireCurrentApproved(contract.schemaId(), contract.schemaVersion()))
+                .thenReturn(approvedTestSchema());
+        when(schemas.canonicalizeQuantities(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any())).thenAnswer(call -> call.getArgument(0));
+        var applier = new AmbiguityResolutionApplier(mapper, fixture.provider(), schemas, readiness,
+                routing, assetSelections);
+        Specification specification = openCapacitySpecification();
+
+        applier.applyAll(specification, Map.of("jev.capacity.actor-count", "Đồng ý rút gọn còn một vật"));
+
+        assertEquals(1, specification.getObjects().size());
+        assertEquals(ConfirmationState.CONFIRMED, specification.getConfirmationState());
+        assertFalse(specification.getAmbiguityCases().stream().anyMatch(item ->
+                item.getStatus() == AmbiguityStatus.OPEN
+                        && CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.getFieldPath())));
+        verify(routing).verifyPinned(org.mockito.ArgumentMatchers.any());
+        verifyNoInteractions(assetSelections);
     }
 
     @Test

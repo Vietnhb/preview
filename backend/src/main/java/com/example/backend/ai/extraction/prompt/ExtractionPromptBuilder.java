@@ -4,14 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.LinkedHashMap;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 /** Builds bounded system and user messages for a candidate-routed extraction. */
 public final class ExtractionPromptBuilder {
-    private static final String CANDIDATE_RULES = "\nInitial extraction: resolutionDecisions=[]. If no candidate fits, ask for clarification; do not invent a schema.\n";
+    private static final String CANDIDATE_RULES = "\nSelect only a supplied approved schema; do not invent one.\n";
 
     private final String basePrompt;
     private final int maxCandidates;
@@ -57,9 +56,12 @@ public final class ExtractionPromptBuilder {
         }
 
         String candidateJson = serialize(candidates.stream().map(this::candidateData).toList());
+        boolean noLocalQuantities = candidates.stream().allMatch(candidate -> candidate.entityTypes().stream()
+                .allMatch(type -> type.requiredQuantities().isEmpty() && type.optionalQuantities().isEmpty()));
         String systemMessage = basePrompt + CANDIDATE_RULES
                 + "\nCandidate contracts (only these catalog versions may be selected):\n"
                 + candidateJson
+                + (noLocalQuantities ? "\nThis contract has no object-local quantities: every object's quantities=[]; put all physical quantities at the root.\n" : "")
                 + findings(verificationFindings);
         String userMessage = requestText.trim();
         if ((long) systemMessage.length() + userMessage.length() > maxChars) {
@@ -74,23 +76,8 @@ public final class ExtractionPromptBuilder {
                 .map(String::trim).filter(item -> !item.isBlank()).map(item -> item.length() > 240
                         ? item.substring(0, 240) : item).limit(8).toList();
         if (bounded.isEmpty()) return "";
-        return "\nBackend findings (ask at each unresolved fieldPath; explain the concrete limitation in the user's language):\n- "
+        return "\nBackend findings (preserve the conflicting facts; questions are requested separately):\n- "
                 + String.join("\n- ", bounded) + "\n";
-    }
-
-    /** Adds only a bounded repair instruction; prior model output is deliberately not accepted here. */
-    public List<Map<String, Object>> appendRetryInstruction(List<Map<String, Object>> messages,
-            String retryInstruction) {
-        if (messages == null || messages.isEmpty()) throw new IllegalArgumentException("Initial prompt messages are required.");
-        if (retryInstruction == null || retryInstruction.isBlank()) {
-            throw new IllegalArgumentException("Retry instruction must not be blank.");
-        }
-        List<Map<String, Object>> result = new ArrayList<>(messages);
-        result.add(Map.of("role", "user", "content", retryInstruction.trim()));
-        if (messageCharacterCount(result) > maxChars) {
-            throw new IllegalArgumentException("Retry prompt messages exceed the configured character limit.");
-        }
-        return List.copyOf(result);
     }
 
     public int messageCharacterCount(List<Map<String, Object>> messages) {

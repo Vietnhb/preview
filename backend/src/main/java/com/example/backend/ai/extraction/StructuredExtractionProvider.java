@@ -103,7 +103,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         ProviderExtractionResult result = complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
                 client.textMessage("user", messages.userMessage())), routingDecision,
                 "AI response does not match the strict candidate extraction contract.", null,
-                verificationFindings, "SPECIFICATION_EXTRACTION");
+                "SPECIFICATION_EXTRACTION");
         return rejectCapacityRepairViolations(result, verificationFindings);
     }
 
@@ -131,9 +131,11 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         try {
             request = """
                     Update the pinned spec from the answers. Keep confirmed facts and unresolved questions.
-                    Return one resolutionDecisions entry per answered code. For capacity consent, keep all
-                    objects and ask which one to retain; only a clear selection may remove objects.
-                    After selection, ask for missing required inputs.
+                    Return one resolutionDecisions entry per answered code. For accepted capacity reduction,
+                    omit equivalent objects if their identity makes no difference to the user's request;
+                    otherwise ask which object to retain. List every omitted object ID in the decision.
+                    Leave missing required values unset; the backend asks for them after compatibility is resolved.
+                    Phrase any question in the language of the original problem.
 
                     Original problem:
                     %s
@@ -160,7 +162,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         return complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
                 client.textMessage("user", messages.userMessage())), decision,
                 "AI ambiguity response does not match the pinned schema contract.",
-                currentSpecification, List.of(), "SPECIFICATION_CLARIFICATION");
+                currentSpecification, "SPECIFICATION_CLARIFICATION");
     }
 
     /**
@@ -465,25 +467,20 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
     }
 
     private ProviderExtractionResult complete(List<Map<String, Object>> messages, SchemaRoutingDecision routingDecision,
-            String invalidMessage, JsonNode currentSpecification,
-            List<String> verificationFindings, String step) {
-        List<Map<String, Object>> attemptMessages = new ArrayList<>(messages);
-        RuntimeException lastFailure = null;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            boolean retainedObjectAnswered = false;
-            meters.summary("physlive.ai.prompt.characters").record(prompts.messageCharacterCount(attemptMessages));
-            try {
-                ChatCompletionClient.Completion completion = client.completeStructured(model, attemptMessages);
+            String invalidMessage, JsonNode currentSpecification, String step) {
+        meters.summary("physlive.ai.prompt.characters").record(prompts.messageCharacterCount(messages));
+        try {
+                ChatCompletionClient.Completion completion = client.completeStructured(model, messages);
                 JsonNode json = client.parseJson(completion.content());
                 if (!json.isObject()) throw new IllegalStateException("AI response root must be a JSON object.");
                 StrictSpecificationValidator.validate(json);
                 rejectMachineFindingsInQuestions(json);
                 List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions = resolutionDecisions(json);
-                retainedObjectAnswered = retainedObjectAnswered(currentSpecification, decisions);
                 boolean simplificationAccepted = hasAcceptedSimplification(decisions, currentSpecification);
                 preserveVisualIdentity(json, currentSpecification, simplificationAccepted);
                 SchemaCandidate candidate = StrictSpecificationValidator.validateCandidateMembership(json, routingDecision,
-                        unitNormalizer, capacityDecisionPending(currentSpecification, decisions));
+                        unitNormalizer, true,
+                        capacityDecisionPending(currentSpecification, decisions));
                 SchemaVersion pinned = schemaDefinitions.requireCurrentApproved(candidate.schemaId(), candidate.schemaVersion());
                 JsonNode specificationJson = json.deepCopy();
                 if (specificationJson instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
@@ -496,32 +493,16 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 // extraction free of selection side effects lets the coordinator
                 // verify objects/schema first and only then build a plan.
                 return new ProviderExtractionResult(normalized, null, decisions);
-            } catch (RuntimeException exception) {
-                if (exception instanceof QuantityContractViolation) throw exception;
-                lastFailure = exception;
-            } catch (Exception exception) {
-                lastFailure = new IllegalStateException(exception);
-            }
-            String failureDetail = lastFailure.getMessage() == null ? "Invalid structured response" : lastFailure.getMessage();
-            String failureCode = isUpstreamHttpFailure(lastFailure)
+        } catch (QuantityContractViolation violation) {
+            throw violation;
+        } catch (Exception failure) {
+            String detail = failure.getMessage() == null ? "Invalid structured response" : failure.getMessage();
+            String failureCode = isUpstreamHttpFailure(failure)
                     ? "AI_UPSTREAM_HTTP_ERROR" : "AI_STRUCTURED_RESPONSE_INVALID";
-            log.warn("AI step failed: step={} code={} attempt={} reason={}", step, failureCode, attempt + 1,
-                    failureDetail.substring(0, Math.min(failureDetail.length(), MAX_RETRY_ERROR_CHARACTERS)));
-            if (attempt + 1 < maxAttempts) {
-                try {
-                    attemptMessages = new ArrayList<>(prompts.appendRetryInstruction(attemptMessages,
-                            retryInstruction(lastFailure, verificationFindings, currentSpecification,
-                                    retainedObjectAnswered)));
-                } catch (IllegalArgumentException capFailure) {
-                    throw new AiStepException(step, "AI_RETRY_PROMPT_LIMIT", invalidMessage
-                            + " Retry was skipped because the prompt would exceed the configured character limit.", lastFailure);
-                }
-            }
+            log.warn("AI step failed: step={} code={} reason={}", step, failureCode,
+                    detail.substring(0, Math.min(detail.length(), MAX_RETRY_ERROR_CHARACTERS)));
+            throw new AiStepException(step, failureCode, invalidMessage, failure);
         }
-        String failureCode = isUpstreamHttpFailure(lastFailure)
-                ? "AI_UPSTREAM_HTTP_ERROR" : "AI_STRUCTURED_RESPONSE_INVALID";
-        throw new AiStepException(step, failureCode, invalidMessage + " The AI failed "
-                + maxAttempts + " structured-output attempt(s).", lastFailure);
     }
 
     public static JsonNode preserveConfirmedPhysics(ObjectMapper mapper, JsonNode current, JsonNode updated,
@@ -616,35 +597,6 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         }
     }
 
-    private String retryInstruction(RuntimeException failure, List<String> verificationFindings,
-            JsonNode currentSpecification, boolean retainedObjectAnswered) {
-        String detail = failure == null || !StringUtils.hasText(failure.getMessage())
-                ? "The response did not satisfy the JSON contract."
-                : failure.getMessage().replaceAll("[\\r\\n\\t]+", " ").trim();
-        if (detail.length() > MAX_RETRY_ERROR_CHARACTERS) {
-            detail = detail.substring(0, MAX_RETRY_ERROR_CHARACTERS);
-        }
-        boolean routeCapacityPending = hasCapacityFinding(verificationFindings);
-        boolean consentPending = routeCapacityPending
-                || hasOpenFieldPath(currentSpecification, CompatibilityFieldPaths.CAPACITY);
-        boolean retainedObjectPending = hasOpenFieldPath(currentSpecification,
-                CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT) && !retainedObjectAnswered;
-        String stageRule;
-        if (consentPending) {
-            stageRule = "Ask compatibility.capacity first; keep all objects. After consent ask compatibility.capacity.retainedObject. Defer missing quantities.";
-        } else if (retainedObjectPending) {
-            stageRule = "Ask compatibility.capacity.retainedObject; keep all objects until the choice is clear. Defer missing quantities.";
-        } else {
-            stageRule = "Keep confirmed facts; ask for missing required inputs after compatibility is resolved.";
-        }
-        return "Retry JSON. Validator error: " + detail + " " + stageRule;
-    }
-
-    private boolean hasCapacityFinding(List<String> findings) {
-        return findings != null && findings.stream().anyMatch(finding -> finding != null
-                && finding.contains("fieldPath=" + CompatibilityFieldPaths.CAPACITY));
-    }
-
     private boolean isUpstreamHttpFailure(Throwable failure) {
         Throwable current = failure;
         while (current != null) {
@@ -666,25 +618,6 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
             if (CompatibilityFieldPaths.CAPACITY.equals(path)) return true;
             if (answer == null || answer.outcome()
                     != com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED) return true;
-        }
-        return false;
-    }
-
-    private boolean retainedObjectAnswered(JsonNode current,
-            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
-        if (!hasOpenFieldPath(current, CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT)) return false;
-        for (var ambiguity : current.path("ambiguities")) {
-            if (!CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(ambiguity.path("fieldPath").asText())) continue;
-            return decisions.stream().anyMatch(item -> item.code().equals(ambiguity.path("code").asText())
-                    && item.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED);
-        }
-        return false;
-    }
-
-    private boolean hasOpenFieldPath(JsonNode current, String fieldPath) {
-        if (current == null || !current.path("ambiguities").isArray()) return false;
-        for (var ambiguity : current.path("ambiguities")) {
-            if (fieldPath.equals(ambiguity.path("fieldPath").asText())) return true;
         }
         return false;
     }

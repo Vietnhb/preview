@@ -80,9 +80,15 @@ public class AmbiguityResolutionApplier {
         boolean hasOpenCompatibility = hasOpenCompatibilityDecision(specification);
         boolean hasExplicitSimplification = hasAcceptedSimplificationDecision(specification,
                 result.resolutionDecisions());
-        boolean deferObjectReduction = hasOpenCapacityDecision(specification) && hasExplicitSimplification;
+        boolean capacityConsent = hasOpenCapacityDecision(specification) && hasExplicitSimplification;
+        boolean reductionRecorded = acceptedSimplification(specification, current, resolvedDocument,
+                result.resolutionDecisions()) && resolvedDocument.objects().size() < current.path("objects").size();
+        if (capacityConsent && !reductionRecorded && resolvedDocument.objects().size() != current.path("objects").size()) {
+            throw new IllegalStateException("Capacity reduction must declare every omitted object ID.");
+        }
+        boolean deferObjectReduction = capacityConsent && !reductionRecorded;
         if (deferObjectReduction) {
-            resolvedDocument = askWhichObjectToRetain(specification, current, result.document(), conversation);
+            resolvedDocument = askWhichObjectToRetain(current, result.document());
         }
         boolean acceptedSimplification = acceptedSimplification(specification, current, resolvedDocument,
                 result.resolutionDecisions());
@@ -136,28 +142,16 @@ public class AmbiguityResolutionApplier {
         specification.setAmbiguity(objectMapper.createArrayNode());
     }
 
-    private SpecificationDocument askWhichObjectToRetain(Specification specification, ObjectNode current,
-            SpecificationDocument rawCandidate,
-            List<ConversationTurn> conversation) {
+    private SpecificationDocument askWhichObjectToRetain(ObjectNode current, SpecificationDocument rawCandidate) {
         List<AmbiguityItem> questions = new java.util.ArrayList<>(rawCandidate.ambiguities().stream()
                 .filter(item -> !isRequiredInputPath(item.fieldPath())
-                        && !CompatibilityFieldPaths.CAPACITY.equals(item.fieldPath()))
+                        && !CompatibilityFieldPaths.CAPACITY.equals(item.fieldPath())
+                        && !CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.fieldPath()))
                 .toList());
         AmbiguityItem targetQuestion = rawCandidate.ambiguities().stream()
                 .filter(item -> CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.fieldPath()))
-                .findFirst().orElse(null);
-        if (targetQuestion == null) {
-            String objectChoices = specification.getObjects().toString();
-            String finding = "issue=JEV_CAPACITY_EXCEEDED; fieldPath="
-                    + CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT
-                    + "; objects=" + objectChoices
-                    + "; guidance=The user has agreed to reduce the representation. Ask which specifically identified object must remain. Do not choose or remove an object yet.";
-            targetQuestion = aiProvider.phraseVerificationQuestions(
-                    specification.getSubmission().getEditableText(), List.of(finding), conversation).stream()
-                    .filter(item -> CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.fieldPath()))
-                    .findFirst().orElseThrow(() -> new IllegalStateException(
-                            "AI clarification did not ask which object should remain."));
-        }
+                .findFirst().orElseThrow(() -> new IllegalStateException(
+                        "AI accepted capacity reduction without identifying equivalent objects or asking which one remains."));
         questions.add(targetQuestion);
         try {
             SpecificationDocument original = objectMapper.treeToValue(current, SpecificationDocument.class);

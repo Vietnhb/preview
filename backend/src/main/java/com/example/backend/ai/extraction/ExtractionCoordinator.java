@@ -46,43 +46,13 @@ public class ExtractionCoordinator {
             if (onlyPendingCapacityConsent(verification, result.document())) {
                 return finish(routingDecision, result);
             }
-            ProviderExtractionResult baseline = result;
-            var baselineVerification = verification;
-            ProviderExtractionResult repaired = null;
-            boolean keepBaseline = false;
-            try {
-                repaired = provider.extract(text, routingDecision, verification.findings());
-            } catch (RuntimeException failure) {
-                if (!hasCapacityFinding(baselineVerification)) throw failure;
-                keepBaseline = true;
+            if (hasIssue(verification, "ENTITY_COUNT_MISMATCH")) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "AI extraction could not preserve the JEV-confirmed physical object count.");
             }
-            if (!keepBaseline && repaired.document().objects().size() < baseline.document().objects().size()) {
-                keepBaseline = true;
-            }
-            if (!keepBaseline && routedEntityCountSatisfied(routingDecision, baseline.document())
-                    && hasObjectsAmbiguity(repaired.document())) {
-                keepBaseline = true;
-            }
-            if (keepBaseline) {
-                result = baseline;
-                verification = baselineVerification;
-            } else {
-                result = repaired;
-                verification = schemaRouting.verify(routingDecision, result.document());
-            }
-            if (hasCapacityFinding(verification)) {
-                result = ensureCapacityConsentQuestion(text, result, verification);
-                verification = schemaRouting.verify(routingDecision, result.document());
-            }
-            if (!verification.passed()) {
-                if (hasIssue(verification, "ENTITY_COUNT_MISMATCH")) {
-                    throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
-                            "AI extraction could not preserve the JEV-confirmed physical object count.");
-                }
-                result = new ProviderExtractionResult(
-                        phraseVerifiedQuestions(text, routingDecision, result.document(), verification),
-                        result.rawResponse());
-            }
+            result = new ProviderExtractionResult(
+                    phraseVerifiedQuestions(text, routingDecision, result.document(), verification),
+                    result.rawResponse());
         }
         return finish(routingDecision, result);
     }
@@ -168,24 +138,24 @@ public class ExtractionCoordinator {
             SpecificationDocument source, JevSchemaRoutingService.Verification initial) {
         SpecificationDocument candidate = source;
         JevSchemaRoutingService.Verification verification = initial;
-        for (int attempt = 0; attempt < 2; attempt++) {
-            var invalidPaths = invalidQuestionPaths(verification);
-            boolean capacityPending = hasCapacityFinding(verification);
-            var actionableFindings = verification.findings().stream()
-                    .filter(finding -> !finding.contains("issue=REDUNDANT_ENTITY_AMBIGUITY")
-                            && !(capacityPending && "objects".equals(findingFieldPath(finding))))
-                    .toList();
-            candidate = candidate.withoutAmbiguitiesAt(invalidPaths);
-            if (!actionableFindings.isEmpty()) {
-                candidate = candidate.withAmbiguities(
-                        provider.phraseVerificationQuestions(text, actionableFindings));
-            }
-            verification = withRouteCapacityFindings(schemaRouting.verify(routing, candidate),
-                    schemaRouting.capacityFindings(routing));
-            if (invalidQuestionPaths(verification).isEmpty()) return candidate;
+        var invalidPaths = invalidQuestionPaths(verification);
+        boolean capacityPending = hasCapacityFinding(verification);
+        var actionableFindings = verification.findings().stream()
+                .filter(finding -> !finding.contains("issue=REDUNDANT_ENTITY_AMBIGUITY")
+                        && !(capacityPending && "objects".equals(findingFieldPath(finding))))
+                .toList();
+        candidate = candidate.withoutAmbiguitiesAt(invalidPaths);
+        if (!actionableFindings.isEmpty()) {
+            candidate = candidate.withAmbiguities(
+                    provider.phraseVerificationQuestions(text, actionableFindings));
         }
-        throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
-                "AI could not produce a clarification without repeating facts already present in the problem.");
+        verification = withRouteCapacityFindings(schemaRouting.verify(routing, candidate),
+                schemaRouting.capacityFindings(routing));
+        if (!invalidQuestionPaths(verification).isEmpty()) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "AI could not produce a clarification without repeating facts already present in the problem.");
+        }
+        return candidate;
     }
 
     private java.util.Set<String> invalidQuestionPaths(JevSchemaRoutingService.Verification verification) {
@@ -194,28 +164,6 @@ public class ExtractionCoordinator {
                         || finding.contains("issue=REDUNDANT_ENTITY_AMBIGUITY"))
                 .map(this::findingFieldPath).filter(java.util.Objects::nonNull)
                 .collect(java.util.stream.Collectors.toSet());
-    }
-
-    private boolean routedEntityCountSatisfied(SchemaRoutingDecision routing, SpecificationDocument document) {
-        return routing.candidates().stream()
-                .filter(candidate -> candidate.schemaId().equals(document.schemaId())
-                        && candidate.schemaVersion().equals(document.schemaVersion()))
-                .flatMap(candidate -> candidate.evidenceCodes().stream())
-                .filter(signal -> signal.startsWith("JEV_ENTITY_COUNT:"))
-                .map(signal -> signal.substring("JEV_ENTITY_COUNT:".length()))
-                .filter(value -> !value.startsWith("MORE_THAN_"))
-                .map(this::parseEntityCount)
-                .filter(java.util.Objects::nonNull)
-                .anyMatch(count -> count == document.objects().size());
-    }
-
-    private Integer parseEntityCount(String value) {
-        try { return Integer.valueOf(value); }
-        catch (NumberFormatException ignored) { return null; }
-    }
-
-    private boolean hasObjectsAmbiguity(SpecificationDocument document) {
-        return document.ambiguities().stream().anyMatch(item -> "objects".equals(item.fieldPath()));
     }
 
     private boolean hasCapacityFinding(JevSchemaRoutingService.Verification verification) {

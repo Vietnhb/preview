@@ -231,7 +231,7 @@ public final class JevSchemaRoutingService {
             int knownObjects = Math.max(objectIds.size(), routedEntityCount == null ? 0 : routedEntityCount);
             findings.add("issue=VISUAL_CAPACITY_EXCEEDED; fieldPath=" + CompatibilityFieldPaths.CAPACITY + "; knownObjects=" + knownObjects
                     + "; actorCapacity=" + actorTargets
-                    + "; guidance=Explain the visual limit and ask whether the user accepts a reduction or revises the request. Keep all objects pending a specific choice.");
+                    + "; guidance=Explain the visual limit and ask whether the user accepts a reduction or revises the request. Preserve all objects until the user consents.");
         } else if (actorTargets > objectIds.size()) {
             findings.add("issue=EXTRACTED_ENTITY_MISSING; fieldPath=objects; actorCapacity=" + actorTargets
                     + "; extractedObjects=" + objectIds.size()

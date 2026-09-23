@@ -113,6 +113,12 @@ public final class StrictSpecificationValidator {
 
     public static SchemaCandidate validateCandidateMembership(JsonNode root, SchemaRoutingDecision decision,
             UnitNormalizer unitNormalizer, boolean allowMissingRequiredQuantities) {
+        return validateCandidateMembership(root, decision, unitNormalizer,
+                allowMissingRequiredQuantities, allowMissingRequiredQuantities);
+    }
+
+    public static SchemaCandidate validateCandidateMembership(JsonNode root, SchemaRoutingDecision decision,
+            UnitNormalizer unitNormalizer, boolean allowMissingRequiredQuantities, boolean allowExcessEntities) {
         if (root == null || !root.isObject() || decision == null)
             fail("candidate routing decision is required");
         String schemaId = requiredTextValue(root, "schemaId");
@@ -129,12 +135,8 @@ public final class StrictSpecificationValidator {
                 fail("schemaId/schemaVersion does not match the backend-selected candidate");
             }
         }
-        boolean capacityConflictPending = allowMissingRequiredQuantities
-                || ("JEV_CAPACITY_EXCEEDED".equals(decision.reasonCode())
-                        && root.path("ambiguities").isArray()
-                        && java.util.stream.StreamSupport.stream(root.path("ambiguities").spliterator(), false)
-                                .anyMatch(item -> CompatibilityFieldPaths.CAPACITY
-                                        .equals(item.path("fieldPath").asText())));
+        boolean capacityConflictPending = allowExcessEntities
+                || "JEV_CAPACITY_EXCEEDED".equals(decision.reasonCode());
         Set<String> candidateLabels = decision.candidates().stream()
                 .map(item -> item.schemaId() + "@" + item.schemaVersion()).collect(Collectors.toUnmodifiableSet());
         Set<String> candidateIds = decision.candidates().stream().map(SchemaCandidate::schemaId)
@@ -273,7 +275,7 @@ public final class StrictSpecificationValidator {
             boolean questioned = ambiguityQuantityNames.contains(required.key());
             if (supplied && questioned)
                 fail("required quantity cannot be both supplied and ambiguous: " + required.key());
-            if (!capacityConflictPending && !supplied && !questioned) {
+            if (!allowMissingRequiredQuantities && !capacityConflictPending && !supplied && !questioned) {
                 fail("missing required quantity or ambiguity: " + required.key());
             }
         }
@@ -285,7 +287,7 @@ public final class StrictSpecificationValidator {
                 boolean hasQuestion = questioned.contains(required.key());
                 if (hasValue && hasQuestion)
                     fail("entity quantity cannot be both supplied and ambiguous: " + required.key());
-                if (!capacityConflictPending && !hasValue && !hasQuestion) {
+                if (!allowMissingRequiredQuantities && !capacityConflictPending && !hasValue && !hasQuestion) {
                     fail("missing required entity quantity or ambiguity: objects." + entry.getKey()
                             + ".quantities." + required.key());
                 }
