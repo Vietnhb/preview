@@ -101,8 +101,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         requireCurrentCandidates(routingDecision);
         List<CandidateContractProjection> candidates = routingDecision.extractionCandidates().stream()
                 .map(SchemaCandidate::contract).toList();
-        ExtractionPromptBuilder.PromptMessages messages = prompts.build(candidates, text.trim(),
-                assetSelections.promptContext(routingDecision), verificationFindings);
+        ExtractionPromptBuilder.PromptMessages messages = prompts.build(candidates, text.trim(), verificationFindings);
         ProviderExtractionResult result = complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
                 client.textMessage("user", messages.userMessage())), routingDecision,
                 "AI response does not match the strict candidate extraction contract.", null,
@@ -113,21 +112,14 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
     @Override
     public ProviderExtractionResult resolveAmbiguities(String originalText, JsonNode currentSpecification,
             Map<String, String> answers) {
-        return resolveAmbiguities(originalText, currentSpecification, answers, null);
+        return resolveAmbiguities(originalText, currentSpecification, answers, List.of());
     }
 
     @Override
     public ProviderExtractionResult resolveAmbiguities(String originalText, JsonNode currentSpecification,
-            Map<String, String> answers, SchemaRoutingDecision visualRouting) {
-        return resolveAmbiguities(originalText, currentSpecification, answers, visualRouting, List.of());
-    }
-
-    @Override
-    public ProviderExtractionResult resolveAmbiguities(String originalText, JsonNode currentSpecification,
-            Map<String, String> answers, SchemaRoutingDecision visualRouting,
-            List<ConversationTurn> conversation) {
-        if ((answers == null || answers.isEmpty()) && visualRouting == null) {
-            throw new IllegalArgumentException("Ambiguity answers or a pinned visual route are required.");
+            Map<String, String> answers, List<ConversationTurn> conversation) {
+        if (answers == null || answers.isEmpty()) {
+            throw new IllegalArgumentException("Ambiguity answers are required.");
         }
         if (currentSpecification == null || !currentSpecification.isObject()) {
             throw new IllegalArgumentException("Pinned specification is required for ambiguity resolution.");
@@ -150,7 +142,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                     Current specification:
                     %s
 
-                    Teacher answers keyed by ambiguity code (may be empty for a visual-binding step):
+                    Teacher answers keyed by ambiguity code:
                     %s
 
                     Conversation history, ordered oldest to newest:
@@ -162,35 +154,14 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                     simplification already explained; DECLINE_SIMPLIFICATION when they refuse; REVISE_REQUEST or
                     START_NEW_PROBLEM when that is their intent; otherwise UNRESOLVED. Never classify a bare or
                     ambiguous response as consent. List in omittedObjectIds exactly the prior object IDs that the
-                    accepted simplification removes, and use an empty list for every other outcome. For a visual-only
-                    binding step with no user answer, return an empty resolutionDecisions array.
+                    accepted simplification removes, and use an empty list for every other outcome.
                     """.formatted(originalText, objectMapper.writeValueAsString(currentSpecification),
                     objectMapper.writeValueAsString(answers),
                     objectMapper.writeValueAsString(conversation == null ? List.of() : conversation));
-            if (visualRouting != null) {
-                request += """
-
-                        A pinned visual route is supplied with this request. If the current specification has no
-                        visualBindings, create the complete validated visualBindings array now: cover every declared
-                        renderer target exactly once, bind actor targets to distinct existing physical objects, use
-                        only the routed catalog assets. Source excerpts are descriptive only and are not an exact-match gate.
-                        This is a visual binding completion step; preserve the pinned physics schema and all confirmed
-                        physics facts. Do not invent an asset, object, appearance, or apparatus. For any catalog
-                        candidate classified as SUBSTITUTE, set match=SUBSTITUTE and fill visualDifference with a
-                        concise, concrete explanation in the user's language comparing the requested object's
-                        relevant appearance with the selected catalog depiction. This proposal is shown to the user
-                        for explicit approval before any simulation can run. When there is no suitable catalog
-                        candidate, use UNSUPPORTED and explain in visualDifference what the catalog cannot depict;
-                        the user can revise the request or start another problem. Never silently label a substitute
-                        as EXACT. A visual decision never changes schema capability or authorizes changing any
-                        physical object, relation, quantity, or condition.
-                        """;
-            }
         } catch (Exception exception) {
             throw new IllegalStateException("Cannot prepare ambiguity resolution request.", exception);
         }
-        ExtractionPromptBuilder.PromptMessages messages = prompts.build(List.of(contract), request,
-                visualRouting == null ? Map.of() : assetSelections.promptContext(visualRouting));
+        ExtractionPromptBuilder.PromptMessages messages = prompts.build(List.of(contract), request);
         SchemaCandidate candidate = new SchemaCandidate(contract, new SchemaSelectionScore(1, 1),
                 new VerificationEvidence(1, 1, 1, List.of("PINNED_SCHEMA_VERSION")), 1);
         SchemaRoutingDecision decision = new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
@@ -261,7 +232,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 if (!pinnedSchema) throw new IllegalArgumentException(
                         "Visual binding route does not match the confirmed schema version.");
                 SpecificationDocument document = objectMapper.treeToValue(merged, SpecificationDocument.class);
-                return new ProviderExtractionResult(document, completion.rawResponse(), null, List.of());
+                return new ProviderExtractionResult(document, completion.rawResponse(), List.of());
             } catch (RuntimeException exception) {
                 failure = exception;
             } catch (Exception exception) {
@@ -540,7 +511,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                 // Asset binding is a post-extraction JEV gate concern. Keeping
                 // extraction free of selection side effects lets the coordinator
                 // verify objects/schema first and only then build a plan.
-                return new ProviderExtractionResult(normalized, null, null, decisions);
+                return new ProviderExtractionResult(normalized, null, decisions);
             } catch (RuntimeException exception) {
                 if (exception instanceof QuantityContractViolation) throw exception;
                 lastFailure = exception;

@@ -91,7 +91,7 @@ public final class JevSchemaRoutingService {
             log.warn("JEV route exceeds visual actor capacity: schemaId={}, capacity={}, routedCount={}",
                     first.schemaId(), capacity, routedCount);
             return new SchemaRoutingDecision(SchemaRoutingDecision.Status.AMBIGUOUS,
-                    "JEV_CAPACITY_EXCEEDED", candidates, clamp(first.confidence()), clamp(margin), result.assets());
+                    "JEV_CAPACITY_EXCEEDED", candidates, clamp(first.confidence()), clamp(margin));
         }
         boolean selected = result.choice().equals(first.schemaId())
                 && result.inScope() >= 0.5
@@ -104,7 +104,7 @@ public final class JevSchemaRoutingService {
         else meters.counter("physlive.schema.routing.jev.ambiguous").increment();
         return new SchemaRoutingDecision(selected ? SchemaRoutingDecision.Status.SELECTED
                 : SchemaRoutingDecision.Status.AMBIGUOUS, reason, candidates,
-                clamp(first.confidence()), clamp(margin), result.assets());
+                clamp(first.confidence()), clamp(margin));
     }
 
     public SchemaRoutingDecision routeAssets(String problemText, SchemaRoutingDecision schemaRoute,

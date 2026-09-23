@@ -2,6 +2,7 @@ package com.example.backend.ai.extraction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -73,7 +74,7 @@ class UnsupportedSchemaRouteTest {
 
         var result = new ExtractionCoordinator(provider, routing).extract(text);
 
-        assertEquals(null, result.assetSelection());
+        assertNull(result.routingDecision().assets());
         verify(routing, never()).routeAssets(anyString(), any(SpecificationDocument.class), anyList(), any());
         verify(provider, never()).bindVisualAssets(anyString(), any(), any(), anyList());
     }
@@ -104,7 +105,7 @@ class UnsupportedSchemaRouteTest {
 
         assertEquals(2, result.document().objects().size(), "Both physical objects must remain separate.");
         assertEquals("schemaId", result.document().ambiguities().getFirst().fieldPath());
-        assertEquals(null, result.assetSelection());
+        assertNull(result.routingDecision().assets());
         verify(provider).extract(text, decision, findings);
         verify(routing, never()).routeAssets(anyString(), any(SpecificationDocument.class), anyList(), any());
         verify(provider, never()).bindVisualAssets(anyString(), any(), any(), anyList());

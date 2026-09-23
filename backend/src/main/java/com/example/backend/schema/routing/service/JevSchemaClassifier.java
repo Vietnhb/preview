@@ -18,7 +18,7 @@ import com.example.backend.simulation.assets.AssetRoutingDecision;
 import com.example.backend.simulation.assets.SvgAssetCatalog;
 import com.fasterxml.jackson.databind.JsonNode;
 
-/** One typed JEV request routes physics and independently evaluates existing SVGs. */
+/** Classifies approved physics schemas and, after confirmation, existing SVG assets. */
 @Component
 public final class JevSchemaClassifier {
     private final RestClient client;
@@ -34,18 +34,8 @@ public final class JevSchemaClassifier {
         this.catalog = catalog;
     }
 
-    public Result classify(String problemText, Map<String, String> schemaCriteria,
-            Map<String, String> entityCountCriteria) {
-        return classify(problemText, schemaCriteria, entityCountCriteria, true);
-    }
-
     public Result classifySchemas(String problemText, Map<String, String> schemaCriteria,
             Map<String, String> entityCountCriteria) {
-        return classify(problemText, schemaCriteria, entityCountCriteria, false);
-    }
-
-    private Result classify(String problemText, Map<String, String> schemaCriteria,
-            Map<String, String> entityCountCriteria, boolean includeAssets) {
         if (properties.apiKey().isBlank()) {
             throw new EmbeddingUnavailableException("JEV_API_KEY is required for Jev schema routing.");
         }
@@ -69,14 +59,6 @@ public final class JevSchemaClassifier {
                     "instructions", "Choose how many distinct physical bodies the user explicitly requests. Count generic numbered bodies as distinct. Do not count coordinate axes, fields, environments, or decorative apparatus. Use only the supplied catalog-derived choices.",
                     "criteria", entityCountCriteria));
         }
-        var assetQuestions = new LinkedHashMap<String, String>();
-        if (includeAssets) {
-            for (SvgAssetCatalog.Asset asset : catalog.entries()) {
-                String questionId = "asset_" + asset.id();
-                assetQuestions.put(questionId, asset.id());
-                questions.put(questionId, assetQuestion(asset));
-            }
-        }
         Map<String, Object> request = Map.of(
                 "state", problemText,
                 "model", properties.model(),
@@ -94,21 +76,12 @@ public final class JevSchemaClassifier {
             var schema = choice(answers.path("schema"), schemaCriteria.keySet());
             Choice entityCount = entityCountCriteria == null || entityCountCriteria.isEmpty() ? null
                     : choice(answers.path("entity_count"), entityCountCriteria.keySet());
-            var candidates = new ArrayList<AssetRoutingDecision.Candidate>();
-            for (var entry : assetQuestions.entrySet()) {
-                var asset = choice(answers.path(entry.getKey()), Set.of("EXACT", "SUBSTITUTE", "IRRELEVANT"));
-                if (!"IRRELEVANT".equals(asset.value())) {
-                    candidates.add(new AssetRoutingDecision.Candidate(entry.getValue(), asset.value(), asset.confidence()));
-                }
-            }
             JsonNode scope = answers.path("in_scope");
             if (!"noul".equals(scope.path("type").asText())) {
                 throw new IllegalStateException("Jev returned an invalid scope answer.");
             }
             return new Result(schema.value(), schema.confidence(), schema.probabilities(),
-                    probability(scope.path("noul")), response.path("model").asText(properties.model()),
-                    includeAssets ? new AssetRoutingDecision(catalog.checksum(), candidates) : null,
-                    entityCount == null ? null : entityCount.value());
+                    probability(scope.path("noul")), entityCount == null ? null : entityCount.value());
         } catch (EmbeddingUnavailableException failure) {
             throw failure;
         } catch (RuntimeException failure) {
@@ -193,11 +166,7 @@ public final class JevSchemaClassifier {
     private record Choice(String value, double confidence, Map<String, Double> probabilities) {}
 
     public record Result(String choice, double confidence, Map<String, Double> probabilities,
-            double inScope, String model, AssetRoutingDecision assets, String entityCountChoice) {
-        public Result(String choice, double confidence, Map<String, Double> probabilities, double inScope, String model) {
-            this(choice, confidence, probabilities, inScope, model, null, null);
-        }
-
+            double inScope, String entityCountChoice) {
         public Result {
             probabilities = Map.copyOf(probabilities);
         }

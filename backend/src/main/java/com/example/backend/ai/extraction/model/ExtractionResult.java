@@ -13,14 +13,7 @@ public record ExtractionResult(
         String modelVersion,
         JsonNode rawResponse,
         String errorMessage,
-        SchemaRoutingDecision routingDecision,
-        JsonNode assetSelection) {
-
-    public ExtractionResult(SpecificationDocument document, ExtractionPath path, ExtractionOutcome outcome,
-            String providerName, String modelVersion, JsonNode rawResponse, String errorMessage,
-            SchemaRoutingDecision routingDecision) {
-        this(document, path, outcome, providerName, modelVersion, rawResponse, errorMessage, routingDecision, null);
-    }
+        SchemaRoutingDecision routingDecision) {
 
     public ExtractionResult(SpecificationDocument document, ExtractionPath path, ExtractionOutcome outcome,
             String providerName, String modelVersion, JsonNode rawResponse, String errorMessage) {

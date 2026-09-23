@@ -43,7 +43,7 @@ public class ExtractionCoordinator {
             result = new ProviderExtractionResult(result.document().withAmbiguities(
                     provider.phraseVerificationQuestions(text, List.of(
                             "issue=SCHEMA_SELECTION_UNCERTAIN; fieldPath=schemaId; guidance=Ask which of the routed approved physics models the user intends."))),
-                    result.rawResponse(), result.assetSelection());
+                    result.rawResponse());
         }
         var verification = verify(text, routingDecision, result.document());
         if (!verification.passed()) {
@@ -89,7 +89,7 @@ public class ExtractionCoordinator {
                 }
                 result = new ProviderExtractionResult(
                         phraseVerifiedQuestions(text, routingDecision, result.document(), verification),
-                        result.rawResponse(), result.assetSelection());
+                        result.rawResponse());
             }
         }
         return finish(routingDecision, result);
@@ -110,8 +110,7 @@ public class ExtractionCoordinator {
                 provider.modelVersion(),
                 result.rawResponse(),
                 null,
-                routingDecision,
-                null);
+                routingDecision);
     }
 
     static void requireSupportedSchema(SchemaRoutingDecision routingDecision) {
@@ -136,11 +135,11 @@ public class ExtractionCoordinator {
         var cleaned = result.document().withoutAmbiguitiesMatching(item ->
                 isCapacityRelatedAmbiguity(item) && (!isCanonicalCapacityAmbiguity(item) || !validExisting));
         if (validExisting) {
-            return new ProviderExtractionResult(cleaned, result.rawResponse(), result.assetSelection());
+            return new ProviderExtractionResult(cleaned, result.rawResponse());
         }
         var document = cleaned
                 .withAmbiguities(provider.phraseVerificationQuestions(text, capacityFindings));
-        return new ProviderExtractionResult(document, result.rawResponse(), result.assetSelection());
+        return new ProviderExtractionResult(document, result.rawResponse());
     }
 
     private boolean isCanonicalCapacityAmbiguity(

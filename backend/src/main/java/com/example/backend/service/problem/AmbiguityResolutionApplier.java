@@ -57,7 +57,7 @@ public class AmbiguityResolutionApplier {
         ProviderExtractionResult result;
         try {
             result = aiProvider.resolveAmbiguities(
-                    specification.getSubmission().getEditableText(), current, safeAnswers, null, conversation);
+                    specification.getSubmission().getEditableText(), current, safeAnswers, conversation);
         } catch (RuntimeException failure) {
             QuantityContractViolation violation = findCause(failure, QuantityContractViolation.class);
             if (violation == null) throw failure;
@@ -220,7 +220,7 @@ public class AmbiguityResolutionApplier {
             SpecificationDocument document = objectMapper.treeToValue(current, SpecificationDocument.class)
                     .withoutAmbiguitiesAt(Set.of(violation.fieldPath()))
                     .withAmbiguities(List.of(replacement));
-            return new ProviderExtractionResult(document, null, null);
+            return new ProviderExtractionResult(document, null);
         } catch (Exception exception) {
             throw new IllegalStateException("Cannot preserve the specification while re-asking for an invalid quantity.", exception);
         }

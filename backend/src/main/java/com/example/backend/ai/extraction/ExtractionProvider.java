@@ -49,32 +49,16 @@ public interface ExtractionProvider {
             JsonNode currentSpecification,
             Map<String, String> answers);
 
-    /**
-     * Resolves an ambiguity with optional pinned visual-routing context. The
-     * default keeps existing providers source-compatible; providers that can
-     * use the context may enrich a document with validated visual bindings.
-     */
     default ProviderExtractionResult resolveAmbiguities(
             String originalText,
             JsonNode currentSpecification,
             Map<String, String> answers,
-            SchemaRoutingDecision visualRouting) {
+            List<ConversationTurn> conversation) {
         return resolveAmbiguities(originalText, currentSpecification, answers);
     }
 
-    default ProviderExtractionResult resolveAmbiguities(
-            String originalText,
-            JsonNode currentSpecification,
-            Map<String, String> answers,
-            SchemaRoutingDecision visualRouting,
-            List<ConversationTurn> conversation) {
-        return resolveAmbiguities(originalText, currentSpecification, answers, visualRouting);
-    }
-
-    default ProviderExtractionResult bindVisualAssets(String originalText, JsonNode currentSpecification,
-            SchemaRoutingDecision assetRoute, List<ConversationTurn> conversation) {
-        return resolveAmbiguities(originalText, currentSpecification, Map.of(), assetRoute, conversation);
-    }
+    ProviderExtractionResult bindVisualAssets(String originalText, JsonNode currentSpecification,
+            SchemaRoutingDecision assetRoute, List<ConversationTurn> conversation);
 
     default JsonNode summarizeAssetRequests(String originalText, JsonNode confirmedSpecification) {
         throw new UnsupportedOperationException("Asset request summarization is not supported.");

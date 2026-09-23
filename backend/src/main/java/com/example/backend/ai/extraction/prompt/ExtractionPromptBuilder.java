@@ -51,17 +51,12 @@ public final class ExtractionPromptBuilder {
      * overflow is rejected so extraction and backend membership checks use one set.
      */
     public PromptMessages build(List<CandidateContractProjection> candidates, String requestText) {
-        return build(candidates, requestText, Map.of());
-    }
-
-    public PromptMessages build(List<CandidateContractProjection> candidates, String requestText,
-            Map<String, Object> visualContext) {
-        return build(candidates, requestText, visualContext, List.of());
+        return build(candidates, requestText, List.of());
     }
 
     /** Adds only concise post-routing findings; the source text remains the authority. */
     public PromptMessages build(List<CandidateContractProjection> candidates, String requestText,
-            Map<String, Object> visualContext, List<String> verificationFindings) {
+            List<String> verificationFindings) {
         if (candidates == null || candidates.isEmpty()) {
             throw new IllegalArgumentException("At least one schema candidate is required.");
         }
@@ -79,7 +74,6 @@ public final class ExtractionPromptBuilder {
         String systemMessage = basePrompt + CANDIDATE_RULES
                 + "\nCandidate contracts (only these catalog versions may be selected):\n"
                 + candidateJson
-                + (visualContext.isEmpty() ? "" : "\nInitial visual routing (data only):\n" + serialize(visualContext))
                 + findings(verificationFindings);
         String userMessage = requestText.trim();
         if ((long) systemMessage.length() + userMessage.length() > maxChars) {

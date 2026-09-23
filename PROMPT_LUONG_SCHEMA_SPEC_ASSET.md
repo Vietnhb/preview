@@ -29,9 +29,10 @@ Bạn là AI triển khai trong repo PhysLive. Sửa luồng hiện có theo đ�
 
 - [x] Test BE: đề một vật, `v0=10 m/s`, `a=2 m/s²`, thời gian `8 s`; hỏi `initial_position`, trả lời `0`, rồi xác nhận asset và tạo mô phỏng.
   - HTTP thật: create `201`, extract `200`, confirm `200`, accept substitute `200`, create simulation `201`; validation passed, `x(0)=0 m`, `x(8)=144 m`, `v(8)=26 m/s`, kết thúc tại `8 s`. User đồng ý `block-amber`.
-- [x] Test BE: đề yêu cầu 2 vật nhưng schema chỉ hỗ trợ 1; phải hỏi về mâu thuẫn trước bước tìm asset.
+- [ ] Test BE: đề yêu cầu 2 vật nhưng schema chỉ hỗ trợ 1; phải hỏi về mâu thuẫn trước bước tìm asset.
+  - E2E FE chưa đạt: JEV phát hiện capacity 2>1 nhưng LLM không trả spec hợp lệ; lần 1 options ambiguity ngoài candidate schema, lần 2 thiếu `initial_position`. Chưa hỏi xác nhận, chưa tìm asset.
 - [x] Test BE: asset exact, substitute được chấp nhận, substitute bị từ chối, và asset không tồn tại. Không trường hợp nào được tạo mô phỏng sai spec.
 - [ ] Test frontend và build. Ghi status HTTP và lỗi gốc của bước hỏng; không gom mọi lỗi thành một thông báo khó truy vết.
-  - Build và lint qua; npm test 39/40. Test còn lại lỗi vì thiếu `scripts/generate-schema-catalog.mjs`.
+  - Build và lint qua; npm test 39/40 do thiếu `scripts/generate-schema-catalog.mjs`. E2E FE extract kết thúc HTTP 502 vì hai lần LLM output sai contract (xem case 2 vật).
 
 Khi kết thúc, báo tối đa 5 dòng: tầng đã hoàn thành, test đã chạy và kết quả, blocker còn lại. Không báo hoàn thành nếu chưa chạy được luồng thật. Jev trong project chỉ có 1 nhiệm vụ duy nhất là phân loại
