@@ -34,8 +34,7 @@ public final class JevSchemaClassifier {
         this.catalog = catalog;
     }
 
-    public Result classifySchemas(String problemText, Map<String, String> schemaCriteria,
-            Map<String, String> entityCountCriteria) {
+    public Result classifySchemas(String problemText, Map<String, String> schemaCriteria) {
         if (properties.apiKey().isBlank()) {
             throw new EmbeddingUnavailableException("JEV_API_KEY is required for Jev schema routing.");
         }
@@ -44,7 +43,7 @@ public final class JevSchemaClassifier {
         }
         Map<String, Object> schemaQuestion = new LinkedHashMap<>();
         schemaQuestion.put("type", "choice");
-        schemaQuestion.put("instructions", "Choose the best approved schema for the physics described. Use only the provided options; express uncertainty in confidence. Classify body count separately.");
+        schemaQuestion.put("instructions", "Choose the best approved schema for the physics described. Use only the provided options; express uncertainty in confidence.");
         schemaQuestion.put("criteria", schemaCriteria);
         Map<String, Object> scopeQuestion = new LinkedHashMap<>();
         scopeQuestion.put("type", "noul");
@@ -53,12 +52,6 @@ public final class JevSchemaClassifier {
         Map<String, Object> questions = new LinkedHashMap<>();
         questions.put("schema", schemaQuestion);
         questions.put("in_scope", scopeQuestion);
-        if (entityCountCriteria != null && !entityCountCriteria.isEmpty()) {
-            questions.put("entity_count", Map.of(
-                    "type", "choice",
-                    "instructions", "Choose how many distinct physical bodies the user explicitly requests. Count generic numbered bodies as distinct. Do not count coordinate axes, fields, environments, or decorative apparatus. Use only the supplied catalog-derived choices.",
-                    "criteria", entityCountCriteria));
-        }
         Map<String, Object> request = Map.of(
                 "state", problemText,
                 "model", properties.model(),
@@ -74,14 +67,12 @@ public final class JevSchemaClassifier {
             if (response == null) throw new IllegalStateException("Jev returned no response.");
             JsonNode answers = response.path("answers");
             var schema = choice(answers.path("schema"), schemaCriteria.keySet());
-            Choice entityCount = entityCountCriteria == null || entityCountCriteria.isEmpty() ? null
-                    : choice(answers.path("entity_count"), entityCountCriteria.keySet());
             JsonNode scope = answers.path("in_scope");
             if (!"noul".equals(scope.path("type").asText())) {
                 throw new IllegalStateException("Jev returned an invalid scope answer.");
             }
             return new Result(schema.value(), schema.confidence(), schema.probabilities(),
-                    probability(scope.path("noul")), entityCount == null ? null : entityCount.value());
+                    probability(scope.path("noul")));
         } catch (EmbeddingUnavailableException failure) {
             throw failure;
         } catch (RuntimeException failure) {
@@ -165,8 +156,7 @@ public final class JevSchemaClassifier {
 
     private record Choice(String value, double confidence, Map<String, Double> probabilities) {}
 
-    public record Result(String choice, double confidence, Map<String, Double> probabilities,
-            double inScope, String entityCountChoice) {
+    public record Result(String choice, double confidence, Map<String, Double> probabilities, double inScope) {
         public Result {
             probabilities = Map.copyOf(probabilities);
         }

@@ -52,6 +52,21 @@ public class AssetSelectionService {
         return Map.of("jevAssetCandidates", candidates, "visualTargetsBySchema", targets);
     }
 
+    public JsonNode createWithoutAssets(SpecificationDocument document, JsonNode visualization, String text) {
+        if (!VisualTargets.read(visualization).isEmpty()) {
+            throw new IllegalArgumentException("Schema has SVG targets and requires asset selection");
+        }
+        ObjectNode plan = mapper.createObjectNode();
+        plan.put("id", UUID.randomUUID().toString());
+        plan.put("sourceFingerprint", fingerprint(document.schemaId(), document.schemaVersion(), text,
+                mapper.valueToTree(document.objects())));
+        plan.put("status", "READY");
+        plan.putArray("choices");
+        plan.putArray("bindings");
+        plan.set("visualization", visualization.deepCopy());
+        return plan;
+    }
+
     public JsonNode create(SpecificationDocument document, AssetRoutingDecision routing, String text) {
         if (routing == null) throw new IllegalArgumentException("Initial JEV asset routing is missing");
         if (!catalog.checksum().equals(routing.catalogChecksum())) {

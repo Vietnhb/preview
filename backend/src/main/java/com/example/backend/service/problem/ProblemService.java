@@ -49,7 +49,6 @@ import com.example.backend.ai.extraction.model.SpecificationDocument;
 import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.example.backend.ai.ocr.OcrProvider;
 import com.example.backend.ai.ocr.OcrResult;
-import com.example.backend.physics.validation.EndConditionResolver;
 import com.example.backend.repository.problem.ExtractionRunRepository;
 import com.example.backend.repository.curriculum.LessonRepository;
 import com.example.backend.repository.problem.ProblemSubmissionRepository;
@@ -224,7 +223,6 @@ public class ProblemService {
             }
             applyResult(run, result);
             Specification specification = createSpecification(problem, run, result.document());
-            readinessService.ensureRequiredAmbiguities(specification);
             specificationRepository.save(specification);
             problem.setCurrentSpecification(specification);
             problem.setStatus(specification.getConfirmationState() == ConfirmationState.UNRESOLVED
@@ -351,17 +349,8 @@ public class ProblemService {
         if (specification == null) {
             throw new ApiException(HttpStatus.CONFLICT, "Extract a specification before editing it");
         }
-        var schema = schemaDefinitions.requirePublishedVersion(specification.getSchemaId(), specification.getSchemaVersion());
-        var canonicalQuantities = schemaDefinitions.canonicalizeQuantities(
-                request.quantities(), schema.getDefinition());
-        validateQuantities(canonicalQuantities);
-        if (request.endCondition() != null) {
-            var errors = EndConditionResolver.validateNode(request.endCondition(), 10);
-            if (!errors.isEmpty()) throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Invalid endCondition: " + String.join("; ", errors));
-        }
         specification.setObjects(request.objects().deepCopy());
-        specification.setQuantities(canonicalQuantities.deepCopy());
+        specification.setQuantities(request.quantities().deepCopy());
         specification.setRelations(request.relations().deepCopy());
         if (request.endCondition() != null) specification.setEndCondition(request.endCondition().deepCopy());
         specification.setValidationStatus("NOT_VALIDATED");
@@ -401,9 +390,7 @@ public class ProblemService {
         specification.setSchemaId(document.schemaId());
         specification.setConfidence(document.confidence());
         specification.setObjects(objectMapper.valueToTree(document.objects()));
-        JsonNode extractedQuantities = objectMapper.valueToTree(document.quantities());
-        specification.setQuantities(schemaDefinitions.canonicalizeQuantities(
-                extractedQuantities, schema.getDefinition()));
+        specification.setQuantities(objectMapper.valueToTree(document.quantities()));
         specification.setRelations(objectMapper.valueToTree(document.relations()));
         specification.setEndCondition(document.endCondition());
         specification.setAmbiguity(objectMapper.valueToTree(document.ambiguities()));
@@ -494,15 +481,4 @@ public class ProblemService {
         return first + "\n\n" + second;
     }
 
-    private void validateQuantities(com.fasterxml.jackson.databind.JsonNode quantities) {
-        for (com.fasterxml.jackson.databind.JsonNode quantity : quantities) {
-            if (!StringUtils.hasText(quantity.path("name").asText())
-                    || !quantity.path("normalizedValue").isNumber()
-                    || !Double.isFinite(quantity.path("normalizedValue").asDouble())
-                    || !StringUtils.hasText(quantity.path("normalizedUnit").asText())) {
-                throw new ApiException(HttpStatus.BAD_REQUEST,
-                        "Each quantity needs name, finite normalizedValue and normalizedUnit");
-            }
-        }
-    }
 }

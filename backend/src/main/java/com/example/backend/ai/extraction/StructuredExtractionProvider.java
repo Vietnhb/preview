@@ -1,8 +1,7 @@
 package com.example.backend.ai.extraction;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.nio.charset.StandardCharsets;
 
@@ -14,21 +13,15 @@ import io.micrometer.core.instrument.MeterRegistry;
 import com.example.backend.ai.client.ChatCompletionClient;
 import com.example.backend.ai.extraction.model.AmbiguityItem;
 import com.example.backend.ai.extraction.model.ConversationTurn;
-import com.example.backend.ai.extraction.model.PhysicalObject;
-import com.example.backend.ai.extraction.model.PhysicalQuantity;
-import com.example.backend.ai.extraction.model.QuantityContractViolation;
 import com.example.backend.ai.extraction.model.ProviderExtractionResult;
 import com.example.backend.ai.extraction.model.SpecificationDocument;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
-import com.example.backend.ai.extraction.prompt.CandidateContractProjection.EntityTypeProjection;
-import com.example.backend.ai.extraction.prompt.CandidateContractProjection.QuantityProjection;
 import com.example.backend.ai.extraction.prompt.ExtractionPromptBuilder;
 import com.example.backend.ai.normalization.UnitNormalizer;
 import com.example.backend.config.properties.AiProviderProperties;
 import com.example.backend.config.properties.JevProperties;
 import com.example.backend.entity.enums.ExtractionPath;
 import com.example.backend.entity.problem.SchemaVersion;
-import com.example.backend.physics.validation.EndConditionResolver;
 import com.example.backend.schema.routing.model.SchemaCandidate;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
 import com.example.backend.service.problem.SchemaDefinitionService;
@@ -43,7 +36,6 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
 
     private final ChatCompletionClient client;
     private final ObjectMapper objectMapper;
-    private final UnitNormalizer unitNormalizer;
     private final SchemaDefinitionService schemaDefinitions;
     private final ExtractionPromptBuilder prompts;
     private final String model;
@@ -53,13 +45,12 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
     private final com.example.backend.simulation.assets.AssetSelectionService assetSelections;
 
     public StructuredExtractionProvider(ChatCompletionClient client, ObjectMapper objectMapper,
-            UnitNormalizer unitNormalizer, SchemaDefinitionService schemaDefinitions,
+            SchemaDefinitionService schemaDefinitions,
             AiProviderProperties properties, JevProperties routingProperties,
             ResourceLoader resourceLoader, MeterRegistry meters,
             com.example.backend.simulation.assets.AssetSelectionService assetSelections) {
         this.client = client;
         this.objectMapper = objectMapper;
-        this.unitNormalizer = unitNormalizer;
         this.schemaDefinitions = schemaDefinitions;
         this.model = properties.textModel();
         this.providerName = properties.name();
@@ -88,23 +79,17 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
 
     @Override
     public ProviderExtractionResult extract(String text, SchemaRoutingDecision routingDecision) {
-        return extract(text, routingDecision, List.of());
-    }
-
-    @Override
-    public ProviderExtractionResult extract(String text, SchemaRoutingDecision routingDecision,
-            List<String> verificationFindings) {
         if (!StringUtils.hasText(text)) throw new IllegalArgumentException("Problem text must not be blank.");
         if (routingDecision == null) throw new IllegalArgumentException("Schema routing decision is required.");
         requireCurrentCandidates(routingDecision);
         List<CandidateContractProjection> candidates = routingDecision.extractionCandidates().stream()
                 .map(SchemaCandidate::contract).toList();
-        ExtractionPromptBuilder.PromptMessages messages = prompts.build(candidates, text.trim(), verificationFindings);
+        ExtractionPromptBuilder.PromptMessages messages = prompts.build(candidates, text.trim());
         ProviderExtractionResult result = complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
-                client.textMessage("user", messages.userMessage())), routingDecision,
-                "AI response does not match the strict candidate extraction contract.", null,
+                client.textMessage("user", messages.userMessage())),
+                "AI returned unreadable specification JSON.",
                 "SPECIFICATION_EXTRACTION");
-        return rejectCapacityRepairViolations(result, verificationFindings);
+        return result;
     }
 
     @Override
@@ -130,12 +115,10 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         String request;
         try {
             request = """
-                    Update the pinned spec from the answers. Keep confirmed facts and unresolved questions.
-                    Return one resolutionDecisions entry per answered code. For accepted capacity reduction,
-                    omit equivalent objects if their identity makes no difference to the user's request;
-                    otherwise ask which object to retain. List every omitted object ID in the decision.
-                    Leave missing required values unset; the backend asks for them after compatibility is resolved.
-                    Phrase any question in the language of the original problem.
+                    Update the pinned spec using the answers and schema contract. Keep confirmed facts;
+                    return one resolutionDecision per answered code. On refusal use DECLINE_SIMPLIFICATION;
+                    apply only accepted reductions and list omitted IDs. Keep open questions; ask for required
+                    values still missing and ask again only if an answer remains ambiguous. Use the user's language.
 
                     Original problem:
                     %s
@@ -160,9 +143,8 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         SchemaRoutingDecision decision = new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
                 "PINNED_FOR_AMBIGUITY_RESOLUTION", List.of(candidate), 1, 1);
         return complete(List.of(client.textMessage(SYSTEM_ROLE, messages.systemMessage()),
-                client.textMessage("user", messages.userMessage())), decision,
-                "AI ambiguity response does not match the pinned schema contract.",
-                currentSpecification, "SPECIFICATION_CLARIFICATION");
+                client.textMessage("user", messages.userMessage())),
+                "AI returned unreadable clarification JSON.", "SPECIFICATION_CLARIFICATION");
     }
 
     /**
@@ -382,10 +364,11 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
             List<ConversationTurn> conversation) {
         if (!StringUtils.hasText(originalText) || findings == null || findings.isEmpty()) return List.of();
         String prompt = """
-                Return one short question per finding in the user's language, preserving its fieldPath.
-                Ask for a decision, not facts already given. For capacity, explain the mismatch and
-                proposed reduction, with explicit accept and refuse/revise options. Do not imply
-                any object was already removed or expose machine keys.
+                Return one short question per finding, preserving its fieldPath.
+                Write each question and option in the original problem's language, not English unless the original is English.
+                Ask one concise clarification per finding in everyday physics language. Never expose
+                schema names, field paths, quantity keys or other implementation terms in questions or options.
+                If proposing one specific compatible change, ask whether the user agrees or refuses.
 
                 Original problem:
                 %s
@@ -416,10 +399,7 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
                     }
                     List<String> options = new ArrayList<>();
                     item.path("options").forEach(option -> options.add(option.asText()));
-                    boolean capacity = CompatibilityFieldPaths.isCapacity(fieldPath)
-                            && findings.stream().anyMatch(this::isCapacityFinding);
-                    result.add(new AmbiguityItem((capacity ? "jev.capacity." : "jev.verification.")
-                            + (++index), fieldPath, question, options));
+                    result.add(new AmbiguityItem("verification." + (++index), fieldPath, question, options));
                 }
                 if (result.isEmpty()) throw new IllegalStateException("AI returned no clarification questions.");
                 return List.copyOf(result);
@@ -432,169 +412,53 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         throw new IllegalStateException("AI could not phrase the required clarification questions.", failure);
     }
 
-    private ProviderExtractionResult rejectCapacityRepairViolations(ProviderExtractionResult result,
-            List<String> verificationFindings) {
-        if (verificationFindings == null || verificationFindings.stream().noneMatch(this::isCapacityFinding)) {
-            return result;
-        }
-        int baselineObjects = verificationFindings.stream()
-                .mapToInt(this::knownObjects)
-                .max().orElse(-1);
-        boolean lostObjects = baselineObjects >= 0 && result.document().objects().size() < baselineObjects;
-        if (lostObjects) {
-            throw new IllegalStateException(
-                    "Capacity verification findings forbid reducing the explicitly extracted objects.");
-        }
-        return result;
-    }
-
-    private boolean isCapacityFinding(String finding) {
-        return finding != null && (finding.contains("VISUAL_CAPACITY_EXCEEDED")
-                || finding.contains("JEV_CAPACITY_EXCEEDED"));
-    }
-
-    private int knownObjects(String finding) {
-        if (finding == null) return -1;
-        for (String part : finding.split(";")) {
-            String value = part.trim();
-            for (String key : List.of("knownObjects=", "routedCount=", "expectedObjects=")) {
-                if (!value.startsWith(key)) continue;
-                try { return Integer.parseInt(value.substring(key.length())); }
-                catch (NumberFormatException ignored) { return -1; }
-            }
-        }
-        return -1;
-    }
-
-    private ProviderExtractionResult complete(List<Map<String, Object>> messages, SchemaRoutingDecision routingDecision,
-            String invalidMessage, JsonNode currentSpecification, String step) {
+    private ProviderExtractionResult complete(List<Map<String, Object>> messages,
+            String invalidMessage, String step) {
         meters.summary("physlive.ai.prompt.characters").record(prompts.messageCharacterCount(messages));
-        try {
-                ChatCompletionClient.Completion completion = client.completeStructured(model, messages);
+        Exception lastFailure = null;
+        List<Map<String, Object>> attemptMessages = messages;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            JsonNode draft = null;
+            try {
+                ChatCompletionClient.Completion completion = client.completeJson(model, attemptMessages);
                 JsonNode json = client.parseJson(completion.content());
+                draft = json;
                 if (!json.isObject()) throw new IllegalStateException("AI response root must be a JSON object.");
-                StrictSpecificationValidator.validate(json);
-                rejectMachineFindingsInQuestions(json);
+                requireResponseShape(json);
                 List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions = resolutionDecisions(json);
-                boolean simplificationAccepted = hasAcceptedSimplification(decisions, currentSpecification);
-                preserveVisualIdentity(json, currentSpecification, simplificationAccepted);
-                SchemaCandidate candidate = StrictSpecificationValidator.validateCandidateMembership(json, routingDecision,
-                        unitNormalizer, true,
-                        capacityDecisionPending(currentSpecification, decisions));
-                SchemaVersion pinned = schemaDefinitions.requireCurrentApproved(candidate.schemaId(), candidate.schemaVersion());
                 JsonNode specificationJson = json.deepCopy();
                 if (specificationJson instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
                     object.remove("resolutionDecisions");
                 }
-                SpecificationDocument parsed = objectMapper.treeToValue(specificationJson, SpecificationDocument.class);
+                SpecificationDocument parsed = objectMapper.readerFor(SpecificationDocument.class)
+                        .without(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                        .readValue(specificationJson);
                 if (parsed == null) throw new IllegalStateException("AI response does not contain a specification.");
-                SpecificationDocument normalized = normalize(parsed, pinned);
-                // Asset binding is a post-extraction JEV gate concern. Keeping
-                // extraction free of selection side effects lets the coordinator
-                // verify objects/schema first and only then build a plan.
-                return new ProviderExtractionResult(normalized, null, decisions);
-        } catch (QuantityContractViolation violation) {
-            throw violation;
-        } catch (Exception failure) {
-            String detail = failure.getMessage() == null ? "Invalid structured response" : failure.getMessage();
-            String failureCode = isUpstreamHttpFailure(failure)
-                    ? "AI_UPSTREAM_HTTP_ERROR" : "AI_STRUCTURED_RESPONSE_INVALID";
-            log.warn("AI step failed: step={} code={} reason={}", step, failureCode,
-                    detail.substring(0, Math.min(detail.length(), MAX_RETRY_ERROR_CHARACTERS)));
-            throw new AiStepException(step, failureCode, invalidMessage, failure);
-        }
-    }
-
-    public static JsonNode preserveConfirmedPhysics(ObjectMapper mapper, JsonNode current, JsonNode updated,
-            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
-        if (current == null || !current.isObject() || updated == null || !updated.isObject()) {
-            throw new IllegalArgumentException("Current and updated specifications must be JSON objects.");
-        }
-        java.util.Map<String, com.example.backend.ai.extraction.model.ResolutionDecision> decisionsByCode =
-                new java.util.HashMap<>();
-        if (decisions != null) decisions.forEach(decision -> decisionsByCode.put(decision.code(), decision));
-        java.util.Set<String> answeredPaths = new java.util.HashSet<>();
-        current.path("ambiguities").forEach(ambiguity -> {
-            var decision = decisionsByCode.get(ambiguity.path("code").asText());
-            if (decision != null && decision.outcome()
-                    != com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.UNRESOLVED) {
-                answeredPaths.add(ambiguity.path("fieldPath").asText());
-            }
-        });
-
-        var merged = (com.fasterxml.jackson.databind.node.ObjectNode) updated.deepCopy();
-        java.util.Set<String> currentOpenPaths = new java.util.HashSet<>();
-        current.path("ambiguities").forEach(item -> currentOpenPaths.add(item.path("fieldPath").asText()));
-        java.util.Set<String> preservedQuantityPaths = new java.util.HashSet<>();
-        restoreQuantities(current.path("quantities"), merged.withArray("quantities"),
-                "quantities", answeredPaths, preservedQuantityPaths);
-        JsonNode currentObjects = current.path("objects");
-        var updatedObjects = merged.withArray("objects");
-        for (JsonNode currentObject : currentObjects) {
-            String objectId = currentObject.path("id").asText();
-            JsonNode updatedObject = null;
-            for (JsonNode candidate : updatedObjects) {
-                if (objectId.equals(candidate.path("id").asText())) {
-                    updatedObject = candidate;
-                    break;
+                return new ProviderExtractionResult(parsed, null, decisions);
+            } catch (Exception failure) {
+                lastFailure = failure;
+                if (draft != null && draft.path("ambiguities").isArray()) {
+                    List<String> paths = new ArrayList<>();
+                    draft.path("ambiguities").forEach(item -> paths.add(item.path("fieldPath").asText("")));
+                    log.warn("AI draft rejected: step={} attempt={}/{} reason={} ambiguityPaths={} objectCount={}",
+                            step, attempt + 1, maxAttempts, failure.getMessage(), paths,
+                            draft.path("objects").size());
                 }
-            }
-            if (updatedObject instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
-                restoreQuantities(currentObject.path("quantities"), object.withArray("quantities"),
-                        "objects." + objectId + ".quantities", answeredPaths, preservedQuantityPaths);
-            }
-        }
-        var retainedAmbiguities = mapper.createArrayNode();
-        updated.path("ambiguities").forEach(ambiguity -> {
-            String fieldPath = ambiguity.path("fieldPath").asText();
-            boolean contradictedByConfirmedValue = preservedQuantityPaths.contains(fieldPath)
-                    && !currentOpenPaths.contains(fieldPath) && !answeredPaths.contains(fieldPath);
-            if (!contradictedByConfirmedValue) retainedAmbiguities.add(ambiguity.deepCopy());
-        });
-        merged.set("ambiguities", retainedAmbiguities);
-        if (!answeredPaths.stream().anyMatch(path -> path.equals("relations") || path.startsWith("relations."))) {
-            merged.set("relations", current.path("relations").deepCopy());
-        }
-        if (!answeredPaths.stream().anyMatch(path -> path.equals("endCondition")
-                || path.startsWith("endCondition."))) {
-            merged.set("endCondition", current.path("endCondition").deepCopy());
-        }
-        return merged;
-    }
-
-    private static void restoreQuantities(JsonNode existing,
-            com.fasterxml.jackson.databind.node.ArrayNode target, String prefix,
-            java.util.Set<String> answeredPaths, java.util.Set<String> preservedPaths) {
-        if (!existing.isArray()) return;
-        for (JsonNode quantity : existing) {
-            String name = quantity.path("name").asText("");
-            if (name.isBlank()) continue;
-            String fieldPath = prefix + "." + name;
-            if (answeredPaths.contains(fieldPath)) continue;
-            preservedPaths.add(fieldPath);
-            int index = -1;
-            for (int i = 0; i < target.size(); i++) {
-                JsonNode value = target.get(i);
-                if (name.equals(value.path("name").asText(""))) {
-                    index = i;
-                    break;
-                }
-            }
-            JsonNode preserved = quantity.deepCopy();
-            if (index < 0) target.add(preserved);
-            else target.set(index, preserved);
-        }
-    }
-
-    private void rejectMachineFindingsInQuestions(JsonNode document) {
-        for (JsonNode ambiguity : document.path("ambiguities")) {
-            String question = ambiguity.path("question").asText("");
-            if (question.contains("issue=") || question.contains("fieldPath=")
-                    || question.contains("actorCapacity=")) {
-                throw new IllegalStateException(
-                        "Ambiguity questions must be natural user-facing language and must not expose machine findings.");
+                if (isUpstreamHttpFailure(failure) || attempt + 1 >= maxAttempts) break;
+                String detail = failure.getMessage() == null ? "Invalid structured response" : failure.getMessage();
+                attemptMessages = new ArrayList<>(messages);
+                attemptMessages.add(client.textMessage("user", "Revise the complete JSON using the supplied contract. "
+                        + "Keep the original facts and unresolved questions. Previous response error: "
+                        + detail.substring(0, Math.min(detail.length(), MAX_RETRY_ERROR_CHARACTERS))));
             }
         }
+        String detail = lastFailure == null || lastFailure.getMessage() == null
+                ? "Invalid structured response" : lastFailure.getMessage();
+        String failureCode = isUpstreamHttpFailure(lastFailure)
+                ? "AI_UPSTREAM_HTTP_ERROR" : "AI_STRUCTURED_RESPONSE_INVALID";
+        log.warn("AI step failed: step={} code={} reason={}", step, failureCode,
+                detail.substring(0, Math.min(detail.length(), MAX_RETRY_ERROR_CHARACTERS)));
+        throw new AiStepException(step, failureCode, invalidMessage, lastFailure);
     }
 
     private boolean isUpstreamHttpFailure(Throwable failure) {
@@ -607,61 +471,49 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         return false;
     }
 
-    private boolean capacityDecisionPending(JsonNode current,
-            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
-        if (current == null || !current.path("ambiguities").isArray()) return false;
-        for (var ambiguity : current.path("ambiguities")) {
-            String path = ambiguity.path("fieldPath").asText();
-            if (!CompatibilityFieldPaths.isCapacity(path)) continue;
-            var answer = decisions.stream().filter(item -> item.code().equals(ambiguity.path("code").asText()))
-                    .findFirst().orElse(null);
-            if (CompatibilityFieldPaths.CAPACITY.equals(path)) return true;
-            if (answer == null || answer.outcome()
-                    != com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED) return true;
-        }
-        return false;
-    }
-
     private List<com.example.backend.ai.extraction.model.ResolutionDecision> resolutionDecisions(JsonNode response) {
         JsonNode values = response.path("resolutionDecisions");
-        if (!values.isArray()) return List.of();
         return objectMapper.convertValue(values, new com.fasterxml.jackson.core.type.TypeReference<>() { });
     }
 
-    private boolean hasAcceptedSimplification(
-            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions, JsonNode current) {
-        if (current == null || decisions == null || decisions.isEmpty()) return false;
-        java.util.Map<String, String> pathsByCode = new java.util.HashMap<>();
-        current.path("ambiguities").forEach(item -> pathsByCode.put(item.path("code").asText(),
-                item.path("fieldPath").asText()));
-        return decisions.stream().anyMatch(decision -> {
-            String path = pathsByCode.get(decision.code());
-            return decision.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ACCEPT_SIMPLIFICATION
-                    || (CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(path)
-                    && decision.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.ANSWERED);
-        });
-    }
-
-    private void preserveVisualIdentity(JsonNode response, JsonNode current, boolean simplificationAccepted) {
-        if (current == null) return;
-        java.util.Set<JsonNode> before = new java.util.HashSet<>();
-        java.util.Set<JsonNode> after = new java.util.HashSet<>();
-        current.path("visualBindings").forEach(before::add);
-        response.path("visualBindings").forEach(after::add);
-        if (!before.equals(after) || (!simplificationAccepted
-                && !objectIdentities(current).equals(objectIdentities(response)))) {
-            throw new IllegalStateException("Preserve existing visualBindings and object id/label/type exactly; only update answered physics quantities.");
+    /** Checks only the wire format; the model owns the physics and clarification decisions. */
+    private static void requireResponseShape(JsonNode response) {
+        for (String field : List.of("contractVersion", "schemaId", "schemaVersion")) {
+            if (!response.path(field).isTextual() || response.path(field).asText().isBlank()) {
+                throw new IllegalArgumentException("SpecificationDocument." + field + " must be non-empty text");
+            }
         }
-        if (simplificationAccepted && !objectIdentities(current).containsAll(objectIdentities(response))) {
-            throw new IllegalStateException("An accepted simplification may retain only existing object identities.");
+        if (!response.path("confidence").isNumber()) {
+            throw new IllegalArgumentException("SpecificationDocument.confidence must be a number");
         }
-    }
-
-    private java.util.Set<List<String>> objectIdentities(JsonNode document) {
-        java.util.Set<List<String>> result = new java.util.HashSet<>();
-        document.path("objects").forEach(object -> result.add(List.of(object.path("id").asText(),
-                object.path("label").asText(), object.path("type").asText())));
-        return result;
+        for (String field : List.of("objects", "quantities", "relations", "ambiguities",
+                "visualBindings", "resolutionDecisions")) {
+            if (!response.path(field).isArray()) {
+                throw new IllegalArgumentException("SpecificationDocument." + field + " must be an array");
+            }
+        }
+        for (JsonNode item : response.path("objects")) {
+            for (String field : List.of("id", "label", "type")) {
+                if (!item.path(field).isTextual() || item.path(field).asText().isBlank()) {
+                    throw new IllegalArgumentException("SpecificationDocument.objects[]." + field
+                            + " must be non-empty text");
+                }
+            }
+            if (!item.path("quantities").isArray()) {
+                throw new IllegalArgumentException("SpecificationDocument.objects[].quantities must be an array");
+            }
+        }
+        for (JsonNode item : response.path("ambiguities")) {
+            for (String field : List.of("code", "fieldPath", "question")) {
+                if (!item.path(field).isTextual() || item.path(field).asText().isBlank()) {
+                    throw new IllegalArgumentException("SpecificationDocument.ambiguities[]." + field
+                            + " must be non-empty text");
+                }
+            }
+            if (!item.path("options").isArray()) {
+                throw new IllegalArgumentException("SpecificationDocument.ambiguities[].options must be an array");
+            }
+        }
     }
 
     private void requireCurrentCandidates(SchemaRoutingDecision routingDecision) {
@@ -670,193 +522,4 @@ public final class StructuredExtractionProvider implements ExtractionProvider {
         }
     }
 
-    private SpecificationDocument normalize(SpecificationDocument document, SchemaVersion schema) {
-        if (!schema.getVersion().equals(document.schemaVersion())) {
-            throw new IllegalStateException("AI schema version does not match the pinned candidate version.");
-        }
-        List<PhysicalQuantity> quantities = new ArrayList<>();
-        for (PhysicalQuantity quantity : document.quantities()) {
-            if (!StringUtils.hasText(quantity.name()) || quantity.value() == null
-                    || !StringUtils.hasText(quantity.originalUnit())) {
-                throw new IllegalStateException("AI returned an incomplete physical quantity.");
-            }
-            String canonicalName = schemaDefinitions.canonicalQuantityKey(schema.getDefinition(), quantity.name());
-            if (!StringUtils.hasText(canonicalName)) throw new IllegalStateException("AI quantity has no canonical schema key.");
-            JsonNode quantityDefinition = findQuantityDefinition(schema.getDefinition(), canonicalName);
-            List<String> expectedUnits = textValues(quantityDefinition == null ? null : quantityDefinition.path("allowedUnits"));
-            UnitNormalizer.NormalizedQuantity normalized = unitNormalizer.normalize(quantity.value(), quantity.originalUnit());
-            String fieldPath = "quantities." + canonicalName;
-            if (!normalized.knownUnit()) {
-                throw new QuantityContractViolation(fieldPath, quantity.value(), quantity.originalUnit(), expectedUnits,
-                        "The supplied unit is not recognized.");
-            }
-            if (quantityDefinition == null || !allowsUnit(quantityDefinition.path("allowedUnits"), normalized.normalizedUnit())) {
-                throw new QuantityContractViolation(fieldPath, quantity.value(), quantity.originalUnit(), expectedUnits,
-                        "The supplied unit does not match this schema input.");
-            }
-            validatePhysicalDomain(quantityDefinition, normalized.normalizedValue(), canonicalName, fieldPath,
-                    quantity.originalUnit(), expectedUnits);
-            quantities.add(new PhysicalQuantity(canonicalName, quantity.symbol(), quantity.value(), quantity.originalUnit(),
-                    normalized.normalizedValue(), normalized.normalizedUnit(), clamp(quantity.confidence()), quantity.sourceText()));
-        }
-
-        CandidateContractProjection contract = CandidateContractProjection.from(schema.getSchemaId(),
-                schema.getVersion(), schema.getTopic(), schema.getName(), schema.getDefinition());
-        List<PhysicalObject> objects = new ArrayList<>();
-        for (PhysicalObject object : document.objects()) {
-            EntityTypeProjection entity = contract.entityTypes().stream()
-                    .filter(item -> item.type().equals(object.type())).findFirst().orElse(null);
-            if (entity == null) {
-                if (!object.quantities().isEmpty()) {
-                    throw new IllegalStateException("AI returned entity-local quantities outside the selected entity contract.");
-                }
-                objects.add(object);
-                continue;
-            }
-            List<PhysicalQuantity> local = normalizeEntityQuantities(object.id(), object.quantities(), entity);
-            objects.add(new PhysicalObject(object.id(), object.label(), object.type(), local));
-        }
-
-        JsonNode endCondition = defaultTimeLimitWhenOmitted(document.endCondition(), schema);
-        if (endCondition == null || endCondition.isNull()) throw new IllegalStateException("AI response is missing endCondition.");
-        List<String> errors = EndConditionResolver.validateNode(endCondition,
-                schema.getDefinition().path("execution").path("durationSeconds").asDouble());
-        if (!errors.isEmpty()) throw new IllegalStateException("AI returned an invalid endCondition: " + String.join("; ", errors));
-
-        return new SpecificationDocument(schema.getVersion(), schema.getTopic(),
-                schema.getSchemaId(), objects, quantities, document.relations(), endCondition,
-                clamp(document.confidence()), document.ambiguities(), SpecificationDocument.CURRENT_SCHEMA_VERSION,
-                document.visualBindings());
-    }
-
-    /**
-     * A time limit without a teacher-provided duration uses the approved
-     * schema execution horizon. This is catalog configuration, not an AI
-     * inference. Explicit non-positive values remain invalid and are retried.
-     */
-    private JsonNode defaultTimeLimitWhenOmitted(JsonNode source, SchemaVersion schema) {
-        if (!(source instanceof com.fasterxml.jackson.databind.node.ObjectNode object)) return source;
-        if (!"time_limit".equalsIgnoreCase(object.path("type").asText())) return source;
-        JsonNode duration = object.get("duration");
-        if (duration != null && !duration.isNull()) return source;
-        double fallback = schema.getDefinition().path("execution").path("durationSeconds").asDouble(Double.NaN);
-        if (!Double.isFinite(fallback) || fallback <= 0) return source;
-        var normalized = object.deepCopy();
-        normalized.put("duration", fallback);
-        return normalized;
-    }
-
-    private List<PhysicalQuantity> normalizeEntityQuantities(String objectId, List<PhysicalQuantity> source,
-            EntityTypeProjection entity) {
-        List<PhysicalQuantity> result = new ArrayList<>();
-        for (PhysicalQuantity quantity : source) {
-            if (!StringUtils.hasText(quantity.name()) || quantity.value() == null
-                    || !StringUtils.hasText(quantity.originalUnit())) {
-                throw new IllegalStateException("AI returned an incomplete entity physical quantity.");
-            }
-            String canonicalName = canonicalQuantityName(entity.requiredQuantities(), entity.optionalQuantities(), quantity.name());
-            QuantityProjection projection = quantityProjection(entity, canonicalName);
-            if (!StringUtils.hasText(canonicalName) || projection == null) {
-                throw new IllegalStateException("AI entity quantity has no canonical contract key.");
-            }
-            UnitNormalizer.NormalizedQuantity normalized = unitNormalizer.normalize(quantity.value(), quantity.originalUnit());
-            String fieldPath = "objects." + objectId + ".quantities." + canonicalName;
-            if (!normalized.knownUnit() || !allowsUnit(projection.acceptedInputUnits(), normalized.normalizedUnit())) {
-                throw new QuantityContractViolation(fieldPath, quantity.value(), quantity.originalUnit(),
-                        projection.acceptedInputUnits(), "The supplied unit does not match this entity input.");
-            }
-            validatePhysicalDomain(projection.constraints(), normalized.normalizedValue(), canonicalName, fieldPath,
-                    quantity.originalUnit(), projection.acceptedInputUnits());
-            result.add(new PhysicalQuantity(canonicalName, quantity.symbol(), quantity.value(), quantity.originalUnit(),
-                    normalized.normalizedValue(), normalized.normalizedUnit(), clamp(quantity.confidence()), quantity.sourceText()));
-        }
-        return List.copyOf(result);
-    }
-
-    private QuantityProjection quantityProjection(EntityTypeProjection entity, String key) {
-        return java.util.stream.Stream.concat(entity.requiredQuantities().stream(), entity.optionalQuantities().stream())
-                .filter(item -> item.key().equals(key)).findFirst().orElse(null);
-    }
-
-    private String canonicalQuantityName(List<QuantityProjection> required,
-            List<QuantityProjection> optional, String suppliedName) {
-        java.util.Set<String> matches = new java.util.HashSet<>();
-        java.util.stream.Stream.concat(required.stream(), optional.stream()).forEach(item -> {
-            if (item.key().equals(suppliedName) || item.aliases().contains(suppliedName)
-                    || item.symbols().contains(suppliedName)) matches.add(item.key());
-        });
-        return matches.size() == 1 ? matches.iterator().next() : null;
-    }
-
-    private JsonNode findQuantityDefinition(JsonNode definition, String key) {
-        for (String group : List.of("requiredQuantities", "optionalQuantities")) {
-            for (JsonNode quantity : definition.path(group)) if (key.equals(quantity.path("key").asText())) return quantity;
-        }
-        return null;
-    }
-
-    private boolean allowsUnit(JsonNode allowedUnits, String normalizedUnit) {
-        for (JsonNode allowed : allowedUnits) {
-            UnitNormalizer.NormalizedQuantity normalized = unitNormalizer.normalize(BigDecimal.ONE, allowed.asText());
-            String canonical = normalized.knownUnit() ? normalized.normalizedUnit() : allowed.asText();
-            if (canonical.equals(normalizedUnit)) return true;
-        }
-        return false;
-    }
-
-    private boolean allowsUnit(List<String> allowedUnits, String normalizedUnit) {
-        for (String allowed : allowedUnits) {
-            UnitNormalizer.NormalizedQuantity normalized = unitNormalizer.normalize(BigDecimal.ONE, allowed);
-            String canonical = normalized.knownUnit() ? normalized.normalizedUnit() : allowed;
-            if (canonical.equals(normalizedUnit)) return true;
-        }
-        return false;
-    }
-
-    private void validatePhysicalDomain(JsonNode definition, BigDecimal value, String key, String fieldPath,
-            String suppliedUnit, List<String> expectedUnits) {
-        double numeric = value.doubleValue();
-        if (!Double.isFinite(numeric) || (definition.path("positive").asBoolean(false) && numeric <= 0)
-                || (definition.path("nonNegative").asBoolean(false) && numeric < 0)
-                || (definition.path("integer").asBoolean(false) && value.stripTrailingZeros().scale() > 0)
-                || (definition.path("min").isNumber() && numeric < definition.path("min").asDouble())
-                || (definition.path("max").isNumber() && numeric > definition.path("max").asDouble())) {
-            throw new QuantityContractViolation(fieldPath, value, suppliedUnit, expectedUnits,
-                    "The supplied value is outside the schema's allowed domain for " + key + ".");
-        }
-    }
-
-    private void validatePhysicalDomain(Map<String, Object> constraints, BigDecimal value, String key,
-            String fieldPath, String suppliedUnit, List<String> expectedUnits) {
-        double numeric = value.doubleValue();
-        if (!Double.isFinite(numeric)
-                || bool(constraints.get("positive")) && numeric <= 0
-                || bool(constraints.get("nonNegative")) && numeric < 0
-                || bool(constraints.get("integer")) && value.stripTrailingZeros().scale() > 0
-                || number(constraints.get("min"), constraints.get("minimum"), constraints.get("minInclusive")) != null
-                    && numeric < number(constraints.get("min"), constraints.get("minimum"), constraints.get("minInclusive"))
-                || number(constraints.get("max"), constraints.get("maximum"), constraints.get("maxInclusive")) != null
-                    && numeric > number(constraints.get("max"), constraints.get("maximum"), constraints.get("maxInclusive"))) {
-            throw new QuantityContractViolation(fieldPath, value, suppliedUnit, expectedUnits,
-                    "The supplied value is outside the schema's allowed domain for " + key + ".");
-        }
-    }
-
-    private List<String> textValues(JsonNode array) {
-        if (array == null || !array.isArray()) return List.of();
-        List<String> values = new ArrayList<>();
-        array.forEach(item -> { if (item.isTextual()) values.add(item.asText()); });
-        return List.copyOf(values);
-    }
-
-    private boolean bool(Object value) { return value instanceof Boolean booleanValue && booleanValue; }
-
-    private Double number(Object... values) {
-        for (Object value : values) if (value instanceof Number number) return number.doubleValue();
-        return null;
-    }
-
-    private BigDecimal clamp(BigDecimal value) {
-        return value == null ? BigDecimal.ZERO : value.max(BigDecimal.ZERO).min(BigDecimal.ONE);
-    }
 }

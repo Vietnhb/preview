@@ -1,6 +1,7 @@
 package com.example.backend.ai.extraction.prompt;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.example.backend.simulation.assets.VisualTargets;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -27,7 +28,8 @@ public record CandidateContractProjection(
         List<String> relationTypes,
         List<String> endConditionCapabilities,
         List<EntityTypeProjection> entityTypes,
-        BigDecimal executionDurationSeconds) {
+        BigDecimal executionDurationSeconds,
+        int rendererActorCapacity) {
 
     private static final Set<String> CONSTRAINT_FIELDS = Set.of(
             "positive", "nonNegative", "integer", "sameUnitAs",
@@ -45,6 +47,7 @@ public record CandidateContractProjection(
         endConditionCapabilities = List.copyOf(Objects.requireNonNull(endConditionCapabilities,
                 "endConditionCapabilities"));
         entityTypes = List.copyOf(Objects.requireNonNull(entityTypes, "entityTypes"));
+        if (rendererActorCapacity < 0) throw new IllegalArgumentException("Renderer actor capacity cannot be negative.");
         Set<String> entityNames = new LinkedHashSet<>();
         for (EntityTypeProjection entity : entityTypes) {
             if (!entityNames.add(entity.type())) throw new IllegalArgumentException("Duplicate entity type.");
@@ -70,6 +73,8 @@ public record CandidateContractProjection(
         List<QuantityProjection> optional = quantities(definition.get("optionalQuantities"),
                 "optionalQuantities", symbolsByKey);
         List<EntityTypeProjection> entities = entityTypes(definition, symbolsByKey);
+        int actorCapacity = (int) VisualTargets.read(definition.path("visualization")).stream()
+                .filter(target -> "actor".equals(target.kind())).count();
         if (required.isEmpty() && optional.isEmpty() && entities.isEmpty()) {
             throw new IllegalArgumentException("Candidate contract must declare at least one quantity or entity type.");
         }
@@ -77,7 +82,8 @@ public record CandidateContractProjection(
                 declaredRelationTypes(definition), declaredEndConditionCapabilities(definition),
                 entities,
                 definition.path("execution").path("durationSeconds").isNumber()
-                        ? definition.path("execution").path("durationSeconds").decimalValue() : null);
+                        ? definition.path("execution").path("durationSeconds").decimalValue() : null,
+                actorCapacity);
     }
 
     private static List<EntityTypeProjection> entityTypes(JsonNode definition,

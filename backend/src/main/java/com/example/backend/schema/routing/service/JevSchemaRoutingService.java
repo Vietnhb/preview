@@ -13,7 +13,6 @@ import org.springframework.util.StringUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
-import com.example.backend.ai.extraction.CompatibilityFieldPaths;
 import com.example.backend.ai.extraction.model.SpecificationDocument;
 import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.example.backend.simulation.assets.VisualBinding;
@@ -28,8 +27,6 @@ import com.example.backend.service.problem.SchemaDefinitionService;
 /** Classifies approved schemas first; routes catalog assets only after spec confirmation. */
 @Service
 public final class JevSchemaRoutingService {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JevSchemaRoutingService.class);
-
     private final SchemaDefinitionService schemas;
     private final JevSchemaClassifier classifier;
     private final JevProperties jev;
@@ -58,8 +55,7 @@ public final class JevSchemaRoutingService {
             criteria.put(schema.getSchemaId(), description(schema));
         }
 
-        Map<String, String> entityCounts = entityCountCriteria(approved);
-        JevSchemaClassifier.Result result = classifier.classifySchemas(problemText, criteria, entityCounts);
+        JevSchemaClassifier.Result result = classifier.classifySchemas(problemText, criteria);
         meters.counter("physlive.schema.routing.jev.requests").increment();
         List<Map.Entry<String, Double>> ranked = new ArrayList<>(result.probabilities().entrySet());
         ranked.sort(Map.Entry.<String, Double>comparingByValue().reversed().thenComparing(Map.Entry::getKey));
@@ -70,7 +66,7 @@ public final class JevSchemaRoutingService {
         List<SchemaCandidate> candidates = ranked.stream()
                 .filter(item -> byIdentity.containsKey(item.getKey()))
                 .limit(jev.candidateTopK())
-                .map(item -> candidate(byIdentity.get(item.getKey()), item.getValue(), result.entityCountChoice()))
+                .map(item -> candidate(byIdentity.get(item.getKey()), item.getValue()))
                 .toList();
         if (candidates.isEmpty()) throw new SchemaRoutingException("Jev returned a schema outside the approved catalog.");
 
@@ -80,17 +76,6 @@ public final class JevSchemaRoutingService {
         double second = candidates.stream().filter(item -> item != first)
                 .mapToDouble(SchemaCandidate::confidence).max().orElse(0d);
         double margin = Math.max(0d, first.confidence() - second);
-        SchemaVersion firstSchema = byIdentity.get(first.schemaId());
-        Integer routedCount = parseEntityCount(result.entityCountChoice());
-        int capacity = firstSchema == null ? 0 : visualActorCapacity(firstSchema.getDefinition());
-        if (capacity > 0 && routedCount != null && routedCount > capacity) {
-            meters.counter("physlive.schema.routing.jev.capacity_exceeded").increment();
-            meters.counter("physlive.schema.routing.jev.ambiguous").increment();
-            log.info("Backend capacity conflict from classified entity count: schemaId={}, capacity={}, routedCount={}",
-                    first.schemaId(), capacity, routedCount);
-            return new SchemaRoutingDecision(SchemaRoutingDecision.Status.AMBIGUOUS,
-                    "JEV_CAPACITY_EXCEEDED", candidates, clamp(first.confidence()), clamp(margin));
-        }
         boolean selected = result.choice().equals(first.schemaId())
                 && result.inScope() >= 0.5
                 && first.confidence() >= jev.minimumConfidence()
@@ -115,7 +100,7 @@ public final class JevSchemaRoutingService {
             throw new IllegalArgumentException("A validated LLM asset request summary is required before JEV classification.");
         }
         SchemaVersion schema = schemas.requireCurrentApproved(document.schemaId(), document.schemaVersion());
-        SchemaCandidate pinned = candidate(schema, 1, null);
+        SchemaCandidate pinned = candidate(schema, 1);
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("schema", Map.of("schemaId", document.schemaId(), "schemaVersion", document.schemaVersion()));
         context.put("objects", document.objects().stream().map(object -> Map.of(
@@ -130,50 +115,20 @@ public final class JevSchemaRoutingService {
     }
 
     /**
-     * Converts a route-level visual-capacity decision into a bounded finding
-     * that the extraction provider can turn into a user-facing consent question.
-     * Capacity is read from the approved schema definition; no schema id or
-     * object count is embedded in this policy.
-     */
-    public List<String> capacityFindings(SchemaRoutingDecision routing) {
-        if (routing == null || !"JEV_CAPACITY_EXCEEDED".equals(routing.reasonCode())
-                || routing.candidates().isEmpty()) {
-            return List.of();
-        }
-        SchemaCandidate candidate = routing.candidates().getFirst();
-        SchemaVersion schema = schemas.requireCurrentApproved(candidate.schemaId(), candidate.schemaVersion());
-        int actorCapacity = visualActorCapacity(schema.getDefinition());
-        Integer routedCount = routedEntityCount(candidate);
-        if (actorCapacity <= 0 || routedCount == null || routedCount <= actorCapacity) return List.of();
-        return List.of("issue=JEV_CAPACITY_EXCEEDED; fieldPath=" + CompatibilityFieldPaths.CAPACITY + "; routedCount=" + routedCount
-                + "; actorCapacity=" + actorCapacity
-                + "; guidance=Explain the capacity mismatch and ask whether the user accepts a reduction or revises the request. Keep all objects pending a specific choice.");
-    }
-
-    /**
-     * JEV's post-extraction contract gate. It is deliberately deterministic:
-     * the model may understand language, but it cannot change the approved
-     * schema, object identity, renderer slots, or catalog candidates.
+     * Backend contract gate for the selected schema, extracted objects, renderer
+     * slots, and JEV-routed catalog candidates.
      */
     public Verification verify(SchemaRoutingDecision routing, SpecificationDocument document) {
         if (routing == null || document == null) {
             return new Verification(List.of("A routed schema and extracted specification are required."));
         }
         List<String> findings = new ArrayList<>();
-        boolean candidate = routing.candidates().stream().anyMatch(item ->
-                item.schemaId().equals(document.schemaId()) && item.schemaVersion().equals(document.schemaVersion()));
-        if (!candidate) {
+        SchemaCandidate pinned = routing.candidates().stream().filter(item ->
+                item.schemaId().equals(document.schemaId()) && item.schemaVersion().equals(document.schemaVersion()))
+                .findFirst().orElse(null);
+        if (pinned == null) {
             findings.add("The extracted schema is outside the pinned JEV candidate set.");
             return new Verification(List.copyOf(findings));
-        }
-
-        Integer routedEntityCount = routedEntityCount(routing, document.schemaId(), document.schemaVersion());
-        boolean routedEntityCountSatisfied = routedEntityCount != null && routedEntityCount >= 0
-                && document.objects().size() == routedEntityCount;
-        if (routedEntityCountSatisfied) {
-            document.ambiguities().stream().filter(item -> "objects".equals(item.fieldPath())).findAny()
-                    .ifPresent(ignored -> findings.add(
-                            "issue=REDUNDANT_ENTITY_AMBIGUITY; fieldPath=objects; guidance=The JEV entity count is already satisfied; remove this question without replacement."));
         }
 
         SchemaVersion schema = schemas.requireCurrentApproved(document.schemaId(), document.schemaVersion());
@@ -190,10 +145,6 @@ public final class JevSchemaRoutingService {
         boolean visualRoutingSupplied = routing.assets() != null || !bindings.isEmpty();
         Set<String> actualTargets = new HashSet<>();
         Set<String> actorEntities = new HashSet<>();
-        int actorTargets = 0;
-        for (VisualTargets.Target target : targets) {
-            if ("actor".equals(target.kind())) actorTargets++;
-        }
         for (VisualBinding binding : bindings) {
             if (binding == null || !actualTargets.add(binding.targetId())) {
                 findings.add("Each renderer target must have exactly one visual binding.");
@@ -224,25 +175,6 @@ public final class JevSchemaRoutingService {
         if (visualRoutingSupplied && !expectedTargets.equals(actualTargets)) {
             findings.add("Visual bindings must cover the selected schema renderer targets exactly.");
         }
-        boolean visualCapacityExceeded = actorTargets > 0
-                && (objectIds.size() > actorTargets
-                        || (routedEntityCount != null && routedEntityCount > actorTargets));
-        if (visualCapacityExceeded) {
-            int knownObjects = Math.max(objectIds.size(), routedEntityCount == null ? 0 : routedEntityCount);
-            findings.add("issue=VISUAL_CAPACITY_EXCEEDED; fieldPath=" + CompatibilityFieldPaths.CAPACITY + "; knownObjects=" + knownObjects
-                    + "; actorCapacity=" + actorTargets
-                    + "; guidance=Explain the visual limit and ask whether the user accepts a reduction or revises the request. Preserve all objects until the user consents.");
-        } else if (actorTargets > objectIds.size()) {
-            findings.add("issue=EXTRACTED_ENTITY_MISSING; fieldPath=objects; actorCapacity=" + actorTargets
-                    + "; extractedObjects=" + objectIds.size()
-                    + "; guidance=Preserve every explicit source object and ask only for a genuinely unidentified object.");
-        }
-        if (!visualCapacityExceeded && routedEntityCount != null && routedEntityCount >= 0
-                && document.objects().size() != routedEntityCount) {
-            findings.add("issue=ENTITY_COUNT_MISMATCH; fieldPath=objects; expectedObjects=" + routedEntityCount
-                    + "; extractedObjects=" + document.objects().size()
-                    + "; guidance=Preserve the explicit object count already established by JEV. Do not ask the count again.");
-        }
         return new Verification(findings.stream().distinct().limit(8).toList());
     }
 
@@ -253,7 +185,7 @@ public final class JevSchemaRoutingService {
             return new Verification(List.of("The confirmed specification is missing its pinned schema."));
         }
         SchemaVersion schema = schemas.requireCurrentApproved(document.schemaId(), document.schemaVersion());
-        SchemaCandidate pinned = candidate(schema, 1, null);
+        SchemaCandidate pinned = candidate(schema, 1);
         return verify(new SchemaRoutingDecision(SchemaRoutingDecision.Status.SELECTED,
                 "PINNED_AFTER_CONFIRMATION", List.of(pinned), 1, 1), document);
     }
@@ -266,56 +198,12 @@ public final class JevSchemaRoutingService {
         public boolean passed() { return findings.isEmpty(); }
     }
 
-    private SchemaCandidate candidate(SchemaVersion schema, double probability, String entityCountChoice) {
+    private SchemaCandidate candidate(SchemaVersion schema, double probability) {
         CandidateContractProjection contract = CandidateContractProjection.from(schema.getSchemaId(),
                 schema.getVersion(), schema.getTopic(), schema.getName(), schema.getDefinition());
         double confidence = clamp(probability);
         List<String> signals = new ArrayList<>(List.of("JEV_CHOICE", "APPROVED_DATABASE_CONTRACT"));
-        if (StringUtils.hasText(entityCountChoice)) signals.add("JEV_ENTITY_COUNT:" + entityCountChoice);
         return new SchemaCandidate(contract, signals, confidence);
-    }
-
-    private Map<String, String> entityCountCriteria(List<SchemaVersion> approved) {
-        java.util.SortedSet<Integer> capacities = new java.util.TreeSet<>();
-        approved.stream().map(schema -> visualActorCapacity(schema.getDefinition()))
-                .filter(value -> value > 0).forEach(capacities::add);
-        Map<String, String> criteria = new LinkedHashMap<>();
-        capacities.forEach(value -> criteria.put(Integer.toString(value), value + " distinct physical bodies"));
-        if (!capacities.isEmpty()) {
-            int maximum = capacities.last();
-            criteria.put("MORE_THAN_" + maximum, "More than " + maximum + " distinct physical bodies");
-        }
-        return criteria;
-    }
-
-    private Integer routedEntityCount(SchemaRoutingDecision routing, String schemaId, String schemaVersion) {
-        return routing.candidates().stream()
-                .filter(item -> item.schemaId().equals(schemaId) && item.schemaVersion().equals(schemaVersion))
-                .flatMap(item -> item.evidenceCodes().stream())
-                .filter(signal -> signal.startsWith("JEV_ENTITY_COUNT:"))
-                .map(signal -> parseEntityCount(signal.substring("JEV_ENTITY_COUNT:".length())))
-                .filter(java.util.Objects::nonNull).findFirst().orElse(null);
-    }
-
-    private Integer routedEntityCount(SchemaCandidate candidate) {
-        return candidate.evidenceCodes().stream()
-                .filter(signal -> signal.startsWith("JEV_ENTITY_COUNT:"))
-                .map(signal -> parseEntityCount(signal.substring("JEV_ENTITY_COUNT:".length())))
-                .filter(java.util.Objects::nonNull).findFirst().orElse(null);
-    }
-
-    private Integer parseEntityCount(String choice) {
-        if (!StringUtils.hasText(choice)) return null;
-        String normalized = choice.trim();
-        try {
-            if (normalized.startsWith("MORE_THAN_")) {
-                int lowerBound = Integer.parseInt(normalized.substring("MORE_THAN_".length()));
-                return lowerBound == Integer.MAX_VALUE ? null : lowerBound + 1;
-            }
-            return Integer.valueOf(normalized);
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
     }
 
     private String description(SchemaVersion schema) {
@@ -333,39 +221,13 @@ public final class JevSchemaRoutingService {
             if (!types.isArray()) types = definition.path("entityTypes");
             if (types.isArray()) {
                 entities = java.util.stream.StreamSupport.stream(types.spliterator(), false)
-                        .map(item -> "%s[%s..%s]".formatted(item.path("type").asText(),
-                                item.has("min") ? item.path("min").asInt(1) : item.path("minCount").asInt(1),
-                                item.has("max") ? item.path("max").asInt(1)
-                                        : item.has("maxCount") ? item.path("maxCount").asInt(1)
-                                        : item.has("min") ? item.path("min").asInt(1) : item.path("minCount").asInt(1)))
+                        .map(item -> item.path("type").asText())
                         .filter(StringUtils::hasText).sorted().limit(16).toList().toString();
             }
         }
         return "%s | topic=%s | model=%s | required quantities=%s | entity types=%s".formatted(
                 schema.getName(), schema.getTopic(), definition == null ? "" : definition.path("model").asText(schema.getSchemaId()),
-                quantities, entities) + " | visual actor capacity=" + visualActorCapacity(definition);
-    }
-
-    /**
-     * Exposes the renderer capacity to JEV without maintaining a schema-to-asset
-     * mapping. This lets routing reject a one-actor scene for a multi-body request
-     * before extraction can collapse several bodies into one label.
-     */
-    private int visualActorCapacity(com.fasterxml.jackson.databind.JsonNode definition) {
-        if (definition == null) return 0;
-        var presentation = definition.path("visualization").path("presentation");
-        if (presentation.path("actors").isArray()) return presentation.path("actors").size();
-        return countBodyNodes(presentation.path("sceneGraph").path("nodes"));
-    }
-
-    private int countBodyNodes(com.fasterxml.jackson.databind.JsonNode nodes) {
-        if (!nodes.isArray()) return 0;
-        int count = 0;
-        for (var node : nodes) {
-            if ("body".equals(node.path("type").asText())) count++;
-            count += countBodyNodes(node.path("children"));
-        }
-        return count;
+                quantities, entities);
     }
 
     private double clamp(double value) {

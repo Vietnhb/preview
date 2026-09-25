@@ -26,15 +26,6 @@ public interface ExtractionProvider {
         return extract(text);
     }
 
-    /**
-     * Gives the model a bounded, machine-generated contract finding so it can
-     * ask for clarification instead of silently repairing or dropping facts.
-     */
-    default ProviderExtractionResult extract(String text, SchemaRoutingDecision routingDecision,
-            List<String> verificationFindings) {
-        return extract(text, routingDecision);
-    }
-
     default List<AmbiguityItem> phraseVerificationQuestions(String originalText, List<String> findings) {
         throw new UnsupportedOperationException("Verification question phrasing is not supported.");
     }

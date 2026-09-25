@@ -36,12 +36,6 @@ public final class ExtractionPromptBuilder {
      * overflow is rejected so extraction and backend membership checks use one set.
      */
     public PromptMessages build(List<CandidateContractProjection> candidates, String requestText) {
-        return build(candidates, requestText, List.of());
-    }
-
-    /** Adds only concise post-routing findings; the source text remains the authority. */
-    public PromptMessages build(List<CandidateContractProjection> candidates, String requestText,
-            List<String> verificationFindings) {
         if (candidates == null || candidates.isEmpty()) {
             throw new IllegalArgumentException("At least one schema candidate is required.");
         }
@@ -61,23 +55,12 @@ public final class ExtractionPromptBuilder {
         String systemMessage = basePrompt + CANDIDATE_RULES
                 + "\nCandidate contracts (only these catalog versions may be selected):\n"
                 + candidateJson
-                + (noLocalQuantities ? "\nThis contract has no object-local quantities: every object's quantities=[]; put all physical quantities at the root.\n" : "")
-                + findings(verificationFindings);
+                + (noLocalQuantities ? "\nThis contract has no object-local quantities: every object's quantities=[]; put all physical quantities at the root.\n" : "");
         String userMessage = requestText.trim();
         if ((long) systemMessage.length() + userMessage.length() > maxChars) {
             throw new IllegalArgumentException("Candidate extraction prompt messages exceed the configured character limit.");
         }
         return new PromptMessages(systemMessage, userMessage);
-    }
-
-    private String findings(List<String> verificationFindings) {
-        if (verificationFindings == null || verificationFindings.isEmpty()) return "";
-        List<String> bounded = verificationFindings.stream().filter(Objects::nonNull)
-                .map(String::trim).filter(item -> !item.isBlank()).map(item -> item.length() > 240
-                        ? item.substring(0, 240) : item).limit(8).toList();
-        if (bounded.isEmpty()) return "";
-        return "\nBackend findings (preserve the conflicting facts; questions are requested separately):\n- "
-                + String.join("\n- ", bounded) + "\n";
     }
 
     public int messageCharacterCount(List<Map<String, Object>> messages) {
@@ -106,6 +89,7 @@ public final class ExtractionPromptBuilder {
         result.put("endConditionCapabilities", candidate.endConditionCapabilities());
         result.put("entityTypes", candidate.entityTypes());
         result.put("executionDurationSeconds", candidate.executionDurationSeconds());
+        result.put("rendererActorCapacity", candidate.rendererActorCapacity());
         return result;
     }
 

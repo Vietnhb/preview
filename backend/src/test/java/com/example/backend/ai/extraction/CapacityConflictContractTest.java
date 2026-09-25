@@ -1,9 +1,7 @@
 package com.example.backend.ai.extraction;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -36,7 +34,6 @@ import com.example.backend.ai.extraction.model.ProviderExtractionResult;
 import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.example.backend.ai.extraction.prompt.CandidateContractProjection;
 import com.example.backend.ai.extraction.prompt.ExtractionPromptBuilder;
-import com.example.backend.ai.normalization.UnitNormalizer;
 import com.example.backend.config.properties.AiProviderProperties;
 import com.example.backend.config.properties.JevProperties;
 import com.example.backend.entity.problem.SchemaVersion;
@@ -63,46 +60,26 @@ class CapacityConflictContractTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private final CandidateContractProjection contract = contract();
     private final SchemaCandidate candidate = new SchemaCandidate(contract,
-            List.of("JEV_ENTITY_COUNT:2"), 0.95);
-    private final UnitNormalizer units = new UnitNormalizer(mapper);
+            List.of("JEV_CHOICE"), 0.95);
 
     @Test
-    void realPromptAndValidatorKeepCapacityDecisionAheadOfMissingInputs() throws Exception {
+    void productionPromptContainsOnlySchemaContextAndOriginalRequest() throws Exception {
         String system = new ClassPathResource("prompts/physics-specification-system.txt")
                 .getContentAsString(StandardCharsets.UTF_8);
-        var prompt = new ExtractionPromptBuilder(system, 4, 20_000).build(List.of(contract), PROBLEM,
-                List.of("issue=JEV_CAPACITY_EXCEEDED; fieldPath=" + CompatibilityFieldPaths.CAPACITY
-                        + "; routedCount=2; actorCapacity=1"));
+        var prompt = new ExtractionPromptBuilder(system, 4, 20_000).build(List.of(contract), PROBLEM);
         assertTrue(prompt.systemMessage().contains(CompatibilityFieldPaths.CAPACITY));
-        assertTrue(prompt.systemMessage().contains("equivalent objects need no further identity question"));
-        assertTrue(prompt.systemMessage().contains("language of the user's description"));
-        assertTrue(prompt.systemMessage().contains("Omit unknown quantities entirely"));
+        assertTrue(prompt.systemMessage().contains("SpecificationDocument"));
+        assertTrue(prompt.systemMessage().contains("objects:[{id,label,type,quantities:[]}]"));
+        assertTrue(prompt.systemMessage().contains("ambiguities:[{code,fieldPath,question,options:[]}]"));
+        assertTrue(prompt.systemMessage().contains("required quantities and units"));
         assertTrue(prompt.systemMessage().contains("every object's quantities=[]"));
-        assertTrue(prompt.systemMessage().contains("objects.length must equal routedCount"));
+        assertFalse(prompt.systemMessage().contains("objects.length must equal routedCount"));
         assertFalse(prompt.systemMessage().contains("fieldPath=schemaId"));
 
-        JsonNode initial = response(List.of());
-        StrictSpecificationValidator.validate(initial);
-        assertDoesNotThrow(() -> StrictSpecificationValidator.validateCandidateMembership(initial,
-                decision("JEV_CAPACITY_EXCEEDED", SchemaRoutingDecision.Status.AMBIGUOUS), units));
-
-        JsonNode afterConsent = response(List.of(
-                ambiguity(CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT, "jev.capacity.retained-object",
-                        "Bạn muốn giữ vật nào trong mô phỏng?"),
-                ambiguity("quantities.initial_position", "schema.required.initial_position",
-                        "Vị trí ban đầu của vật được giữ là bao nhiêu mét?")));
-        StrictSpecificationValidator.validate(afterConsent);
-        assertDoesNotThrow(() -> StrictSpecificationValidator.validateCandidateMembership(afterConsent,
-                decision("PINNED_FOR_AMBIGUITY_RESOLUTION", SchemaRoutingDecision.Status.SELECTED), units, true));
-
-        JsonNode missingAfterResolution = response(List.of(), 1);
-        assertThrows(IllegalArgumentException.class, () ->
-                StrictSpecificationValidator.validateCandidateMembership(missingAfterResolution,
-                        decision("PINNED_FOR_AMBIGUITY_RESOLUTION", SchemaRoutingDecision.Status.SELECTED), units));
     }
 
     @Test
-    void structuredProviderUsesProductionPromptAndValidatorForTheTwoObjectRequest() throws Exception {
+    void structuredProviderPassesTheModelResponseWithoutSpecChecks() throws Exception {
         String systemPrompt = new ClassPathResource("prompts/physics-specification-system.txt")
                 .getContentAsString(StandardCharsets.UTF_8);
         var properties = new AiProviderProperties("test", "test-key", URI.create("https://example.test"),
@@ -113,9 +90,10 @@ class CapacityConflictContractTest {
                 Duration.ofSeconds(2), 4, 0.5, 0.1, 2_000, 20_000);
         ChatCompletionClient client = spy(new ChatCompletionClient(RestClient.builder(), mapper, properties,
                 mock(SchoolService.class), new DefaultResourceLoader()));
-        JsonNode validResponse = response(List.of());
+        JsonNode validResponse = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
+                "compatibility.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
         doReturn(new ChatCompletionClient.Completion("test-model", mapper.writeValueAsString(validResponse),
-                mapper.createObjectNode())).when(client).completeStructured(anyString(), anyList());
+                mapper.createObjectNode())).when(client).completeJson(anyString(), anyList());
 
         SchemaVersion schema = new SchemaVersion();
         schema.setSchemaId(contract.schemaId());
@@ -132,50 +110,92 @@ class CapacityConflictContractTest {
                 """));
         SchemaDefinitionService schemas = mock(SchemaDefinitionService.class);
         when(schemas.requireCurrentApproved(contract.schemaId(), contract.schemaVersion())).thenReturn(schema);
-        when(schemas.canonicalQuantityKey(org.mockito.ArgumentMatchers.any(), anyString()))
-                .thenAnswer(call -> call.getArgument(1));
-        StructuredExtractionProvider provider = new StructuredExtractionProvider(client, mapper, units, schemas,
+        StructuredExtractionProvider provider = new StructuredExtractionProvider(client, mapper, schemas,
                 properties, routingProperties, new DefaultResourceLoader(), new SimpleMeterRegistry(),
                 mock(AssetSelectionService.class));
 
         ProviderExtractionResult result = provider.extract(PROBLEM,
-                decision("JEV_CAPACITY_EXCEEDED", SchemaRoutingDecision.Status.AMBIGUOUS), List.of(
-                        "issue=JEV_CAPACITY_EXCEEDED; fieldPath=" + CompatibilityFieldPaths.CAPACITY
-                                + "; routedCount=2; actorCapacity=1"));
+                decision("JEV_SCHEMA_SELECTED", SchemaRoutingDecision.Status.SELECTED));
 
-        assertTrue(result.document().ambiguities().isEmpty(),
-                "Initial extraction returns facts; capacity questions follow backend verification.");
+        assertTrue(result.document().ambiguities().stream().anyMatch(item ->
+                CompatibilityFieldPaths.CAPACITY.equals(item.fieldPath())),
+                "The LLM must ask about the capacity conflict in its initial extraction.");
         assertTrue(result.document().objects().size() == 2, "Both stated objects must survive initial extraction.");
-        verify(client).completeStructured(anyString(), anyList());
+        verify(client).completeJson(anyString(), anyList());
     }
 
     @Test
-    void invalidStructuredResponseStopsWithoutRetry() throws Exception {
+    void invalidStructuredResponseIsReturnedToTheModelForCorrection() throws Exception {
         JsonNode valid = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
-                "jev.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
+                "compatibility.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
         var provider = providerRetrying("not-json", valid);
-        List<String> findings = List.of("issue=JEV_CAPACITY_EXCEEDED; fieldPath="
-                + CompatibilityFieldPaths.CAPACITY + "; routedCount=2; actorCapacity=1");
+        ProviderExtractionResult result = provider.provider().extract(PROBLEM,
+                decision("JEV_SCHEMA_SELECTED", SchemaRoutingDecision.Status.SELECTED));
+        assertEquals(2, result.document().objects().size());
+        ArgumentCaptor<List<Map<String, Object>>> messages = ArgumentCaptor.forClass(List.class);
+        verify(provider.client(), times(2)).completeJson(anyString(), messages.capture());
+        assertTrue(messages.getAllValues().get(1).toString().contains("Previous response error"));
+    }
 
-        AiStepException error = assertThrows(AiStepException.class, () -> provider.provider().extract(PROBLEM,
-                decision("JEV_CAPACITY_EXCEEDED", SchemaRoutingDecision.Status.AMBIGUOUS), findings));
-        assertEquals("SPECIFICATION_EXTRACTION", error.step());
-        verify(provider.client(), times(1)).completeStructured(anyString(), anyList());
+    @Test
+    void missingPersistenceFieldGetsAFormatRetryBeforeDatabaseWrite() throws Exception {
+        var incomplete = (com.fasterxml.jackson.databind.node.ObjectNode) response(List.of());
+        incomplete.remove("confidence");
+        var provider = providerRetrying(mapper.writeValueAsString(incomplete), response(List.of()));
+
+        ProviderExtractionResult result = provider.provider().extract(PROBLEM,
+                decision("JEV_SCHEMA_SELECTED", SchemaRoutingDecision.Status.SELECTED));
+
+        assertEquals(2, result.document().objects().size());
+        ArgumentCaptor<List<Map<String, Object>>> messages = ArgumentCaptor.forClass(List.class);
+        verify(provider.client(), times(2)).completeJson(anyString(), messages.capture());
+        assertTrue(messages.getAllValues().get(1).toString().contains("SpecificationDocument.confidence"));
+    }
+
+    @Test
+    void capacityQuestionOmissionIsAllowedInInitialDraftForLaterClarification() throws Exception {
+        JsonNode initial = response(List.of());
+        JsonNode revised = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
+                "capacity-choice", "Bạn muốn giữ cả hai vật hay đồng ý mô phỏng một vật?")));
+        var fixture = providerRetrying(mapper.writeValueAsString(initial), revised);
+
+        ProviderExtractionResult result = fixture.provider().extract(PROBLEM,
+                decision("JEV_SCHEMA_SELECTED", SchemaRoutingDecision.Status.SELECTED));
+
+        assertEquals(2, result.document().objects().size());
+        assertEquals(0, result.document().ambiguities().size());
+        verify(fixture.client(), times(1)).completeJson(anyString(), anyList());
+    }
+
+    @Test
+    void duplicateQuestionCodeGetsARevisionInsteadOfImmediate502() throws Exception {
+        JsonNode initial = response(List.of(
+                ambiguity(CompatibilityFieldPaths.CAPACITY, "same-code", "Bạn muốn rút gọn không?"),
+                ambiguity("quantities.initial_position", "same-code", "Vị trí ban đầu là bao nhiêu?")));
+        JsonNode revised = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
+                "capacity-choice", "Bạn muốn giữ cả hai vật hay đồng ý mô phỏng một vật?")));
+        var fixture = providerRetrying(mapper.writeValueAsString(initial), revised);
+
+        ProviderExtractionResult result = fixture.provider().extract(PROBLEM,
+                decision("JEV_SCHEMA_SELECTED", SchemaRoutingDecision.Status.SELECTED));
+
+        assertEquals(2, result.document().ambiguities().size());
+        verify(fixture.client(), times(1)).completeJson(anyString(), anyList());
     }
 
     @Test
     void clarificationCanAskWhichObjectWhenIdentityMatters() throws Exception {
         JsonNode accepted = response(List.of(ambiguity(
-                CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT, "jev.capacity.retained-object",
+                CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT, "compatibility.capacity.retained-object",
                 "Bạn muốn giữ vật nào?")));
         ((com.fasterxml.jackson.databind.node.ObjectNode) accepted).withArray("resolutionDecisions")
-                .add(decisionJson("jev.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of()));
+                .add(decisionJson("compatibility.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of()));
         var provider = providerReturning(accepted);
         JsonNode current = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
-                "jev.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
+                "compatibility.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
 
         ProviderExtractionResult result = provider.provider().resolveAmbiguities(PROBLEM, current,
-                Map.of("jev.capacity.actor-count", "Đồng ý rút gọn"), List.of(
+                Map.of("compatibility.capacity.actor-count", "Đồng ý rút gọn"), List.of(
                         new ConversationTurn("user", PROBLEM),
                         new ConversationTurn("assistant", "Bạn có đồng ý rút gọn mô phỏng không?"),
                         new ConversationTurn("user", "Đồng ý rút gọn")));
@@ -187,71 +207,37 @@ class CapacityConflictContractTest {
         assertFalse(result.document().ambiguities().stream().anyMatch(item ->
                 item.fieldPath().startsWith("quantities.")), "Do not ask for quantities before the retained object is chosen.");
         ArgumentCaptor<List<Map<String, Object>>> messages = ArgumentCaptor.forClass(List.class);
-        verify(provider.client(), times(1)).completeStructured(anyString(), messages.capture());
-        assertTrue(messages.getValue().toString().contains("otherwise ask which object to retain"));
+        verify(provider.client(), times(1)).completeJson(anyString(), messages.capture());
+        assertTrue(messages.getValue().toString().contains("return one resolutionDecision per answered code"));
     }
 
     @Test
     void equivalentObjectsCanBeReducedWithoutAnIdentityQuestion() throws Exception {
-        JsonNode accepted = response(List.of(), 1);
+        JsonNode accepted = response(List.of(ambiguity("quantities.initial_position",
+                "schema.required.initial_position", "Vị trí ban đầu là bao nhiêu mét?")), 1);
         ((com.fasterxml.jackson.databind.node.ObjectNode) accepted).withArray("resolutionDecisions")
-                .add(decisionJson("jev.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of("body-2")));
+                .add(decisionJson("compatibility.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of("body-2")));
         var provider = providerReturning(accepted);
         JsonNode current = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
-                "jev.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
+                "compatibility.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
 
         ProviderExtractionResult result = provider.provider().resolveAmbiguities(PROBLEM, current,
-                Map.of("jev.capacity.actor-count", "Đồng ý rút gọn còn một vật"));
+                Map.of("compatibility.capacity.actor-count", "Đồng ý rút gọn còn một vật"));
 
         assertEquals(1, result.document().objects().size());
         assertEquals("body-1", result.document().objects().getFirst().id());
-        assertTrue(result.document().ambiguities().isEmpty());
-        assertEquals(List.of("body-2"), result.resolutionDecisions().getFirst().omittedObjectIds());
-        verify(provider.client(), times(1)).completeStructured(anyString(), anyList());
-    }
-
-    @Test
-    void clarificationMayDeferRequiredInputButMustRespectEntityCapacity() throws Exception {
-        JsonNode reduced = response(List.of(), 1);
-        assertDoesNotThrow(() -> StrictSpecificationValidator.validateCandidateMembership(reduced,
-                decision("PINNED_FOR_AMBIGUITY_RESOLUTION", SchemaRoutingDecision.Status.SELECTED),
-                units, true, false));
-        JsonNode tooMany = response(List.of());
-        assertThrows(IllegalArgumentException.class, () -> StrictSpecificationValidator.validateCandidateMembership(
-                tooMany, decision("PINNED_FOR_AMBIGUITY_RESOLUTION", SchemaRoutingDecision.Status.SELECTED),
-                units, true, false));
-    }
-
-    @Test
-    void realValidatorRequiresMissingQuantityAfterRetainedObjectIsSelected() throws Exception {
-        var output = response(List.of(ambiguity("quantities.initial_position", "schema.required.initial_position",
-                "Vị trí ban đầu của vật được giữ là bao nhiêu mét?")), 1);
-        ((com.fasterxml.jackson.databind.node.ObjectNode) output).withArray("resolutionDecisions")
-                .add(decisionJson("jev.capacity.retained-object", "ANSWERED", List.of("body-2")));
-        var provider = providerReturning(output);
-        JsonNode current = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT,
-                "jev.capacity.retained-object", "Bạn muốn giữ vật nào?")));
-
-        ProviderExtractionResult result = provider.provider().resolveAmbiguities(PROBLEM, current,
-                Map.of("jev.capacity.retained-object", "Giữ vật 1"), List.of(
-                        new ConversationTurn("user", "Đồng ý rút gọn mô phỏng"),
-                        new ConversationTurn("assistant", "Bạn muốn giữ vật nào?"),
-                        new ConversationTurn("user", "Giữ vật 1")));
-
-        assertTrue(result.document().objects().size() == 1);
         assertTrue(result.document().ambiguities().stream().anyMatch(item ->
                 "quantities.initial_position".equals(item.fieldPath())));
-        assertThrows(IllegalArgumentException.class, () -> StrictSpecificationValidator.validateCandidateMembership(
-                response(List.of(), 1), decision("PINNED_FOR_AMBIGUITY_RESOLUTION",
-                        SchemaRoutingDecision.Status.SELECTED), units));
+        assertEquals(List.of("body-2"), result.resolutionDecisions().getFirst().omittedObjectIds());
+        verify(provider.client(), times(1)).completeJson(anyString(), anyList());
     }
 
     @Test
     void backendApplierDefersReductionAfterConsentUntilTheUserIdentifiesAnObject() throws Exception {
         JsonNode accepted = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT,
-                "jev.capacity.retained-object", "Bạn muốn giữ vật nào?")));
+                "compatibility.capacity.retained-object", "Bạn muốn giữ vật nào?")));
         ((com.fasterxml.jackson.databind.node.ObjectNode) accepted).withArray("resolutionDecisions")
-                .add(decisionJson("jev.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of()));
+                .add(decisionJson("compatibility.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of()));
         var fixture = providerReturning(accepted);
         var routing = mock(JevSchemaRoutingService.class);
         var readiness = mock(SpecificationReadinessService.class);
@@ -259,13 +245,11 @@ class CapacityConflictContractTest {
         var applierSchemas = mock(SchemaDefinitionService.class);
         when(applierSchemas.requireCurrentApproved(contract.schemaId(), contract.schemaVersion()))
                 .thenReturn(approvedTestSchema());
-        when(applierSchemas.canonicalizeQuantities(org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any())).thenAnswer(call -> call.getArgument(0));
         var applier = new AmbiguityResolutionApplier(mapper, fixture.provider(), applierSchemas, readiness,
                 routing, assetSelections);
         Specification specification = openCapacitySpecification();
 
-        applier.applyAll(specification, Map.of("jev.capacity.actor-count", "Đồng ý rút gọn"), List.of(
+        applier.applyAll(specification, Map.of("compatibility.capacity.actor-count", "Đồng ý rút gọn"), List.of(
                 new ConversationTurn("user", PROBLEM),
                 new ConversationTurn("assistant", "Bạn có đồng ý rút gọn mô phỏng không?"),
                 new ConversationTurn("user", "Đồng ý rút gọn")));
@@ -276,18 +260,17 @@ class CapacityConflictContractTest {
                         && CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.getFieldPath())));
         assertEquals(1, specification.getAmbiguity().size(), "A single unresolved choice must be shown once.");
         assertEquals(ConfirmationState.UNRESOLVED, specification.getConfirmationState());
-        verifyNoInteractions(routing, assetSelections);
+        verifyNoInteractions(assetSelections);
     }
 
     @Test
     void backendApplierAcceptsRecordedReductionWithoutAskingObjectIdentity() throws Exception {
-        JsonNode accepted = response(List.of(), 1);
+        JsonNode accepted = response(List.of(ambiguity("quantities.initial_position",
+                "schema.required.initial_position", "Vị trí ban đầu là bao nhiêu mét?")), 1);
         ((com.fasterxml.jackson.databind.node.ObjectNode) accepted).withArray("resolutionDecisions")
-                .add(decisionJson("jev.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of("body-2")));
+                .add(decisionJson("compatibility.capacity.actor-count", "ACCEPT_SIMPLIFICATION", List.of("body-2")));
         var fixture = providerReturning(accepted);
         var routing = mock(JevSchemaRoutingService.class);
-        when(routing.verifyPinned(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(new JevSchemaRoutingService.Verification(List.of()));
         var readiness = mock(SpecificationReadinessService.class);
         when(readiness.blockers(org.mockito.ArgumentMatchers.any(Specification.class)))
                 .thenReturn(List.of("Required input still missing"));
@@ -295,20 +278,19 @@ class CapacityConflictContractTest {
         var schemas = mock(SchemaDefinitionService.class);
         when(schemas.requireCurrentApproved(contract.schemaId(), contract.schemaVersion()))
                 .thenReturn(approvedTestSchema());
-        when(schemas.canonicalizeQuantities(org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any())).thenAnswer(call -> call.getArgument(0));
         var applier = new AmbiguityResolutionApplier(mapper, fixture.provider(), schemas, readiness,
                 routing, assetSelections);
         Specification specification = openCapacitySpecification();
 
-        applier.applyAll(specification, Map.of("jev.capacity.actor-count", "Đồng ý rút gọn còn một vật"));
+        applier.applyAll(specification, Map.of("compatibility.capacity.actor-count", "Đồng ý rút gọn còn một vật"));
 
         assertEquals(1, specification.getObjects().size());
-        assertEquals(ConfirmationState.CONFIRMED, specification.getConfirmationState());
+        assertEquals(ConfirmationState.UNRESOLVED, specification.getConfirmationState());
+        assertTrue(specification.getAmbiguityCases().stream().anyMatch(item ->
+                item.getStatus() == AmbiguityStatus.OPEN && "quantities.initial_position".equals(item.getFieldPath())));
         assertFalse(specification.getAmbiguityCases().stream().anyMatch(item ->
                 item.getStatus() == AmbiguityStatus.OPEN
                         && CompatibilityFieldPaths.CAPACITY_RETAINED_OBJECT.equals(item.getFieldPath())));
-        verify(routing).verifyPinned(org.mockito.ArgumentMatchers.any());
         verifyNoInteractions(assetSelections);
     }
 
@@ -316,7 +298,7 @@ class CapacityConflictContractTest {
     void backendApplierStopsAfterTheUserDeclinesCompatibility() throws Exception {
         JsonNode declined = response(List.of());
         ((com.fasterxml.jackson.databind.node.ObjectNode) declined).withArray("resolutionDecisions")
-                .add(decisionJson("jev.capacity.actor-count", "DECLINE_SIMPLIFICATION", List.of()));
+                .add(decisionJson("compatibility.capacity.actor-count", "DECLINE_SIMPLIFICATION", List.of()));
         var fixture = providerReturning(declined);
         var routing = mock(JevSchemaRoutingService.class);
         var readiness = mock(SpecificationReadinessService.class);
@@ -325,7 +307,7 @@ class CapacityConflictContractTest {
                 readiness, routing, assetSelections);
         Specification specification = openCapacitySpecification();
 
-        applier.applyAll(specification, Map.of("jev.capacity.actor-count", "Không, tôi sẽ sửa yêu cầu"), List.of(
+        applier.applyAll(specification, Map.of("compatibility.capacity.actor-count", "Không, tôi sẽ sửa yêu cầu"), List.of(
                 new ConversationTurn("user", PROBLEM),
                 new ConversationTurn("assistant", "Bạn có đồng ý rút gọn mô phỏng không?"),
                 new ConversationTurn("user", "Không, tôi sẽ sửa yêu cầu")));
@@ -391,13 +373,11 @@ class CapacityConflictContractTest {
                 .map(content -> new ChatCompletionClient.Completion("test-model", content, mapper.createObjectNode()))
                 .toList();
         doReturn(completions.getFirst(), completions.subList(1, completions.size()).toArray())
-                .when(client).completeStructured(anyString(), anyList());
+                .when(client).completeJson(anyString(), anyList());
         SchemaVersion schema = approvedTestSchema();
         SchemaDefinitionService schemas = mock(SchemaDefinitionService.class);
         when(schemas.requireCurrentApproved(contract.schemaId(), contract.schemaVersion())).thenReturn(schema);
-        when(schemas.canonicalQuantityKey(org.mockito.ArgumentMatchers.any(), anyString()))
-                .thenAnswer(call -> call.getArgument(1));
-        StructuredExtractionProvider provider = new StructuredExtractionProvider(client, mapper, units, schemas,
+        StructuredExtractionProvider provider = new StructuredExtractionProvider(client, mapper, schemas,
                 properties, routingProperties, new DefaultResourceLoader(), new SimpleMeterRegistry(),
                 mock(AssetSelectionService.class));
         return new ProviderFixture(provider, client);
@@ -422,7 +402,7 @@ class CapacityConflictContractTest {
 
     private Specification openCapacitySpecification() throws Exception {
         JsonNode current = response(List.of(ambiguity(CompatibilityFieldPaths.CAPACITY,
-                "jev.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
+                "compatibility.capacity.actor-count", "Bạn có đồng ý rút gọn mô phỏng không?")));
         Specification specification = new Specification();
         specification.setSchemaId(contract.schemaId());
         specification.setSchemaVersion(contract.schemaVersion());
@@ -439,7 +419,7 @@ class CapacityConflictContractTest {
         submission.setEditableText(PROBLEM);
         specification.setSubmission(submission);
         AmbiguityCase ambiguity = new AmbiguityCase();
-        ambiguity.setCode("jev.capacity.actor-count");
+        ambiguity.setCode("compatibility.capacity.actor-count");
         ambiguity.setFieldPath(CompatibilityFieldPaths.CAPACITY);
         ambiguity.setQuestion("Bạn có đồng ý rút gọn mô phỏng không?");
         ambiguity.setOptions(mapper.createArrayNode());
@@ -479,7 +459,7 @@ class CapacityConflictContractTest {
                         new CandidateContractProjection.QuantityProjection("acceleration", List.of("a"),
                                 List.of(), List.of("m/s²"), Map.of(), null)),
                 List.of(), List.of(), List.of("time_limit"),
-                List.of(new CandidateContractProjection.EntityTypeProjection("body", 1, 1,
-                        List.of(), List.of())), BigDecimal.valueOf(8));
+                        List.of(new CandidateContractProjection.EntityTypeProjection("body", 1, 1,
+                        List.of(), List.of())), BigDecimal.valueOf(8), 1);
     }
 }

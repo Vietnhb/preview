@@ -2,12 +2,15 @@ package com.example.backend.entity.problem;
 
 import com.example.backend.entity.common.AuditedEntity;
 import com.example.backend.entity.enums.LifecycleStatus;
+import com.example.backend.simulation.assets.VisualTargets;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
@@ -48,4 +51,10 @@ public class SchemaVersion extends AuditedEntity {
     @Version
     @Column(name = "record_version", nullable = false)
     private long recordVersion;
+
+    @Transient
+    @JsonProperty("hasSvgAsset")
+    public boolean hasSvgAsset() {
+        return definition != null && !VisualTargets.read(definition.path("visualization")).isEmpty();
+    }
 }
