@@ -33,8 +33,14 @@ public record SoundWaveParameters(
         double start = PhysicsValues.optional(specification, overrides, 0, "domain_start");
         double configuredEnd = PhysicsValues.optional(specification, overrides, Double.NaN, "domain_end");
         double configuredLength = PhysicsValues.optional(specification, overrides, Double.NaN, "domain_length");
-        double end = Double.isFinite(configuredEnd) ? configuredEnd
-                : start + (Double.isFinite(configuredLength) ? configuredLength : Math.max(2 * wavelength, 1));
+        double end;
+        if (Double.isFinite(configuredEnd)) {
+            end = configuredEnd;
+        } else if (Double.isFinite(configuredLength)) {
+            end = start + configuredLength;
+        } else {
+            end = start + Math.max(2 * wavelength, 1);
+        }
         if (!Double.isFinite(start) || !Double.isFinite(end) || start < 0 || end <= start) {
             throw new IllegalArgumentException("Sound-wave domain must be finite, non-negative and increasing");
         }

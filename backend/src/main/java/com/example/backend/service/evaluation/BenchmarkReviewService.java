@@ -29,6 +29,12 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class BenchmarkReviewService {
+    private static final String DRAFT = "DRAFT";
+    private static final String ANNOTATING = "ANNOTATING";
+    private static final String ARCHIVED = "ARCHIVED";
+    private static final String GOLD_READY = "GOLD_READY";
+    private static final String DISAGREEMENT = "DISAGREEMENT";
+    private static final String QUANTITIES = "quantities";
     private final BenchmarkProblemRepository repository;
     private final CurrentUserService currentUser;
     private final EntityManager entityManager;
@@ -67,7 +73,7 @@ public class BenchmarkReviewService {
         benchmark.setGradeScope(request.gradeScope().trim());
         benchmark.setSourceCategory(request.sourceCategory().trim());
         benchmark.setActive(true);
-        benchmark.setStatus("DRAFT");
+        benchmark.setStatus(DRAFT);
         benchmark.setCreatedByReference(actor);
         return view(repository.save(benchmark), actor);
     }
@@ -75,7 +81,7 @@ public class BenchmarkReviewService {
     @Transactional
     public View updateDraft(UUID id, BenchmarkUpdateRequest request) {
         BenchmarkProblem benchmark = locked(id);
-        if (!"DRAFT".equals(benchmark.getStatus()) || !benchmark.getAnnotations().isEmpty()) {
+        if (!DRAFT.equals(benchmark.getStatus()) || !benchmark.getAnnotations().isEmpty()) {
             throw conflict("Only a draft without annotations can be edited");
         }
         benchmark.setProblemText(request.problemText().trim());
@@ -88,8 +94,8 @@ public class BenchmarkReviewService {
     @Transactional
     public View activate(UUID id) {
         BenchmarkProblem benchmark = locked(id);
-        if (!"DRAFT".equals(benchmark.getStatus())) throw conflict("Only drafts can be activated");
-        benchmark.setStatus("ANNOTATING");
+        if (!DRAFT.equals(benchmark.getStatus())) throw conflict("Only drafts can be activated");
+        benchmark.setStatus(ANNOTATING);
         return view(repository.save(benchmark), actor());
     }
 
@@ -97,8 +103,8 @@ public class BenchmarkReviewService {
     public View archive(UUID id, String reason) {
         if (!StringUtils.hasText(reason)) throw new ApiException(HttpStatus.BAD_REQUEST, "Archive reason is required");
         BenchmarkProblem benchmark = locked(id);
-        if ("ARCHIVED".equals(benchmark.getStatus())) return view(benchmark, actor());
-        benchmark.setStatus("ARCHIVED");
+        if (ARCHIVED.equals(benchmark.getStatus())) return view(benchmark, actor());
+        benchmark.setStatus(ARCHIVED);
         benchmark.setArchivedReason(reason.trim());
         benchmark.setActive(false);
         return view(repository.save(benchmark), actor());
@@ -108,7 +114,7 @@ public class BenchmarkReviewService {
     public View annotate(UUID id, BenchmarkAnnotationRequest request) {
         validate(request.specification());
         BenchmarkProblem benchmark = locked(id);
-        if (!"ANNOTATING".equals(benchmark.getStatus())) {
+        if (!ANNOTATING.equals(benchmark.getStatus())) {
             throw conflict("Benchmark must be activated before annotation");
         }
         String actor = actor();
@@ -125,7 +131,7 @@ public class BenchmarkReviewService {
         annotation.setModelVersion(trimToNull(request.modelVersion()));
         benchmark.addAnnotation(annotation);
         if (benchmark.getAnnotations().size() == 2) {
-            benchmark.setStatus(annotationsAgree(benchmark) ? "GOLD_READY" : "DISAGREEMENT");
+            benchmark.setStatus(annotationsAgree(benchmark) ? GOLD_READY : DISAGREEMENT);
         }
         return view(repository.save(benchmark), actor);
     }
@@ -135,7 +141,7 @@ public class BenchmarkReviewService {
         validate(request.specification());
         BenchmarkProblem benchmark = locked(id);
         String actor = actor();
-        if (!"DISAGREEMENT".equals(benchmark.getStatus()) || benchmark.getAnnotations().size() != 2
+        if (!DISAGREEMENT.equals(benchmark.getStatus()) || benchmark.getAnnotations().size() != 2
                 || !benchmark.getAdjudications().isEmpty()
                 || benchmark.getAnnotations().stream().anyMatch(item -> item.getAnnotatorReference().equals(actor))) {
             throw conflict("A third independent reviewer must adjudicate after two disagreeing annotations");
@@ -147,14 +153,14 @@ public class BenchmarkReviewService {
                 ? request.disagreementCategories().trim() : "RESOLVED");
         result.setRationale(request.rationale().trim());
         benchmark.addAdjudication(result);
-        benchmark.setStatus("GOLD_READY");
+        benchmark.setStatus(GOLD_READY);
         return view(repository.save(benchmark), actor);
     }
 
     private BenchmarkProblem locked(UUID id) {
         BenchmarkProblem benchmark = entityManager.find(BenchmarkProblem.class, id, LockModeType.PESSIMISTIC_WRITE);
         if (benchmark == null) throw new ApiException(HttpStatus.NOT_FOUND, "Benchmark not found");
-        if (!benchmark.isActive() && !"ARCHIVED".equals(benchmark.getStatus())) {
+        if (!benchmark.isActive() && !ARCHIVED.equals(benchmark.getStatus())) {
             throw conflict("Benchmark is inactive");
         }
         return benchmark;
@@ -177,18 +183,18 @@ public class BenchmarkReviewService {
     private void validate(JsonNode specification) {
         if (specification == null || !specification.isObject()
                 || !specification.path("objects").isArray()
-                || !specification.path("quantities").isArray()
+                || !specification.path(QUANTITIES).isArray()
                 || !specification.path("relations").isArray()) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Specification must contain objects, quantities and relations arrays");
         }
         if (specification.path("objects").size() > 256
-                || specification.path("quantities").size() > 512
+                || specification.path(QUANTITIES).size() > 512
                 || specification.path("relations").size() > 1024) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Specification contains too many items");
         }
         List<String> names = new ArrayList<>();
-        for (JsonNode quantity : specification.path("quantities")) {
+        for (JsonNode quantity : specification.path(QUANTITIES)) {
             String name = quantity.path("name").asText();
             if (name.isBlank() || !quantity.path("normalizedValue").isNumber()
                     || quantity.path("normalizedUnit").asText().isBlank()) {
@@ -215,18 +221,18 @@ public class BenchmarkReviewService {
                 .filter(item -> complete || item.getAnnotatorReference().equals(actor))
                 .map(item -> new AnnotationView(item.getAnnotatorReference(), item.getGoldSpecification()))
                 .toList();
-        boolean active = benchmark.isActive() && !"ARCHIVED".equals(status);
+        boolean active = benchmark.isActive() && !ARCHIVED.equals(status);
         return new View(benchmark.getId(), benchmark.getProblemText(), benchmark.getTopic(), benchmark.getGradeScope(),
                 benchmark.getSourceCategory(), status, benchmark.getVersion(), benchmark.getCreatedByReference(),
                 benchmark.getCreatedAt(), benchmark.getAnnotations().size(),
-                active && "ANNOTATING".equals(status) && benchmark.getAnnotations().size() < 2 && !own,
-                active && "DISAGREEMENT".equals(status) && complete && !own && gold == null,
+                active && ANNOTATING.equals(status) && benchmark.getAnnotations().size() < 2 && !own,
+                active && DISAGREEMENT.equals(status) && complete && !own && gold == null,
                 visible, gold);
     }
 
     private String legacyStatus(BenchmarkProblem benchmark) {
-        if (!benchmark.getAdjudications().isEmpty() || annotationsAgree(benchmark)) return "GOLD_READY";
-        return benchmark.getAnnotations().isEmpty() ? "DRAFT" : "ANNOTATING";
+        if (!benchmark.getAdjudications().isEmpty() || annotationsAgree(benchmark)) return GOLD_READY;
+        return benchmark.getAnnotations().isEmpty() ? DRAFT : ANNOTATING;
     }
 
     private ApiException conflict(String message) {

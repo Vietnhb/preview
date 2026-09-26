@@ -1,8 +1,5 @@
 package com.example.backend.controller.auth;
 
-import com.example.backend.dto.school.LicenseStatusResponse;
-import com.example.backend.service.account.CurrentUserService;
-import com.example.backend.service.school.LicenseCheckService;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

@@ -28,7 +28,7 @@ public class RadioactiveDecaySolver implements PhysicsSolver {
         if (!Double.isFinite(durationSeconds) || durationSeconds <= 0 || !Double.isFinite(stepSeconds) || stepSeconds <= 0) {
             throw new IllegalArgumentException("durationSeconds and stepSeconds must be finite and positive");
         }
-        int points = Math.min(16_384, Math.max(1, (int) Math.ceil(durationSeconds / stepSeconds)));
+        int points = Math.clamp((int) Math.ceil(durationSeconds / stepSeconds), 1, 16_384);
         List<Double> time = new ArrayList<>(points + 1);
         List<Double> remaining = new ArrayList<>(points + 1);
         List<Double> activity = new ArrayList<>(points + 1);

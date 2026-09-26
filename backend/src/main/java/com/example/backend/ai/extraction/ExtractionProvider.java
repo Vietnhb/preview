@@ -1,11 +1,10 @@
 package com.example.backend.ai.extraction;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
-import com.example.backend.ai.extraction.model.ProviderExtractionResult;
-import com.example.backend.ai.extraction.model.AmbiguityItem;
 import com.example.backend.ai.extraction.model.ConversationTurn;
+import com.example.backend.ai.extraction.model.ProviderExtractionResult;
 import com.example.backend.entity.enums.ExtractionPath;
 import com.example.backend.schema.routing.model.SchemaRoutingDecision;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,21 +18,7 @@ public interface ExtractionProvider {
 
     boolean isAvailable();
 
-    ProviderExtractionResult extract(String text);
-
-    default ProviderExtractionResult extract(String text, SchemaRoutingDecision routingDecision) {
-        if (routingDecision == null) throw new IllegalArgumentException("Schema routing decision is required");
-        return extract(text);
-    }
-
-    default List<AmbiguityItem> phraseVerificationQuestions(String originalText, List<String> findings) {
-        throw new UnsupportedOperationException("Verification question phrasing is not supported.");
-    }
-
-    default List<AmbiguityItem> phraseVerificationQuestions(String originalText, List<String> findings,
-            List<ConversationTurn> conversation) {
-        return phraseVerificationQuestions(originalText, findings);
-    }
+    ProviderExtractionResult extract(String text, SchemaRoutingDecision routingDecision);
 
     ProviderExtractionResult resolveAmbiguities(
             String originalText,
@@ -48,10 +33,4 @@ public interface ExtractionProvider {
         return resolveAmbiguities(originalText, currentSpecification, answers);
     }
 
-    ProviderExtractionResult bindVisualAssets(String originalText, JsonNode currentSpecification,
-            SchemaRoutingDecision assetRoute, List<ConversationTurn> conversation);
-
-    default JsonNode summarizeAssetRequests(String originalText, JsonNode confirmedSpecification) {
-        throw new UnsupportedOperationException("Asset request summarization is not supported.");
-    }
 }

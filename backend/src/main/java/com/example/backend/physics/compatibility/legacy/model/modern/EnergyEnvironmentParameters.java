@@ -15,7 +15,7 @@ public record EnergyEnvironmentParameters(double demand, double renewableFractio
         double fossilFactor = PhysicsValues.require(specification, overrides, "fossil_emission_factor");
         double renewableFactor = PhysicsValues.require(specification, overrides, "renewable_emission_factor");
         double efficiency = PhysicsValues.require(specification, overrides, "conversion_efficiency");
-        if (!(demand >= 0) || renewable < 0 || renewable > 1 || fossilFactor < 0 || renewableFactor < 0
+        if (demand < 0 || renewable < 0 || renewable > 1 || fossilFactor < 0 || renewableFactor < 0
                 || efficiency <= 0 || efficiency > 1) {
             throw new IllegalArgumentException("Energy-environment parameters are invalid");
         }

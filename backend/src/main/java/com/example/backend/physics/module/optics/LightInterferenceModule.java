@@ -17,6 +17,8 @@ public final class LightInterferenceModule implements PhysicsModule<LightInterfe
     public static final String MODULE_ID = "light_interference";
     public static final String NUMERICAL_SOLVER_ID = "light_interference_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "light_interference_reference_v2";
+    private static final String PHASE_DIFFERENCE = "phaseDifference";
+    private static final String INTENSITY = "intensity";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -47,13 +49,13 @@ public final class LightInterferenceModule implements PhysicsModule<LightInterfe
             double phaseDifference = 2.0 * Math.PI * (pathDifference / parameters.wavelength());
             double halfPhaseCosine = Math.cos(phaseDifference / 2.0);
             double intensity = parameters.referenceIntensity() * halfPhaseCosine * halfPhaseCosine;
-            requireFinite(phaseDifference, "phaseDifference");
-            requireFinite(intensity, "intensity");
+            requireFinite(phaseDifference, PHASE_DIFFERENCE);
+            requireFinite(intensity, INTENSITY);
             phaseDifferences.add(phaseDifference);
             intensities.add(intensity);
         }
-        values.put("phaseDifference", List.copyOf(phaseDifferences));
-        values.put("intensity", List.copyOf(intensities));
+        values.put(PHASE_DIFFERENCE, List.copyOf(phaseDifferences));
+        values.put(INTENSITY, List.copyOf(intensities));
         return new SolverOutput(times, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -73,7 +75,7 @@ public final class LightInterferenceModule implements PhysicsModule<LightInterfe
                 * (1.0 + Math.cos(phaseDifference));
         requireFinite(phaseDifference, "reference phaseDifference");
         requireFinite(intensity, "reference intensity");
-        return new AnalyticalPoint(Map.of("phaseDifference", phaseDifference, "intensity", intensity));
+        return new AnalyticalPoint(Map.of(PHASE_DIFFERENCE, phaseDifference, INTENSITY, intensity));
     }
 
     private static void requireUnit(CanonicalQuantityBag quantities, String key, String expectedUnit) {

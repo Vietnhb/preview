@@ -58,11 +58,6 @@ public class Specification extends AuditedEntity {
     @Column(name = "validation_result", columnDefinition = "jsonb")
     private JsonNode validationResult;
 
-    /** Catalog selections and teacher consent are separate from physics facts. */
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "asset_selection", columnDefinition = "jsonb")
-    private JsonNode assetSelection;
-
     @Column(nullable = false, precision = 5, scale = 4)
     private BigDecimal confidence;
 
@@ -86,6 +81,11 @@ public class Specification extends AuditedEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private JsonNode ambiguity;
+
+    /** Accepted clarification turns, preserved independently of the browser session. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "clarification_conversation", columnDefinition = "jsonb")
+    private JsonNode clarificationConversation;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 24)

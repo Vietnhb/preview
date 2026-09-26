@@ -20,7 +20,7 @@ public record RadioSignalChainParameters(double carrierFrequency, double modulat
         double amplitude = PhysicsValues.require(specification, overrides, "signal_amplitude");
         double distance = PhysicsValues.require(specification, overrides, "path_length");
         double attenuation = PhysicsValues.require(specification, overrides, "attenuation_db_per_meter");
-        if (!(carrier > 0) || !(modulation > 0) || deviation < 0 || index < 0 || amplitude < 0
+        if (carrier <= 0 || modulation <= 0 || deviation < 0 || index < 0 || amplitude < 0
                 || distance < 0 || attenuation < 0 || carrier <= modulation) {
             throw new IllegalArgumentException("Radio signal-chain parameters are invalid");
         }

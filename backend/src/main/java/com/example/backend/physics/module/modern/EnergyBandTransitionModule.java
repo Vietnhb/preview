@@ -20,6 +20,9 @@ public final class EnergyBandTransitionModule
     public static final String MODULE_ID = "energy_band_transition";
     public static final String NUMERICAL_SOLVER_ID = "energy_band_transition_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "energy_band_transition_reference_v2";
+    private static final String BAND_GAP = "bandGap";
+    private static final String PHOTON_ENERGY = "photonEnergy";
+    private static final String THRESHOLD_WAVELENGTH = "thresholdWavelength";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -41,14 +44,14 @@ public final class EnergyBandTransitionModule
         double photonEnergy = PhysicalConstants.PLANCK * parameters.photonFrequency();
         double thresholdWavelength = PhysicalConstants.PLANCK * PhysicalConstants.SPEED_OF_LIGHT / bandGap;
         double transitionAllowed = photonEnergy >= bandGap ? 1.0 : 0.0;
-        requirePositiveFinite("bandGap", bandGap);
-        requireFinite("photonEnergy", photonEnergy);
-        requirePositiveFinite("thresholdWavelength", thresholdWavelength);
+        requirePositiveFinite(BAND_GAP, bandGap);
+        requireFinite(PHOTON_ENERGY, photonEnergy);
+        requirePositiveFinite(THRESHOLD_WAVELENGTH, thresholdWavelength);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("bandGap", repeated(bandGap, time.size()));
-        values.put("photonEnergy", repeated(photonEnergy, time.size()));
-        values.put("thresholdWavelength", repeated(thresholdWavelength, time.size()));
+        values.put(BAND_GAP, repeated(bandGap, time.size()));
+        values.put(PHOTON_ENERGY, repeated(photonEnergy, time.size()));
+        values.put(THRESHOLD_WAVELENGTH, repeated(thresholdWavelength, time.size()));
         values.put("transitionAllowed", repeated(transitionAllowed, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
@@ -71,11 +74,11 @@ public final class EnergyBandTransitionModule
         double photonEnergy = photon.doubleValue();
         double wavelength = thresholdWavelength.doubleValue();
         double allowed = photon.compareTo(gap) >= 0 ? 1.0 : 0.0;
-        requirePositiveFinite("reference bandGap", bandGap);
-        requireFinite("reference photonEnergy", photonEnergy);
-        requirePositiveFinite("reference thresholdWavelength", wavelength);
-        return new AnalyticalPoint(Map.of("bandGap", bandGap, "photonEnergy", photonEnergy,
-                "thresholdWavelength", wavelength, "transitionAllowed", allowed));
+        requirePositiveFinite("reference " + BAND_GAP, bandGap);
+        requireFinite("reference " + PHOTON_ENERGY, photonEnergy);
+        requirePositiveFinite("reference " + THRESHOLD_WAVELENGTH, wavelength);
+        return new AnalyticalPoint(Map.of(BAND_GAP, bandGap, PHOTON_ENERGY, photonEnergy,
+                THRESHOLD_WAVELENGTH, wavelength, "transitionAllowed", allowed));
     }
 
     private static double requireCanonical(CanonicalQuantityBag quantities, String key, String unit) {

@@ -15,7 +15,7 @@ public record PhotoelectricParameters(double photonFrequency, double workFunctio
         double phi = PhysicsValues.require(specification, overrides, "work_function");
         double charge = PhysicsValues.optional(specification, overrides, PhysicalConstants.ELEMENTARY_CHARGE,
                 "electron_charge");
-        if (!(f > 0) || phi < 0 || !(charge > 0) || !Double.isFinite(phi)) {
+        if (f <= 0 || phi < 0 || charge <= 0 || !Double.isFinite(phi)) {
             throw new IllegalArgumentException("Frequency, work function and electron charge are invalid");
         }
         return new PhotoelectricParameters(f, phi, charge);

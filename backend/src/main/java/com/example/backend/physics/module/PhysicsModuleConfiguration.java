@@ -13,7 +13,6 @@ import com.example.backend.physics.module.circuits.RcDischargingModule;
 import com.example.backend.physics.module.circuits.SourceInternalResistanceModule;
 import com.example.backend.physics.module.circuits.SensorOpAmpModule;
 import com.example.backend.physics.module.circuits.ThermistorResponseModule;
-import com.example.backend.physics.module.dynamics.DampedForcedOscillationModule;
 import com.example.backend.physics.module.dynamics.CircularMotionModule;
 import com.example.backend.physics.module.dynamics.DynamicsCollisionModule;
 import com.example.backend.physics.module.dynamics.DynamicsForcesModule;
@@ -45,15 +44,9 @@ import com.example.backend.physics.module.modern.EnergyBandTransitionModule;
 import com.example.backend.physics.module.modern.MriRelaxationModule;
 import com.example.backend.physics.module.modern.NuclearReactionEnergyModule;
 import com.example.backend.physics.module.modern.XrayImagingModule;
-import com.example.backend.physics.module.optics.SnellRefractionModule;
-import com.example.backend.physics.module.optics.DiffractionPolarizationModule;
-import com.example.backend.physics.module.optics.AstronomicalTelescopeModule;
-import com.example.backend.physics.module.optics.CompoundMicroscopeModule;
-import com.example.backend.physics.module.optics.SimpleMagnifierModule;
 import com.example.backend.physics.module.practical.MeasurementUncertaintyModule;
 import com.example.backend.physics.module.practical.EnergyEnvironmentModule;
 import com.example.backend.physics.module.practical.ExperimentalDataGraphModule;
-import com.example.backend.physics.module.optics.ThinLensModule;
 import com.example.backend.physics.module.optics.LightInterferenceModule;
 import com.example.backend.physics.module.thermal.AdiabaticGasModule;
 import com.example.backend.physics.module.thermal.IdealGasIsochoricModule;
@@ -87,7 +80,6 @@ public class PhysicsModuleConfiguration {
         return new PhysicsModuleRegistry(List.of(
                 new AcWaveformModule(),
                 new DiodeCharacteristicModule(),
-                new DampedForcedOscillationModule(),
                 new OhmsLawModule(),
                 new CapacitorBasicModule(),
                 new IdealTransformerModule(),
@@ -103,12 +95,7 @@ public class PhysicsModuleConfiguration {
                 new MagneticForceModule(),
                 new PointChargeFieldModule(),
                 new ElectromagneticInductionModule(),
-                new ThinLensModule(),
                 new LightInterferenceModule(),
-                new SnellRefractionModule(),
-                new SimpleMagnifierModule(),
-                new CompoundMicroscopeModule(),
-                new AstronomicalTelescopeModule(),
                 new HookeLawModule(),
                 new HydrostaticsModule(),
                 new GravityOrbitModule(),
@@ -137,7 +124,6 @@ public class PhysicsModuleConfiguration {
                 new StandingWaveModule(),
                 new CalorimetryMixingModule(),
                 new MeasurementUncertaintyModule(),
-                new DiffractionPolarizationModule(),
                 new MomentEquilibriumModule(),
                 new NuclearEnergyModule(),
                 new XrayImagingModule(),

@@ -9,8 +9,4 @@ public record ProviderExtractionResult(
     public ProviderExtractionResult {
         resolutionDecisions = resolutionDecisions == null ? java.util.List.of() : java.util.List.copyOf(resolutionDecisions);
     }
-
-    public ProviderExtractionResult(SpecificationDocument document, JsonNode rawResponse) {
-        this(document, rawResponse, java.util.List.of());
-    }
 }

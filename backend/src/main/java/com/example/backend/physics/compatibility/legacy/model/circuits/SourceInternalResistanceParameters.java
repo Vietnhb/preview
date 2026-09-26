@@ -12,7 +12,7 @@ public record SourceInternalResistanceParameters(double emf, double internalResi
         double emf = PhysicsValues.require(specification, overrides, "emf");
         double internal = PhysicsValues.require(specification, overrides, "internal_resistance");
         double load = PhysicsValues.require(specification, overrides, "load_resistance");
-        if (!(emf > 0) || !(internal > 0) || !(load > 0)) {
+        if (emf <= 0 || internal <= 0 || load <= 0) {
             throw new IllegalArgumentException("Source emf and resistances are invalid");
         }
         return new SourceInternalResistanceParameters(emf, internal, load);

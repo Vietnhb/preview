@@ -17,6 +17,9 @@ public final class EclipseGeometryModule implements PhysicsModule<EclipseGeometr
     public static final String MODULE_ID = "eclipse_geometry";
     public static final String NUMERICAL_SOLVER_ID = "eclipse_geometry_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "eclipse_geometry_reference_v2";
+    private static final String STAR_ANGULAR_DIAMETER = "starAngularDiameter";
+    private static final String OCCLUDER_ANGULAR_DIAMETER = "occluderAngularDiameter";
+    private static final String ALIGNMENT_MARGIN = "alignmentMargin";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -40,14 +43,14 @@ public final class EclipseGeometryModule implements PhysicsModule<EclipseGeometr
         double occluderDiameter = 2.0 * Math.atan(parameters.occluderRadius() / parameters.occluderDistance());
         double margin = occluderDiameter - starDiameter - parameters.alignmentAngle();
         double totality = margin >= 0.0 ? 1.0 : 0.0;
-        requireFinite("starAngularDiameter", starDiameter);
-        requireFinite("occluderAngularDiameter", occluderDiameter);
-        requireFinite("alignmentMargin", margin);
+        requireFinite(STAR_ANGULAR_DIAMETER, starDiameter);
+        requireFinite(OCCLUDER_ANGULAR_DIAMETER, occluderDiameter);
+        requireFinite(ALIGNMENT_MARGIN, margin);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("starAngularDiameter", repeated(starDiameter, time.size()));
-        values.put("occluderAngularDiameter", repeated(occluderDiameter, time.size()));
-        values.put("alignmentMargin", repeated(margin, time.size()));
+        values.put(STAR_ANGULAR_DIAMETER, repeated(starDiameter, time.size()));
+        values.put(OCCLUDER_ANGULAR_DIAMETER, repeated(occluderDiameter, time.size()));
+        values.put(ALIGNMENT_MARGIN, repeated(margin, time.size()));
         values.put("totality", repeated(totality, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
@@ -63,11 +66,11 @@ public final class EclipseGeometryModule implements PhysicsModule<EclipseGeometr
         double starDiameter = 2.0 * Math.atan2(parameters.starRadius(), parameters.starDistance());
         double occluderDiameter = 2.0 * Math.atan2(parameters.occluderRadius(), parameters.occluderDistance());
         double margin = occluderDiameter - starDiameter - parameters.alignmentAngle();
-        requireFinite("reference starAngularDiameter", starDiameter);
-        requireFinite("reference occluderAngularDiameter", occluderDiameter);
-        requireFinite("reference alignmentMargin", margin);
-        return new AnalyticalPoint(Map.of("starAngularDiameter", starDiameter,
-                "occluderAngularDiameter", occluderDiameter, "alignmentMargin", margin,
+        requireFinite("reference " + STAR_ANGULAR_DIAMETER, starDiameter);
+        requireFinite("reference " + OCCLUDER_ANGULAR_DIAMETER, occluderDiameter);
+        requireFinite("reference " + ALIGNMENT_MARGIN, margin);
+        return new AnalyticalPoint(Map.of(STAR_ANGULAR_DIAMETER, starDiameter,
+                OCCLUDER_ANGULAR_DIAMETER, occluderDiameter, ALIGNMENT_MARGIN, margin,
                 "totality", margin >= 0.0 ? 1.0 : 0.0));
     }
 

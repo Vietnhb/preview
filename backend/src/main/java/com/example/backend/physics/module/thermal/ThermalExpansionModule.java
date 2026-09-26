@@ -15,6 +15,7 @@ public final class ThermalExpansionModule implements PhysicsModule<ThermalExpans
     public static final String MODULE_ID = "thermal_expansion";
     public static final String NUMERICAL_SOLVER_ID = "thermal_expansion_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "thermal_expansion_reference_v2";
+    private static final String EXTENSION = "extension";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -42,14 +43,14 @@ public final class ThermalExpansionModule implements PhysicsModule<ThermalExpans
         double thermalStrain = parameters.coefficient() * deltaTemperature;
         requireFinite(thermalStrain, "thermal strain");
         double extension = parameters.initialLength() * thermalStrain;
-        requireFinite(extension, "extension");
+        requireFinite(extension, EXTENSION);
         double finalLength = parameters.initialLength() + extension;
         requirePhysicalFinalLength(finalLength);
 
         List<Double> time = clock.sampleTimes();
         Map<String, List<Double>> values = new LinkedHashMap<>();
         values.put("deltaTemperature", repeated(deltaTemperature, time.size()));
-        values.put("extension", repeated(extension, time.size()));
+        values.put(EXTENSION, repeated(extension, time.size()));
         values.put("finalLength", repeated(finalLength, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
@@ -70,10 +71,10 @@ public final class ThermalExpansionModule implements PhysicsModule<ThermalExpans
         double lengthAfterHeating = parameters.initialLength() * scaleFactor;
         requirePhysicalFinalLength(lengthAfterHeating);
         double lengthChange = lengthAfterHeating - parameters.initialLength();
-        requireFinite(lengthChange, "reference extension");
+        requireFinite(lengthChange, "reference " + EXTENSION);
         return new AnalyticalPoint(Map.of(
                 "deltaTemperature", temperatureDifference,
-                "extension", lengthChange,
+                EXTENSION, lengthChange,
                 "finalLength", lengthAfterHeating));
     }
 

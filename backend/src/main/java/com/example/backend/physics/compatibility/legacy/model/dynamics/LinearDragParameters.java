@@ -14,7 +14,7 @@ public record LinearDragParameters(double mass, double initialPosition, double i
         double velocity = PhysicsValues.require(specification, overrides, "initial_velocity");
         double force = PhysicsValues.require(specification, overrides, "constant_force");
         double drag = PhysicsValues.require(specification, overrides, "drag_coefficient");
-        if (!(mass > 0) || !(drag > 0) || !Double.isFinite(position) || !Double.isFinite(velocity)
+        if (mass <= 0 || drag <= 0 || !Double.isFinite(position) || !Double.isFinite(velocity)
                 || !Double.isFinite(force)) {
             throw new IllegalArgumentException("Linear-drag parameters are invalid");
         }

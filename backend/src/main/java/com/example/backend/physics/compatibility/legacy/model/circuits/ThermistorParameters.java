@@ -17,8 +17,8 @@ public record ThermistorParameters(double referenceResistance, double referenceT
         double temperature = PhysicsValues.require(specification, overrides, "temperature");
         double supply = PhysicsValues.require(specification, overrides, "supply_voltage");
         double divider = PhysicsValues.require(specification, overrides, "divider_resistance");
-        if (!(r0 > 0) || !(t0 > 0) || !(beta > 0) || !(temperature > -KELVIN_OFFSET)
-                || !(supply > 0) || !(divider > 0)) {
+        if (r0 <= 0 || t0 <= 0 || beta <= 0 || temperature <= -KELVIN_OFFSET
+                || supply <= 0 || divider <= 0) {
             throw new IllegalArgumentException("Thermistor parameters are invalid");
         }
         return new ThermistorParameters(r0, t0, beta, temperature, supply, divider);

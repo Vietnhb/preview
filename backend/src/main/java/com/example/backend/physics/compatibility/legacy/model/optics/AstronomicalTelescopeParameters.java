@@ -11,7 +11,7 @@ public record AstronomicalTelescopeParameters(double objectiveFocalLength, doubl
     public static AstronomicalTelescopeParameters from(JsonNode specification, Map<String, Double> overrides) {
         double objective = PhysicsValues.require(specification, overrides, "objective_focal_length");
         double eyepiece = PhysicsValues.require(specification, overrides, "eyepiece_focal_length");
-        if (!(objective > 0) || !(eyepiece > 0)
+        if (objective <= 0 || eyepiece <= 0
                 || !Double.isFinite(objective) || !Double.isFinite(eyepiece)) {
             throw new IllegalArgumentException("Telescope focal lengths must be positive and finite");
         }

@@ -12,7 +12,7 @@ public record NuclearReactionParameters(double reactantMass, double productMass,
         double reactant = PhysicsValues.require(specification, overrides, "reactant_mass");
         double product = PhysicsValues.require(specification, overrides, "product_mass");
         double count = PhysicsValues.optional(specification, overrides, 1, "reaction_count");
-        if (!(reactant > 0) || !(product > 0) || !(count > 0) || product > reactant) {
+        if (reactant <= 0 || product <= 0 || count <= 0 || product > reactant) {
             throw new IllegalArgumentException("Nuclear reaction masses or count are invalid");
         }
         return new NuclearReactionParameters(reactant, product, count);

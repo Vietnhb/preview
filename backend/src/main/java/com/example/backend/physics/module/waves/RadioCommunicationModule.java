@@ -18,6 +18,12 @@ public final class RadioCommunicationModule implements PhysicsModule<RadioCommun
     public static final String MODULE_ID = "radio_communication";
     public static final String NUMERICAL_SOLVER_ID = "radio_communication_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "radio_communication_reference_v2";
+    private static final String WAVELENGTH = "wavelength";
+    private static final String PERIOD = "period";
+    private static final String ANGULAR_FREQUENCY = "angularFrequency";
+    private static final String LOWER_SIDEBAND = "lowerSideband";
+    private static final String UPPER_SIDEBAND = "upperSideband";
+    private static final String REFERENCE_PREFIX = "reference ";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -40,18 +46,18 @@ public final class RadioCommunicationModule implements PhysicsModule<RadioCommun
         double angularFrequency = 2.0 * Math.PI * parameters.carrierFrequency();
         double lowerSideband = parameters.carrierFrequency() - parameters.modulationFrequency();
         double upperSideband = parameters.carrierFrequency() + parameters.modulationFrequency();
-        requirePositiveFinite("wavelength", wavelength);
-        requirePositiveFinite("period", period);
-        requirePositiveFinite("angularFrequency", angularFrequency);
-        requirePositiveFinite("lowerSideband", lowerSideband);
-        requirePositiveFinite("upperSideband", upperSideband);
+        requirePositiveFinite(WAVELENGTH, wavelength);
+        requirePositiveFinite(PERIOD, period);
+        requirePositiveFinite(ANGULAR_FREQUENCY, angularFrequency);
+        requirePositiveFinite(LOWER_SIDEBAND, lowerSideband);
+        requirePositiveFinite(UPPER_SIDEBAND, upperSideband);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("wavelength", repeated(wavelength, time.size()));
-        values.put("period", repeated(period, time.size()));
-        values.put("angularFrequency", repeated(angularFrequency, time.size()));
-        values.put("lowerSideband", repeated(lowerSideband, time.size()));
-        values.put("upperSideband", repeated(upperSideband, time.size()));
+        values.put(WAVELENGTH, repeated(wavelength, time.size()));
+        values.put(PERIOD, repeated(period, time.size()));
+        values.put(ANGULAR_FREQUENCY, repeated(angularFrequency, time.size()));
+        values.put(LOWER_SIDEBAND, repeated(lowerSideband, time.size()));
+        values.put(UPPER_SIDEBAND, repeated(upperSideband, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -65,14 +71,14 @@ public final class RadioCommunicationModule implements PhysicsModule<RadioCommun
         double sidebandSpacing = parameters.modulationFrequency();
         double lowerSideband = parameters.carrierFrequency() - sidebandSpacing;
         double upperSideband = parameters.carrierFrequency() + sidebandSpacing;
-        requirePositiveFinite("reference wavelength", wavelength);
-        requirePositiveFinite("reference period", period);
-        requirePositiveFinite("reference angularFrequency", angularFrequency);
-        requirePositiveFinite("reference lowerSideband", lowerSideband);
-        requirePositiveFinite("reference upperSideband", upperSideband);
-        return new AnalyticalPoint(Map.of("wavelength", wavelength, "period", period,
-                "angularFrequency", angularFrequency, "lowerSideband", lowerSideband,
-                "upperSideband", upperSideband));
+        requirePositiveFinite(REFERENCE_PREFIX + WAVELENGTH, wavelength);
+        requirePositiveFinite(REFERENCE_PREFIX + PERIOD, period);
+        requirePositiveFinite(REFERENCE_PREFIX + ANGULAR_FREQUENCY, angularFrequency);
+        requirePositiveFinite(REFERENCE_PREFIX + LOWER_SIDEBAND, lowerSideband);
+        requirePositiveFinite(REFERENCE_PREFIX + UPPER_SIDEBAND, upperSideband);
+        return new AnalyticalPoint(Map.of(WAVELENGTH, wavelength, PERIOD, period,
+                ANGULAR_FREQUENCY, angularFrequency, LOWER_SIDEBAND, lowerSideband,
+                UPPER_SIDEBAND, upperSideband));
     }
 
     private static double requireCanonical(CanonicalQuantityBag quantities, String key, String unit) {

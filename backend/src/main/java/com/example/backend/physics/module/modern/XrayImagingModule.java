@@ -17,6 +17,10 @@ public final class XrayImagingModule implements PhysicsModule<XrayImagingModule.
     public static final String MODULE_ID = "xray_imaging";
     public static final String NUMERICAL_SOLVER_ID = "xray_imaging_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "xray_imaging_reference_v2";
+    private static final String TRANSMITTED_INTENSITY = "transmittedIntensity";
+    private static final String ABSORBED_FRACTION = "absorbedFraction";
+    private static final String DETECTOR_DOSE_PROXY = "detectorDoseProxy";
+    private static final String HALF_VALUE_LAYER = "halfValueLayer";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -40,16 +44,16 @@ public final class XrayImagingModule implements PhysicsModule<XrayImagingModule.
         double absorbed = -Math.expm1(-opticalDepth);
         double dose = transmitted * parameters.exposureTime();
         double halfValueLayer = Math.log(2.0) / parameters.attenuationCoefficient();
-        requireFinite("transmittedIntensity", transmitted);
-        requireFinite("absorbedFraction", absorbed);
-        requireFinite("detectorDoseProxy", dose);
-        requireFinite("halfValueLayer", halfValueLayer);
+        requireFinite(TRANSMITTED_INTENSITY, transmitted);
+        requireFinite(ABSORBED_FRACTION, absorbed);
+        requireFinite(DETECTOR_DOSE_PROXY, dose);
+        requireFinite(HALF_VALUE_LAYER, halfValueLayer);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("transmittedIntensity", repeated(transmitted, time.size()));
-        values.put("absorbedFraction", repeated(absorbed, time.size()));
-        values.put("detectorDoseProxy", repeated(dose, time.size()));
-        values.put("halfValueLayer", repeated(halfValueLayer, time.size()));
+        values.put(TRANSMITTED_INTENSITY, repeated(transmitted, time.size()));
+        values.put(ABSORBED_FRACTION, repeated(absorbed, time.size()));
+        values.put(DETECTOR_DOSE_PROXY, repeated(dose, time.size()));
+        values.put(HALF_VALUE_LAYER, repeated(halfValueLayer, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -64,13 +68,13 @@ public final class XrayImagingModule implements PhysicsModule<XrayImagingModule.
         double dose = Math.exp(logTransmission + Math.log(parameters.exposureTime()));
         // Solve I(x_1/2) / I(0) = 1/2 from the attenuation relation.
         double halfValueLayer = -Math.log(0.5) / parameters.attenuationCoefficient();
-        requireFinite("reference transmittedIntensity", transmitted);
-        requireFinite("reference absorbedFraction", absorbed);
-        requireFinite("reference detectorDoseProxy", dose);
-        requireFinite("reference halfValueLayer", halfValueLayer);
-        return new AnalyticalPoint(Map.of("transmittedIntensity", transmitted,
-                "absorbedFraction", absorbed, "detectorDoseProxy", dose,
-                "halfValueLayer", halfValueLayer));
+        requireFinite("reference " + TRANSMITTED_INTENSITY, transmitted);
+        requireFinite("reference " + ABSORBED_FRACTION, absorbed);
+        requireFinite("reference " + DETECTOR_DOSE_PROXY, dose);
+        requireFinite("reference " + HALF_VALUE_LAYER, halfValueLayer);
+        return new AnalyticalPoint(Map.of(TRANSMITTED_INTENSITY, transmitted,
+                ABSORBED_FRACTION, absorbed, DETECTOR_DOSE_PROXY, dose,
+                HALF_VALUE_LAYER, halfValueLayer));
     }
 
     private static double requireCanonical(CanonicalQuantityBag quantities, String key, String unit) {

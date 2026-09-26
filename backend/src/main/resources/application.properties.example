@@ -1,4 +1,0 @@
-# Runtime values belong in backend/.env.local for local development or in the
-# deployment platform's environment. See backend/.env.example for every key.
-# This file intentionally contains no fallback URLs, models, credentials,
-# origins, timeouts, or database policy.

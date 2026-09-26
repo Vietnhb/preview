@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Resolves declarative end conditions against solver output. This class only
@@ -28,6 +29,16 @@ import java.util.Map;
 public final class EndConditionResolver {
     public static final double MAX_DYNAMIC_SECONDS = 300.0;
     private static final double EPSILON = 1e-9;
+    private static final String END_CONDITION = "endCondition";
+    private static final String LEGACY_END_CONDITION = "end_condition";
+    private static final String DURATION = "duration";
+    private static final String EVENT = "event";
+    private static final String MAX_TIME = "maxTime";
+    private static final String LEGACY_MAX_TIME = "max_time";
+    private static final String ENTITIES = "entities";
+    private static final String OPERATOR = "operator";
+    private static final String QUANTITY = "quantity";
+    private static final String VALUE = "value";
 
     private EndConditionResolver() {
     }
@@ -41,11 +52,11 @@ public final class EndConditionResolver {
             strategy(EndConditionType.THRESHOLD, EndConditionContract.Threshold.class,
                     (condition, output, limit) -> resolvedOrMax(findThreshold(condition, output, limit), limit, "threshold")),
             strategy(EndConditionType.EVENT, EndConditionContract.Event.class,
-                    (condition, output, limit) -> resolvedOrMax(findEvent(condition, output, limit), limit, "event")),
+                    (condition, output, limit) -> resolvedOrMax(findEvent(condition, output, limit), limit, EVENT)),
             strategy(EndConditionType.CYCLE_COUNT, EndConditionContract.CycleCount.class,
                     (condition, output, limit) -> resolvedOrMax(findCycles(condition, output, limit), limit, "cycle_count")),
             strategy(EndConditionType.MANUAL, EndConditionContract.Manual.class,
-                    (condition, output, limit) -> new ResolvedEnd(limit, "max_time", false))));
+                    (condition, output, limit) -> new ResolvedEnd(limit, LEGACY_MAX_TIME, false))));
 
     @FunctionalInterface
     private interface TypedResolution<T extends EndConditionContract> {
@@ -64,9 +75,9 @@ public final class EndConditionResolver {
     }
 
     public static JsonNode normalize(JsonNode specification, double fallbackDuration) {
-        JsonNode explicit = specification == null ? null : specification.get("endCondition");
+        JsonNode explicit = specification == null ? null : specification.get(END_CONDITION);
         if (explicit == null || explicit.isNull()) {
-            explicit = specification == null ? null : specification.get("end_condition");
+            explicit = specification == null ? null : specification.get(LEGACY_END_CONDITION);
         }
         if (explicit != null && !explicit.isNull()) {
             if (!(explicit instanceof ObjectNode object))
@@ -75,7 +86,7 @@ public final class EndConditionResolver {
             if (normalized.path("type").isTextual()) {
                 normalized.put("type", normalized.path("type").asText().trim().toLowerCase(Locale.ROOT));
             }
-            JsonNode event = normalized.get("event");
+            JsonNode event = normalized.get(EVENT);
             if (event instanceof ObjectNode eventObject && eventObject.path("type").isTextual()) {
                 eventObject.put("type", eventObject.path("type").asText().trim().toLowerCase(Locale.ROOT));
             }
@@ -83,25 +94,25 @@ public final class EndConditionResolver {
         }
 
         // Compatibility for old documents that stored duration directly.
-        double duration = number(specification == null ? null : specification.get("duration"), fallbackDuration);
+        double duration = number(specification == null ? null : specification.get(DURATION), fallbackDuration);
         ObjectNode legacy = JsonNodeFactory.instance.objectNode();
         legacy.put("type", "time_limit");
-        legacy.put("duration", duration);
+        legacy.put(DURATION, duration);
         return legacy;
     }
 
     public static List<String> validate(JsonNode specification, double fallbackDuration) {
         boolean explicitlyPresent = specification != null
-                && ((specification.has("endCondition") && !specification.get("endCondition").isNull())
-                        || (specification.has("end_condition") && !specification.get("end_condition").isNull()));
+                && ((specification.has(END_CONDITION) && !specification.get(END_CONDITION).isNull())
+                        || (specification.has(LEGACY_END_CONDITION) && !specification.get(LEGACY_END_CONDITION).isNull()));
         JsonNode condition = normalize(specification, fallbackDuration);
-        List<String> errors = validateNode(condition, fallbackDuration);
+        List<String> errors = validateNode(condition);
         if (!explicitlyPresent && errors.isEmpty())
             return List.of();
         return List.copyOf(errors);
     }
 
-    public static List<String> validateNode(JsonNode condition, double fallbackDuration) {
+    public static List<String> validateNode(JsonNode condition) {
         List<String> errors = new ArrayList<>();
         // A missing condition is a supported legacy document. It is
         // normalized to time_limit by normalize(...).
@@ -117,23 +128,23 @@ public final class EndConditionResolver {
         }
         switch (type) {
             case TIME_LIMIT -> {
-                double duration = condition.path("duration").asDouble(Double.NaN);
+                double duration = condition.path(DURATION).asDouble(Double.NaN);
                 if (!finitePositive(duration) || duration > MAX_DYNAMIC_SECONDS * 12) {
                     errors.add("endCondition.duration must be a finite positive number");
                 }
             }
             case THRESHOLD -> {
-                if (condition.path("quantity").asText("").isBlank())
+                if (condition.path(QUANTITY).asText("").isBlank())
                     errors.add("threshold.quantity is required");
-                if (ComparisonOperator.parse(condition.path("operator").asText()) == null) {
+                if (ComparisonOperator.parse(condition.path(OPERATOR).asText()) == null) {
                     errors.add("threshold.operator is unsupported");
                 }
-                if (!finite(condition.path("value")))
+                if (!finite(condition.path(VALUE)))
                     errors.add("threshold.value must be finite");
                 validateMaxTime(condition, errors);
             }
             case EVENT -> {
-                JsonNode event = condition.path("event");
+                JsonNode event = condition.path(EVENT);
                 String rawEventType = event.path("type").asText("").trim().toLowerCase(Locale.ROOT);
                 EndConditionContract.EventKind eventType = switch (rawEventType) {
                     case "contact" -> EndConditionContract.EventKind.CONTACT;
@@ -143,33 +154,32 @@ public final class EndConditionResolver {
                 if (eventType == null) {
                     errors.add("event.type must be contact or collision");
                 }
-                if (!event.path("entities").isArray() || event.path("entities").isEmpty()
-                        || !allText(event.path("entities"))) {
+                if (!event.path(ENTITIES).isArray() || event.path(ENTITIES).isEmpty()
+                        || !allText(event.path(ENTITIES))) {
                     errors.add("event.entities must contain at least one entity id");
                 }
                 if (eventType == EndConditionContract.EventKind.CONTACT) {
-                    if (!event.has("quantity") && !event.has("operator") && !event.has("value")) {
+                    if (!event.has(QUANTITY) && !event.has(OPERATOR) && !event.has(VALUE)) {
                         errors.add("contact.event requires quantity, operator and value");
                     }
-                    if (event.path("quantity").asText("").isBlank())
+                    if (event.path(QUANTITY).asText("").isBlank())
                         errors.add("contact.event.quantity is required when a contact threshold is provided");
-                    if (ComparisonOperator.parse(event.path("operator").asText()) == null) {
+                    if (ComparisonOperator.parse(event.path(OPERATOR).asText()) == null) {
                         errors.add("contact.event.operator is unsupported");
                     }
-                    if (!finite(event.get("value")))
+                    if (!finite(event.get(VALUE)))
                         errors.add("contact.event.value must be finite");
                 }
                 if (eventType == EndConditionContract.EventKind.COLLISION
-                        && (event.has("firstQuantity") || event.has("secondQuantity"))) {
-                    if (event.path("firstQuantity").asText("").isBlank()
-                            || event.path("secondQuantity").asText("").isBlank()) {
-                        errors.add("collision.event.firstQuantity and secondQuantity must both be provided");
-                    }
+                        && (event.has("firstQuantity") || event.has("secondQuantity"))
+                        && (event.path("firstQuantity").asText("").isBlank()
+                                || event.path("secondQuantity").asText("").isBlank())) {
+                    errors.add("collision.event.firstQuantity and secondQuantity must both be provided");
                 }
                 validateMaxTime(condition, errors);
             }
             case CYCLE_COUNT -> {
-                if (condition.path("quantity").asText("").isBlank())
+                if (condition.path(QUANTITY).asText("").isBlank())
                     errors.add("cycle_count.quantity is required");
                 double count = condition.path("count").asDouble(Double.NaN);
                 if (!finitePositive(count) || Math.rint(count) != count || !condition.path("count").canConvertToInt())
@@ -191,7 +201,7 @@ public final class EndConditionResolver {
 
     public static double initialHorizon(EndConditionContract condition, double fallbackDuration) {
         if (condition == null) throw new IllegalArgumentException("Compiled end condition is required");
-        if (condition instanceof EndConditionContract.TimeLimit timeLimit) return timeLimit.duration();
+        if (condition instanceof EndConditionContract.TimeLimit(double duration)) return duration;
         if (condition.maxTime() != null) return condition.maxTime();
         return Math.max(0.01, fallbackDuration);
     }
@@ -249,13 +259,13 @@ public final class EndConditionResolver {
         double target = condition.duration();
         if (target <= horizon + EPSILON)
             return new ResolvedEnd(Math.min(target, horizon), "time_limit", true);
-        return new ResolvedEnd(horizon, "max_time", false);
+        return new ResolvedEnd(horizon, LEGACY_MAX_TIME, false);
     }
 
     private static ResolvedEnd resolvedOrMax(Double time, double limit, String reason) {
         return time == null
-                ? new ResolvedEnd(Math.max(0, limit), "max_time", false)
-                : new ResolvedEnd(Math.max(0, Math.min(time, limit)), reason, true);
+                ? new ResolvedEnd(Math.max(0, limit), LEGACY_MAX_TIME, false)
+                : new ResolvedEnd(Math.clamp(time, 0, limit), reason, true);
     }
 
     /** Trims all timeline-aligned arrays and interpolates the final sample. */
@@ -263,7 +273,7 @@ public final class EndConditionResolver {
         if (output == null || output.time() == null || output.time().isEmpty())
             return output;
         List<Double> sourceTimes = output.time();
-        double target = Math.max(sourceTimes.get(0), Math.min(endTime, sourceTimes.get(sourceTimes.size() - 1)));
+        double target = Math.clamp(endTime, sourceTimes.get(0), sourceTimes.get(sourceTimes.size() - 1));
         int last = 0;
         while (last + 1 < sourceTimes.size() && sourceTimes.get(last + 1) <= target + EPSILON)
             last++;
@@ -282,8 +292,7 @@ public final class EndConditionResolver {
     /** Trims a typed frame while preserving each declared output kind and shape. */
     public static PhysicsOutputFrame trim(PhysicsOutputFrame output, double endTime) {
         if (output == null || output.timeSeconds().isEmpty()) return output;
-        double target = Math.max(output.timeSeconds().getFirst(),
-                Math.min(endTime, output.timeSeconds().getLast()));
+        double target = Math.clamp(endTime, output.timeSeconds().getFirst(), output.timeSeconds().getLast());
         List<Double> times = trimTimes(output.timeSeconds(), target);
         List<PhysicsOutput> trimmed = output.outputs().stream().map(value -> trimTypedOutput(value, target)).toList();
         return new PhysicsOutputFrame(times, trimmed);
@@ -291,20 +300,21 @@ public final class EndConditionResolver {
 
     private static PhysicsOutput trimTypedOutput(PhysicsOutput output, double target) {
         if (output instanceof ScalarOutput) return output;
-        if (output instanceof TimeSeriesOutput series) {
-            TrimmedSeries values = trimSeries(series.timeSeconds(), series.values(), target);
+        if (output instanceof TimeSeriesOutput(String key, Optional<String> unit,
+                List<Double> timeSeconds, List<Double> seriesValues)) {
+            TrimmedSeries values = trimSeries(timeSeconds, seriesValues, target);
             List<Double> scalarValues = values.values().stream().map(sample -> sample.getFirst()).toList();
-            return new TimeSeriesOutput(series.key(), series.unit(), values.times(), scalarValues);
+            return new TimeSeriesOutput(key, unit, values.times(), scalarValues);
         }
-        if (output instanceof VectorSeriesOutput vector) {
-            TrimmedSeries shape = trimSeries(vector.timeSeconds(), vector.values(), target);
+        if (output instanceof VectorSeriesOutput(String key, Optional<String> unit,
+                List<Double> timeSeconds, List<String> componentKeys, List<List<Double>> vectorValues)) {
+            TrimmedSeries shape = trimSeries(timeSeconds, vectorValues, target);
             List<List<Double>> samples = new ArrayList<>(shape.values().size());
             for (List<Double> sample : shape.values()) samples.add(List.copyOf(sample));
-            return new VectorSeriesOutput(vector.key(), vector.unit(), shape.times(),
-                    vector.componentKeys(), samples);
+            return new VectorSeriesOutput(key, unit, shape.times(), componentKeys, samples);
         }
-        if (output instanceof ScalarFieldOutput field) {
-            return new ScalarFieldOutput(field.key(), trimField(field.field(), target));
+        if (output instanceof ScalarFieldOutput(String key, ScalarField field)) {
+            return new ScalarFieldOutput(key, trimField(field, target));
         }
         throw new IllegalArgumentException("Unsupported typed output kind: " + output.kind());
     }
@@ -393,9 +403,6 @@ public final class EndConditionResolver {
         List<OutputSourceBinding> bindings = sourceBindings == null
                 ? List.of() : sourceBindings.getOrDefault(outputKey, List.of());
         if (bindings.isEmpty()) {
-            // Older compiled fixtures have no visualization source metadata;
-            // preserve their generic behavior without inferring a group from a
-            // field name.
             positions.put(outputKey, values);
             velocities.put(outputKey, values);
             accelerations.put(outputKey, values);
@@ -406,7 +413,7 @@ public final class EndConditionResolver {
                 case POSITIONS, LEGACY_ENTITY_POSITION -> positions.put(binding.key(), values);
                 case VELOCITIES -> velocities.put(binding.key(), values);
                 case ACCELERATIONS -> accelerations.put(binding.key(), values);
-                case VALUES, LEGACY_AUTO -> { }
+                case VALUES, LEGACY_AUTO -> { /* Values do not project into a compatibility group. */ }
             }
         }
     }
@@ -439,7 +446,7 @@ public final class EndConditionResolver {
 
     private static ScalarField trimField(ScalarField field, double endTime) {
         List<Double> sourceTimes = field.time();
-        double target = Math.max(sourceTimes.getFirst(), Math.min(endTime, sourceTimes.getLast()));
+        double target = Math.clamp(endTime, sourceTimes.getFirst(), sourceTimes.getLast());
         int last = 0;
         while (last + 1 < sourceTimes.size() && sourceTimes.get(last + 1) <= target + EPSILON) last++;
         boolean append = sourceTimes.get(last) < target - EPSILON;
@@ -677,7 +684,7 @@ public final class EndConditionResolver {
         if (Math.abs(current - before) <= EPSILON)
             return currentTime;
         double ratio = (target - before) / (current - before);
-        return beforeTime + Math.max(0, Math.min(1, ratio)) * (currentTime - beforeTime);
+        return beforeTime + Math.clamp(ratio, 0, 1) * (currentTime - beforeTime);
     }
 
     private static double interpolate(List<Double> values, List<Double> times, double target) {
@@ -695,13 +702,13 @@ public final class EndConditionResolver {
         if (Math.abs(currentTime - beforeTime) <= EPSILON)
             return current;
         double ratio = (targetTime - beforeTime) / (currentTime - beforeTime);
-        return before + Math.max(0, Math.min(1, ratio)) * (current - before);
+        return before + Math.clamp(ratio, 0, 1) * (current - before);
     }
 
     private static void validateMaxTime(JsonNode condition, List<String> errors) {
-        if (condition.has("maxTime") && !condition.get("maxTime").isNull()
-                && (!finitePositive(condition.get("maxTime"))
-                        || condition.get("maxTime").asDouble() > MAX_DYNAMIC_SECONDS)) {
+        if (condition.has(MAX_TIME) && !condition.get(MAX_TIME).isNull()
+                && (!finitePositive(condition.get(MAX_TIME))
+                        || condition.get(MAX_TIME).asDouble() > MAX_DYNAMIC_SECONDS)) {
             errors.add("endCondition.maxTime must be finite, positive and <= " + MAX_DYNAMIC_SECONDS);
         }
     }

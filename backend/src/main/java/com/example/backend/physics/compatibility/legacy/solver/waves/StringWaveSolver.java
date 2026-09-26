@@ -58,7 +58,7 @@ public class StringWaveSolver implements PhysicsSolver {
         }
 
         double spaceStep = (parameters.domainEnd() - parameters.domainStart()) / (parameters.spatialSamples() - 1d);
-        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.TYPE, 1,
+        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.SCALAR_FIELD_TYPE, 1,
                 List.of(new ScalarField.Axis("x", "m", x)), List.of(time.size(), x.size()), time, fieldValues,
                 "m", "s", new ScalarField.Sampling(spaceStep, step), "linear", boundary(parameters));
         Map<String, List<Double>> values = new LinkedHashMap<>();

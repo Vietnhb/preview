@@ -1,7 +1,7 @@
 package com.example.backend.ai.client;
 
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
@@ -22,40 +22,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class ChatCompletionClient {
 
     private static final String CONTENT = "content";
+    private static final String CHOICES = "choices";
+    private static final String JSON_SCHEMA = "json_schema";
+    private static final String PROPERTIES = "properties";
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final int maxCompletionTokens;
-    private final AiProviderProperties properties;
+    private final AiProviderProperties providerProperties;
     private final SchoolService schoolService;
     private final JsonNode specificationSchema;
-    private final JsonNode ambiguityQuestionsSchema;
-    private final JsonNode visualBindingsSchema;
-    private final JsonNode assetRequestSummarySchema;
 
     public ChatCompletionClient(RestClient.Builder builder, ObjectMapper objectMapper, AiProviderProperties properties,
             SchoolService schoolService, ResourceLoader resourceLoader) {
         this.schoolService = schoolService;
         this.objectMapper = objectMapper;
-        this.properties = properties;
+        this.providerProperties = properties;
         this.apiKey = properties.apiKey();
         this.maxCompletionTokens = properties.maxCompletionTokens();
         try (var input = resourceLoader.getResource(
                 "classpath:prompts/physics-specification-response-schema.json").getInputStream()) {
             this.specificationSchema = objectMapper.readTree(input);
-            try (var questionsInput = resourceLoader.getResource(
-                    "classpath:prompts/ambiguity-questions-response-schema.json").getInputStream()) {
-                this.ambiguityQuestionsSchema = objectMapper.readTree(questionsInput);
-                try (var visualBindingsInput = resourceLoader.getResource(
-                        "classpath:prompts/visual-bindings-response-schema.json").getInputStream()) {
-                    this.visualBindingsSchema = objectMapper.readTree(visualBindingsInput);
-                    try (var assetSummaryInput = resourceLoader.getResource(
-                            "classpath:prompts/asset-request-summary-response-schema.json").getInputStream()) {
-                        this.assetRequestSummarySchema = objectMapper.readTree(assetSummaryInput);
-                    }
-                }
-            }
         } catch (Exception exception) {
             throw new IllegalStateException("Cannot load the AI structured-output schema", exception);
         }
@@ -69,27 +57,22 @@ public class ChatCompletionClient {
         return StringUtils.hasText(apiKey);
     }
 
-    public Completion completeStructured(String model, List<Map<String, Object>> messages) {
-        return complete(model, messages, specificationResponseFormat(), true);
+    public Completion completeStructured(String model, List<Map<String, Object>> messages,
+            List<String> endConditionCapabilities) {
+        return complete(model, messages, specificationResponseFormat(endConditionCapabilities), true);
     }
 
     public Completion completeJson(String model, List<Map<String, Object>> messages) {
         return complete(model, messages, Map.of("type", "json_object"), false);
     }
 
-    public Completion completeAmbiguityQuestions(String model, List<Map<String, Object>> messages) {
-        return complete(model, messages, structuredResponseFormat(
-                "physics_ambiguity_questions", ambiguityQuestionsSchema), false);
+    public Completion completeJsonReasoned(String model, List<Map<String, Object>> messages) {
+        return complete(model, messages, Map.of("type", "json_object"), true);
     }
 
-    public Completion completeVisualBindings(String model, List<Map<String, Object>> messages) {
-        return complete(model, messages, structuredResponseFormat(
-                "physics_visual_bindings", visualBindingsSchema), false);
-    }
-
-    public Completion completeAssetRequestSummary(String model, List<Map<String, Object>> messages) {
-        return complete(model, messages, structuredResponseFormat(
-                "physics_asset_request_summary", assetRequestSummarySchema), false);
+    public Completion completeWithSchemaReasoned(String model, List<Map<String, Object>> messages,
+            String name, JsonNode schema) {
+        return complete(model, messages, structuredResponseFormat(name, schema), true);
     }
 
     private Completion complete(String model, List<Map<String, Object>> messages,
@@ -104,28 +87,34 @@ public class ChatCompletionClient {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
         body.put("messages", messages);
-        body.put("temperature", properties.temperature());
+        body.put("temperature", providerProperties.temperature());
         body.put("max_completion_tokens", maxCompletionTokens);
         body.put("response_format", responseFormat);
         if (reasoning) {
-            body.put("reasoning_effort", properties.reasoningEffort());
+            body.put("reasoning_effort", providerProperties.reasoningEffort());
             body.put("include_reasoning", false);
         }
 
-        JsonNode response = schoolService.meterAiCall(() -> {
-            return restClient.post()
+        JsonNode response = schoolService.meterAiCall(() -> restClient.post()
                     .uri("/chat/completions")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(body).retrieve().body(JsonNode.class);
-        });
+                    .body(body).retrieve().body(JsonNode.class));
 
-        if (response == null || response.path("choices").isEmpty()) {
+        if (response == null || response.path(CHOICES).isEmpty()) {
             throw new IllegalStateException("AI provider returned an empty response.");
         }
-        String content = response.path("choices").path(0).path("message").path(CONTENT).asText();
+        String content = response.path(CHOICES).path(0).path("message").path(CONTENT).asText();
         if (!StringUtils.hasText(content)) {
             throw new IllegalStateException("AI provider returned empty content.");
+        }
+        String finish = response.path(CHOICES).path(0).path("finish_reason").asText();
+        if (!"stop".equals(finish)) {
+            throw new IllegalStateException("AI response was not completed: " + finish);
+        }
+        Object declared = responseFormat.get(JSON_SCHEMA);
+        if (declared instanceof Map<?, ?> contract && contract.get("schema") instanceof JsonNode schema) {
+            com.example.backend.ai.extraction.validation.ResponseSchemaValidator.validate(parseJson(content), schema);
         }
         return new Completion(response.path("model").asText(model), content, response);
     }
@@ -151,14 +140,25 @@ public class ChatCompletionClient {
         }
     }
 
-    private Map<String, Object> specificationResponseFormat() {
-        return structuredResponseFormat("physics_specification", specificationSchema);
+    private Map<String, Object> specificationResponseFormat(List<String> endConditionCapabilities) {
+        JsonNode schema = specificationSchema.deepCopy();
+        if (endConditionCapabilities != null && endConditionCapabilities.isEmpty()
+                && schema.path(PROPERTIES) instanceof com.fasterxml.jackson.databind.node.ObjectNode schemaProperties) {
+            schemaProperties.set("endCondition", objectMapper.createObjectNode().put("type", "null"));
+        } else if (endConditionCapabilities != null
+                && schema.path(PROPERTIES).path("endCondition").path(PROPERTIES).path("type")
+                        instanceof com.fasterxml.jackson.databind.node.ObjectNode typeSchema) {
+            var values = objectMapper.createArrayNode();
+            endConditionCapabilities.stream().filter(StringUtils::hasText).distinct().forEach(values::add);
+            typeSchema.set("enum", values);
+        }
+        return structuredResponseFormat("physics_specification", schema);
     }
 
     private Map<String, Object> structuredResponseFormat(String name, JsonNode schema) {
-        return Map.of("type", "json_schema", "json_schema", Map.of(
+        return Map.of("type", JSON_SCHEMA, JSON_SCHEMA, Map.of(
                 "name", name,
-                "strict", properties.strictStructuredOutput(),
+                "strict", providerProperties.strictStructuredOutput(),
                 "schema", schema));
     }
 

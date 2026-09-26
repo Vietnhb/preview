@@ -13,7 +13,7 @@ public record XrayImagingParameters(double incidentIntensity, double attenuation
         double coefficient = PhysicsValues.require(specification, overrides, "attenuation_coefficient");
         double thickness = PhysicsValues.require(specification, overrides, "material_thickness");
         double exposure = PhysicsValues.optional(specification, overrides, 1, "exposure_time");
-        if (!(intensity > 0) || !(coefficient > 0) || thickness < 0 || !(exposure > 0)) {
+        if (intensity <= 0 || coefficient <= 0 || thickness < 0 || exposure <= 0) {
             throw new IllegalArgumentException("X-ray intensity, attenuation and thickness are invalid");
         }
         return new XrayImagingParameters(intensity, coefficient, thickness, exposure);

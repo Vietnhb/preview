@@ -1,5 +1,4 @@
 package com.example.backend.controller.reviewer;
-import com.example.backend.entity.enums.LifecycleStatus;
 
 import com.example.backend.dto.problem.ResolveAmbiguityRequest;
 import com.example.backend.dto.problem.SpecificationResponse;

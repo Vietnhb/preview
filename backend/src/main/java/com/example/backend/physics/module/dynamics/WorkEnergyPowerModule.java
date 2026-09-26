@@ -17,10 +17,15 @@ public final class WorkEnergyPowerModule implements PhysicsModule<WorkEnergyPowe
     public static final String MODULE_ID = "work_energy_power";
     public static final String NUMERICAL_SOLVER_ID = "work_energy_power_solver";
     public static final String REFERENCE_SOLVER_ID = "work_energy_power_reference";
+    private static final String WORK_BY_FORCE = "workByForce";
+    private static final String INITIAL_KINETIC_ENERGY = "initialKineticEnergy";
+    private static final String FINAL_KINETIC_ENERGY = "finalKineticEnergy";
+    private static final String DELTA_KINETIC_ENERGY = "deltaKineticEnergy";
+    private static final String AVERAGE_POWER = "averagePower";
 
     private static final String[] OUTPUT_KEYS = {
-            "workByForce", "initialKineticEnergy", "finalKineticEnergy",
-            "deltaKineticEnergy", "averagePower"
+            WORK_BY_FORCE, INITIAL_KINETIC_ENERGY, FINAL_KINETIC_ENERGY,
+            DELTA_KINETIC_ENERGY, AVERAGE_POWER
     };
 
     @Override public String moduleId() { return MODULE_ID; }
@@ -56,11 +61,11 @@ public final class WorkEnergyPowerModule implements PhysicsModule<WorkEnergyPowe
         requireFiniteResults(work, initialEnergy, finalEnergy, deltaEnergy, averagePower);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("workByForce", repeated(work, time.size()));
-        values.put("initialKineticEnergy", repeated(initialEnergy, time.size()));
-        values.put("finalKineticEnergy", repeated(finalEnergy, time.size()));
-        values.put("deltaKineticEnergy", repeated(deltaEnergy, time.size()));
-        values.put("averagePower", repeated(averagePower, time.size()));
+        values.put(WORK_BY_FORCE, repeated(work, time.size()));
+        values.put(INITIAL_KINETIC_ENERGY, repeated(initialEnergy, time.size()));
+        values.put(FINAL_KINETIC_ENERGY, repeated(finalEnergy, time.size()));
+        values.put(DELTA_KINETIC_ENERGY, repeated(deltaEnergy, time.size()));
+        values.put(AVERAGE_POWER, repeated(averagePower, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -83,11 +88,11 @@ public final class WorkEnergyPowerModule implements PhysicsModule<WorkEnergyPowe
         requireFiniteResults(work, initialEnergy, finalEnergy, deltaEnergy, averagePower);
 
         Map<String, Double> values = new LinkedHashMap<>();
-        values.put("workByForce", work);
-        values.put("initialKineticEnergy", initialEnergy);
-        values.put("finalKineticEnergy", finalEnergy);
-        values.put("deltaKineticEnergy", deltaEnergy);
-        values.put("averagePower", averagePower);
+        values.put(WORK_BY_FORCE, work);
+        values.put(INITIAL_KINETIC_ENERGY, initialEnergy);
+        values.put(FINAL_KINETIC_ENERGY, finalEnergy);
+        values.put(DELTA_KINETIC_ENERGY, deltaEnergy);
+        values.put(AVERAGE_POWER, averagePower);
         return new AnalyticalPoint(values);
     }
 

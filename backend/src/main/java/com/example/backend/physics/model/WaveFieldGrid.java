@@ -1,7 +1,5 @@
 package com.example.backend.physics.model;
 
-import com.example.backend.physics.model.ScalarField;
-import com.example.backend.physics.model.WaveFieldGrid;
 
 import java.util.ArrayList;
 import java.util.List;

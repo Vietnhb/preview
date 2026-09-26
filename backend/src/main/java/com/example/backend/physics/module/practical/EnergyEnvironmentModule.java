@@ -17,6 +17,11 @@ public final class EnergyEnvironmentModule implements PhysicsModule<EnergyEnviro
     public static final String MODULE_ID = "energy_environment";
     public static final String NUMERICAL_SOLVER_ID = "energy_environment_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "energy_environment_reference_v2";
+    private static final String RENEWABLE_ENERGY = "renewableEnergy";
+    private static final String FOSSIL_ENERGY = "fossilEnergy";
+    private static final String EMISSIONS = "emissions";
+    private static final String USEFUL_ENERGY = "usefulEnergy";
+    private static final String AVOIDED_EMISSIONS = "avoidedEmissionsVsFossil";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -42,18 +47,18 @@ public final class EnergyEnvironmentModule implements PhysicsModule<EnergyEnviro
                 + fossilEnergy * parameters.fossilEmissionFactor();
         double usefulEnergy = parameters.energyDemand() * parameters.conversionEfficiency();
         double avoidedEmissions = parameters.energyDemand() * parameters.fossilEmissionFactor() - emissions;
-        requireFinite("renewableEnergy", renewableEnergy);
-        requireFinite("fossilEnergy", fossilEnergy);
-        requireFinite("emissions", emissions);
-        requireFinite("usefulEnergy", usefulEnergy);
-        requireFinite("avoidedEmissionsVsFossil", avoidedEmissions);
+        requireFinite(RENEWABLE_ENERGY, renewableEnergy);
+        requireFinite(FOSSIL_ENERGY, fossilEnergy);
+        requireFinite(EMISSIONS, emissions);
+        requireFinite(USEFUL_ENERGY, usefulEnergy);
+        requireFinite(AVOIDED_EMISSIONS, avoidedEmissions);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("renewableEnergy", repeated(renewableEnergy, time.size()));
-        values.put("fossilEnergy", repeated(fossilEnergy, time.size()));
-        values.put("emissions", repeated(emissions, time.size()));
-        values.put("usefulEnergy", repeated(usefulEnergy, time.size()));
-        values.put("avoidedEmissionsVsFossil", repeated(avoidedEmissions, time.size()));
+        values.put(RENEWABLE_ENERGY, repeated(renewableEnergy, time.size()));
+        values.put(FOSSIL_ENERGY, repeated(fossilEnergy, time.size()));
+        values.put(EMISSIONS, repeated(emissions, time.size()));
+        values.put(USEFUL_ENERGY, repeated(usefulEnergy, time.size()));
+        values.put(AVOIDED_EMISSIONS, repeated(avoidedEmissions, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -72,14 +77,14 @@ public final class EnergyEnvironmentModule implements PhysicsModule<EnergyEnviro
         double usefulEnergy = parameters.energyDemand() * parameters.conversionEfficiency();
         double avoidedEmissions = parameters.energyDemand() * parameters.renewableFraction()
                 * (parameters.fossilEmissionFactor() - parameters.renewableEmissionFactor());
-        requireFinite("reference renewableEnergy", renewableEnergy);
-        requireFinite("reference fossilEnergy", fossilEnergy);
-        requireFinite("reference emissions", emissions);
-        requireFinite("reference usefulEnergy", usefulEnergy);
-        requireFinite("reference avoidedEmissionsVsFossil", avoidedEmissions);
-        return new AnalyticalPoint(Map.of("renewableEnergy", renewableEnergy,
-                "fossilEnergy", fossilEnergy, "emissions", emissions,
-                "usefulEnergy", usefulEnergy, "avoidedEmissionsVsFossil", avoidedEmissions));
+        requireFinite("reference " + RENEWABLE_ENERGY, renewableEnergy);
+        requireFinite("reference " + FOSSIL_ENERGY, fossilEnergy);
+        requireFinite("reference " + EMISSIONS, emissions);
+        requireFinite("reference " + USEFUL_ENERGY, usefulEnergy);
+        requireFinite("reference " + AVOIDED_EMISSIONS, avoidedEmissions);
+        return new AnalyticalPoint(Map.of(RENEWABLE_ENERGY, renewableEnergy,
+                FOSSIL_ENERGY, fossilEnergy, EMISSIONS, emissions,
+                USEFUL_ENERGY, usefulEnergy, AVOIDED_EMISSIONS, avoidedEmissions));
     }
 
     private static double requireCanonical(CanonicalQuantityBag quantities, String key, String unit) {

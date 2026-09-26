@@ -1,0 +1,1 @@
+{"case":"circuit","status":"RUNTIME_OK","physics":"UNVERIFIED","durationSeconds":20,"maximumCommands":16,"sampleLabels":["5.0V","0 V","5.0 V","0 s","0.0 s"],"finalState":{"t":20.000000000000146,"Vc":5,"Vb":5,"tau":0.1,"prevX":928.0000000000051,"prevY":32,"plot":{"x":232,"y":32,"w":696,"h":476},"margin":32,"pointer":{"x":480,"y":270,"down":false}}}

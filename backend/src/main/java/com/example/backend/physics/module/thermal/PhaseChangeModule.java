@@ -16,6 +16,11 @@ public final class PhaseChangeModule implements PhysicsModule<PhaseChangeModule.
     public static final String MODULE_ID = "phase_change";
     public static final String NUMERICAL_SOLVER_ID = "phase_change_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "phase_change_reference_v2";
+    private static final String HEAT_CAPACITY_UNIT = "J/(kg*K)";
+    private static final String TEMPERATURE = "temperature";
+    private static final String HEAT_ADDED = "heatAdded";
+    private static final String LIQUID_FRACTION = "liquidFraction";
+    private static final String VAPOR_FRACTION = "vaporFraction";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -30,9 +35,9 @@ public final class PhaseChangeModule implements PhysicsModule<PhaseChangeModule.
         requireUnit(quantities, "initial_temperature", "K");
         requireUnit(quantities, "melting_temperature", "K");
         requireUnit(quantities, "boiling_temperature", "K");
-        requireUnit(quantities, "specific_heat_solid", "J/(kg*K)");
-        requireUnit(quantities, "specific_heat_liquid", "J/(kg*K)");
-        requireUnit(quantities, "specific_heat_gas", "J/(kg*K)");
+        requireUnit(quantities, "specific_heat_solid", HEAT_CAPACITY_UNIT);
+        requireUnit(quantities, "specific_heat_liquid", HEAT_CAPACITY_UNIT);
+        requireUnit(quantities, "specific_heat_gas", HEAT_CAPACITY_UNIT);
         requireUnit(quantities, "latent_heat_fusion", "J/kg");
         requireUnit(quantities, "latent_heat_vaporization", "J/kg");
         requireUnit(quantities, "heating_power", "W");
@@ -75,6 +80,9 @@ public final class PhaseChangeModule implements PhysicsModule<PhaseChangeModule.
         double finishVaporizationEnergy = boilTemperatureEnergy + vaporizationEnergy;
         validateThresholds(meltTemperatureEnergy, finishFusionEnergy,
                 boilTemperatureEnergy, finishVaporizationEnergy);
+        EnergyState energy = new EnergyState(solidHeatCapacity, liquidHeatCapacity, gasHeatCapacity,
+                fusionEnergy, vaporizationEnergy, meltTemperatureEnergy, finishFusionEnergy,
+                boilTemperatureEnergy, finishVaporizationEnergy);
 
         List<Double> time = clock.sampleTimes();
         List<Double> heat = new ArrayList<>(time.size());
@@ -83,11 +91,8 @@ public final class PhaseChangeModule implements PhysicsModule<PhaseChangeModule.
         List<Double> vaporFraction = new ArrayList<>(time.size());
         for (double currentTime : time) {
             double currentHeat = parameters.heatingPower() * currentTime;
-            requireNonNegativeFinite("heatAdded", currentHeat);
-            State state = numericalState(parameters, currentHeat, solidHeatCapacity,
-                    liquidHeatCapacity, gasHeatCapacity, fusionEnergy, vaporizationEnergy,
-                    meltTemperatureEnergy, finishFusionEnergy, boilTemperatureEnergy,
-                    finishVaporizationEnergy);
+            requireNonNegativeFinite(HEAT_ADDED, currentHeat);
+            State state = numericalState(parameters, currentHeat, energy);
             validateState(state);
             heat.add(currentHeat);
             temperature.add(state.temperature());
@@ -96,10 +101,10 @@ public final class PhaseChangeModule implements PhysicsModule<PhaseChangeModule.
         }
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("temperature", temperature);
-        values.put("heatAdded", heat);
-        values.put("liquidFraction", liquidFraction);
-        values.put("vaporFraction", vaporFraction);
+        values.put(TEMPERATURE, temperature);
+        values.put(HEAT_ADDED, heat);
+        values.put(LIQUID_FRACTION, liquidFraction);
+        values.put(VAPOR_FRACTION, vaporFraction);
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -111,7 +116,7 @@ public final class PhaseChangeModule implements PhysicsModule<PhaseChangeModule.
         }
 
         double heatAdded = parameters.heatingPower() * timeSeconds;
-        requireNonNegativeFinite("reference heatAdded", heatAdded);
+        requireNonNegativeFinite("reference " + HEAT_ADDED, heatAdded);
 
         // The oracle uses energy per unit mass, while the numerical path uses
         // total specimen capacities and energies. This independently expresses
@@ -160,34 +165,32 @@ public final class PhaseChangeModule implements PhysicsModule<PhaseChangeModule.
         validateState(state);
 
         Map<String, Double> values = new LinkedHashMap<>();
-        values.put("temperature", state.temperature());
-        values.put("heatAdded", heatAdded);
-        values.put("liquidFraction", state.liquidFraction());
-        values.put("vaporFraction", state.vaporFraction());
+        values.put(TEMPERATURE, state.temperature());
+        values.put(HEAT_ADDED, heatAdded);
+        values.put(LIQUID_FRACTION, state.liquidFraction());
+        values.put(VAPOR_FRACTION, state.vaporFraction());
         return new AnalyticalPoint(values);
     }
 
-    private static State numericalState(Parameters p, double heat, double solidHeatCapacity,
-                                        double liquidHeatCapacity, double gasHeatCapacity,
-                                        double fusionEnergy, double vaporizationEnergy,
-                                        double meltTemperatureEnergy, double finishFusionEnergy,
-                                        double boilTemperatureEnergy, double finishVaporizationEnergy) {
-        if (heat < meltTemperatureEnergy) {
-            return new State(p.initialTemperature() + heat / solidHeatCapacity, 0.0, 0.0);
+    private static State numericalState(Parameters p, double heat, EnergyState energy) {
+        if (heat < energy.meltTemperatureEnergy()) {
+            return new State(p.initialTemperature() + heat / energy.solidHeatCapacity(), 0.0, 0.0);
         }
-        if (heat < finishFusionEnergy) {
+        if (heat < energy.finishFusionEnergy()) {
             return new State(p.meltingTemperature(),
-                    (heat - meltTemperatureEnergy) / fusionEnergy, 0.0);
+                    (heat - energy.meltTemperatureEnergy()) / energy.fusionEnergy(), 0.0);
         }
-        if (heat < boilTemperatureEnergy) {
-            return new State(p.meltingTemperature() + (heat - finishFusionEnergy) / liquidHeatCapacity,
+        if (heat < energy.boilTemperatureEnergy()) {
+            return new State(p.meltingTemperature()
+                    + (heat - energy.finishFusionEnergy()) / energy.liquidHeatCapacity(),
                     1.0, 0.0);
         }
-        if (heat < finishVaporizationEnergy) {
-            double vaporFraction = (heat - boilTemperatureEnergy) / vaporizationEnergy;
+        if (heat < energy.finishVaporizationEnergy()) {
+            double vaporFraction = (heat - energy.boilTemperatureEnergy()) / energy.vaporizationEnergy();
             return new State(p.boilingTemperature(), 1.0 - vaporFraction, vaporFraction);
         }
-        return new State(p.boilingTemperature() + (heat - finishVaporizationEnergy) / gasHeatCapacity,
+        return new State(p.boilingTemperature()
+                + (heat - energy.finishVaporizationEnergy()) / energy.gasHeatCapacity(),
                 0.0, 1.0);
     }
 
@@ -202,9 +205,9 @@ public final class PhaseChangeModule implements PhysicsModule<PhaseChangeModule.
     }
 
     private static void validateState(State state) {
-        requireNonNegativeFinite("temperature", state.temperature());
-        requireNonNegativeFinite("liquidFraction", state.liquidFraction());
-        requireNonNegativeFinite("vaporFraction", state.vaporFraction());
+        requireNonNegativeFinite(TEMPERATURE, state.temperature());
+        requireNonNegativeFinite(LIQUID_FRACTION, state.liquidFraction());
+        requireNonNegativeFinite(VAPOR_FRACTION, state.vaporFraction());
         if (state.liquidFraction() > 1.0 || state.vaporFraction() > 1.0) {
             throw new IllegalArgumentException("Phase-change fractions must remain between zero and one");
         }
@@ -233,6 +236,11 @@ public final class PhaseChangeModule implements PhysicsModule<PhaseChangeModule.
             throw new IllegalArgumentException("Phase-change calculation produced invalid " + key);
         }
     }
+
+    private record EnergyState(double solidHeatCapacity, double liquidHeatCapacity, double gasHeatCapacity,
+                               double fusionEnergy, double vaporizationEnergy, double meltTemperatureEnergy,
+                               double finishFusionEnergy, double boilTemperatureEnergy,
+                               double finishVaporizationEnergy) { }
 
     private record State(double temperature, double liquidFraction, double vaporFraction) { }
 

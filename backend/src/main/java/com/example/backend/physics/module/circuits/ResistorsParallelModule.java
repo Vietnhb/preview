@@ -16,6 +16,10 @@ public final class ResistorsParallelModule implements PhysicsModule<ResistorsPar
     public static final String MODULE_ID = "resistors_parallel";
     public static final String NUMERICAL_SOLVER_ID = "resistors_parallel_solver";
     public static final String REFERENCE_SOLVER_ID = "resistors_parallel_reference";
+    private static final String EQUIVALENT_RESISTANCE = "equivalentResistance";
+    private static final String BRANCH_CURRENT_1 = "branchCurrent1";
+    private static final String BRANCH_CURRENT_2 = "branchCurrent2";
+    private static final String TOTAL_CURRENT = "totalCurrent";
 
     @Override
     public String moduleId() {
@@ -46,19 +50,19 @@ public final class ResistorsParallelModule implements PhysicsModule<ResistorsPar
         double smallerResistance = Math.min(parameters.resistance1, parameters.resistance2);
         double largerResistance = Math.max(parameters.resistance1, parameters.resistance2);
         double equivalentResistance = smallerResistance / (1.0 + smallerResistance / largerResistance);
-        requireFinitePositive(equivalentResistance, "equivalentResistance");
+        requireFinitePositive(equivalentResistance, EQUIVALENT_RESISTANCE);
         double branchCurrent1 = parameters.voltage / parameters.resistance1;
         double branchCurrent2 = parameters.voltage / parameters.resistance2;
         double totalCurrent = parameters.voltage / equivalentResistance;
-        requireFinite(branchCurrent1, "branchCurrent1");
-        requireFinite(branchCurrent2, "branchCurrent2");
-        requireFinite(totalCurrent, "totalCurrent");
+        requireFinite(branchCurrent1, BRANCH_CURRENT_1);
+        requireFinite(branchCurrent2, BRANCH_CURRENT_2);
+        requireFinite(totalCurrent, TOTAL_CURRENT);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("equivalentResistance", repeated(equivalentResistance, time.size()));
-        values.put("totalCurrent", repeated(totalCurrent, time.size()));
-        values.put("branchCurrent1", repeated(branchCurrent1, time.size()));
-        values.put("branchCurrent2", repeated(branchCurrent2, time.size()));
+        values.put(EQUIVALENT_RESISTANCE, repeated(equivalentResistance, time.size()));
+        values.put(TOTAL_CURRENT, repeated(totalCurrent, time.size()));
+        values.put(BRANCH_CURRENT_1, repeated(branchCurrent1, time.size()));
+        values.put(BRANCH_CURRENT_2, repeated(branchCurrent2, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -74,15 +78,15 @@ public final class ResistorsParallelModule implements PhysicsModule<ResistorsPar
         double branchCurrent1 = parameters.voltage * conductance1;
         double branchCurrent2 = parameters.voltage * conductance2;
         double totalCurrent = branchCurrent1 + branchCurrent2;
-        requireFinitePositive(equivalentResistance, "equivalentResistance");
-        requireFinite(branchCurrent1, "branchCurrent1");
-        requireFinite(branchCurrent2, "branchCurrent2");
-        requireFinite(totalCurrent, "totalCurrent");
+        requireFinitePositive(equivalentResistance, EQUIVALENT_RESISTANCE);
+        requireFinite(branchCurrent1, BRANCH_CURRENT_1);
+        requireFinite(branchCurrent2, BRANCH_CURRENT_2);
+        requireFinite(totalCurrent, TOTAL_CURRENT);
         return new AnalyticalPoint(Map.of(
-                "equivalentResistance", equivalentResistance,
-                "totalCurrent", totalCurrent,
-                "branchCurrent1", branchCurrent1,
-                "branchCurrent2", branchCurrent2));
+                EQUIVALENT_RESISTANCE, equivalentResistance,
+                TOTAL_CURRENT, totalCurrent,
+                BRANCH_CURRENT_1, branchCurrent1,
+                BRANCH_CURRENT_2, branchCurrent2));
     }
 
     private static List<Double> repeated(double value, int count) {

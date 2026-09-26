@@ -1,6 +1,5 @@
 package com.example.backend.physics.model.circuits;
 
-import com.example.backend.physics.compatibility.legacy.PhysicsValues;
 import com.example.backend.physics.model.CanonicalQuantityBag;
 
 
@@ -11,7 +10,7 @@ public record AcWaveformParameters(double peakVoltage, double frequency, double 
         double peak = quantities.require("peak_voltage");
         double frequency = quantities.require("frequency");
         double phase = quantities.optional("phase", 0);
-        if (peak < 0 || !(frequency > 0) || !Double.isFinite(phase)) throw new IllegalArgumentException("Peak voltage non-negative, frequency positive and phase finite required");
+        if (peak < 0 || frequency <= 0 || !Double.isFinite(phase)) throw new IllegalArgumentException("Peak voltage non-negative, frequency positive and phase finite required");
         return new AcWaveformParameters(peak, frequency, phase);
     }
     public double angularFrequency() { return 2 * Math.PI * frequency; }

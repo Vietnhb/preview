@@ -38,7 +38,7 @@ public class User {
     /**
      * School the user belongs to (nullable for platform roles).
      *
-     * Business Rules (enforced via database constraint in data.sql):
+     * Business Rules (enforced via database constraint in the database bootstrap SQL):
      * - Platform roles (ADMIN, REVIEWER): school_id MUST be NULL
      * - School roles (SCHOOL_MANAGER, TEACHER, STUDENT): school_id MUST be NOT NULL
      */

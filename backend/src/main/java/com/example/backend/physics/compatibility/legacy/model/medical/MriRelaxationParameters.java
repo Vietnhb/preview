@@ -13,7 +13,7 @@ public record MriRelaxationParameters(double equilibriumMagnetization, double lo
         double t1 = PhysicsValues.require(specification, overrides, "longitudinal_relaxation_time");
         double t2 = PhysicsValues.require(specification, overrides, "transverse_relaxation_time");
         double echo = PhysicsValues.require(specification, overrides, "echo_time");
-        if (!(m0 >= 0) || !(t1 > 0) || !(t2 > 0) || echo < 0) {
+        if (m0 < 0 || t1 <= 0 || t2 <= 0 || echo < 0) {
             throw new IllegalArgumentException("MRI relaxation parameters are invalid");
         }
         return new MriRelaxationParameters(m0, t1, t2, echo);

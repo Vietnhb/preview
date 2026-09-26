@@ -25,6 +25,5 @@ public record SpecificationResponse(
         String schemaId,
         String validationStatus,
         JsonNode validationResult,
-        Instant createdAt,
-        JsonNode assetSelection) {
+        Instant createdAt) {
 }

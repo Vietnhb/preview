@@ -14,7 +14,7 @@ public record CompoundMicroscopeParameters(double objectiveFocalLength, double e
         double eyepiece = PhysicsValues.require(specification, overrides, "eyepiece_focal_length");
         double tube = PhysicsValues.require(specification, overrides, "tube_length");
         double near = PhysicsValues.require(specification, overrides, "near_point");
-        if (!(objective > 0) || !(eyepiece > 0) || !(tube > 0) || !(near > 0)
+        if (objective <= 0 || eyepiece <= 0 || tube <= 0 || near <= 0
                 || !Double.isFinite(objective) || !Double.isFinite(eyepiece)
                 || !Double.isFinite(tube) || !Double.isFinite(near)) {
             throw new IllegalArgumentException("Microscope focal lengths, tube length and near point must be positive and finite");

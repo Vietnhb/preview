@@ -1,0 +1,439 @@
+{
+  "schemaId": "adaptive_electromagnetism",
+  "model": "matter_js",
+  "name": "Electromagnetism Concept Capability",
+  "topic": "ELECTROMAGNETISM",
+  "version": "2.0",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for electromagnetism. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "charged_particle",
+        "label": "hạt mang điện",
+        "description": "Particle with charge and possible motion."
+      },
+      {
+        "type": "charge_source",
+        "label": "nguồn điện tích",
+        "description": "Charge producing an electric field."
+      },
+      {
+        "type": "field_region",
+        "label": "vùng trường",
+        "description": "Region with specified electric or magnetic field."
+      },
+      {
+        "type": "coil",
+        "label": "cuộn dây",
+        "description": "Winding with magnetic flux."
+      },
+      {
+        "type": "conductor",
+        "label": "dây dẫn",
+        "description": "Conductor subject to field or induction."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "in_field",
+        "label": "ở trong trường",
+        "description": "Object located in a declared field region.",
+        "subjectTypes": [
+          "charged_particle",
+          "conductor",
+          "coil"
+        ],
+        "objectTypes": [
+          "field_region"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "conductor",
+            "coil",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "type": "field_from",
+        "label": "trường do nguồn",
+        "description": "Field produced by a charge source.",
+        "subjectTypes": [
+          "field_region"
+        ],
+        "objectTypes": [
+          "charge_source"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "field_region",
+            "charge_source"
+          ]
+        }
+      },
+      {
+        "type": "induces_in",
+        "label": "cảm ứng trong",
+        "description": "Changing flux induces voltage.",
+        "subjectTypes": [
+          "field_region"
+        ],
+        "objectTypes": [
+          "coil",
+          "conductor"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "electric_charge",
+        "label": "điện tích",
+        "description": "Signed electric charge.",
+        "aliases": [
+          "q"
+        ],
+        "allowedUnits": [
+          "C"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source"
+          ]
+        }
+      },
+      {
+        "key": "electric_field",
+        "label": "điện trường",
+        "description": "Electric field component or magnitude with direction.",
+        "aliases": [
+          "E"
+        ],
+        "allowedUnits": [
+          "N/C"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "magnetic_field",
+        "label": "cảm ứng từ",
+        "description": "Magnetic flux density component or magnitude.",
+        "aliases": [
+          "B"
+        ],
+        "allowedUnits": [
+          "T"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "force",
+        "label": "lực",
+        "description": "Electromagnetic force.",
+        "aliases": [],
+        "allowedUnits": [
+          "N"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "velocity",
+        "label": "vận tốc",
+        "description": "Particle velocity.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle"
+          ]
+        }
+      },
+      {
+        "key": "mass",
+        "label": "khối lượng",
+        "description": "Particle inertial mass.",
+        "aliases": [],
+        "allowedUnits": [
+          "kg"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle"
+          ]
+        }
+      },
+      {
+        "key": "magnetic_flux",
+        "label": "từ thông",
+        "description": "Flux through the winding.",
+        "aliases": [],
+        "allowedUnits": [
+          "Wb"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil"
+          ]
+        }
+      },
+      {
+        "key": "turns",
+        "label": "số vòng",
+        "description": "Number of turns.",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil"
+          ]
+        }
+      },
+      {
+        "key": "induced_voltage",
+        "label": "suất điện động cảm ứng",
+        "description": "Induced voltage with polarity.",
+        "aliases": [],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "distance",
+        "label": "khoảng cách",
+        "description": "Specified geometric separation.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "C",
+        "dimension": "electric charge"
+      },
+      {
+        "symbol": "N/C",
+        "dimension": "electric field"
+      },
+      {
+        "symbol": "T",
+        "dimension": "magnetic field"
+      },
+      {
+        "symbol": "N",
+        "dimension": "force"
+      },
+      {
+        "symbol": "m/s",
+        "dimension": "velocity"
+      },
+      {
+        "symbol": "kg",
+        "dimension": "mass"
+      },
+      {
+        "symbol": "Wb",
+        "dimension": "magnetic flux"
+      },
+      {
+        "symbol": "1",
+        "dimension": "dimensionless"
+      },
+      {
+        "symbol": "V",
+        "dimension": "voltage"
+      },
+      {
+        "symbol": "m",
+        "dimension": "length"
+      }
+    ],
+    "laws": [
+      {
+        "id": "electric_force",
+        "name": "Lực điện trường",
+        "inputs": [
+          "electric_charge",
+          "electric_field"
+        ],
+        "outputs": [
+          "force"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ],
+          "quantities": [
+            "electric_charge",
+            "electric_field",
+            "force"
+          ]
+        },
+        "assumptions": [
+          "Field at particle location is known."
+        ],
+        "description": "Electric force on a charge."
+      },
+      {
+        "id": "magnetic_force",
+        "name": "Lực từ",
+        "inputs": [
+          "electric_charge",
+          "velocity",
+          "magnetic_field"
+        ],
+        "outputs": [
+          "force"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ],
+          "quantities": [
+            "electric_charge",
+            "velocity",
+            "magnetic_field",
+            "force"
+          ]
+        },
+        "assumptions": [
+          "Relative direction or angle is known.",
+          "Field geometry and direction must be specified or inferred from the described arrangement."
+        ],
+        "description": "Magnetic force on moving charge."
+      },
+      {
+        "id": "faraday",
+        "name": "Định luật Faraday",
+        "inputs": [
+          "turns",
+          "magnetic_flux"
+        ],
+        "outputs": [
+          "induced_voltage"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "field_region"
+          ],
+          "quantities": [
+            "turns",
+            "magnetic_flux",
+            "induced_voltage"
+          ]
+        },
+        "assumptions": [
+          "Flux over time or its derivative is known."
+        ],
+        "description": "Induced voltage from changing flux."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "field_geometry",
+        "description": "Clarify field direction and geometry when they affect the requested result.",
+        "appliesTo": {
+          "objectTypes": [
+            "field_region"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "spatial_field_limit",
+        "description": "Field evolution requires a spatial electromagnetic model.",
+        "appliesTo": {
+          "objectTypes": [
+            "field_region"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "source_values",
+        "description": "Field strength or source law must be supported by supplied facts and applicable laws.",
+        "appliesTo": {
+          "objectTypes": [
+            "charge_source",
+            "field_region"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "AI-authored interactive visual models of high-school electromagnetic fields, charges, and induction.",
+      "limitations": [
+        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+    }
+  }
+}

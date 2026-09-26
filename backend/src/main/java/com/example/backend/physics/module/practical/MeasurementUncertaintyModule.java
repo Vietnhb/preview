@@ -19,6 +19,10 @@ public final class MeasurementUncertaintyModule
     public static final String MODULE_ID = "measurement_uncertainty";
     public static final String NUMERICAL_SOLVER_ID = "measurement_uncertainty_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "measurement_uncertainty_reference_v2";
+    private static final String RELATIVE_UNCERTAINTY = "relativeUncertainty";
+    private static final String LOWER_BOUND = "lowerBound";
+    private static final String UPPER_BOUND = "upperBound";
+    private static final String REFERENCE_PREFIX = "reference ";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -49,17 +53,17 @@ public final class MeasurementUncertaintyModule
         double relativeDefined = measuredValue == 0.0 ? 0.0 : 1.0;
         double lowerBound = measuredValue - uncertainty;
         double upperBound = measuredValue + uncertainty;
-        requireFiniteResult("relativeUncertainty", relativeUncertainty);
-        requireFiniteResult("lowerBound", lowerBound);
-        requireFiniteResult("upperBound", upperBound);
+        requireFiniteResult(RELATIVE_UNCERTAINTY, relativeUncertainty);
+        requireFiniteResult(LOWER_BOUND, lowerBound);
+        requireFiniteResult(UPPER_BOUND, upperBound);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
         values.put("measuredValue", repeated(measuredValue, time.size()));
         values.put("absoluteUncertainty", repeated(uncertainty, time.size()));
-        values.put("relativeUncertainty", repeated(relativeUncertainty, time.size()));
+        values.put(RELATIVE_UNCERTAINTY, repeated(relativeUncertainty, time.size()));
         values.put("relativeUncertaintyDefined", repeated(relativeDefined, time.size()));
-        values.put("lowerBound", repeated(lowerBound, time.size()));
-        values.put("upperBound", repeated(upperBound, time.size()));
+        values.put(LOWER_BOUND, repeated(lowerBound, time.size()));
+        values.put(UPPER_BOUND, repeated(upperBound, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -81,17 +85,17 @@ public final class MeasurementUncertaintyModule
         double upperBound = BigDecimal.valueOf(center)
                 .add(BigDecimal.valueOf(halfWidth)).doubleValue();
         double relativeDefined = center == 0.0 ? 0.0 : 1.0;
-        requireFiniteResult("reference relativeUncertainty", relativeUncertainty);
-        requireFiniteResult("reference lowerBound", lowerBound);
-        requireFiniteResult("reference upperBound", upperBound);
+        requireFiniteResult(REFERENCE_PREFIX + RELATIVE_UNCERTAINTY, relativeUncertainty);
+        requireFiniteResult(REFERENCE_PREFIX + LOWER_BOUND, lowerBound);
+        requireFiniteResult(REFERENCE_PREFIX + UPPER_BOUND, upperBound);
 
         Map<String, Double> values = new LinkedHashMap<>();
         values.put("measuredValue", center);
         values.put("absoluteUncertainty", halfWidth);
-        values.put("relativeUncertainty", relativeUncertainty);
+        values.put(RELATIVE_UNCERTAINTY, relativeUncertainty);
         values.put("relativeUncertaintyDefined", relativeDefined);
-        values.put("lowerBound", lowerBound);
-        values.put("upperBound", upperBound);
+        values.put(LOWER_BOUND, lowerBound);
+        values.put(UPPER_BOUND, upperBound);
         return new AnalyticalPoint(values);
     }
 

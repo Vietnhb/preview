@@ -17,6 +17,11 @@ public final class UniformElectricFieldModule implements PhysicsModule<UniformEl
     public static final String MODULE_ID = "uniform_electric_field";
     public static final String NUMERICAL_SOLVER_ID = "uniform_electric_field_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "uniform_electric_field_reference_v2";
+    private static final String FIELD_STRENGTH = "fieldStrength";
+    private static final String ELECTRIC_FORCE = "electricForce";
+    private static final String ACCELERATION = "acceleration";
+    private static final String TRANSVERSE_DISPLACEMENT = "transverseDisplacement";
+    private static final String LONGITUDINAL_DISPLACEMENT = "longitudinalDisplacement";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -49,11 +54,11 @@ public final class UniformElectricFieldModule implements PhysicsModule<UniformEl
                 transverseDisplacement, longitudinalDisplacement);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("fieldStrength", repeated(fieldStrength, times.size()));
-        values.put("electricForce", repeated(electricForce, times.size()));
-        values.put("acceleration", repeated(acceleration, times.size()));
-        values.put("transverseDisplacement", repeated(transverseDisplacement, times.size()));
-        values.put("longitudinalDisplacement", repeated(longitudinalDisplacement, times.size()));
+        values.put(FIELD_STRENGTH, repeated(fieldStrength, times.size()));
+        values.put(ELECTRIC_FORCE, repeated(electricForce, times.size()));
+        values.put(ACCELERATION, repeated(acceleration, times.size()));
+        values.put(TRANSVERSE_DISPLACEMENT, repeated(transverseDisplacement, times.size()));
+        values.put(LONGITUDINAL_DISPLACEMENT, repeated(longitudinalDisplacement, times.size()));
         return new SolverOutput(times, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -79,11 +84,11 @@ public final class UniformElectricFieldModule implements PhysicsModule<UniformEl
                 transverseDisplacement, longitudinalDisplacement);
 
         Map<String, Double> values = new LinkedHashMap<>();
-        values.put("fieldStrength", fieldStrength);
-        values.put("electricForce", electricForce);
-        values.put("acceleration", acceleration);
-        values.put("transverseDisplacement", transverseDisplacement);
-        values.put("longitudinalDisplacement", longitudinalDisplacement);
+        values.put(FIELD_STRENGTH, fieldStrength);
+        values.put(ELECTRIC_FORCE, electricForce);
+        values.put(ACCELERATION, acceleration);
+        values.put(TRANSVERSE_DISPLACEMENT, transverseDisplacement);
+        values.put(LONGITUDINAL_DISPLACEMENT, longitudinalDisplacement);
         return new AnalyticalPoint(values);
     }
 
@@ -104,8 +109,8 @@ public final class UniformElectricFieldModule implements PhysicsModule<UniformEl
                                              double longitudinalDisplacement) {
         double[] values = {fieldStrength, electricForce, acceleration,
                 transverseDisplacement, longitudinalDisplacement};
-        String[] keys = {"fieldStrength", "electricForce", "acceleration",
-                "transverseDisplacement", "longitudinalDisplacement"};
+        String[] keys = {FIELD_STRENGTH, ELECTRIC_FORCE, ACCELERATION,
+                TRANSVERSE_DISPLACEMENT, LONGITUDINAL_DISPLACEMENT};
         for (int index = 0; index < values.length; index++) {
             if (!Double.isFinite(values[index])) {
                 throw new ArithmeticException("Uniform-field result is not finite: " + keys[index]);

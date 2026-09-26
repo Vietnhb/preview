@@ -15,7 +15,7 @@ public record MomentEquilibriumParameters(double force1, double arm1, double ang
         double f2 = PhysicsValues.require(specification, overrides, "force_2");
         double r2 = PhysicsValues.require(specification, overrides, "arm_2");
         double theta2 = PhysicsValues.require(specification, overrides, "angle_2");
-        if (f1 < 0 || f2 < 0 || !(r1 >= 0) || !(r2 >= 0)
+        if (f1 < 0 || f2 < 0 || r1 < 0 || r2 < 0
                 || !Double.isFinite(theta1) || !Double.isFinite(theta2)) {
             throw new IllegalArgumentException("Moment parameters are invalid");
         }

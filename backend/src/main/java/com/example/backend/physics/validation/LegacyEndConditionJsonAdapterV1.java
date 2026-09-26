@@ -8,12 +8,14 @@ import java.util.Locale;
 
 /** Explicit V1 bridge for persisted historical end-condition JSON contracts. */
 public final class LegacyEndConditionJsonAdapterV1 {
+    private static final String QUANTITY = "quantity";
+    private static final String VALUE = "value";
     private LegacyEndConditionJsonAdapterV1() { }
 
     public static EndConditionContract compile(JsonNode condition, double fallbackDuration) {
         if (condition == null || condition.isNull())
             return new EndConditionContract.TimeLimit(safeDuration(fallbackDuration));
-        List<String> errors = EndConditionResolver.validateNode(condition, fallbackDuration);
+        List<String> errors = EndConditionResolver.validateNode(condition);
         if (!errors.isEmpty()) throw new IllegalArgumentException(String.join("; ", errors));
         String rawType = condition.path("type").asText("");
         EndConditionType type = EndConditionType.fromWireName(rawType);
@@ -21,12 +23,12 @@ public final class LegacyEndConditionJsonAdapterV1 {
         return switch (type) {
             case TIME_LIMIT -> new EndConditionContract.TimeLimit(condition.path("duration").asDouble());
             case THRESHOLD -> new EndConditionContract.Threshold(
-                    OutputSourceBinding.fromLegacy(condition.path("quantity").asText()),
+                    OutputSourceBinding.fromLegacy(condition.path(QUANTITY).asText()),
                     ComparisonOperator.parse(condition.path("operator").asText()),
-                    condition.path("value").asDouble(), optionalMaxTime(condition));
+                    condition.path(VALUE).asDouble(), optionalMaxTime(condition));
             case EVENT -> compileEvent(condition);
             case CYCLE_COUNT -> new EndConditionContract.CycleCount(
-                    OutputSourceBinding.fromLegacy(condition.path("quantity").asText()),
+                    OutputSourceBinding.fromLegacy(condition.path(QUANTITY).asText()),
                     condition.path("count").asInt(), optionalMaxTime(condition));
             case MANUAL -> new EndConditionContract.Manual(optionalMaxTime(condition));
         };
@@ -56,7 +58,7 @@ public final class LegacyEndConditionJsonAdapterV1 {
         }
         String quantity = nonBlankText(event.get("quantity"));
         ComparisonOperator operator = ComparisonOperator.parse(nonBlankText(event.get("operator")));
-        Double value = event.path("value").isNumber() ? event.path("value").asDouble() : null;
+        Double value = event.path(VALUE).isNumber() ? event.path(VALUE).asDouble() : null;
         return new EndConditionContract.Event(kind, entities,
                 quantity == null ? null : OutputSourceBinding.fromLegacy(quantity), operator, value,
                 first == null ? null : OutputSourceBinding.fromLegacy(first),

@@ -20,6 +20,8 @@ public final class RcChargingModule implements PhysicsModule<RcChargingModule.Pa
     private static final String VOLTAGE_UNIT = "V";
     private static final String RESISTANCE_UNIT = "ohm";
     private static final String CAPACITANCE_UNIT = "F";
+    private static final String VOLTAGE = "voltage";
+    private static final String CURRENT = "current";
 
     @Override
     public String moduleId() {
@@ -39,10 +41,10 @@ public final class RcChargingModule implements PhysicsModule<RcChargingModule.Pa
     @Override
     public Parameters bind(CanonicalQuantityBag quantities) {
         if (quantities == null) throw new IllegalArgumentException("Canonical quantities are required");
-        requireUnit(quantities, "voltage", VOLTAGE_UNIT);
+        requireUnit(quantities, VOLTAGE, VOLTAGE_UNIT);
         requireUnit(quantities, "resistance", RESISTANCE_UNIT);
         requireUnit(quantities, "capacitance", CAPACITANCE_UNIT);
-        return new Parameters(quantities.require("voltage"), quantities.require("resistance"),
+        return new Parameters(quantities.require(VOLTAGE), quantities.require("resistance"),
                 quantities.require("capacitance"));
     }
 
@@ -55,7 +57,7 @@ public final class RcChargingModule implements PhysicsModule<RcChargingModule.Pa
         double resistance = parameters.resistance();
         double timeConstant = resistance * parameters.capacitance();
         double initialCurrent = voltage / resistance;
-        requireFinite(initialCurrent, "current");
+        requireFinite(initialCurrent, CURRENT);
 
         List<Double> time = clock.sampleTimes();
         List<Double> capacitorVoltage = new ArrayList<>(time.size());
@@ -67,15 +69,15 @@ public final class RcChargingModule implements PhysicsModule<RcChargingModule.Pa
             double chargedFraction = 1.0 - decay;
             double voltageAtTime = voltage * chargedFraction;
             double currentAtTime = initialCurrent * decay;
-            requireFinite(voltageAtTime, "voltage");
-            requireFinite(currentAtTime, "current");
+            requireFinite(voltageAtTime, VOLTAGE);
+            requireFinite(currentAtTime, CURRENT);
             capacitorVoltage.add(voltageAtTime);
             current.add(currentAtTime);
         }
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("voltage", List.copyOf(capacitorVoltage));
-        values.put("current", List.copyOf(current));
+        values.put(VOLTAGE, List.copyOf(capacitorVoltage));
+        values.put(CURRENT, List.copyOf(current));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -90,9 +92,9 @@ public final class RcChargingModule implements PhysicsModule<RcChargingModule.Pa
         double exponent = -timeSeconds / timeConstant;
         double independentVoltage = voltage * -Math.expm1(exponent);
         double independentCurrent = (voltage / resistance) * Math.exp(exponent);
-        requireFinite(independentVoltage, "voltage");
-        requireFinite(independentCurrent, "current");
-        return new AnalyticalPoint(Map.of("voltage", independentVoltage, "current", independentCurrent));
+        requireFinite(independentVoltage, VOLTAGE);
+        requireFinite(independentCurrent, CURRENT);
+        return new AnalyticalPoint(Map.of(VOLTAGE, independentVoltage, CURRENT, independentCurrent));
     }
 
     private static void requireUnit(CanonicalQuantityBag quantities, String key, String expectedUnit) {

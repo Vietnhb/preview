@@ -6,9 +6,4 @@ public record PhysicalObject(String id, String label, String type, List<Physical
     public PhysicalObject {
         quantities = quantities == null ? List.of() : List.copyOf(quantities);
     }
-
-    /** Source-compatible constructor for objects without entity-local quantities. */
-    public PhysicalObject(String id, String label, String type) {
-        this(id, label, type, List.of());
-    }
 }

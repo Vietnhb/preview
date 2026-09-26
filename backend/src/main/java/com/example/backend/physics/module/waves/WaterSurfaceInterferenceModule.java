@@ -75,7 +75,7 @@ public final class WaterSurfaceInterferenceModule
         }
 
         double spaceStep = parameters.domainSize() / (parameters.spatialSamples() - 1.0);
-        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.TYPE, 2,
+        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.SCALAR_FIELD_TYPE, 2,
                 List.of(new ScalarField.Axis("x", "m", x), new ScalarField.Axis("y", "m", y)),
                 List.of(time.size(), x.size(), y.size()), time, rows, "m", "s",
                 new ScalarField.Sampling(spaceStep, clock.stepSeconds()), "linear",

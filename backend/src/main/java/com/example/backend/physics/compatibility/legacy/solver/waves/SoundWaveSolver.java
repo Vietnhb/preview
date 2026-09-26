@@ -45,7 +45,7 @@ public class SoundWaveSolver implements PhysicsSolver {
             pressure.add(probe.pressure()); pressureRate.add(probe.rate()); pressureAcceleration.add(probe.acceleration());
         }
         double dx = (parameters.domainEnd() - parameters.domainStart()) / (parameters.spatialSamples() - 1d);
-        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.TYPE, 1,
+        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.SCALAR_FIELD_TYPE, 1,
                 List.of(new ScalarField.Axis("x", "m", x)), List.of(time.size(), x.size()), time, rows,
                 "Pa", "s", new ScalarField.Sampling(dx, stepSeconds), "linear", "open;acoustic_pressure;direction=+x");
         Map<String, List<Double>> values = new LinkedHashMap<>();

@@ -16,6 +16,8 @@ public final class AdiabaticGasModule implements PhysicsModule<AdiabaticGasModul
     public static final String MODULE_ID = "adiabatic_gas";
     public static final String NUMERICAL_SOLVER_ID = "adiabatic_gas_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "adiabatic_gas_reference_v2";
+    private static final String FINAL_PRESSURE = "finalPressure";
+    private static final String FINAL_TEMPERATURE = "finalTemperature";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -46,14 +48,14 @@ public final class AdiabaticGasModule implements PhysicsModule<AdiabaticGasModul
         double finalTemperature = parameters.initialTemperature() * temperatureRatio;
         double workByGas = (parameters.initialPressure() * parameters.initialVolume()
                 - finalPressure * parameters.finalVolume()) / (parameters.heatCapacityRatio() - 1.0);
-        requirePositiveFinite("finalPressure", finalPressure);
-        requirePositiveFinite("finalTemperature", finalTemperature);
+        requirePositiveFinite(FINAL_PRESSURE, finalPressure);
+        requirePositiveFinite(FINAL_TEMPERATURE, finalTemperature);
         requireFinite("work", workByGas);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
         values.put("initialPressure", Collections.nCopies(time.size(), parameters.initialPressure()));
-        values.put("finalPressure", Collections.nCopies(time.size(), finalPressure));
-        values.put("finalTemperature", Collections.nCopies(time.size(), finalTemperature));
+        values.put(FINAL_PRESSURE, Collections.nCopies(time.size(), finalPressure));
+        values.put(FINAL_TEMPERATURE, Collections.nCopies(time.size(), finalTemperature));
         values.put("work", Collections.nCopies(time.size(), workByGas));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
@@ -76,14 +78,14 @@ public final class AdiabaticGasModule implements PhysicsModule<AdiabaticGasModul
         double initialMolarEnergyScale = parameters.initialPressure() * parameters.initialVolume()
                 / (parameters.heatCapacityRatio() - 1.0);
         double workByGas = initialMolarEnergyScale * (1.0 - temperatureRatio);
-        requirePositiveFinite("finalTemperature", finalTemperature);
-        requirePositiveFinite("finalPressure", finalPressure);
+        requirePositiveFinite(FINAL_TEMPERATURE, finalTemperature);
+        requirePositiveFinite(FINAL_PRESSURE, finalPressure);
         requireFinite("work", workByGas);
 
         return new AnalyticalPoint(Map.of(
                 "initialPressure", parameters.initialPressure(),
-                "finalPressure", finalPressure,
-                "finalTemperature", finalTemperature,
+                FINAL_PRESSURE, finalPressure,
+                FINAL_TEMPERATURE, finalTemperature,
                 "work", workByGas));
     }
 

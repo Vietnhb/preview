@@ -9,7 +9,6 @@ import com.example.backend.dto.evaluation.EvaluationResponse;
 import com.example.backend.entity.evaluation.Adjudication;
 import com.example.backend.entity.evaluation.BenchmarkProblem;
 import com.example.backend.entity.evaluation.EvaluationRun;
-import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.ai.extraction.ExtractionCoordinator;
 import com.example.backend.ai.extraction.model.ExtractionResult;
 import com.example.backend.exception.ApiException;
@@ -47,6 +46,14 @@ public class EvaluationService {
     private static final String NORMALIZED_VALUE_FIELD = "normalizedValue";
     private static final String NORMALIZED_UNIT_FIELD = "normalizedUnit";
     private static final String UNKNOWN_VALUE = "unknown";
+    private static final String CONFIRM_FLOW = "confirmFlow";
+    private static final String EVALUATION_TYPE = "CONFIRM_FLOW_VS_SILENT_DEFAULT";
+    private static final String RUNNING = "RUNNING";
+    private static final String NUMERIC_AGREEMENT = "numericAgreement";
+    private static final String INCORRECT_SIMULATION_RATE = "incorrectSimulationRate";
+    private static final String PRECISION = "precision";
+    private static final String RECALL = "recall";
+    private static final String EVALUATION_NOT_FOUND = "Evaluation run not found";
 
     private final com.example.backend.repository.evaluation.BenchmarkProblemRepository benchmarkRepository;
     private final com.example.backend.repository.evaluation.EvaluationRunRepository evaluationRepository;
@@ -105,12 +112,12 @@ public class EvaluationService {
 
             Summary total = summarize(confirmFlow);
             ObjectNode metrics = objectMapper.createObjectNode();
-            metrics.set("confirmFlow", report(confirmFlow, "CONFIRM_FLOW"));
+            metrics.set(CONFIRM_FLOW, report(confirmFlow, "CONFIRM_FLOW"));
             metrics.set("silentDefaultBaseline", report(silentDefault, "SILENT_DEFAULT_BASELINE"));
             metrics.set("byTopic", groupedReport(confirmFlow, CaseMetrics::topic));
             metrics.set("byQuantityType", groupedQuantityReport(confirmFlow));
-            metrics.put("numericAgreement", total.numericAgreement());
-            metrics.put("incorrectSimulationRate", total.incorrectRate());
+            metrics.put(NUMERIC_AGREEMENT, total.numericAgreement());
+            metrics.put(INCORRECT_SIMULATION_RATE, total.incorrectRate());
             metrics.put("extractionModel", providerVersion(confirmFlow));
             metrics.put("evaluationDesign", "Fixed benchmark corpus; same extraction and schema versions in both conditions.");
 
@@ -125,7 +132,7 @@ public class EvaluationService {
             modelVersions.forEach(models::put);
             configuration.set("modelVersionsUsed", models);
             completeRun(prepared, metrics, configuration, total, cohenKappa(prepared.cases()));
-            return new EvaluationResponse("CONFIRM_FLOW_VS_SILENT_DEFAULT", prepared.cases().size(), total.precision(),
+            return new EvaluationResponse(EVALUATION_TYPE, prepared.cases().size(), total.precision(),
                     total.recall(), total.f1(), cohenKappa(prepared.cases()), total.incorrectRate(), metrics);
         } catch (ApiException exception) {
             markRunFailed(prepared, exception.getClass().getSimpleName(), safeFailureMessage(exception));
@@ -138,7 +145,7 @@ public class EvaluationService {
     }
 
     private PreparedRun prepareRun() {
-        return transactionTemplate().execute(status -> {
+        return java.util.Objects.requireNonNull(transactionTemplate().execute(status -> {
             Instant startedAt = Instant.now();
             String actor = "user:" + currentUser.requireCurrentUser().getId();
             List<BenchmarkProblem> benchmarks = finalizedBenchmarks();
@@ -149,21 +156,21 @@ public class EvaluationService {
             List<EvaluationCase> cases = benchmarks.stream().map(this::snapshotCase).toList();
             String snapshotHash = snapshotHash(cases);
             EvaluationRun run = new EvaluationRun();
-            run.setEvaluationType("CONFIRM_FLOW_VS_SILENT_DEFAULT");
+            run.setEvaluationType(EVALUATION_TYPE);
             run.setBenchmarkCount(cases.size());
             run.setMetrics(objectMapper.createObjectNode());
-            run.setStatus("RUNNING");
+            run.setStatus(RUNNING);
             run.setRequestedByReference(actor);
             run.setStartedAt(startedAt);
             run.setBenchmarkSnapshotHash(snapshotHash);
             run.setConfiguration(configurationSnapshot(cases));
             evaluationRepository.saveAndFlush(run);
             return new PreparedRun(run.getId(), actor, startedAt, snapshotHash, cases);
-        });
+        }));
     }
 
     private EvaluationCase snapshotCase(BenchmarkProblem benchmark) {
-        JsonNode first = benchmark.getAnnotations().size() > 0
+        JsonNode first = !benchmark.getAnnotations().isEmpty()
                 ? copy(benchmark.getAnnotations().get(0).getGoldSpecification()) : null;
         JsonNode second = benchmark.getAnnotations().size() > 1
                 ? copy(benchmark.getAnnotations().get(1).getGoldSpecification()) : null;
@@ -173,7 +180,7 @@ public class EvaluationService {
 
     private ObjectNode configurationSnapshot(List<EvaluationCase> cases) {
         ObjectNode configuration = objectMapper.createObjectNode();
-        configuration.put("evaluationType", "CONFIRM_FLOW_VS_SILENT_DEFAULT");
+        configuration.put("evaluationType", EVALUATION_TYPE);
         configuration.put("schemaCatalogMode", "approved");
         configuration.put("toleranceSource", "approved schema validation.tolerance");
         ArrayNode snapshot = configuration.putArray("benchmarkCorpusSnapshot");
@@ -194,8 +201,8 @@ public class EvaluationService {
         transactionTemplate().executeWithoutResult(status -> {
             EvaluationRun run = evaluationRepository.findById(prepared.id())
                     .orElseThrow(() -> new com.example.backend.exception.ApiException(HttpStatus.NOT_FOUND,
-                            "Evaluation run not found"));
-            if (!"RUNNING".equals(run.getStatus())) {
+                            EVALUATION_NOT_FOUND));
+            if (!RUNNING.equals(run.getStatus())) {
                 throw new com.example.backend.exception.ApiException(HttpStatus.CONFLICT,
                         "Evaluation run is no longer active");
             }
@@ -215,7 +222,7 @@ public class EvaluationService {
     private void markRunFailed(PreparedRun prepared, String code, String message) {
         try {
             transactionTemplate().executeWithoutResult(status -> evaluationRepository.findById(prepared.id()).ifPresent(run -> {
-                if (!"RUNNING".equals(run.getStatus())) return;
+                if (!RUNNING.equals(run.getStatus())) return;
                 Instant completedAt = Instant.now();
                 run.setStatus("FAILED");
                 run.setFailureCode(code);
@@ -255,20 +262,25 @@ public class EvaluationService {
     public RunView detail(UUID id) {
         return RunView.from(evaluationRepository.findById(id)
                 .orElseThrow(() -> new com.example.backend.exception.ApiException(HttpStatus.NOT_FOUND,
-                        "Evaluation run not found")));
+                        EVALUATION_NOT_FOUND)));
     }
 
     @Transactional(readOnly = true)
     public RunComparison compare(UUID baselineId, UUID candidateId) {
-        RunView baseline = detail(baselineId);
-        RunView candidate = detail(candidateId);
+        RunView baseline = loadRunView(baselineId);
+        RunView candidate = loadRunView(candidateId);
         ObjectNode delta = objectMapper.createObjectNode();
-        delta.put("precision", numericDelta(baseline.metrics(), candidate.metrics(), "confirmFlow", "precision"));
-        delta.put("recall", numericDelta(baseline.metrics(), candidate.metrics(), "confirmFlow", "recall"));
+        delta.put(PRECISION, numericDelta(baseline.metrics(), candidate.metrics(), CONFIRM_FLOW, PRECISION));
+        delta.put(RECALL, numericDelta(baseline.metrics(), candidate.metrics(), CONFIRM_FLOW, RECALL));
         delta.put("f1", numericDelta(baseline.metrics(), candidate.metrics(), "confirmFlow", "f1"));
-        delta.put("numericAgreement", numericDelta(baseline.metrics(), candidate.metrics(), null, "numericAgreement"));
-        delta.put("incorrectSimulationRate", numericDelta(baseline.metrics(), candidate.metrics(), null, "incorrectSimulationRate"));
+        delta.put(NUMERIC_AGREEMENT, numericDelta(baseline.metrics(), candidate.metrics(), null, NUMERIC_AGREEMENT));
+        delta.put(INCORRECT_SIMULATION_RATE, numericDelta(baseline.metrics(), candidate.metrics(), null, INCORRECT_SIMULATION_RATE));
         return new RunComparison(baseline, candidate, delta);
+    }
+
+    private RunView loadRunView(UUID id) {
+        return RunView.from(evaluationRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, EVALUATION_NOT_FOUND)));
     }
 
     private double numericDelta(JsonNode baseline, JsonNode candidate, String parent, String field) {
@@ -300,12 +312,7 @@ public class EvaluationService {
         return benchmark.getAdjudications().stream().findFirst()
                 .map(Adjudication::getResolvedSpecification)
                 .orElseGet(() -> benchmark.getAnnotations().stream().findFirst()
-                        .map(annotation -> annotation.getGoldSpecification()).orElse(null));
-    }
-
-    private JsonNode schemaDefinition(String schemaId) {
-        SchemaVersion schema = schemaDefinitions.requireApproved(schemaId);
-        return schema.getDefinition();
+                        .map(com.example.backend.entity.evaluation.GoldAnnotation::getGoldSpecification).orElse(null));
     }
 
     private JsonNode addSilentDefaults(JsonNode predicted, JsonNode definition) {
@@ -334,11 +341,6 @@ public class EvaluationService {
 
     private String firstUnit(JsonNode required) {
         return required.path("allowedUnits").path(0).asText("SI");
-    }
-
-    private CaseMetrics compare(BenchmarkProblem benchmark, JsonNode predicted, JsonNode gold,
-                                JsonNode definition, double tolerance, String provider) {
-        return compareValues(benchmark.getId(), benchmark.getTopic(), predicted, gold, definition, tolerance, provider);
     }
 
     private CaseMetrics compare(EvaluationCase benchmark, JsonNode predicted, JsonNode gold,
@@ -445,10 +447,10 @@ public class EvaluationService {
     private ObjectNode summaryJson(Summary summary) {
         return objectMapper.createObjectNode()
                 .put("benchmarkCount", summary.benchmarkCount())
-                .put("precision", summary.precision())
-                .put("recall", summary.recall())
+                .put(PRECISION, summary.precision())
+                .put(RECALL, summary.recall())
                 .put("f1", summary.f1())
-                .put("numericAgreement", summary.numericAgreement())
+                .put(NUMERIC_AGREEMENT, summary.numericAgreement())
                 .put("incorrectRate", summary.incorrectRate());
     }
 

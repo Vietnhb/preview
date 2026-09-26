@@ -1,0 +1,304 @@
+{
+  "schemaId": "adaptive_practical_and_data",
+  "model": "matter_js",
+  "name": "Practical And Data Concept Capability",
+  "topic": "PRACTICAL_AND_DATA",
+  "version": "2.0",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for practical and data. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "measurement",
+        "label": "phép đo",
+        "description": "Scalar measurement and its uncertainty."
+      },
+      {
+        "type": "instrument",
+        "label": "dụng cụ đo",
+        "description": "Instrument with stated resolution or calibration."
+      },
+      {
+        "type": "sample",
+        "label": "mẫu",
+        "description": "Object or system being measured."
+      },
+      {
+        "type": "data_point",
+        "label": "điểm dữ liệu",
+        "description": "One scalar observation; arbitrary datasets need separate processing."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "measures",
+        "label": "đo",
+        "description": "Instrument measures a sample.",
+        "subjectTypes": [
+          "instrument"
+        ],
+        "objectTypes": [
+          "sample"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "instrument",
+            "sample"
+          ]
+        }
+      },
+      {
+        "type": "produces",
+        "label": "tạo ra phép đo",
+        "description": "Instrument produces measurement.",
+        "subjectTypes": [
+          "instrument"
+        ],
+        "objectTypes": [
+          "measurement"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "instrument",
+            "measurement"
+          ]
+        }
+      },
+      {
+        "type": "belongs_to",
+        "label": "thuộc mẫu",
+        "description": "Observation belongs to sample.",
+        "subjectTypes": [
+          "data_point",
+          "measurement"
+        ],
+        "objectTypes": [
+          "sample"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "data_point",
+            "measurement",
+            "sample"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "measured_value",
+        "label": "giá trị đo",
+        "description": "Dimensionless scalar; a physical unit requires a suitable pack or new declaration.",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "measurement",
+            "data_point"
+          ]
+        }
+      },
+      {
+        "key": "absolute_uncertainty",
+        "label": "sai số tuyệt đối",
+        "description": "Uncertainty in the same dimension as a dimensionless measurement.",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "measurement",
+            "instrument"
+          ]
+        }
+      },
+      {
+        "key": "relative_uncertainty",
+        "label": "sai số tương đối",
+        "description": "Ratio of uncertainty to absolute measured value.",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "measurement"
+          ]
+        }
+      },
+      {
+        "key": "resolution",
+        "label": "độ phân giải",
+        "description": "Resolution of a dimensionless instrument.",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "instrument"
+          ]
+        }
+      },
+      {
+        "key": "sample_time",
+        "label": "thời điểm đo",
+        "description": "Time of the observation.",
+        "aliases": [],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "data_point"
+          ]
+        }
+      },
+      {
+        "key": "calibration_offset",
+        "label": "độ lệch hiệu chuẩn",
+        "description": "Additive offset in measurement units.",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "instrument"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "1",
+        "dimension": "dimensionless"
+      },
+      {
+        "symbol": "s",
+        "dimension": "time"
+      }
+    ],
+    "laws": [
+      {
+        "id": "relative_uncertainty",
+        "name": "Sai số tương đối",
+        "inputs": [
+          "absolute_uncertainty",
+          "measured_value"
+        ],
+        "outputs": [
+          "relative_uncertainty"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "measurement"
+          ],
+          "quantities": [
+            "absolute_uncertainty",
+            "measured_value",
+            "relative_uncertainty"
+          ]
+        },
+        "assumptions": [
+          "Measured value is nonzero.",
+          "Values use compatible units."
+        ],
+        "description": "Relative uncertainty of one scalar measurement."
+      },
+      {
+        "id": "offset_correction",
+        "name": "Hiệu chỉnh độ lệch",
+        "inputs": [
+          "measured_value",
+          "calibration_offset"
+        ],
+        "outputs": [
+          "measured_value"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "measurement",
+            "instrument"
+          ],
+          "quantities": [
+            "measured_value",
+            "calibration_offset"
+          ]
+        },
+        "assumptions": [
+          "Calibration offset supplied by user and units match."
+        ],
+        "description": "Additive calibration correction."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "measurement_unit",
+        "description": "The measured physical unit must be known to interpret and compare observations.",
+        "appliesTo": {
+          "objectTypes": [
+            "measurement",
+            "instrument"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "dataset_limit",
+        "description": "Arbitrary records, regression and sample statistics need a data-processing capability.",
+        "appliesTo": {
+          "objectTypes": [
+            "data_point"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "uncertainty_model",
+        "description": "Clarify how uncertainty is estimated or combined before applying its law.",
+        "appliesTo": {
+          "objectTypes": [
+            "measurement"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "AI-authored interactive visual models of high-school measurements, instruments, data, and uncertainty.",
+      "limitations": [
+        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+    }
+  }
+}

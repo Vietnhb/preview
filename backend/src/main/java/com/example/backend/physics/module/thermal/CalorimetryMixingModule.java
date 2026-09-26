@@ -16,6 +16,10 @@ public final class CalorimetryMixingModule implements PhysicsModule<CalorimetryM
     public static final String MODULE_ID = "calorimetry_mixing";
     public static final String NUMERICAL_SOLVER_ID = "calorimetry_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "calorimetry_reference_v2";
+    private static final String EQUILIBRIUM_TEMPERATURE = "equilibriumTemperature";
+    private static final String HEAT_1 = "heat1";
+    private static final String HEAT_2 = "heat2";
+    private static final String REFERENCE_PREFIX = "reference ";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -62,17 +66,17 @@ public final class CalorimetryMixingModule implements PhysicsModule<CalorimetryM
                 + (parameters.initialTemperature2() - parameters.initialTemperature1()) * fractionFromBody2;
         double heat1 = heatCapacity1 * (equilibrium - parameters.initialTemperature1());
         double heat2 = heatCapacity2 * (equilibrium - parameters.initialTemperature2());
-        requirePositiveFinite("equilibriumTemperature", equilibrium);
-        requireFinite("heat1", heat1);
-        requireFinite("heat2", heat2);
+        requirePositiveFinite(EQUILIBRIUM_TEMPERATURE, equilibrium);
+        requireFinite(HEAT_1, heat1);
+        requireFinite(HEAT_2, heat2);
 
         List<Double> time = clock.sampleTimes();
         Map<String, List<Double>> values = new LinkedHashMap<>();
         values.put("temperature1", repeated(equilibrium, time.size()));
         values.put("temperature2", repeated(equilibrium, time.size()));
-        values.put("equilibriumTemperature", repeated(equilibrium, time.size()));
-        values.put("heat1", repeated(heat1, time.size()));
-        values.put("heat2", repeated(heat2, time.size()));
+        values.put(EQUILIBRIUM_TEMPERATURE, repeated(equilibrium, time.size()));
+        values.put(HEAT_1, repeated(heat1, time.size()));
+        values.put(HEAT_2, repeated(heat2, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -98,16 +102,16 @@ public final class CalorimetryMixingModule implements PhysicsModule<CalorimetryM
         requirePositiveFinite("reference capacity2", capacity2);
         requirePositiveFinite("reference total capacity", totalCapacity);
         requireFinite("reference initial thermal energy", initialThermalEnergy);
-        requirePositiveFinite("reference equilibriumTemperature", equilibrium);
-        requireFinite("reference heat1", heat1);
-        requireFinite("reference heat2", heat2);
+        requirePositiveFinite(REFERENCE_PREFIX + EQUILIBRIUM_TEMPERATURE, equilibrium);
+        requireFinite(REFERENCE_PREFIX + HEAT_1, heat1);
+        requireFinite(REFERENCE_PREFIX + HEAT_2, heat2);
 
         Map<String, Double> values = new LinkedHashMap<>();
         values.put("temperature1", equilibrium);
         values.put("temperature2", equilibrium);
-        values.put("equilibriumTemperature", equilibrium);
-        values.put("heat1", heat1);
-        values.put("heat2", heat2);
+        values.put(EQUILIBRIUM_TEMPERATURE, equilibrium);
+        values.put(HEAT_1, heat1);
+        values.put(HEAT_2, heat2);
         return new AnalyticalPoint(values);
     }
 

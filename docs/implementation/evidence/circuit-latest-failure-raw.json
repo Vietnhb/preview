@@ -1,0 +1,47 @@
+{
+  "failure": "Visual init code has invalid JavaScript syntax",
+  "plan": {
+    "status": "READY",
+    "reason": null,
+    "durationSeconds": 20,
+    "program": {
+      "init": "const R=params.resistance;const C=params.capacitance;const V=params.voltage;const tMax=5*R*C;const graph={x:width*0.55,y:height*0.1,w:width*0.4,h:height*0.8};return{t:0,Vc:0,R,R,C,C,V,V,tMax,tMax,graph,margin:32};",
+      "step": "state.t+=dt;if(state.t>state.tMax)state.t=state.tMax;state.Vc=state.V*(1-Math.exp(-state.t/(state.R*state.C)));",
+      "draw": "paint.rect(0,0,width,height,\"#0b1729\");const m=state.margin;const cx=m+50;const cy=m+50;const sp=80;/* battery */paint.line(cx,cy,cx,cy+sp,\"#fff\",2);paint.text(cx-6,cy-10,\"+\",\"#fff\",14);paint.text(cx-6,cy+sp+10,\"-\",\"#fff\",14);paint.text(cx+8,cy+sp/2,`V=${state.V.toFixed(1)}V\",\"#fff\",14);/* resistor */const rx=cx;const ry=cy+sp;paint.line(rx,ry,rx,ry+sp,\"#fff\",2);paint.rect(rx-15,ry+sp/2-10,30,20,\"#555\");paint.text(rx-10,ry+sp/2+5,`R=${state.R}Ω\",\"#fff\",12);/* capacitor */const cxCap=rx;const cyCap=ry+sp+sp;paint.line(cxCap,cyCap,cxCap,cyCap+sp,\"#fff\",2);paint.line(cxCap-15,cyCap+sp/2,cxCap+15,cyCap+sp/2,\"#fff\",2);paint.text(cxCap-20,cyCap+sp/2-20,`C=${state.C}F\",\"#fff\",12);/* closing wire */paint.line(cxCap,cyCap+sp,cx,cy,\"#fff\",2);/* voltage label */paint.text(cxCap+30,cyCap+sp/2,`Vc=${state.Vc.toFixed(2)}V\",\"#fff\",14);/* graph */const g=state.graph;paint.rect(g.x,g.y,g.w,g.h,\"#222\",1);paint.line(g.x,g.y+g.h,g.x+g.w,g.y+g.h,\"#fff\",1);paint.line(g.x,g.y,g.x,g.y+g.h,\"#fff\",1);paint.text(g.x+g.w/2,g.y+g.h+20,\"t (s)\",\"#fff\",12);paint.text(g.x-30,g.y+g.h/2,\"V (V)\",\"#fff\",12);const N=100;let prevX=null,prevY=null;for(let i=0;i<=N;i++){const ti=i/N*state.tMax;const Vi=state.V*(1-Math.exp(-ti/(state.R*state.C)));const x=g.x+(ti/state.tMax)*g.w;const y=g.y+g.h-(Vi/state.V)*g.h;if(prevX!==null)paint.line(prevX,prevY,x,y,\"#0f0\",2);prevX=x;prevY=y;}/* current marker */const xCur=g.x+(state.t/state.tMax)*g.w;const yCur=g.y+g.h-(state.Vc/state.V)*g.h;paint.circle(xCur,yCur,4,\"#ff0\");"
+    },
+    "parameters": [
+      {
+        "name": "resistance",
+        "label": "Resistance",
+        "value": 1000,
+        "min": 10,
+        "max": 1000000,
+        "unit": "Ω"
+      },
+      {
+        "name": "capacitance",
+        "label": "Capacitance",
+        "value": 0.00001,
+        "min": 1e-7,
+        "max": 0.001,
+        "unit": "F"
+      },
+      {
+        "name": "voltage",
+        "label": "Battery Voltage",
+        "value": 5,
+        "min": 1,
+        "max": 12,
+        "unit": "V"
+      },
+      {
+        "name": "timeScale",
+        "label": "Time Scale",
+        "value": 1,
+        "min": 0.1,
+        "max": 10,
+        "unit": ""
+      }
+    ]
+  }
+}

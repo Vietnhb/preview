@@ -24,10 +24,10 @@ public class PhaseChangeSolver implements PhysicsSolver {
             throw new IllegalArgumentException("Unsupported phase-change model: " + PhysicsValues.model(specification));
         }
         PhaseChangeParameters p = PhaseChangeParameters.from(specification, overrides);
-        if (!(durationSeconds > 0) || !(stepSeconds > 0) || !Double.isFinite(durationSeconds + stepSeconds)) {
+        if (durationSeconds <= 0 || stepSeconds <= 0 || !Double.isFinite(durationSeconds + stepSeconds)) {
             throw new IllegalArgumentException("durationSeconds and stepSeconds must be finite and positive");
         }
-        int points = Math.min(16_384, Math.max(1, (int) Math.ceil(durationSeconds / stepSeconds)));
+        int points = Math.clamp((int) Math.ceil(durationSeconds / stepSeconds), 1, 16_384);
         List<Double> time = new ArrayList<>(points + 1);
         List<Double> heat = new ArrayList<>(points + 1);
         List<Double> temperature = new ArrayList<>(points + 1);

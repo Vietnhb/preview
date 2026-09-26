@@ -37,7 +37,7 @@ public final class SourceInternalResistanceModule implements PhysicsModule<Sourc
         double emf = quantities.require("emf");
         double internalResistance = quantities.require("internal_resistance");
         double loadResistance = quantities.require("load_resistance");
-        if (!(emf > 0) || !(internalResistance > 0) || !(loadResistance > 0)
+        if (emf <= 0 || internalResistance <= 0 || loadResistance <= 0
                 || !Double.isFinite(emf) || !Double.isFinite(internalResistance) || !Double.isFinite(loadResistance)) {
             throw new IllegalArgumentException("Source emf and both resistances must be finite and positive");
         }

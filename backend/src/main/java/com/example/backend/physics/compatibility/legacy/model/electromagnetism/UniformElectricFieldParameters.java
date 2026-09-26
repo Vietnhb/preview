@@ -16,7 +16,7 @@ public record UniformElectricFieldParameters(double charge, double mass,
         double separation = PhysicsValues.require(specification, overrides, "plate_separation");
         double velocity = PhysicsValues.require(specification, overrides, "initial_velocity");
         double time = PhysicsValues.require(specification, overrides, "travel_time");
-        if (!(mass > 0) || separation <= 0 || voltage < 0 || velocity < 0 || time < 0 || !Double.isFinite(charge)) {
+        if (mass <= 0 || separation <= 0 || voltage < 0 || velocity < 0 || time < 0 || !Double.isFinite(charge)) {
             throw new IllegalArgumentException("Uniform electric-field parameters are invalid");
         }
         return new UniformElectricFieldParameters(charge, mass, voltage, separation, velocity, time);

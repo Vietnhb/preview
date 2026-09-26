@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "types": [
+    { "id": "object_identity", "description": "Optional identity fields for a declared object: id, label, and type." },
+    { "id": "scalar_quantity", "description": "Optional scalar measurement shape: name, value, originalUnit, symbol, and provenance." },
+    { "id": "typed_relation", "description": "Optional relation shape: type, subject, object, value, unit, and provenance." }
+  ]
+}

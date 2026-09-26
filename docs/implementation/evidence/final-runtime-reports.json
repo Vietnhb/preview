@@ -1,0 +1,179 @@
+[
+  {
+    "case": "complete",
+    "runtimeStatus": "OK",
+    "recordedValidation": {
+      "status": "OK",
+      "flags": []
+    },
+    "report": {
+      "description": "On a horizontal frictionless surface, two circular pucks of 1 kg and radius 0.1 m\nstart at x = 0 m and x = 2 m. The first moves right at 2 m/s and the second is\nstationary. Their collision is perfectly elastic. Show the motion for 3 seconds.",
+      "explanation": "Hai vật tròn (pucks) khối lượng 1 kg, bán kính 0.1 m nằm trên mặt phẳng ngang không ma sát. Vật thứ nhất ở x=0 m có vận tốc ban đầu 2 m/s sang phải, vật thứ hai ở x=2 m đứng yên. Vì va chạm hoàn toàn đàn hồi (hệ số phục hồi = 1) và khối lượng bằng nhau, sau va chạm chúng hoán đổi vận tốc: vật thứ nhất dừng lại, vật thứ hai di chuyển sang phải với 2 m/s. Động học được mô phỏng trong 3 s bằng luật II Newton và bảo toàn động lượng, năng lượng.",
+      "codeExcerpt": "const engine = Matter.Engine.create();\nconst left = Math.min(-0.5, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius));\nconst right = Math.max(6.5, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius));\nconst top = Math.",
+      "validation": {
+        "status": "OK",
+        "flags": [],
+        "metrics": {
+          "maxPositionDeviationPx": 3.0745758289252763,
+          "maxSweptTravelToFeatureRatio": 0.17095843573031305,
+          "expectedContactCount": 1,
+          "observedExpectedContactCount": 1,
+          "maxRelativeMomentumDrift": 2.4178190314058967e-14,
+          "maxRelativeEnergyDrift": 0.048696043999267885
+        }
+      }
+    }
+  },
+  {
+    "case": "clarify",
+    "runtimeStatus": "OK",
+    "recordedValidation": {
+      "status": "OK",
+      "flags": []
+    },
+    "report": {
+      "description": "Two 1 kg pucks are on a horizontal frictionless table. They interact for 3 seconds,\nbut the interaction itself is unspecified: they might collide or be connected.\nSimulate what happens.",
+      "explanation": "",
+      "codeExcerpt": "const engine = Matter.Engine.create();\nconst left = Math.min(-1.0, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius));\nconst right = Math.max(5.0, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius));\nconst top = Math.",
+      "validation": {
+        "status": "OK",
+        "flags": [],
+        "metrics": {
+          "maxPositionDeviationPx": 3.583441412931734,
+          "maxSweptTravelToFeatureRatio": 0.1699355660978578,
+          "expectedContactCount": 1,
+          "observedExpectedContactCount": 1,
+          "maxRelativeMomentumDrift": 3.552713678800493e-14,
+          "maxRelativeEnergyDrift": 0.03756344318648859
+        }
+      }
+    }
+  },
+  {
+    "case": "circuit",
+    "runtimeStatus": "RUNTIME_OK",
+    "recordedValidation": {
+      "status": "UNVERIFIED",
+      "flags": []
+    },
+    "report": {
+      "case": "circuit",
+      "status": "RUNTIME_OK",
+      "physics": "UNVERIFIED",
+      "durationSeconds": 20,
+      "maximumCommands": 16,
+      "sampleLabels": [
+        "5.0V",
+        "0 V",
+        "5.0 V",
+        "0 s",
+        "0.0 s"
+      ],
+      "finalState": {
+        "t": 20.000000000000146,
+        "Vc": 5,
+        "Vb": 5,
+        "tau": 0.1,
+        "prevX": 928.0000000000051,
+        "prevY": 32,
+        "plot": {
+          "x": 232,
+          "y": 32,
+          "w": 696,
+          "h": 476
+        },
+        "margin": 32,
+        "pointer": {
+          "x": 480,
+          "y": 270,
+          "down": false
+        }
+      }
+    }
+  },
+  {
+    "case": "instability",
+    "runtimeStatus": "FLAGGED",
+    "recordedValidation": {
+      "status": "FLAGGED",
+      "flags": [
+        "A fast body may cross another body's collision feature in one physics step; contact may be missed.",
+        "Expected contact between puck and wall was not observed within the requested duration."
+      ]
+    },
+    "report": {
+      "description": "On a frictionless horizontal surface, a circular 1 kg puck with radius 0.05 m starts at x = 0 m and\nmoves right at 10000 m/s toward a thin fixed wall at x = 1 m. The collision is\nperfectly elastic. Show the motion for 0.1 seconds.",
+      "explanation": "Một vật tròn (puck) khối lượng 1 kg, bán kính 0.05 m nằm trên mặt phẳng ngang không ma sát. Ban đầu nó ở vị trí x = 0 m và di chuyển sang phải với vận tốc 10000 m/s. Ở x = 1 m có một bức tường mỏng cố định. Khi puck chạm tường, va chạm được giả định hoàn toàn đàn hồi, vì vậy vận tốc của puck đổi hướng nhưng giữ nguyên độ lớn (‑10000 m/s). Trong 0.1 s, puck di chuyển sang phải trong 0.0001 s, va chạm, rồi di chuyển sang trái trong phần thời gian còn lại. Không có lực ngoại lực nào (không có trọng lực trên mặt ngang), không có ma sát, và va chạm được coi là tương tác bảo toàn năng lượng.",
+      "codeExcerpt": "const engine = Matter.Engine.create();\nconst left = Math.min(-1000.0, (0.0) - (params.body0_radius), (params.body1_x) - ((params.body1_width) / 2));\nconst right = Math.max(2.0, (0.0) + (params.body0_radius), (params.body1_x) + ((params.body1_width) / 2));\ncons",
+      "validation": {
+        "status": "FLAGGED",
+        "flags": [
+          "A fast body may cross another body's collision feature in one physics step; contact may be missed.",
+          "Expected contact between puck and wall was not observed within the requested duration."
+        ],
+        "metrics": {
+          "maxPositionDeviationPx": 0,
+          "maxSweptTravelToFeatureRatio": 143.71257485029935,
+          "expectedContactCount": 1,
+          "observedExpectedContactCount": 0
+        }
+      }
+    }
+  },
+  {
+    "case": "vietnamese",
+    "runtimeStatus": "FLAGGED",
+    "recordedValidation": {
+      "status": "FLAGGED",
+      "flags": [
+        "The simulation changes noticeably at a finer timestep."
+      ]
+    },
+    "report": {
+      "description": "Một quả bóng khối lượng 1 kg, bán kính 0,1 m được thả từ độ cao 2 m\nxuống sàn ngang cố định. Lấy g = 9,81 m/s² hướng xuống, hệ số đàn hồi\ngiữa bóng và sàn là 0,8. Mô phỏng chuyển động trong 3 giây.",
+      "explanation": "Quả bóng (khối lượng 1 kg, bán kính 0,1 m) được thả từ độ cao 2 m so với sàn ngang cố định. Trọng lực g = 9,81 m/s² hướng xuống tạo ra lực trọng trường F = m·g. Khi bóng chạm sàn, va chạm được mô tả bằng định luật II Newton và hệ số phục hồi e = 0.8: vận tốc sau va chạm = –e·v_before (đảo chiều và giảm độ lớn). Không có lực cản không khí hay ma sát, vì vậy chỉ có trọng lực và lực va chạm. Mô phỏng dùng Matter.js (runtime MATTER) với một vật rắn (ball) và một vật tĩnh (floor). Thời gian mô phỏng 3 s, đủ để thấy quá trình rơi, va chạm đầu tiên và một phần nảy lên rồi rơi lại.",
+      "codeExcerpt": "const engine = Matter.Engine.create();\nconst left = Math.min(-3.0, (0.0) - (params.body0_radius), (0.0) - ((params.body1_width) / 2));\nconst right = Math.max(3.0, (0.0) + (params.body0_radius), (0.0) + ((params.body1_width) / 2));\nconst top = Math.min(-3.0, (p",
+      "validation": {
+        "status": "FLAGGED",
+        "flags": [
+          "The simulation changes noticeably at a finer timestep."
+        ],
+        "metrics": {
+          "maxPositionDeviationPx": 25.59691824620353,
+          "maxSweptTravelToFeatureRatio": 0.5014387211367932,
+          "expectedContactCount": 1,
+          "observedExpectedContactCount": 1
+        }
+      }
+    }
+  },
+  {
+    "case": "three-bodies",
+    "runtimeStatus": "FLAGGED",
+    "recordedValidation": {
+      "status": "FLAGGED",
+      "flags": [
+        "Energy drift exceeds the expected tolerance."
+      ]
+    },
+    "report": {
+      "description": "Three circular pucks move on a frictionless horizontal surface. Puck A has\nmass 1 kg, radius 0.1 m, starts at x = 0 m and moves right at 2 m/s.\nPuck B has mass 2 kg, radius 0.1 m, starts at x = 1.5 m and is stationary.\nPuck C has mass 3 kg, radius 0.1 m, starts at x = 3 m and is stationary.\nTheir collisions are perfectly elastic. Show the motion for 3 seconds.",
+      "explanation": "Three circular pucks slide on a friction‑free horizontal plane. Their masses, radii, initial x‑positions and initial velocities are taken directly from the description. No external forces (gravity, friction) act, and the collisions are perfectly elastic (coefficient of restitution = 1). The system is modeled with Matter.js as three rigid circular bodies that can collide elastically. The simulation runs for the physical duration of 3 s (well within the 0.1–40 s limit).",
+      "codeExcerpt": "const engine = Matter.Engine.create();\nconst left = Math.min(-1.0, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius), (params.body2_x) - (params.body2_radius));\nconst right = Math.max(7.0, (0.0) + (params.body0_radius), (params.body1_x) +",
+      "validation": {
+        "status": "FLAGGED",
+        "flags": [
+          "Energy drift exceeds the expected tolerance."
+        ],
+        "metrics": {
+          "maxPositionDeviationPx": 3.213466308054876,
+          "maxSweptTravelToFeatureRatio": 0.17254601226993946,
+          "expectedContactCount": 0,
+          "observedExpectedContactCount": 0,
+          "maxRelativeMomentumDrift": 1.0263395072090353e-13,
+          "maxRelativeEnergyDrift": 0.15240231355645129
+        }
+      }
+    }
+  }
+]

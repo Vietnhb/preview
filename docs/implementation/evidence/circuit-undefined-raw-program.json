@@ -1,0 +1,39 @@
+{
+  "failure": "Gate rejected primitive undefined; init also omitted Vc read in first draw.",
+  "plan": {
+    "status": "READY",
+    "reason": null,
+    "durationSeconds": 10,
+    "program": {
+      "init": "const state={time:0,width,height,R:params.R!==undefined?params.R:1000,C:params.C!==undefined?params.C:1e-4,Vb:params.Vb!==undefined?params.Vb:5,history:[]};return state;",
+      "step": "state.time+=dt;state.Vc=state.Vb*(1-Math.exp(-state.time/(state.R*state.C)));state.history.push({t:state.time,Vc:state.Vc});",
+      "draw": "paint.rect(0,0,width,height,'#0b1729');\nconst margin=32;\nconst circuitW=width*0.4;\nconst plotW=width-circuitW-2*margin;\nconst plotX=circuitW+margin;\nconst plotY=margin;\nconst plotH=height-2*margin;\nconst cx=circuitW/2;\nconst cy=height/2;\nconst nodeRadius=6;\nconst batteryLen=40;\nconst resistorLen=60;\nconst capacitorGap=30;\nconst x0=margin;\nconst y0=cy;\nconst x1=x0+batteryLen;\nconst x2=x1+resistorLen;\nconst x3=x2+capacitorGap;\nconst x4=x3+30;\n// battery\npaint.line(x0-10,y0-15,x0-10,y0+15,'#fff',2);\npaint.line(x0+10,y0-15,x0+10,y0+15,'#fff',2);\npaint.line(x0-10,y0,x0+10,y0,'#fff',2);\npaint.text(x0-12,y0-20,`${state.Vb}V`,'#fff',12);\n// resistor (simple line)\npaint.line(x1,y0,x2,y0,'#fff',2);\n// capacitor\npaint.line(x2,y0-20,x2,y0+20,'#fff',2);\npaint.line(x3,y0-20,x3,y0+20,'#fff',2);\npaint.line(x3,y0,x4,y0,'#fff',2);\n// nodes\npaint.circle(x0,y0,nodeRadius,'#fff');\npaint.circle(x4,y0,nodeRadius,'#fff');\n// capacitor voltage label\npaint.text(x3+5,y0-25,`Vc=${state.Vc.toFixed(2)}V`,'#fff',12);\n// plot axes\npaint.line(plotX,plotY+plotH,plotX+plotW,plotY+plotH,'#fff',2);\npaint.line(plotX,plotY,plotX,plotY+plotH,'#fff',2);\npaint.text(plotX,plotY+plotH+15,'t (s)','#fff',12);\npaint.text(plotX-20,plotY,`V (${state.Vb}V)`,'#fff',12);\n// plot curve\nconst maxT=10; // presentation time span\nconst scaleX=plotW/maxT;\nconst scaleY=plotH/state.Vb;\nfor(let i=1;i<state.history.length;i++){\n  const p0=state.history[i-1];\n  const p1=state.history[i];\n  const x0=plotX+p0.t*scaleX;\n  const y0=plotY+plotH-p0.Vc*scaleY;\n  const x1=plotX+p1.t*scaleX;\n  const y1=plotY+plotH-p1.Vc*scaleY;\n  paint.line(x0,y0,x1,y1,'#0f0',2);\n}\nif(state.history.length){\n  const last=state.history[state.history.length-1];\n  const mx=plotX+last.t*scaleX;\n  const my=plotY+plotH-last.Vc*scaleY;\n  paint.circle(mx,my,4,'#f00');\n}"
+    },
+    "parameters": [
+      {
+        "name": "R",
+        "label": "Resistance (Ω)",
+        "value": 1000,
+        "min": 10,
+        "max": 1000000,
+        "unit": "Ω"
+      },
+      {
+        "name": "C",
+        "label": "Capacitance (F)",
+        "value": 0.0001,
+        "min": 0.000001,
+        "max": 0.01,
+        "unit": "F"
+      },
+      {
+        "name": "Vb",
+        "label": "Battery Voltage (V)",
+        "value": 5,
+        "min": 1,
+        "max": 12,
+        "unit": "V"
+      }
+    ]
+  }
+}

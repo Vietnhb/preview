@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,11 +30,14 @@ public class WaterSurfaceInterferenceSolver implements PhysicsSolver {
         }
         int n = p.spatialSamples();
         int maxTimeSamplesForGrid = Math.max(2, ScalarField.MAX_CELLS / (n * n));
-        int timeSamples = Math.min(Math.min(256, maxTimeSamplesForGrid),
-                Math.max(2, (int) Math.ceil(durationSeconds / stepSeconds) + 1));
+        long requestedTimeSamples = Math.addExact((long) Math.ceil(durationSeconds / stepSeconds), 1L);
+        int timeSamples = (int) Math.clamp(requestedTimeSamples, 2L,
+                Math.min(256, maxTimeSamplesForGrid));
         double actualStep = durationSeconds / (timeSamples - 1);
         double dx = p.domainSize() / (n - 1);
-        List<Double> x = new ArrayList<>(n), y = new ArrayList<>(n), time = new ArrayList<>(timeSamples);
+        List<Double> x = new ArrayList<>(n);
+        List<Double> y = new ArrayList<>(n);
+        List<Double> time = new ArrayList<>(timeSamples);
         for (int i = 0; i < n; i++) { x.add(-p.domainSize() / 2.0 + i * dx); y.add(-p.domainSize() / 2.0 + i * dx); }
         for (int i = 0; i < timeSamples; i++) time.add(i * actualStep);
         List<List<Double>> rows = new ArrayList<>(timeSamples);
@@ -46,7 +48,7 @@ public class WaterSurfaceInterferenceSolver implements PhysicsSolver {
             rows.add(row);
             centerHeight.add(height(p, 0, 0, t));
         }
-        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.TYPE, 2,
+        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.SCALAR_FIELD_TYPE, 2,
                 List.of(new ScalarField.Axis("x", "m", x), new ScalarField.Axis("y", "m", y)),
                 List.of(time.size(), n, n), time, rows, "m", "s",
                 new ScalarField.Sampling(dx, actualStep), "linear", "open;water_surface;point_sources=2");

@@ -18,6 +18,11 @@ public final class PhotoelectricEffectModule implements PhysicsModule<Photoelect
     public static final String MODULE_ID = "photoelectric_effect";
     public static final String NUMERICAL_SOLVER_ID = "photoelectric_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "photoelectric_reference_v2";
+    private static final String PHOTON_ENERGY = "photonEnergy";
+    private static final String MAXIMUM_KINETIC_ENERGY = "maximumKineticEnergy";
+    private static final String STOPPING_POTENTIAL = "stoppingPotential";
+    private static final String WAVELENGTH = "wavelength";
+    private static final String EMISSION_OCCURS = "emissionOccurs";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -49,11 +54,11 @@ public final class PhotoelectricEffectModule implements PhysicsModule<Photoelect
         }
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("photonEnergy", repeated(photonEnergy, times.size()));
-        values.put("maximumKineticEnergy", repeated(maximumKineticEnergy, times.size()));
-        values.put("stoppingPotential", repeated(stoppingPotential, times.size()));
-        values.put("wavelength", repeated(wavelength, times.size()));
-        values.put("emissionOccurs", repeated(emissionOccurs, times.size()));
+        values.put(PHOTON_ENERGY, repeated(photonEnergy, times.size()));
+        values.put(MAXIMUM_KINETIC_ENERGY, repeated(maximumKineticEnergy, times.size()));
+        values.put(STOPPING_POTENTIAL, repeated(stoppingPotential, times.size()));
+        values.put(WAVELENGTH, repeated(wavelength, times.size()));
+        values.put(EMISSION_OCCURS, repeated(emissionOccurs, times.size()));
         return new SolverOutput(times, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -79,11 +84,11 @@ public final class PhotoelectricEffectModule implements PhysicsModule<Photoelect
         }
 
         Map<String, Double> values = new LinkedHashMap<>();
-        values.put("photonEnergy", photonEnergy);
-        values.put("maximumKineticEnergy", maximumKineticEnergy);
-        values.put("stoppingPotential", stoppingPotential);
-        values.put("wavelength", wavelength);
-        values.put("emissionOccurs", emissionOccurs ? 1.0 : 0.0);
+        values.put(PHOTON_ENERGY, photonEnergy);
+        values.put(MAXIMUM_KINETIC_ENERGY, maximumKineticEnergy);
+        values.put(STOPPING_POTENTIAL, stoppingPotential);
+        values.put(WAVELENGTH, wavelength);
+        values.put(EMISSION_OCCURS, emissionOccurs ? 1.0 : 0.0);
         return new AnalyticalPoint(values);
     }
 
@@ -108,7 +113,7 @@ public final class PhotoelectricEffectModule implements PhysicsModule<Photoelect
                                              double stoppingPotential, double wavelength,
                                              double emissionOccurs) {
         double[] values = {photonEnergy, maximumKineticEnergy, stoppingPotential, wavelength, emissionOccurs};
-        String[] keys = {"photonEnergy", "maximumKineticEnergy", "stoppingPotential", "wavelength", "emissionOccurs"};
+        String[] keys = {PHOTON_ENERGY, MAXIMUM_KINETIC_ENERGY, STOPPING_POTENTIAL, WAVELENGTH, EMISSION_OCCURS};
         for (int index = 0; index < values.length; index++) {
             if (!Double.isFinite(values[index])) {
                 throw new ArithmeticException("Photoelectric result is not finite: " + keys[index]);

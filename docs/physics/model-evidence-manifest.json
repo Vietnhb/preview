@@ -69,25 +69,6 @@
       }
     },
     {
-      "schemaId": "astronomical_telescope",
-      "schemaVersion": "1.2",
-      "modelId": "astronomical_telescope",
-      "topic": "OPTICS",
-      "status": "PARTIAL",
-      "evidence": {
-        "golden": [],
-        "boundary": [
-          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
-        ],
-        "invalidDomain": [],
-        "invariant": [],
-        "output": [
-          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
-        ],
-        "faultDetection": []
-      }
-    },
-    {
       "schemaId": "atomic_spectra",
       "schemaVersion": "1.2",
       "modelId": "atomic_spectra",
@@ -202,25 +183,6 @@
       }
     },
     {
-      "schemaId": "compound_microscope",
-      "schemaVersion": "1.2",
-      "modelId": "compound_microscope",
-      "topic": "OPTICS",
-      "status": "PARTIAL",
-      "evidence": {
-        "golden": [],
-        "boundary": [
-          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
-        ],
-        "invalidDomain": [],
-        "invariant": [],
-        "output": [
-          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
-        ],
-        "faultDetection": []
-      }
-    },
-    {
       "schemaId": "ct_reconstruction",
       "schemaVersion": "1.1",
       "modelId": "ct_reconstruction",
@@ -263,25 +225,6 @@
       "schemaVersion": "1.2",
       "modelId": "de_broglie_diffraction",
       "topic": "MODERN_PHYSICS",
-      "status": "PARTIAL",
-      "evidence": {
-        "golden": [],
-        "boundary": [
-          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
-        ],
-        "invalidDomain": [],
-        "invariant": [],
-        "output": [
-          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
-        ],
-        "faultDetection": []
-      }
-    },
-    {
-      "schemaId": "diffraction_polarization",
-      "schemaVersion": "1.3",
-      "modelId": "diffraction_polarization",
-      "topic": "OPTICS",
       "status": "PARTIAL",
       "evidence": {
         "golden": [],
@@ -699,7 +642,7 @@
       "schemaId": "light_interference",
       "schemaVersion": "1.3",
       "modelId": "light_interference",
-      "topic": "OPTICS",
+      "topic": "WAVES",
       "status": "PARTIAL",
       "evidence": {
         "golden": [],
@@ -1076,44 +1019,6 @@
       }
     },
     {
-      "schemaId": "simple_magnifier",
-      "schemaVersion": "1.2",
-      "modelId": "simple_magnifier",
-      "topic": "OPTICS",
-      "status": "PARTIAL",
-      "evidence": {
-        "golden": [],
-        "boundary": [
-          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
-        ],
-        "invalidDomain": [],
-        "invariant": [],
-        "output": [
-          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
-        ],
-        "faultDetection": []
-      }
-    },
-    {
-      "schemaId": "snell_refraction",
-      "schemaVersion": "1.2",
-      "modelId": "snell_refraction",
-      "topic": "OPTICS",
-      "status": "PARTIAL",
-      "evidence": {
-        "golden": [],
-        "boundary": [
-          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
-        ],
-        "invalidDomain": [],
-        "invariant": [],
-        "output": [
-          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
-        ],
-        "faultDetection": []
-      }
-    },
-    {
       "schemaId": "sound_wave",
       "schemaVersion": "1.2",
       "modelId": "sound_wave",
@@ -1232,25 +1137,6 @@
       "schemaVersion": "1.1",
       "modelId": "thermistor_response",
       "topic": "CIRCUITS",
-      "status": "PARTIAL",
-      "evidence": {
-        "golden": [],
-        "boundary": [
-          "backend/src/test/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditTest.java"
-        ],
-        "invalidDomain": [],
-        "invariant": [],
-        "output": [
-          "backend/src/test/java/com/example/backend/bootstrap/SchemaCatalogOutputContractTest.java"
-        ],
-        "faultDetection": []
-      }
-    },
-    {
-      "schemaId": "thin_lens_imaging",
-      "schemaVersion": "1.1",
-      "modelId": "thin_lens_imaging",
-      "topic": "OPTICS",
       "status": "PARTIAL",
       "evidence": {
         "golden": [],

@@ -12,7 +12,7 @@ public record MagneticForceParameters(double charge, double speed, double magnet
         double v = PhysicsValues.require(specification, overrides, "speed");
         double b = PhysicsValues.require(specification, overrides, "magnetic_field");
         double theta = PhysicsValues.require(specification, overrides, "velocity_field_angle");
-        if (!Double.isFinite(q) || !(v >= 0) || !(b >= 0) || !Double.isFinite(theta) || theta < 0 || theta > Math.PI)
+        if (!Double.isFinite(q) || v < 0 || b < 0 || !Double.isFinite(theta) || theta < 0 || theta > Math.PI)
             throw new IllegalArgumentException("Invalid charge, speed, field or angle");
         return new MagneticForceParameters(q, v, b, theta);
     }

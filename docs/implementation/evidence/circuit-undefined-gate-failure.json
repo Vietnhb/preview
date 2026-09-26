@@ -1,0 +1,14 @@
+[ {
+  "case" : "circuit",
+  "input" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+  "sourceMode" : "TEXT",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+  "understandingStage" : "EXPLAIN",
+  "question" : null,
+  "explanation" : "The circuit consists of a DC voltage source (battery), a resistor, and a capacitor connected in series. When the switch is closed the capacitor charges. The voltage across the capacitor follows the RC charging law Vc(t)=Vb·(1‑e^{‑t/(R·C)}). The simulation will display the time‑evolution of Vc from the initial uncharged state (0 V) toward the battery voltage (5 V).",
+  "schemaId" : "adaptive_circuits",
+  "parameters" : [ ],
+  "defaults" : [ "Assumed battery voltage of 5 V.", "Assumed resistor value of 1 kΩ.", "Assumed capacitor value of 100 µF.", "Assumed capacitor initially uncharged (0 V)." ],
+  "error" : "com.example.backend.exception.ApiException: Could not produce a safe visual simulation from the confirmed description."
+} ]

@@ -1,0 +1,147 @@
+[
+  {
+    "case": "circuit",
+    "input": "RC charging",
+    "explanation": "Mạch RC gồm một nguồn điện áp (pin), một điện trở và một tụ điện nối tiếp. Khi công tắc đóng, tụ bắt đầu nạp điện; điện áp trên tụ tăng dần theo công thức V_C(t)=V_s(1‑e^{-t/RC}). Để mô phỏng, chúng tôi tạo một sơ đồ điện gồm nguồn, điện trở, tụ và các nút kết nối, vẽ đồ thị điện áp tụ theo thời gian. Các giá trị không được người dùng cung cấp được giả định hợp lý và được liệt kê trong defaults.",
+    "parameters": [
+      {
+        "name": "resistance",
+        "label": "Điện trở (Ω)",
+        "value": 1000,
+        "min": 10,
+        "max": 10000,
+        "unit": "Ω"
+      },
+      {
+        "name": "capacitance",
+        "label": "Điện dung (F)",
+        "value": 0.0001,
+        "min": 0.000001,
+        "max": 0.001,
+        "unit": "F"
+      },
+      {
+        "name": "voltage",
+        "label": "Điện áp nguồn (V)",
+        "value": 5,
+        "min": 1,
+        "max": 12,
+        "unit": "V"
+      },
+      {
+        "name": "timeScale",
+        "label": "Tốc độ thời gian (x)",
+        "value": 1,
+        "min": 0.1,
+        "max": 5,
+        "unit": ""
+      }
+    ],
+    "simulationSpec": {
+      "runtimeKind": "VISUAL",
+      "externalForces": false,
+      "friction": false,
+      "conservativeInteractions": false,
+      "physicalObjects": [
+        "nguồn điện áp",
+        "điện trở",
+        "tụ điện",
+        "nút mạch"
+      ],
+      "interactions": [
+        "nối với"
+      ],
+      "initialState": "Tụ điện bắt đầu không có điện áp (0 V). Khi công tắc đóng, dòng điện chạy qua điện trở vào tụ, điện áp tụ tăng dần tới 5 V.",
+      "requiredObjects": [
+        {
+          "sourceQuote": "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+          "label": "nguồn điện áp",
+          "count": 1,
+          "shape": "unspecified"
+        },
+        {
+          "sourceQuote": "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+          "label": "điện trở",
+          "count": 1,
+          "shape": "unspecified"
+        },
+        {
+          "sourceQuote": "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+          "label": "tụ điện",
+          "count": 1,
+          "shape": "unspecified"
+        },
+        {
+          "sourceQuote": "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+          "label": "nút mạch",
+          "count": 2,
+          "shape": "unspecified"
+        }
+      ],
+      "requiredConstraints": [
+        {
+          "sourceQuote": "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+          "label": "connected_to",
+          "count": 3
+        }
+      ],
+      "spatialRelations": [],
+      "fixedQuantities": [
+        {
+          "sourceQuote": "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+          "name": "voltage",
+          "valueSI": 5,
+          "unitSI": "V",
+          "provenance": "ASSUMPTION",
+          "valueStructure": "SCALAR",
+          "sceneField": "voltage",
+          "bodyRequirementIndexes": [],
+          "constraintRequirementIndexes": [],
+          "referenceObjectIndexes": []
+        },
+        {
+          "sourceQuote": "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+          "name": "resistance",
+          "valueSI": 1000,
+          "unitSI": "Ω",
+          "provenance": "ASSUMPTION",
+          "valueStructure": "SCALAR",
+          "sceneField": "resistance",
+          "bodyRequirementIndexes": [],
+          "constraintRequirementIndexes": [],
+          "referenceObjectIndexes": []
+        },
+        {
+          "sourceQuote": "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+          "name": "capacitance",
+          "valueSI": 0.0001,
+          "unitSI": "F",
+          "provenance": "ASSUMPTION",
+          "valueStructure": "SCALAR",
+          "sceneField": "capacitance",
+          "bodyRequirementIndexes": [],
+          "constraintRequirementIndexes": [],
+          "referenceObjectIndexes": []
+        },
+        {
+          "sourceQuote": "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+          "name": "voltage",
+          "valueSI": 0,
+          "unitSI": "V",
+          "provenance": "ASSUMPTION",
+          "valueStructure": "SCALAR",
+          "sceneField": "initial_voltage",
+          "bodyRequirementIndexes": [],
+          "constraintRequirementIndexes": [],
+          "referenceObjectIndexes": []
+        }
+      ],
+      "visualProgram": {
+        "init": "\n  const R=params.resistance;\n  const C=params.capacitance;\n  const Vs=params.voltage;\n  return {time:0,R:R,C:C,Vs:Vs,points:[]};\n",
+        "step": "\n  state.time+=dt*params.timeScale;\n  const tau=state.R*state.C;\n  const v=state.Vs*(1-Math.exp(-state.time/tau));\n  if(state.points.length<200) state.points.push({t:state.time,v:v});\n",
+        "draw": "\n  const M=32; // margin\n  const bg=\"#0b1729\";\n  // background (optional)\n  // draw circuit on left 45% of canvas\n  const circuitW=width*0.45;\n  const cx=M;\n  const cy=height/2;\n  const spacing=(circuitW-2*M)/4;\n  // positions\n  const batX=cx+spacing*0.5;\n  const resX=cx+spacing*1.5;\n  const capX=cx+spacing*2.5;\n  const lineY=cy;\n  const lineH=4;\n  // helper to draw horizontal segment\n  const hline=(x1,x2)=>{paint.line(x1,lineY,x2,lineY,\"#fff\",lineH);};\n  // left lead\n  hline(M,batX-20);\n  // battery symbol (two lines)\n  paint.line(batX-20,lineY-15,batX-20,lineY+15,\"#fff\",2);\n  paint.line(batX-10,lineY-8,batX-10,lineY+8,\"#fff\",2);\n  // plus sign\n  paint.line(batX-20,lineY,batX-10,lineY,\"#fff\",2);\n  // right lead of battery\n  hline(batX,batX+20);\n  // resistor (rectangle)\n  paint.rect(resX-20,lineY-10,40,20,\"#555\");\n  hline(resX+20,resX+20+spacing-20);\n  // capacitor (two plates)\n  const capXmid=resX+spacing-20;\n  paint.line(capXmid-5,lineY-15,capXmid-5,lineY+15,\"#fff\",2);\n  paint.line(capXmid+5,lineY-15,capXmid+5,lineY+15,\"#fff\",2);\n  hline(capXmid+5,capXmid+5+spacing-20);\n  // right lead to node (end)\n  hline(capXmid+5+spacing-20,width-M);\n  // labels\n  paint.text(batX-15,lineY-20,\"Nguồn\",\"#fff\",12);\n  paint.text(resX,lineY-25,\"R\",\"#fff\",12);\n  paint.text(capXmid,lineY-25,\"C\",\"#fff\",12);\n  // draw graph on right side\n  const gx=width*0.45+M;\n  const gw=width*0.55-2*M;\n  const gh=height-2*M;\n  const gx0=gx;\n  const gy0=height-M;\n  // axes\n  paint.line(gx0,gy0,gx0+gw,gy0,\"#fff\",2); // x axis\n  paint.line(gx0,gy0,gx0,gy0-gh,\"#fff\",2); // y axis\n  // axis labels\n  paint.text(gx0+gw/2,gy0+20,\"Thời gian (s)\",\"#fff\",12);\n  paint.text(gx0-30,gy0-gh/2,\"V_C (V)\",\"#fff\",12);\n  // scaling\n  const maxTime=state.time>0?state.time:params.timeScale*20; // ensure non‑zero\n  const xScale=gw/maxTime;\n  const yScale=gh/state.Vs;\n  // plot curve\n  for(let i=1;i<state.points.length;i++){\n    const p0=state.points[i-1];\n    const p1=state.points[i];\n    const x0=gx0+p0.t*xScale;\n    const y0=gy0-p0.v*yScale;\n    const x1=gx0+p1.t*xScale;\n    const y1=gy0-p1.v*yScale;\n    paint.line(x0,y0,x1,y1,\"#0f0\",2);\n  }\n  // moving marker\n  if(state.points.length>0){\n    const p=state.points[state.points.length-1];\n    const mx=gx0+p.t*xScale;\n    const my=gy0-p.v*yScale;\n    paint.circle(mx,my,5,\"#ff0\");\n    paint.text(mx+8,my-8,`V=${p.v.toFixed(2)}V`,\"#ff0\",12);\n  }\n"
+      },
+      "durationSeconds": 20
+    }
+  }
+]

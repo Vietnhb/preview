@@ -35,11 +35,9 @@ reference-solver agreement, not teacher or curriculum approval.
 | `standing_wave` | counter-propagating-wave interference | scalar field | tested |
 | `sound_wave` | Acoustic pressure wave | scalar field (`Pa`) | tested |
 | `ideal_gas_isothermal` | `pV=nRT`, `W=nRT ln(V/V0)` | timeseries | tested |
-| `thin_lens_imaging` | `1/f=1/do+1/di`, `M=-di/do` | timeseries | tested |
 | `radioactive_decay` | `N=N0 exp(-lambda t)`, `A=lambda N` | timeseries | tested |
 | `calorimetry_mixing` | `Tf=(m1c1T1+m2c2T2)/(m1c1+m2c2)`, `Q1+Q2=0` | timeseries | tested |
 | `first_law_thermodynamics` | `Delta U=Q-W`, `Uf=U0+Delta U` | timeseries | tested |
-| `snell_refraction` | `n1 sin(theta1)=n2 sin(theta2)` | ray/timeseries | tested |
 | `electromagnetic_induction` | `Phi=BA cos(theta)`, `emf=-N dPhi/dt` | timeseries | tested |
 | `ac_rlc_circuit` | `Z=sqrt(R^2+(XL-XC)^2)`, `P=I^2R` | timeseries | tested |
 | `photoelectric_effect` | `Kmax=max(0,hf-Phi)`, `V0=Kmax/e`; emission threshold `hf>=Phi` | timeseries | tested |
@@ -55,10 +53,6 @@ reference-solver agreement, not teacher or curriculum approval.
 | `ac_waveform` | `u(t)=U_0 sin(omega t+phi)`, `U_rms=U_0/sqrt(2)` | timeseries | tested |
 | `ideal_transformer` | `V_s/V_p=N_s/N_p`, `V_p I_p=V_s I_s` | timeseries | tested |
 | `light_interference` | `I=I_0 cos^2(pi Delta/ lambda)` | timeseries | tested |
-| `diffraction_polarization` | `a sin theta=m lambda`, `I=I_0 cos^2 theta` | timeseries | tested |
-| `simple_magnifier` | `d_i=f d_o/(f-d_o)`, `M_infinity=D/f`, `M_D=1+D/f` | ray/timeseries | tested |
-| `compound_microscope` | `M_infinity=(L/f_o)(D/f_e)`, `M_D=(L/f_o)(1+D/f_e)` | ray/timeseries | tested |
-| `astronomical_telescope` | `|M|=f_o/f_e`, `L=f_o+f_e` (normal adjustment) | ray/timeseries | tested |
 | `atomic_spectra` | `1/lambda=R_H(1/n_f^2-1/n_i^2)` | timeseries | tested |
 | `radiation_safety` | `dot D(r)=dot D_0(r_0/r)^2` | timeseries | tested |
 | `adiabatic_gas` | `PV^gamma=const`, `TV^(gamma-1)=const` | timeseries | tested |

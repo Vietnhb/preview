@@ -48,8 +48,14 @@ public record StringWaveParameters(
                 "domain_end");
         double configuredLength = PhysicsValues.optional(specification, overrides, Double.NaN,
                 "domain_length");
-        double domainEnd = Double.isFinite(configuredEnd) ? configuredEnd
-                : domainStart + (Double.isFinite(configuredLength) ? configuredLength : Math.max(1, 2 * wavelength));
+        double domainEnd;
+        if (Double.isFinite(configuredEnd)) {
+            domainEnd = configuredEnd;
+        } else if (Double.isFinite(configuredLength)) {
+            domainEnd = domainStart + configuredLength;
+        } else {
+            domainEnd = domainStart + Math.max(1, 2 * wavelength);
+        }
         if (!Double.isFinite(domainStart) || !Double.isFinite(domainEnd) || domainStart < 0
                 || domainEnd <= domainStart) {
             throw new IllegalArgumentException(

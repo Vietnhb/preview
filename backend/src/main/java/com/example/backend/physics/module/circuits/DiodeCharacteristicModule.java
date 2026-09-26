@@ -19,6 +19,10 @@ public final class DiodeCharacteristicModule implements PhysicsModule<DiodeChara
     public static final String REFERENCE_SOLVER_ID = "diode_characteristic_reference";
 
     private static final double LOG_MAX_VALUE = Math.log(Double.MAX_VALUE);
+    private static final String THERMAL_VOLTAGE = "thermalVoltage";
+    private static final String CURRENT = "current";
+    private static final String POWER = "power";
+    private static final String REFERENCE_PREFIX = "reference ";
 
     @Override
     public String moduleId() {
@@ -52,20 +56,20 @@ public final class DiodeCharacteristicModule implements PhysicsModule<DiodeChara
         List<Double> time = Objects.requireNonNull(clock, "clock").sampleTimes();
         double thermalVoltage = PhysicalConstants.BOLTZMANN * parameters.temperature
                 / PhysicalConstants.ELEMENTARY_CHARGE;
-        requirePositiveFinite(thermalVoltage, "thermalVoltage");
+        requirePositiveFinite(thermalVoltage, THERMAL_VOLTAGE);
         double characteristicVoltage = parameters.idealityFactor * thermalVoltage;
         requirePositiveFinite(characteristicVoltage, "characteristicVoltage");
         double exponent = parameters.voltage / characteristicVoltage;
         requireFinite(exponent, "dimensionless voltage");
         double current = numericalCurrent(parameters.saturationCurrent, exponent);
         double power = parameters.voltage * current;
-        requireFinite(current, "current");
-        requireFinite(power, "power");
+        requireFinite(current, CURRENT);
+        requireFinite(power, POWER);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("thermalVoltage", repeated(thermalVoltage, time.size()));
-        values.put("current", repeated(current, time.size()));
-        values.put("power", repeated(power, time.size()));
+        values.put(THERMAL_VOLTAGE, repeated(thermalVoltage, time.size()));
+        values.put(CURRENT, repeated(current, time.size()));
+        values.put(POWER, repeated(power, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -77,18 +81,18 @@ public final class DiodeCharacteristicModule implements PhysicsModule<DiodeChara
         // Use q/k and a different grouping from the numerical kT/q and V/(n Vt) path.
         double thermalVoltage = (PhysicalConstants.BOLTZMANN / PhysicalConstants.ELEMENTARY_CHARGE)
                 * parameters.temperature;
-        requirePositiveFinite(thermalVoltage, "reference thermalVoltage");
+        requirePositiveFinite(thermalVoltage, REFERENCE_PREFIX + THERMAL_VOLTAGE);
         double exponent = ((parameters.voltage / parameters.idealityFactor) / parameters.temperature)
                 * (PhysicalConstants.ELEMENTARY_CHARGE / PhysicalConstants.BOLTZMANN);
         requireFinite(exponent, "reference dimensionless voltage");
         double current = referenceCurrent(parameters.saturationCurrent, exponent);
         double power = parameters.voltage * current;
-        requireFinite(current, "reference current");
-        requireFinite(power, "reference power");
+        requireFinite(current, REFERENCE_PREFIX + CURRENT);
+        requireFinite(power, REFERENCE_PREFIX + POWER);
         return new AnalyticalPoint(Map.of(
-                "thermalVoltage", thermalVoltage,
-                "current", current,
-                "power", power));
+                THERMAL_VOLTAGE, thermalVoltage,
+                CURRENT, current,
+                POWER, power));
     }
 
     private static double numericalCurrent(double saturationCurrent, double exponent) {

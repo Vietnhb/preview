@@ -20,6 +20,8 @@ public final class AcWaveformModule implements PhysicsModule<AcWaveformParameter
     public static final String MODULE_ID = "ac_waveform";
     public static final String NUMERICAL_SOLVER_ID = "ac_waveform_solver";
     public static final String REFERENCE_SOLVER_ID = "ac_waveform_reference";
+    private static final String VOLTAGE = "voltage";
+    private static final String RMS_VOLTAGE = "rmsVoltage";
 
     @Override
     public String moduleId() {
@@ -51,8 +53,8 @@ public final class AcWaveformModule implements PhysicsModule<AcWaveformParameter
             rmsVoltage.add(parameters.rmsVoltage());
         }
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("voltage", List.copyOf(voltage));
-        values.put("rmsVoltage", List.copyOf(rmsVoltage));
+        values.put(VOLTAGE, List.copyOf(voltage));
+        values.put(RMS_VOLTAGE, List.copyOf(rmsVoltage));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -72,8 +74,8 @@ public final class AcWaveformModule implements PhysicsModule<AcWaveformParameter
             rmsVoltage.add(parameters.rmsVoltage());
         }
         return new PhysicsOutputFrame(time, List.of(
-                new TimeSeriesOutput("voltage", requiredUnit(contract, "voltage"), time, voltage),
-                new TimeSeriesOutput("rmsVoltage", requiredUnit(contract, "rmsVoltage"), time, rmsVoltage)));
+                new TimeSeriesOutput(VOLTAGE, requiredUnit(contract, VOLTAGE), time, voltage),
+                new TimeSeriesOutput(RMS_VOLTAGE, requiredUnit(contract, RMS_VOLTAGE), time, rmsVoltage)));
     }
 
     private static String requiredUnit(PhysicsOutputContract contract, String key) {

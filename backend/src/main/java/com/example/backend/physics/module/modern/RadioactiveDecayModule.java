@@ -17,6 +17,8 @@ public final class RadioactiveDecayModule implements PhysicsModule<RadioactiveDe
     public static final String MODULE_ID = "radioactive_decay";
     public static final String NUMERICAL_SOLVER_ID = "radioactive_decay_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "radioactive_decay_reference_v2";
+    private static final String REMAINING_COUNT = "remainingCount";
+    private static final String ACTIVITY = "activity";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -41,15 +43,15 @@ public final class RadioactiveDecayModule implements PhysicsModule<RadioactiveDe
             double count = parameters.initialCount()
                     * Math.exp(-parameters.decayConstant() * currentTime);
             double currentActivity = parameters.decayConstant() * count;
-            requireFinite("remainingCount", count);
-            requireFinite("activity", currentActivity);
+            requireFinite(REMAINING_COUNT, count);
+            requireFinite(ACTIVITY, currentActivity);
             remainingCount.add(count);
             activity.add(currentActivity);
         }
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("remainingCount", List.copyOf(remainingCount));
-        values.put("activity", List.copyOf(activity));
+        values.put(REMAINING_COUNT, List.copyOf(remainingCount));
+        values.put(ACTIVITY, List.copyOf(activity));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -66,9 +68,9 @@ public final class RadioactiveDecayModule implements PhysicsModule<RadioactiveDe
                 : Math.exp(Math.log(parameters.initialCount())
                 - parameters.decayConstant() * timeSeconds);
         double activity = parameters.decayConstant() * remaining;
-        requireFinite("reference remainingCount", remaining);
-        requireFinite("reference activity", activity);
-        return new AnalyticalPoint(Map.of("remainingCount", remaining, "activity", activity));
+        requireFinite("reference " + REMAINING_COUNT, remaining);
+        requireFinite("reference " + ACTIVITY, activity);
+        return new AnalyticalPoint(Map.of(REMAINING_COUNT, remaining, ACTIVITY, activity));
     }
 
     private static void requireUnit(CanonicalQuantityBag quantities, String key, String expectedUnit) {

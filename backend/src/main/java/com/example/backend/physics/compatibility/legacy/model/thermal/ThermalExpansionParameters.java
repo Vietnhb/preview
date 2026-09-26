@@ -13,7 +13,7 @@ public record ThermalExpansionParameters(double initialLength, double coefficien
         double alpha = PhysicsValues.require(specification, overrides, "linear_expansion_coefficient");
         double t0 = PhysicsValues.require(specification, overrides, "initial_temperature");
         double t1 = PhysicsValues.require(specification, overrides, "final_temperature");
-        if (!(length > 0) || alpha < 0 || !(t0 > 0) || !(t1 > 0)
+        if (length <= 0 || alpha < 0 || t0 <= 0 || t1 <= 0
                 || !Double.isFinite(alpha) || !Double.isFinite(t0) || !Double.isFinite(t1))
             throw new IllegalArgumentException("Length positive, coefficient non-negative and absolute temperatures positive");
         return new ThermalExpansionParameters(length, alpha, t0, t1);

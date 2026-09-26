@@ -1,0 +1,395 @@
+{
+  "schemaId": "adaptive_waves",
+  "model": "matter_js",
+  "name": "Waves Concept Capability",
+  "topic": "WAVES",
+  "version": "2.0",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for waves. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "oscillator",
+        "label": "bộ dao động",
+        "description": "Source with a repeated physical motion."
+      },
+      {
+        "type": "wave_source",
+        "label": "nguồn sóng",
+        "description": "Source of a wave signal."
+      },
+      {
+        "type": "medium",
+        "label": "môi trường truyền",
+        "description": "Medium with a stated propagation law."
+      },
+      {
+        "type": "receiver",
+        "label": "bộ thu",
+        "description": "Observer at a point."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "emits_into",
+        "label": "phát vào môi trường",
+        "description": "Source emits signal into medium.",
+        "subjectTypes": [
+          "wave_source",
+          "oscillator"
+        ],
+        "objectTypes": [
+          "medium"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "wave_source",
+            "oscillator",
+            "medium"
+          ]
+        }
+      },
+      {
+        "type": "propagates_to",
+        "label": "truyền tới",
+        "description": "Signal reaches a receiver under a stated delay law.",
+        "subjectTypes": [
+          "wave_source"
+        ],
+        "objectTypes": [
+          "receiver"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "type": "coupled_to",
+        "label": "ghép dao động",
+        "description": "Oscillators interact under a stated coupling law.",
+        "subjectTypes": [
+          "oscillator"
+        ],
+        "objectTypes": [
+          "oscillator"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "amplitude",
+        "label": "biên độ",
+        "description": "Amplitude of the specified displacement.",
+        "aliases": [
+          "A"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "frequency",
+        "label": "tần số",
+        "description": "Cycles per second.",
+        "aliases": [
+          "f"
+        ],
+        "allowedUnits": [
+          "Hz"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "period",
+        "label": "chu kỳ",
+        "description": "Duration of one cycle.",
+        "aliases": [
+          "T"
+        ],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "angular_frequency",
+        "label": "tần số góc",
+        "description": "Rate of phase change.",
+        "aliases": [
+          "omega"
+        ],
+        "allowedUnits": [
+          "rad/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source"
+          ]
+        }
+      },
+      {
+        "key": "phase",
+        "label": "pha",
+        "description": "Phase at a stated reference.",
+        "aliases": [],
+        "allowedUnits": [
+          "rad"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "wave_speed",
+        "label": "tốc độ truyền sóng",
+        "description": "Propagation speed in medium.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium"
+          ]
+        }
+      },
+      {
+        "key": "wavelength",
+        "label": "bước sóng",
+        "description": "Distance between equal-phase points.",
+        "aliases": [
+          "lambda"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source"
+          ]
+        }
+      },
+      {
+        "key": "distance",
+        "label": "khoảng cách",
+        "description": "Source-to-receiver distance.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "wave_source",
+            "receiver"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "m",
+        "dimension": "length"
+      },
+      {
+        "symbol": "Hz",
+        "dimension": "frequency"
+      },
+      {
+        "symbol": "s",
+        "dimension": "time"
+      },
+      {
+        "symbol": "rad/s",
+        "dimension": "angular velocity"
+      },
+      {
+        "symbol": "rad",
+        "dimension": "angle"
+      },
+      {
+        "symbol": "m/s",
+        "dimension": "velocity"
+      }
+    ],
+    "laws": [
+      {
+        "id": "frequency_period",
+        "name": "Tần số và chu kỳ",
+        "inputs": [
+          "period"
+        ],
+        "outputs": [
+          "frequency"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source"
+          ],
+          "quantities": [
+            "period",
+            "frequency"
+          ]
+        },
+        "assumptions": [
+          "T > 0."
+        ],
+        "description": "Period-frequency relation."
+      },
+      {
+        "id": "wave_speed",
+        "name": "Quan hệ bước sóng",
+        "inputs": [
+          "frequency",
+          "wavelength"
+        ],
+        "outputs": [
+          "wave_speed"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source"
+          ],
+          "quantities": [
+            "frequency",
+            "wavelength",
+            "wave_speed"
+          ]
+        },
+        "assumptions": [
+          "Medium and frequency stable over interval."
+        ],
+        "description": "Wave speed from wavelength and frequency."
+      },
+      {
+        "id": "harmonic_signal",
+        "name": "Dao động điều hòa tại điểm",
+        "inputs": [
+          "amplitude",
+          "angular_frequency",
+          "phase"
+        ],
+        "outputs": [
+          "amplitude"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "receiver"
+          ],
+          "quantities": [
+            "amplitude",
+            "angular_frequency",
+            "phase"
+          ]
+        },
+        "assumptions": [
+          "Value is evaluated at finitely many points, not a continuous spatial wave."
+        ],
+        "description": "Pointwise harmonic signal."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "observation_location",
+        "description": "Clarify observed quantity and position when phase or delay depends on it.",
+        "appliesTo": {
+          "objectTypes": [
+            "receiver",
+            "wave_source"
+          ],
+          "relationTypes": [
+            "propagates_to"
+          ],
+          "quantities": []
+        }
+      },
+      {
+        "id": "spatial_wave_limit",
+        "description": "A propagating wave requires a model of its spatially distributed medium.",
+        "appliesTo": {
+          "objectTypes": [
+            "medium"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "initial_phase",
+        "description": "Phase or initial state must be supplied or accepted when it affects the output.",
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "AI-authored interactive visual models of high-school waves, sources, and media.",
+      "limitations": [
+        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+    }
+  }
+}

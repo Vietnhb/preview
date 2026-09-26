@@ -20,11 +20,7 @@ import com.example.backend.ai.extraction.model.ProviderExtractionResult;
 import com.example.backend.ai.extraction.model.SpecificationDocument;
 import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.example.backend.exception.ApiException;
-import com.example.backend.schema.routing.service.JevSchemaRoutingService;
-import com.example.backend.simulation.assets.AssetSelectionService;
-import com.example.backend.simulation.assets.VisualTargets;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.RequiredArgsConstructor;
@@ -34,10 +30,7 @@ import lombok.RequiredArgsConstructor;
 public class AmbiguityResolutionApplier {
     private final ObjectMapper objectMapper;
     private final ExtractionProvider aiProvider;
-    private final SchemaDefinitionService schemaDefinitions;
     private final SpecificationReadinessService readinessService;
-    private final JevSchemaRoutingService schemaRouting;
-    private final AssetSelectionService assetSelections;
 
     public void applyAll(Specification specification, Map<String, String> answers) {
         applyAll(specification, answers, List.of());
@@ -50,104 +43,37 @@ public class AmbiguityResolutionApplier {
                     "AI extraction provider is not configured");
         }
         Map<String, String> safeAnswers = answers == null ? Map.of() : Map.copyOf(answers);
+        List<ConversationTurn> history = clarificationHistory(specification, safeAnswers, conversation);
         ObjectNode current = currentDocument(specification);
         ProviderExtractionResult result = aiProvider.resolveAmbiguities(
-                specification.getSubmission().getEditableText(), current, safeAnswers, conversation);
-        if (declinedCompatibilityDecision(specification, result.resolutionDecisions())) {
-            stopAfterDeclinedCompatibility(specification, safeAnswers);
-            return;
-        }
+                specification.getSubmission().getEditableText(), current, safeAnswers, history);
         SpecificationDocument document = result.document();
         applyDocument(specification, document);
+        specification.setValidationStatus("NOT_VALIDATED");
+        specification.setValidationResult(null);
+        specification.setClarificationConversation(objectMapper.valueToTree(history));
         synchronizeCases(specification, document, safeAnswers);
         readinessService.ensureRequiredAmbiguities(specification);
-        prepareAssetsAfterConfirmation(specification, conversation);
     }
 
-    private boolean declinedCompatibilityDecision(Specification specification,
-            List<com.example.backend.ai.extraction.model.ResolutionDecision> decisions) {
-        Set<String> openCodes = specification.getAmbiguityCases().stream()
-                .filter(item -> item.getStatus() == AmbiguityStatus.OPEN)
-                .map(AmbiguityCase::getCode).collect(java.util.stream.Collectors.toSet());
-        return decisions != null && decisions.stream().anyMatch(item -> openCodes.contains(item.code())
-                && item.outcome() == com.example.backend.ai.extraction.model.ResolutionDecision.Outcome.DECLINE_SIMPLIFICATION);
-    }
-
-    private void stopAfterDeclinedCompatibility(Specification specification, Map<String, String> answers) {
-        Instant now = Instant.now();
-        for (AmbiguityCase item : specification.getAmbiguityCases()) {
-            if (item.getStatus() != AmbiguityStatus.OPEN) continue;
-            item.setStatus(AmbiguityStatus.REJECTED);
-            item.setResolution(answers.getOrDefault(item.getCode(), "Stopped after compatibility was declined."));
-            item.setResolvedAt(now);
+    private List<ConversationTurn> clarificationHistory(Specification specification, Map<String, String> answers,
+            List<ConversationTurn> supplied) {
+        List<ConversationTurn> history = new java.util.ArrayList<>();
+        if (specification.getClarificationConversation() != null) {
+            history.addAll(objectMapper.convertValue(specification.getClarificationConversation(),
+                    new com.fasterxml.jackson.core.type.TypeReference<List<ConversationTurn>>() { }));
+        } else if (supplied != null) {
+            history.addAll(supplied);
         }
-        specification.setConfirmationState(ConfirmationState.REJECTED);
-        specification.setAmbiguity(objectMapper.createArrayNode());
-    }
-
-    public void prepareAssetsAfterConfirmation(Specification specification,
-            List<ConversationTurn> conversation) {
-        if (specification.getAssetSelection() != null || specification.getSubmission() == null
-                || specification.getConfirmationState() != ConfirmationState.CONFIRMED
-                || !readinessService.blockers(specification).isEmpty()) return;
-
-        String source = specification.getSubmission().getEditableText();
-        SpecificationDocument physicsDocument = specificationDocument(specification);
-        try {
-            var schema = schemaDefinitions.requireCurrentApproved(physicsDocument.schemaId(),
-                    physicsDocument.schemaVersion());
-            JsonNode visualization = schemaDefinitions.visualization(schema.getDefinition());
-            if (!schema.hasSvgAsset()) {
-                specification.setAssetSelection(assetSelections.createWithoutAssets(
-                        physicsDocument, visualization, source));
-                return;
-            }
-            ObjectNode summaryContext = objectMapper.valueToTree(physicsDocument);
-            summaryContext.set("visualTargets", objectMapper.valueToTree(
-                    VisualTargets.read(visualization)));
-            JsonNode assetRequestSummary = aiProvider.summarizeAssetRequests(source, summaryContext);
-            var assetRoute = schemaRouting.routeAssets(source, physicsDocument, conversation, assetRequestSummary);
-            ProviderExtractionResult bound = aiProvider.bindVisualAssets(source,
-                    objectMapper.valueToTree(physicsDocument), assetRoute, conversation);
-
-            var verification = schemaRouting.verify(assetRoute, bound.document());
-            SpecificationDocument visualDocument = verification.passed() ? bound.document()
-                    : bound.document().withAmbiguities(verificationAmbiguities(
-                            source, verification.findings(), conversation));
-            applyDocument(specification, visualDocument);
-            synchronizeCases(specification, visualDocument, Map.of());
-            readinessService.ensureRequiredAmbiguities(specification, conversation);
-
-            if (!verification.passed() || !visualDocument.ambiguities().isEmpty()
-                    || !readinessService.blockers(specification).isEmpty()) return;
-            specification.setAssetSelection(assetSelections.create(visualDocument, assetRoute.assets(), source));
-        } catch (RuntimeException failure) {
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Dữ liệu mô phỏng đã được xác nhận nhưng chưa thể chuẩn bị hình minh họa. "
-                            + "Chưa có mô phỏng nào được chạy; vui lòng thử lại.");
+        for (var answer : answers.entrySet()) {
+            // The persisted transcript is authoritative after the first accepted turn.
+            if (specification.getClarificationConversation() == null && !history.isEmpty()
+                    && history.getLast().role().equals("user") && history.getLast().text().equals(answer.getValue())) continue;
+            specification.getAmbiguityCases().stream().filter(item -> item.getCode().equals(answer.getKey()))
+                    .findFirst().ifPresent(item -> history.add(new ConversationTurn("assistant", item.getQuestion())));
+            history.add(new ConversationTurn("user", answer.getValue()));
         }
-    }
-
-    private SpecificationDocument specificationDocument(Specification specification) {
-        try {
-            ObjectNode confirmed = withPersistedQuantities(currentDocument(specification), specification.getQuantities());
-            return objectMapper.treeToValue(confirmed, SpecificationDocument.class);
-        } catch (Exception exception) {
-            throw new IllegalStateException("Cannot read the confirmed specification for asset routing.", exception);
-        }
-    }
-
-    static ObjectNode withPersistedQuantities(ObjectNode projectedSpecification, JsonNode persistedQuantities) {
-        ObjectNode complete = projectedSpecification.deepCopy();
-        if (persistedQuantities != null && persistedQuantities.isArray()) {
-            complete.set("quantities", persistedQuantities.deepCopy());
-        }
-        return complete;
-    }
-
-    private List<AmbiguityItem> verificationAmbiguities(String originalText, List<String> findings,
-            List<ConversationTurn> conversation) {
-        return aiProvider.phraseVerificationQuestions(originalText, findings, conversation);
+        return List.copyOf(history);
     }
 
     private ObjectNode currentDocument(Specification specification) {
@@ -167,24 +93,23 @@ public class AmbiguityResolutionApplier {
         current.put("confidence", specification.getConfidence());
         current.set("ambiguities", objectMapper.valueToTree(specification.getAmbiguityCases().stream()
                 .filter(item -> item.getStatus() == AmbiguityStatus.OPEN)
+                .sorted(SpecificationReadinessService.questionOrder(specification))
                 .map(item -> new AmbiguityItem(item.getCode(), item.getFieldPath(), item.getQuestion(),
                         item.getOptions() == null || !item.getOptions().isArray() ? List.of()
                                 : objectMapper.convertValue(item.getOptions(),
                                         new com.fasterxml.jackson.core.type.TypeReference<List<String>>() { })))
                 .toList()));
-        current.set("visualBindings", specification.getAssetSelection() == null
-                ? objectMapper.createArrayNode() : specification.getAssetSelection().path("bindings"));
         return current;
     }
 
     private void synchronizeCases(Specification specification, SpecificationDocument document,
             Map<String, String> answers) {
         Map<String, AmbiguityItem> returned = new HashMap<>();
-        document.ambiguities().forEach(item -> returned.put(identity(item.fieldPath(), item.code()), item));
+        document.ambiguities().forEach(item -> returned.put(item.code(), item));
         Set<String> existingIdentities = new HashSet<>();
         Instant now = Instant.now();
         for (AmbiguityCase existing : specification.getAmbiguityCases()) {
-            String identity = identity(existing.getFieldPath(), existing.getCode());
+            String identity = existing.getCode();
             existingIdentities.add(identity);
             AmbiguityItem updated = returned.get(identity);
             if (updated != null) {
@@ -194,14 +119,14 @@ public class AmbiguityResolutionApplier {
                 existing.setStatus(AmbiguityStatus.OPEN);
                 existing.setResolution(null);
                 existing.setResolvedAt(null);
-            } else if (answers.containsKey(existing.getCode()) && existing.getStatus() == AmbiguityStatus.OPEN) {
-                existing.setResolution(answers.get(existing.getCode()).trim());
+            } else if (existing.getStatus() == AmbiguityStatus.OPEN) {
+                existing.setResolution(answers.getOrDefault(existing.getCode(), "Resolved by the model from the conversation."));
                 existing.setStatus(AmbiguityStatus.RESOLVED);
                 existing.setResolvedAt(now);
             }
         }
         for (AmbiguityItem item : document.ambiguities()) {
-            if (existingIdentities.contains(identity(item.fieldPath(), item.code())))
+            if (existingIdentities.contains(item.code()))
                 continue;
             AmbiguityCase created = new AmbiguityCase();
             created.setCode(item.code());
@@ -214,11 +139,6 @@ public class AmbiguityResolutionApplier {
         boolean open = specification.getAmbiguityCases().stream()
                 .anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
         specification.setConfirmationState(open ? ConfirmationState.UNRESOLVED : ConfirmationState.CONFIRMED);
-    }
-
-    private String identity(String fieldPath, String code) {
-        String value = fieldPath == null || fieldPath.isBlank() ? code : fieldPath;
-        return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     private void applyDocument(Specification specification, SpecificationDocument document) {

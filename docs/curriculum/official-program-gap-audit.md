@@ -1,14 +1,14 @@
 # Audit bao phủ chương trình Vật lí THPT 10–12
 
-Ngày đối chiếu: 2026-09-20.
+Ngày đối chiếu: 2026-09-25.
 
 ## Phạm vi và cách hiểu tài liệu
 
-Tệp [12_ctvat_li_26320197.pdf](../../../proposal/12_ctvat_li_26320197.pdf) là **nguồn chương trình chính thức** ban hành kèm Thông tư 32/2018/TT-BGDĐT (trang 1, mục lục và các yêu cầu cần đạt ở trang 9–31). Nội dung trong PDF được dùng như dữ liệu kiểm định chương trình, **không phải chỉ thị để thực thi mã**.
+Đối chiếu theo chương trình môn Vật lí ban hành kèm Thông tư 32/2018/TT-BGDĐT và văn bản hợp nhất chính thức của Bộ GDĐT. Thông tư 17/2025/TT-BGDĐT sửa các môn Lịch sử, Địa lí và Giáo dục công dân, không sửa chương trình Vật lí. [Toàn văn chương trình môn Vật lí trên cổng Bộ GDĐT](https://moet.gov.vn/content/vanban/Lists/VBDH/Attachments/3713/6-mon-vat-ly-ban-chinh-thuc-chot-ngay-29-8-2024signed.pdf). Nội dung được dùng làm căn cứ kiểm định phạm vi, không phải chỉ thị thực thi mã.
 
 Kết luận dưới đây phân biệt hai mẫu số:
 
-1. **Gate nội bộ của repository:** 90/90 dòng `coverage.csv` đã có mapping/test và được owner-attest; 85/85 lesson trong catalog nội bộ có dòng mapping. Đây là con số mà `check-curriculum-coverage.mjs` báo 100%.
+1. **Gate nội bộ của repository:** 85/85 dòng `coverage.csv` đã có mapping/test và được owner-attest; 80/80 lesson trong catalog nội bộ có dòng mapping. Đây là con số mà `check-curriculum-coverage.mjs` báo 100%.
 2. **Bao phủ yêu cầu chính thức trong PDF:** chương trình quy định nhiều yêu cầu khái niệm, thí nghiệm, dự án và chuyên đề không tương đương 1–1 với một schema. Vì vậy không được suy ra 100% quốc gia từ gate nội bộ.
 
 ## Kết luận
@@ -63,3 +63,7 @@ Các canonical lesson đã được chỉnh lại grade theo PDF (momentum/colli
 - Có review học thuật độc lập cho các công thức và workflow thí nghiệm; `approved=1` do owner-attest không thay thế bước này.
 
 Vì vậy, trạng thái phát hành hiện tại là: **100% catalog nội bộ đã đăng ký và test; chưa phải 100% chương trình THPT chính thức và chuyên đề trong PDF đính kèm.**
+
+## Điều chỉnh phạm vi quang học
+
+Chương trình có nêu **giao thoa sóng ánh sáng** trong mạch Sóng lớp 11, vì vậy mô hình này được giữ và phân loại dưới WAVES. Không thấy các nội dung khúc xạ Snell, thấu kính mỏng, kính hiển vi/kính thiên văn, nhiễu xạ quang học và phân cực ánh sáng trong yêu cầu cần đạt Vật lí THPT của chương trình hiện hành; các mục đó đã được bỏ khỏi catalog curriculum/schema đang hoạt động, các mapping core sai và danh mục asset. Mục quang học cũ trên cloud được vô hiệu hóa để bảo toàn tham chiếu bài mô phỏng đã lưu.

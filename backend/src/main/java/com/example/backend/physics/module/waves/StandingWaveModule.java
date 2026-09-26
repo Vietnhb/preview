@@ -80,7 +80,7 @@ public final class StandingWaveModule implements PhysicsModule<StandingWaveModul
 
         double spaceStep = (parameters.domainEnd() - parameters.domainStart())
                 / (parameters.spatialSamples() - 1.0);
-        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.TYPE, 1,
+        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.SCALAR_FIELD_TYPE, 1,
                 List.of(new ScalarField.Axis("x", "m", x)), List.of(time.size(), x.size()), time, rows,
                 "m", "s", new ScalarField.Sampling(spaceStep, clock.stepSeconds()), "linear",
                 "open;standing;counter_propagating");

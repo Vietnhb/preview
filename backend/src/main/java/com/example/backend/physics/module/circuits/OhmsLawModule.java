@@ -15,6 +15,10 @@ public final class OhmsLawModule implements PhysicsModule<OhmsLawModule.Paramete
     public static final String MODULE_ID = "ohms_law";
     public static final String NUMERICAL_SOLVER_ID = "ohms_law_solver";
     public static final String REFERENCE_SOLVER_ID = "ohms_law_reference";
+    private static final String VOLTAGE = "voltage";
+    private static final String RESISTANCE = "resistance";
+    private static final String CURRENT = "current";
+    private static final String POWER = "power";
 
     @Override
     public String moduleId() {
@@ -34,7 +38,7 @@ public final class OhmsLawModule implements PhysicsModule<OhmsLawModule.Paramete
     @Override
     public Parameters bind(CanonicalQuantityBag quantities) {
         if (quantities == null) throw new IllegalArgumentException("Canonical quantities are required");
-        return new Parameters(quantities.require("voltage"), quantities.require("resistance"));
+        return new Parameters(quantities.require(VOLTAGE), quantities.require(RESISTANCE));
     }
 
     @Override
@@ -46,15 +50,15 @@ public final class OhmsLawModule implements PhysicsModule<OhmsLawModule.Paramete
         double resistance = parameters.resistance();
         double current = voltage / resistance;
         double power = voltage * current;
-        requireFiniteResult(current, "current");
-        requireFiniteResult(power, "power");
+        requireFiniteResult(current, CURRENT);
+        requireFiniteResult(power, POWER);
 
         List<Double> time = clock.sampleTimes();
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("voltage", repeated(voltage, time.size()));
-        values.put("resistance", repeated(resistance, time.size()));
-        values.put("current", repeated(current, time.size()));
-        values.put("power", repeated(power, time.size()));
+        values.put(VOLTAGE, repeated(voltage, time.size()));
+        values.put(RESISTANCE, repeated(resistance, time.size()));
+        values.put(CURRENT, repeated(current, time.size()));
+        values.put(POWER, repeated(power, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -70,13 +74,13 @@ public final class OhmsLawModule implements PhysicsModule<OhmsLawModule.Paramete
         double oracleResistance = parameters.resistance();
         double oracleCurrent = oracleVoltage / oracleResistance;
         double oraclePower = (oracleVoltage * oracleVoltage) / oracleResistance;
-        requireFiniteResult(oracleCurrent, "current");
-        requireFiniteResult(oraclePower, "power");
+        requireFiniteResult(oracleCurrent, CURRENT);
+        requireFiniteResult(oraclePower, POWER);
         return new AnalyticalPoint(Map.of(
-                "voltage", oracleVoltage,
-                "resistance", oracleResistance,
-                "current", oracleCurrent,
-                "power", oraclePower));
+                VOLTAGE, oracleVoltage,
+                RESISTANCE, oracleResistance,
+                CURRENT, oracleCurrent,
+                POWER, oraclePower));
     }
 
     private static List<Double> repeated(double value, int count) {

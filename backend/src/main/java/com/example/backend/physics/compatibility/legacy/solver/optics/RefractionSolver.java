@@ -20,10 +20,13 @@ public class RefractionSolver implements PhysicsSolver {
         if (!"snell_refraction".equals(PhysicsValues.model(specification)))
             throw new IllegalArgumentException("Unsupported refraction model: " + PhysicsValues.model(specification));
         RefractionParameters p = RefractionParameters.from(specification, overrides);
-        int points = Math.min(16_384, Math.max(1, (int) Math.ceil(Math.max(0.01, durationSeconds) / Math.max(0.001, stepSeconds))));
-        List<Double> time = new ArrayList<>(points + 1); Map<String, List<Double>> values = new LinkedHashMap<>();
-        List<Double> angle = new ArrayList<>(points + 1), reflected = new ArrayList<>(points + 1);
-        for (int i = 0; i <= points; i++) { time.add(Math.min(Math.max(0.01, durationSeconds), i * Math.max(0.001, stepSeconds))); angle.add(p.refractedAngle()); reflected.add(p.totalInternalReflection() ? 1.0 : 0.0); }
+        int points = Math.clamp((int) Math.ceil(Math.max(0.01, durationSeconds) / Math.max(0.001, stepSeconds)),
+                1, 16_384);
+        List<Double> time = new ArrayList<>(points + 1);
+        Map<String, List<Double>> values = new LinkedHashMap<>();
+        List<Double> angle = new ArrayList<>(points + 1);
+        List<Double> reflected = new ArrayList<>(points + 1);
+        for (int i = 0; i <= points; i++) { time.add(Math.clamp(i * Math.max(0.001, stepSeconds), 0, Math.max(0.01, durationSeconds))); angle.add(p.refractedAngle()); reflected.add(p.totalInternalReflection() ? 1.0 : 0.0); }
         List<Double> reflectedAngle = new ArrayList<>(points + 1);
         for (int i = 0; i <= points; i++) reflectedAngle.add(p.incidentAngle());
         values.put("refractedAngle", angle); values.put("totalInternalReflection", reflected); values.put("reflectedAngle", reflectedAngle);

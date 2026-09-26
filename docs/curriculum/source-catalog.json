@@ -34,24 +34,100 @@
     }
   },
   "rules": [
-    {"pattern": "damped.?forced.?oscillation|resonance|harmonic.?motion|spring.?oscillation", "source": "sgk11_kntt", "chapter": "I. Dao dong"},
-    {"pattern": "gravity.?orbit|gravitation|orbital", "source": "sgk11_kntt", "chapter": "Chuyen de 11.1. Vat li voi mot so nganh nghe"},
-    {"pattern": "uniform.?electric.?field|electric.?field|electric.?potential|capacitor|capacitance", "source": "sgk11_kntt", "chapter": "III. Dien truong"},
-    {"pattern": "source.?internal.?resistance|emf|internal.?resistance", "source": "sgk11_kntt", "chapter": "IV. Dong dien va mach dien"},
-    {"pattern": "radio|modulation|sideband|signal.?chain|attenuation.*dB|carson", "source": "sgk11_kntt", "chapter": "Chuyen de 11.2. Truyen thong tin bang song vo tuyen"},
-    {"pattern": "phase.?change|heating.?curve|latent.?heat", "source": "sgk12_kntt", "chapter": "I-II. Vat li nhiet va khi li tuong"},
-    {"pattern": "x.?ray|ct.?reconstruction|mri|medical.?imaging|de.?broglie|energy.?band|nuclear.?reaction|eclipse|energy.?environment|thermistor|sensor.?op.?amp", "source": "moet_tt32", "chapter": "Official curriculum outcome; supplied textbooks do not contain a direct lesson"},
-    {"pattern": "optical|lens|refraction|diffraction|polarization|hydrostatic|ultrasound|diode|photoelectric|atomic.?spectra|radiation.?safety|rc.?charging|rc.?discharging|ac.?rlc|power.?factor", "source": "moet_tt32", "chapter": "Official curriculum outcome; supplied textbooks do not contain a direct lesson"},
-    {"pattern": "distance|displacement|speed|velocity|acceleration|uniform|free.?fall|projectile|position.?time|velocity.?time|acceleration.?time|motion.?lab", "source": "sgk10_kntt", "chapter": "II. Động học"},
-    {"pattern": "force|newton|friction|work.?energy|power|circular|gravity|orbit|hooke|elastic|momentum|collision", "source": "sgk10_kntt", "chapter": "III-VII. Động lực học, năng lượng, động lượng, chuyển động tròn và biến dạng"},
-    {"pattern": "si.?units|measurement|uncertainty|experimental.?graph", "source": "sgk10_kntt", "chapter": "I. Mở đầu và thực hành đo"},
-    {"pattern": "harmonic|oscillation|spring|damped|forced|resonan", "source": "sgk11_kntt", "chapter": "I. Dao động"},
-    {"pattern": "radio|modulation|sideband|signal.?chain|attenuation.*dB|carson", "source": "sgk11_kntt", "chapter": "Chuyên đề 11.2. Truyền thông tin bằng sóng vô tuyến"},
-    {"pattern": "wave|sound|standing|reflection|superposition|interference", "source": "sgk11_kntt", "chapter": "II. Sóng"},
-    {"pattern": "electric.?field|electric.?potential|capacitor|capacitance", "source": "sgk11_kntt", "chapter": "III. Điện trường"},
-    {"pattern": "current|voltage|resistance|ohm|circuit|diode", "source": "sgk11_kntt", "chapter": "IV. Dòng điện và mạch điện"},
-    {"pattern": "temperature|heat|calor|gas|thermodynamic|ideal.?gas|thermal", "source": "sgk12_kntt", "chapter": "I-II. Vật lí nhiệt và khí lí tưởng"},
-    {"pattern": "magnetic|induction|transformer", "source": "sgk12_kntt", "chapter": "III. Từ trường và cảm ứng điện từ"},
-    {"pattern": "nuclear|radioactive|nuclear.?energy", "source": "sgk12_kntt", "chapter": "IV. Vật lí hạt nhân"}
+    {
+      "pattern": "damped.?forced.?oscillation|resonance|harmonic.?motion|spring.?oscillation",
+      "source": "sgk11_kntt",
+      "chapter": "I. Dao dong"
+    },
+    {
+      "pattern": "gravity.?orbit|gravitation|orbital",
+      "source": "sgk11_kntt",
+      "chapter": "Chuyen de 11.1. Vat li voi mot so nganh nghe"
+    },
+    {
+      "pattern": "uniform.?electric.?field|electric.?field|electric.?potential|capacitor|capacitance",
+      "source": "sgk11_kntt",
+      "chapter": "III. Dien truong"
+    },
+    {
+      "pattern": "source.?internal.?resistance|emf|internal.?resistance",
+      "source": "sgk11_kntt",
+      "chapter": "IV. Dong dien va mach dien"
+    },
+    {
+      "pattern": "radio|modulation|sideband|signal.?chain|attenuation.*dB|carson",
+      "source": "sgk11_kntt",
+      "chapter": "Chuyen de 11.2. Truyen thong tin bang song vo tuyen"
+    },
+    {
+      "pattern": "phase.?change|heating.?curve|latent.?heat",
+      "source": "sgk12_kntt",
+      "chapter": "I-II. Vat li nhiet va khi li tuong"
+    },
+    {
+      "pattern": "x.?ray|ct.?reconstruction|mri|medical.?imaging|de.?broglie|energy.?band|nuclear.?reaction|eclipse|energy.?environment|thermistor|sensor.?op.?amp",
+      "source": "moet_tt32",
+      "chapter": "Official curriculum outcome; supplied textbooks do not contain a direct lesson"
+    },
+    {
+      "pattern": "optical|lens|refraction|diffraction|polarization|hydrostatic|ultrasound|diode|photoelectric|atomic.?spectra|radiation.?safety|rc.?charging|rc.?discharging|ac.?rlc|power.?factor",
+      "source": "moet_tt32",
+      "chapter": "Official curriculum outcome; supplied textbooks do not contain a direct lesson"
+    },
+    {
+      "pattern": "distance|displacement|speed|velocity|acceleration|uniform|free.?fall|projectile|position.?time|velocity.?time|acceleration.?time|motion.?lab",
+      "source": "sgk10_kntt",
+      "chapter": "II. Động học"
+    },
+    {
+      "pattern": "force|newton|friction|work.?energy|power|circular|gravity|orbit|hooke|elastic|momentum|collision",
+      "source": "sgk10_kntt",
+      "chapter": "III-VII. Động lực học, năng lượng, động lượng, chuyển động tròn và biến dạng"
+    },
+    {
+      "pattern": "si.?units|measurement|uncertainty|experimental.?graph",
+      "source": "sgk10_kntt",
+      "chapter": "I. Mở đầu và thực hành đo"
+    },
+    {
+      "pattern": "harmonic|oscillation|spring|damped|forced|resonan",
+      "source": "sgk11_kntt",
+      "chapter": "I. Dao động"
+    },
+    {
+      "pattern": "radio|modulation|sideband|signal.?chain|attenuation.*dB|carson",
+      "source": "sgk11_kntt",
+      "chapter": "Chuyên đề 11.2. Truyền thông tin bằng sóng vô tuyến"
+    },
+    {
+      "pattern": "wave|sound|standing|reflection|superposition|interference",
+      "source": "sgk11_kntt",
+      "chapter": "II. Sóng"
+    },
+    {
+      "pattern": "electric.?field|electric.?potential|capacitor|capacitance",
+      "source": "sgk11_kntt",
+      "chapter": "III. Điện trường"
+    },
+    {
+      "pattern": "current|voltage|resistance|ohm|circuit|diode",
+      "source": "sgk11_kntt",
+      "chapter": "IV. Dòng điện và mạch điện"
+    },
+    {
+      "pattern": "temperature|heat|calor|gas|thermodynamic|ideal.?gas|thermal",
+      "source": "sgk12_kntt",
+      "chapter": "I-II. Vật lí nhiệt và khí lí tưởng"
+    },
+    {
+      "pattern": "magnetic|induction|transformer",
+      "source": "sgk12_kntt",
+      "chapter": "III. Từ trường và cảm ứng điện từ"
+    },
+    {
+      "pattern": "nuclear|radioactive|nuclear.?energy",
+      "source": "sgk12_kntt",
+      "chapter": "IV. Vật lí hạt nhân"
+    }
   ]
 }

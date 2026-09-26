@@ -78,7 +78,9 @@ public class SchoolReportService {
     public ImportResult importUsers(UUID schoolId, MultipartFile file) {
         requireAccess(schoolId); license.requireWriteAccess(currentUser.requireCurrentUser());
         if (file == null || file.isEmpty()) throw new ApiException(HttpStatus.BAD_REQUEST, "CSV file is required");
-        List<ImportRow> rows = new ArrayList<>(); int imported = 0; int rowNumber = 1;
+        List<ImportRow> rows = new ArrayList<>();
+        int imported = 0;
+        int rowNumber = 1;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             String header = reader.readLine();
             if (header == null) throw new ApiException(HttpStatus.BAD_REQUEST, "CSV file is empty");
@@ -91,23 +93,68 @@ public class SchoolReportService {
                 if (line.isBlank()) continue;
                 List<String> values = parse(line);
                 String email = value(columns, values, "email");
-                try {
-                    String role = value(columns, values, "role").toUpperCase(Locale.ROOT);
-                    if (!RoleName.TEACHER.matches(role) && !RoleName.STUDENT.matches(role))
-                        throw new ApiException(HttpStatus.BAD_REQUEST, "Role phải là TEACHER hoặc STUDENT");
-                    admin.createUser(new CreateManagedUserRequest(email, value(columns, values, "password"), value(columns, values, "fullname"), role, schoolId.toString()));
-                    rows.add(new ImportRow(rowNumber, email, "IMPORTED", "Tạo tài khoản thành công")); imported++;
-                } catch (RuntimeException ex) {
-                    rows.add(new ImportRow(rowNumber, email, "FAILED", ex.getMessage() == null ? "Dòng không hợp lệ" : ex.getMessage()));
-                }
+                ImportRow importedRow = importRow(columns, values, email, rowNumber, schoolId);
+                rows.add(importedRow);
+                if ("IMPORTED".equals(importedRow.status())) imported++;
             }
         } catch (IOException ex) { throw new ApiException(HttpStatus.BAD_REQUEST, "Không thể đọc CSV"); }
         int failed = (int) rows.stream().filter(row -> row.status().equals("FAILED")).count();
         return new ImportResult(rows.size(), imported, failed, rows);
     }
 
+    private ImportRow importRow(List<String> columns, List<String> values, String email,
+                                int rowNumber, UUID schoolId) {
+        try {
+            String role = value(columns, values, "role").toUpperCase(Locale.ROOT);
+            if (!RoleName.TEACHER.matches(role) && !RoleName.STUDENT.matches(role)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Role phải là TEACHER hoặc STUDENT");
+            }
+            admin.createUser(new CreateManagedUserRequest(email, value(columns, values, "password"),
+                    value(columns, values, "fullname"), role, schoolId.toString()));
+            return new ImportRow(rowNumber, email, "IMPORTED", "Tạo tài khoản thành công");
+        } catch (RuntimeException ex) {
+            return new ImportRow(rowNumber, email, "FAILED",
+                    ex.getMessage() == null ? "Dòng không hợp lệ" : ex.getMessage());
+        }
+    }
+
     private School school(UUID schoolId) { return schools.findById(schoolId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "School not found")); }
-    private void requireAccess(UUID schoolId) { if (!roles.canManageSchool(currentUser.requireCurrentUser(), schoolId)) throw new ApiException(HttpStatus.FORBIDDEN, "School access denied"); }
-    private static String value(List<String> columns, List<String> values, String key) { int index = columns.indexOf(key); if (index < 0 || index >= values.size() || values.get(index).isBlank()) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu dữ liệu " + key); return values.get(index).trim(); }
-    private static List<String> parse(String line) { List<String> result = new ArrayList<>(); StringBuilder current = new StringBuilder(); boolean quoted = false; for (int i = 0; i < line.length(); i++) { char c = line.charAt(i); if (c == '"') { if (quoted && i + 1 < line.length() && line.charAt(i + 1) == '"') { current.append('"'); i++; } else quoted = !quoted; } else if (c == ',' && !quoted) { result.add(current.toString()); current.setLength(0); } else current.append(c); } result.add(current.toString()); return result; }
+    private void requireAccess(UUID schoolId) {
+        if (!roles.canManageSchool(currentUser.requireCurrentUser(), schoolId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "School access denied");
+        }
+    }
+    private static String value(List<String> columns, List<String> values, String key) {
+        int index = columns.indexOf(key);
+        if (index < 0 || index >= values.size() || values.get(index).isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu dữ liệu " + key);
+        }
+        return values.get(index).trim();
+    }
+    private static List<String> parse(String line) {
+        List<String> result = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean quoted = false;
+        int index = 0;
+        while (index < line.length()) {
+            char character = line.charAt(index);
+            if (character == '"' && quoted && index + 1 < line.length()
+                    && line.charAt(index + 1) == '"') {
+                current.append('"');
+                index += 2;
+                continue;
+            }
+            if (character == '"') {
+                quoted = !quoted;
+            } else if (character == ',' && !quoted) {
+                result.add(current.toString());
+                current.setLength(0);
+            } else {
+                current.append(character);
+            }
+            index++;
+        }
+        result.add(current.toString());
+        return result;
+    }
 }

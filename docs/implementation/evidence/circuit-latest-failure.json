@@ -1,0 +1,14 @@
+[ {
+  "case" : "circuit",
+  "input" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+  "sourceMode" : "TEXT",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+  "understandingStage" : "EXPLAIN",
+  "question" : null,
+  "explanation" : "The RC circuit consists of a resistor (R) and a capacitor (C) connected in series to a DC battery (voltage source V). When the circuit is completed the capacitor charges according to V_C(t)=V\\,(1- e^{-t/(R C)}). We assume ideal linear components, no internal resistance of the battery, and an initial capacitor voltage of 0 V. The visual simulation will display the capacitor voltage versus time as it approaches the battery voltage.",
+  "schemaId" : "adaptive_circuits",
+  "parameters" : [ ],
+  "defaults" : [ "Assumed resistor value: 1 kΩ", "Assumed capacitor value: 10 µF", "Assumed battery voltage: 5 V" ],
+  "error" : "com.example.backend.exception.ApiException: Could not produce a safe visual simulation from the confirmed description."
+} ]

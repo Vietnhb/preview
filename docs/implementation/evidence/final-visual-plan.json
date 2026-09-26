@@ -1,0 +1,38 @@
+[
+  {
+    "status": "READY",
+    "reason": null,
+    "durationSeconds": 20,
+    "program": {
+      "init": "const margin=32;const plotX=margin+200;const plotY=margin;const plotW=width-plotX-margin;const plotH=height-2*margin;const tau=params.R*params.C;return{t:0,Vc:0,Vb:params.Vb,tau:tau,prevX:plotX,prevY:plotY+plotH,plot:{x:plotX,y:plotY,w:plotW,h:plotH},margin:margin};",
+      "step": "state.t+=dt;const Vb=params.Vb;const tau=params.R*params.C;state.tau=tau;state.Vb=Vb;const exp=Math.exp(-state.t/tau);state.Vc=Vb*(1-exp);if(state.Vc>Vb)state.Vc=Vb;",
+      "draw": "const m=state.margin;const cx=m+50;const cy=height/2;paint.line(cx-40,cy-20,cx-40,cy+20,'#fff',2);paint.line(cx-30,cy-15,cx-30,cy+15,'#fff',2);paint.text(cx-35,cy-25,params.Vb.toFixed(1)+'V','#fff',12);paint.rect(cx-20,cy-10,40,20,'#fff');paint.line(cx+30,cy-15,cx+30,cy+15,'#fff',2);paint.line(cx+40,cy-15,cx+40,cy+15,'#fff',2);paint.line(cx-40,cy,cx-20,cy,'#fff',2);paint.line(cx+20,cy,cx+30,cy,'#fff',2);const p=state.plot;paint.line(p.x,p.y+p.h,p.x+p.w,p.y+p.h,'#fff',1);paint.line(p.x,p.y,p.x,p.y+p.h,'#fff',1);paint.text(p.x+p.w+5,p.y+p.h,'0 V','#fff',12);paint.text(p.x-20,p.y,params.Vb.toFixed(1)+' V','#fff',12);paint.text(p.x,p.y+p.h+15,'0 s','#fff',12);paint.text(p.x+p.w-30,p.y+p.h+15,state.t.toFixed(1)+' s','#fff',12);const x=p.x+(state.t/20)*p.w;const y=p.y+p.h-(state.Vc/params.Vb)*p.h;paint.line(state.prevX,state.prevY,x,y,'#0f0',2);paint.circle(x,y,4,'#ff0');state.prevX=x;state.prevY=y;"
+    },
+    "parameters": [
+      {
+        "name": "Vb",
+        "label": "Battery voltage (V)",
+        "value": 5,
+        "min": 1,
+        "max": 12,
+        "unit": "V"
+      },
+      {
+        "name": "R",
+        "label": "Resistance (Ω)",
+        "value": 1000,
+        "min": 100,
+        "max": 100000,
+        "unit": "Ω"
+      },
+      {
+        "name": "C",
+        "label": "Capacitance (F)",
+        "value": 0.0001,
+        "min": 0.000001,
+        "max": 0.001,
+        "unit": "F"
+      }
+    ]
+  }
+]

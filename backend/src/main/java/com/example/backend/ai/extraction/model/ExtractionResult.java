@@ -14,9 +14,4 @@ public record ExtractionResult(
         JsonNode rawResponse,
         String errorMessage,
         SchemaRoutingDecision routingDecision) {
-
-    public ExtractionResult(SpecificationDocument document, ExtractionPath path, ExtractionOutcome outcome,
-            String providerName, String modelVersion, JsonNode rawResponse, String errorMessage) {
-        this(document, path, outcome, providerName, modelVersion, rawResponse, errorMessage, null);
-    }
 }

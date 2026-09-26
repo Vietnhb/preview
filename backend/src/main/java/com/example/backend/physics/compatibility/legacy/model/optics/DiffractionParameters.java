@@ -14,7 +14,7 @@ public record DiffractionParameters(double wavelength, double slitWidth, double 
         double order = PhysicsValues.require(specification, overrides, "diffraction_order");
         double intensity = PhysicsValues.require(specification, overrides, "input_intensity");
         double angle = PhysicsValues.require(specification, overrides, "analyzer_angle");
-        if (!(wavelength > 0) || !(width > 0) || order < 0 || order != Math.rint(order) || intensity < 0 || !Double.isFinite(angle))
+        if (wavelength <= 0 || width <= 0 || order < 0 || order != Math.rint(order) || intensity < 0 || !Double.isFinite(angle))
             throw new IllegalArgumentException("Diffraction geometry/order and polarization inputs are invalid");
         return new DiffractionParameters(wavelength, width, order, intensity, angle);
     }

@@ -72,7 +72,7 @@ public final class WaveReflectionModule implements PhysicsModule<WaveReflectionM
 
         double dx = (parameters.boundaryPosition() - parameters.domainStart())
                 / (parameters.spatialSamples() - 1.0);
-        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.TYPE, 1,
+        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.SCALAR_FIELD_TYPE, 1,
                 List.of(new ScalarField.Axis("x", "m", x)), List.of(time.size(), x.size()), time, rows,
                 "m", "s", new ScalarField.Sampling(dx, clock.stepSeconds()), "linear",
                 "open;reflection;coefficient=" + parameters.reflectionCoefficient());

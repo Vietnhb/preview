@@ -12,6 +12,7 @@ dist
 dist-ssr
 .scannerwork
 *.local
+tests/generated-cases.local.json
 
 # Editor directories and files
 .vscode/*

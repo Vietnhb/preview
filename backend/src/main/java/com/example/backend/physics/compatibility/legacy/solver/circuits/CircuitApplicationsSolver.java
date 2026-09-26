@@ -6,7 +6,6 @@ import com.example.backend.physics.compatibility.legacy.model.circuits.DiodePara
 import com.example.backend.physics.compatibility.legacy.model.circuits.SensorOpAmpParameters;
 import com.example.backend.physics.compatibility.legacy.model.circuits.ThermistorParameters;
 import com.example.backend.physics.runtime.SimulationTimeline;
-import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolver;
 import com.example.backend.physics.compatibility.legacy.solver.TopicPhysicsSolver;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;

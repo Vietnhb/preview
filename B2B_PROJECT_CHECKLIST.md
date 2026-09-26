@@ -28,12 +28,12 @@
 
 - [x] Spring Boot + React/TypeScript + JWT được giữ lại từ dự án hiện tại.
 - [x] User có liên kết `school`; role platform không gắn trường, role trường phải gắn trường.
-- [x] Kiểm tra role-school consistency ở service và trigger PostgreSQL trong `data.sql`.
+- [x] Kiểm tra role-school consistency ở service và trigger PostgreSQL trong `backend/ops/database/bootstrap.sql`.
 - [x] Giới hạn một `SCHOOL_MANAGER` đang hoạt động cho mỗi trường.
 - [x] Soft delete/suspend/restore tài khoản; không xóa cứng qua giao diện quản trị.
 - [x] License của trường có ngày bắt đầu, ngày hết hạn, trạng thái hoạt động và quota token tháng.
 - [x] Có migration/seed cho `license_plans`, `school_payments` và quota học sinh.
-- [!] Phải chạy `data.sql` (đã bao gồm bảng lớp, enrollment và phân công giáo viên) trên Supabase bằng SQL Editor hoặc kết nối direct trước khi dùng `JPA_DDL_AUTO=validate`.
+- [!] Phải chạy `backend/ops/database/bootstrap.sql` (đã bao gồm bảng lớp, enrollment và phân công giáo viên) trên Supabase bằng SQL Editor hoặc kết nối direct trước khi dùng `JPA_DDL_AUTO=validate`.
 - [ ] Chưa có migration versioning riêng (Flyway/Liquibase); hiện đang dựa vào script SQL và JPA update trong local.
 
 ## 2. Đăng ký trường, gói và thanh toán
@@ -171,7 +171,7 @@
 ## 8. Dữ liệu, Supabase và vận hành
 
 - [x] Có hướng dẫn kết nối Supabase pooler/direct và biến môi trường VNPAY.
-- [x] Có seed role, plan và các ràng buộc role-school trong `data.sql`.
+- [x] Có seed role, plan và các ràng buộc role-school trong `backend/ops/database/bootstrap.sql`.
 - [x] Có unit/security regression tests cho nhiều rule B2B.
 - [x] Frontend production build đang chạy được.
 - [!] Chưa chạy migration trên Supabase thật từ workspace này.

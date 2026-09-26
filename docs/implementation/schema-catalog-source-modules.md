@@ -1,42 +1,32 @@
-# Physics schema catalog source modules
+# Adaptive topic packs
 
-The checked-in source of physics schemas is split under
-`backend/src/main/resources/schemas/source/<TOPIC>/`. Each JSON file contains one
-complete schema version. Its numeric filename prefix preserves the catalog's
-existing iteration order; the remaining path and the JSON identity must agree.
-`schemas/catalog.json` remains the generated runtime artifact consumed by the
-backend and the repository's scene and curriculum checks.
-
-Run the generator after an approved source edit:
+The active topic-pack sources are in
+`backend/src/main/resources/schemas/source/<TOPIC>/`. There is one `2.0` pack
+per curriculum topic. `scripts/generate-schema-catalog.mjs` combines them into
+`backend/src/main/resources/schemas/catalog.json`:
 
 ```powershell
 node scripts/generate-schema-catalog.mjs --write
-```
-
-Check for drift without changing files:
-
-```powershell
 node scripts/generate-schema-catalog.mjs --check
 ```
 
-CI runs the drift check. It rejects duplicate identities, missing order numbers,
-invalid topic/module paths, path-to-entry identity mismatches, and generated
-artifact differences. `--split` is only for an initial import of an existing
-catalog and refuses to replace a populated source directory.
+Source filenames use `<order>__<schemaId>__<version>.json`. The generator checks
+identity and order and detects catalog drift. The pack definition follows
+`schemas/topic-pack.meta-schema-2.0.json`. It contains conceptual object,
+relation, quantity, and law vocabulary, application requirements, an open-world
+high-school physics vocabulary policy, and physical and visual capability
+declarations. The listed concepts are routing and interpretation guides. New
+concepts must be grounded in the confirmed description and an established
+high-school law. It contains no exercise examples, formulas,
+Matter.js code, ODE execution settings, time-series output, or solver bindings.
 
-The active source modules currently hold 138 version rows for 74 latest schema
-identities. Text corrections and solver-binding changes are published as newer
-versions. An additional 28 older published rows remain byte-for-byte represented
-in `backend/src/main/resources/schemas/history/published-versions.json`.
-Bootstrap loads archived rows as retired before loading active source entries;
-they stay out of the retrieval index while pinned historical runs can still
-resolve their schema and solver binding. Existing database lifecycle values are
-preserved.
+The classpath catalog is a declarative capability vocabulary. The AI extraction
+and matter-flow runtimes derive their plan from the confirmed user description;
+there is no template registry or fixed asset catalog in the runtime. Visual
+elements are generated procedurally from the confirmed setup. A generated visual
+must be labeled explanatory unless an independently validated numerical runtime
+is available.
 
-At bootstrap, a row with a non-null checksum must match the source checksum as
-before. A row with a null checksum is backfilled only if the stored JSON
-definition and source definition are structurally identical after recursively
-sorting object keys; array order, values, and JSON types still have to match. A
-mismatch aborts bootstrap with the affected `schemaId@version` and an instruction
-to compare the database row and publish a new version. This guard does not mutate
-the stored definition.
+Optional database bootstrap publishes approved topic-pack definitions without
+creating numerical solver rows. Published versions are immutable: make a new
+version for a later change.

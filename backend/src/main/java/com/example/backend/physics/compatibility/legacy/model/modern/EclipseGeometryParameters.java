@@ -15,8 +15,8 @@ public record EclipseGeometryParameters(double starRadius, double starDistance,
         double occluderRadius = PhysicsValues.require(specification, overrides, "occluder_radius");
         double occluderDistance = PhysicsValues.require(specification, overrides, "occluder_distance");
         double alignment = PhysicsValues.require(specification, overrides, "alignment_angle");
-        if (!(starRadius > 0) || !(occluderRadius > 0) || !(starDistance > starRadius)
-                || !(occluderDistance > occluderRadius) || alignment < 0) {
+        if (starRadius <= 0 || occluderRadius <= 0 || starDistance <= starRadius
+                || occluderDistance <= occluderRadius || alignment < 0) {
             throw new IllegalArgumentException("Eclipse geometry parameters are invalid");
         }
         return new EclipseGeometryParameters(starRadius, starDistance, occluderRadius, occluderDistance, alignment);

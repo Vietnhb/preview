@@ -110,34 +110,33 @@ public final class PhysicsOutputFrameMapper {
         Map<String, ScalarField> fields = new LinkedHashMap<>();
         Map<String, Double> scalars = new LinkedHashMap<>();
         for (PhysicsOutput output : frame.outputs()) {
-            if (output instanceof ScalarOutput scalar) {
-                putUniqueScalar(scalars, output.key(), scalar.value());
-            } else if (output instanceof TimeSeriesOutput series) {
+            switch (output) {
+            case ScalarOutput scalar -> putUniqueScalar(scalars, output.key(), scalar.value());
+            case TimeSeriesOutput series -> {
                 putUniqueSeries(values, output.key(), series.values());
-                projectSeries(output.key(), series.values(), bindings.get(output.key()),
+                projectSeries(series.values(), bindings.get(output.key()),
                         positions, velocities, accelerations);
-            } else if (output instanceof VectorSeriesOutput vector) {
+            }
+            case VectorSeriesOutput vector -> {
                 for (int index = 0; index < vector.componentKeys().size(); index++) {
                     int component = index;
                     String key = vector.componentKeys().get(index);
                     List<Double> componentValues = vector.values().stream()
                             .map(sample -> sample.get(component)).toList();
                     putUniqueSeries(values, key, componentValues);
-                    projectSeries(key, componentValues, bindings.get(key),
+                    projectSeries(componentValues, bindings.get(key),
                             positions, velocities, accelerations);
                 }
-            } else if (output instanceof ScalarFieldOutput field) {
-                if (fields.putIfAbsent(output.key(), field.field()) != null) {
+            }
+            case ScalarFieldOutput field when fields.putIfAbsent(output.key(), field.field()) != null ->
                     throw new IllegalArgumentException("Conflicting duplicate output key " + output.key());
-                }
-            } else {
-                throw new IllegalArgumentException("Unsupported typed output kind: " + output.kind());
+            case ScalarFieldOutput field -> { /* Field was stored without a scalar projection. */ }
             }
         }
         return new SolverOutput(frame.timeSeconds(), positions, velocities, accelerations, values, fields, scalars);
     }
 
-    private static void projectSeries(String key, List<Double> values,
+    private static void projectSeries(List<Double> values,
                                       List<OutputSourceBinding> bindings,
                                       Map<String, List<Double>> positions,
                                       Map<String, List<Double>> velocities,
@@ -148,7 +147,7 @@ public final class PhysicsOutputFrameMapper {
                 case POSITIONS, LEGACY_ENTITY_POSITION -> putUniqueSeries(positions, binding.key(), values);
                 case VELOCITIES -> putUniqueSeries(velocities, binding.key(), values);
                 case ACCELERATIONS -> putUniqueSeries(accelerations, binding.key(), values);
-                case VALUES, LEGACY_AUTO -> { }
+                case VALUES, LEGACY_AUTO -> { /* Values remain in the generic output map. */ }
             }
         }
     }

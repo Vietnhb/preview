@@ -2,8 +2,7 @@ package com.example.backend.physics.validation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-/** @deprecated Use the explicit versioned V1 adapter for historical JSON payloads. */
-@Deprecated(forRemoval = false)
+/** Compatibility adapter for historical JSON payloads. */
 public final class LegacyEndConditionJsonAdapter {
     private LegacyEndConditionJsonAdapter() { }
 

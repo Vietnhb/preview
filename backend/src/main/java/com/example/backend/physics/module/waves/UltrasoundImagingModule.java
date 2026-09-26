@@ -17,6 +17,9 @@ public final class UltrasoundImagingModule implements PhysicsModule<UltrasoundIm
     public static final String MODULE_ID = "ultrasound_imaging";
     public static final String NUMERICAL_SOLVER_ID = "ultrasound_imaging_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "ultrasound_imaging_reference_v2";
+    private static final String WAVELENGTH = "wavelength";
+    private static final String DEPTH = "depth";
+    private static final String PERIOD = "period";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -37,13 +40,13 @@ public final class UltrasoundImagingModule implements PhysicsModule<UltrasoundIm
         double wavelength = parameters.soundSpeed() / parameters.frequency();
         double depth = parameters.soundSpeed() * parameters.echoTime() / 2.0;
         double period = 1.0 / parameters.frequency();
-        requirePositiveFinite("wavelength", wavelength);
-        requireFinite("depth", depth);
-        requirePositiveFinite("period", period);
+        requirePositiveFinite(WAVELENGTH, wavelength);
+        requireFinite(DEPTH, depth);
+        requirePositiveFinite(PERIOD, period);
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("wavelength", repeated(wavelength, time.size()));
-        values.put("depth", repeated(depth, time.size()));
-        values.put("period", repeated(period, time.size()));
+        values.put(WAVELENGTH, repeated(wavelength, time.size()));
+        values.put(DEPTH, repeated(depth, time.size()));
+        values.put(PERIOD, repeated(period, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -58,10 +61,10 @@ public final class UltrasoundImagingModule implements PhysicsModule<UltrasoundIm
         double roundTripDurationPerDistance = 2.0 / parameters.soundSpeed();
         double depth = parameters.echoTime() / roundTripDurationPerDistance;
         double period = wavelength / parameters.soundSpeed();
-        requirePositiveFinite("reference wavelength", wavelength);
-        requireFinite("reference depth", depth);
-        requirePositiveFinite("reference period", period);
-        return new AnalyticalPoint(Map.of("wavelength", wavelength, "depth", depth, "period", period));
+        requirePositiveFinite("reference " + WAVELENGTH, wavelength);
+        requireFinite("reference " + DEPTH, depth);
+        requirePositiveFinite("reference " + PERIOD, period);
+        return new AnalyticalPoint(Map.of(WAVELENGTH, wavelength, DEPTH, depth, PERIOD, period));
     }
 
     private static double requireCanonical(CanonicalQuantityBag quantities, String key, String unit) {

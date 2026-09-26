@@ -1,5 +1,4 @@
 import type { CanvasPalette, OverlayState, Point } from "../components/simulation-canvas/model";
-import { canvasAssetRegistry } from "../simulation-assets/AssetRegistry";
 import { probeScalarField, sampleScalarField, scalarFieldFor, seriesFor, type RuntimeData } from "../simulation-runtime/SimulationData";
 import type { RuntimeFrame } from "../simulation-runtime/SimulationRuntime";
 import { BindingResolver } from "../simulation-scene/BindingResolver";
@@ -532,21 +531,30 @@ function drawEffect(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, nod
 function drawNode(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node: SceneNode, layout: LayoutContext, resolver: BindingResolver, nodes: SceneNode[]) {
   const { runtime, palette } = frame;
   if (node.type === "body") {
-    const assetHint = propertyString(node, "assetHint");
-    if (!assetHint) return;
     const state = resolver.resolveNode(node, runtime.time, runtime.index);
     const lane = propertyNumber(node, "lane");
     const position = layout.mapPoint(state.x, state.y, lane);
-    const xSource = sourceName(node.transform.x);
-    const initialX = resolver.resolve(node.transform.x, frame.data.time[0] ?? 0, 0);
     const scale = styleNumber(node, "scale", layout.width < 620 ? .78 : 1);
-    ctx.save(); ctx.fillStyle = "rgba(2,6,23,.22)"; ctx.beginPath(); ctx.ellipse(position.x, position.y + 25 * scale, 44 * scale, 6 * scale, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    canvasAssetRegistry.drawAsset(assetHint, ctx, {
-      config: { id: node.id, asset: assetHint, x: xSource, label: propertyString(node, "label") || undefined },
-      position, velocity: { x: vectorValue(resolver, node, "vx", runtime.time, runtime.index), y: vectorValue(resolver, node, "vy", runtime.time, runtime.index) },
-      acceleration: { x: vectorValue(resolver, node, "ax", runtime.time, runtime.index), y: vectorValue(resolver, node, "ay", runtime.time, runtime.index) },
-      distance: Math.abs(state.x - initialX), scale, rotation: state.rotation,
-    }, palette);
+    const radius = Math.max(4, propertyNumber(node, "radius", 18) * scale);
+    const width = Math.max(8, propertyNumber(node, "width", radius * 2) * scale);
+    const height = Math.max(8, propertyNumber(node, "height", radius * 2) * scale);
+    const shape = propertyString(node, "shape", "circle");
+    ctx.save();
+    ctx.translate(position.x, position.y);
+    ctx.rotate(state.rotation);
+    ctx.fillStyle = nodeColor(node, palette);
+    ctx.strokeStyle = propertyString(node, "stroke", palette.text);
+    ctx.lineWidth = Math.max(1, styleNumber(node, "strokeWidth", 2));
+    ctx.beginPath();
+    if (shape === "rectangle") ctx.rect(-width / 2, -height / 2, width, height);
+    else ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+    const label = propertyString(node, "label");
+    if (label) {
+      ctx.save(); ctx.fillStyle = palette.text; ctx.font = "600 13px system-ui";
+      ctx.textAlign = "center"; ctx.fillText(label, position.x, position.y - height / 2 - 8); ctx.restore();
+    }
     return;
   }
   if (node.type === "effect") { drawEffect(ctx, frame, node, layout, resolver, nodes); return; }
@@ -567,15 +575,16 @@ function drawNode(ctx: CanvasRenderingContext2D, frame: CanvasRenderFrame, node:
     return;
   }
   if (node.type === "prop") {
-    const assetHint = propertyString(node, "assetHint");
-    if (!assetHint) return;
     const anchorNode = actorNode(nodes, propertyString(node, "anchorId"));
     const anchorState = anchorNode ? resolver.resolveNode(anchorNode, frame.data.time[0] ?? 0, 0) : { x: 0, y: 0 };
     const hasScreenAnchor = !anchorNode && typeof node.properties.anchorXRatio === "number" && typeof node.properties.anchorYRatio === "number";
     const anchor = hasScreenAnchor
       ? { x: frame.width * propertyNumber(node, "anchorXRatio"), y: frame.height * propertyNumber(node, "anchorYRatio") }
       : layout.mapPoint(anchorState.x, anchorState.y, propertyNumber(anchorNode ?? node, "lane"));
-    canvasAssetRegistry.drawProp(assetHint, ctx, anchor, propertyNumber(node, "angle"), palette);
+    const radius = Math.max(3, propertyNumber(node, "radius", 8));
+    ctx.save(); ctx.translate(anchor.x, anchor.y); ctx.rotate(propertyNumber(node, "angle"));
+    ctx.fillStyle = nodeColor(node, palette, palette.muted);
+    ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     return;
   }
   if (node.type === "circuitComponent") { drawCircuit(ctx, frame, node, resolver); return; }

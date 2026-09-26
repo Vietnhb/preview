@@ -54,7 +54,7 @@ Các đường dẫn sau tính từ root `physLive_preview/`:
 | Scene | `react-client/src/simulation-scene/SceneGraph.ts`, `SceneCompiler.ts`, `BindingResolver.ts` |
 | Runtime | `react-client/src/simulation-runtime/SimulationData.ts`, `SimulationRuntime.ts`, `interpolate.ts` |
 | Vẽ | `react-client/src/simulation-renderer/CanvasRenderer.ts`, `PrimitiveRendererRegistry.ts`, `quality.ts` |
-| Asset | `react-client/src/simulation-assets/AssetRegistry.ts`; painter cũ ở `react-client/src/components/simulation-canvas/assets.ts` |
+| Render | Renderer procedural ở `react-client/src/simulation-renderer/` và scene compiler; không dùng asset catalog cố định |
 | Tương thích | `react-client/src/components/simulation-canvas/model.ts`: presentation mặc định cho mô phỏng cũ |
 | Giao diện dùng chung | `react-client/src/components/simulation-canvas/CanvasPhysicsScene.tsx`, `components/simulation/`, `components/workspace/LearningWorkspace.tsx` |
 | Bài tập | `AssignmentService`, các trang teacher/student, API assignment; snapshot lần chạy, giao lớp, dự đoán/nộp/chấm phải được bảo toàn |

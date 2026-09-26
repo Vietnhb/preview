@@ -19,9 +19,12 @@ public class NuclearEnergySolver implements PhysicsSolver {
                                         double durationSeconds, double stepSeconds) {
         if (!"nuclear_energy".equals(PhysicsValues.model(specification))) throw new IllegalArgumentException("Unsupported nuclear-energy model: " + PhysicsValues.model(specification));
         NuclearEnergyParameters p = NuclearEnergyParameters.from(specification, overrides);
-        int points = Math.min(16_384, Math.max(1, (int) Math.ceil(Math.max(0.01, durationSeconds) / Math.max(0.001, stepSeconds))));
-        List<Double> time = new ArrayList<>(points + 1), energy = new ArrayList<>(points + 1), mass = new ArrayList<>(points + 1);
-        for (int i = 0; i <= points; i++) { time.add(Math.min(Math.max(0.01, durationSeconds), i * Math.max(0.001, stepSeconds))); energy.add(p.releasedEnergy()); mass.add(p.massDefect()); }
+        int points = Math.clamp((int) Math.ceil(Math.max(0.01, durationSeconds) / Math.max(0.001, stepSeconds)),
+                1, 16_384);
+        List<Double> time = new ArrayList<>(points + 1);
+        List<Double> energy = new ArrayList<>(points + 1);
+        List<Double> mass = new ArrayList<>(points + 1);
+        for (int i = 0; i <= points; i++) { time.add(Math.clamp(i * Math.max(0.001, stepSeconds), 0, Math.max(0.01, durationSeconds))); energy.add(p.releasedEnergy()); mass.add(p.massDefect()); }
         Map<String, List<Double>> values = new LinkedHashMap<>(); values.put("releasedEnergy", energy); values.put("massDefect", mass);
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }

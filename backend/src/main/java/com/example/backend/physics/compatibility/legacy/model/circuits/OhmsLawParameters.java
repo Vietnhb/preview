@@ -10,7 +10,7 @@ public record OhmsLawParameters(double voltage, double resistance) {
     public static OhmsLawParameters from(JsonNode specification, Map<String, Double> overrides) {
         double voltage = PhysicsValues.require(specification, overrides, "voltage");
         double resistance = PhysicsValues.require(specification, overrides, "resistance");
-        if (!Double.isFinite(voltage) || !(resistance > 0)) throw new IllegalArgumentException("Voltage finite and resistance positive required");
+        if (!Double.isFinite(voltage) || resistance <= 0) throw new IllegalArgumentException("Voltage finite and resistance positive required");
         return new OhmsLawParameters(voltage, resistance);
     }
     public double current() { return voltage / resistance; }

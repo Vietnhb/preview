@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import com.example.backend.entity.enums.AmbiguityStatus;
 import com.example.backend.entity.enums.ConfirmationState;
 import com.example.backend.entity.problem.Specification;
-import com.example.backend.ai.extraction.model.ConversationTurn;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -36,10 +35,6 @@ public class SpecificationReadinessService {
     }
 
     public void ensureRequiredAmbiguities(Specification specification) {
-        ensureRequiredAmbiguities(specification, List.of());
-    }
-
-    public void ensureRequiredAmbiguities(Specification specification, List<ConversationTurn> ignoredConversation) {
         if (specification.getConfirmationState() == ConfirmationState.REJECTED) return;
         boolean open = specification.getAmbiguityCases().stream().anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
         if (open) {
@@ -47,8 +42,17 @@ public class SpecificationReadinessService {
         }
         specification.setAmbiguity(objectMapper.valueToTree(specification.getAmbiguityCases().stream()
                 .filter(item -> item.getStatus() == AmbiguityStatus.OPEN)
+                .sorted(questionOrder(specification))
                 .map(item -> new AmbiguityView(item.getCode(), item.getFieldPath(), item.getQuestion(), item.getOptions()))
                 .toList()));
+    }
+
+    public static java.util.Comparator<com.example.backend.entity.problem.AmbiguityCase> questionOrder(Specification specification) {
+        java.util.Map<String, Integer> order = new java.util.HashMap<>();
+        JsonNode questions = specification.getAmbiguity();
+        if (questions != null && questions.isArray())
+            for (int i = 0; i < questions.size(); i++) order.put(questions.get(i).path("code").asText(), i);
+        return java.util.Comparator.comparingInt(item -> order.getOrDefault(item.getCode(), Integer.MAX_VALUE));
     }
 
     public JsonNode toJson(Specification specification) {

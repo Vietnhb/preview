@@ -221,9 +221,7 @@ export default function CanvasPhysicsScene(props: CanvasPhysicsSceneProps) {
       {supported ? (
         <canvas ref={canvasRef} className="physics-scene-canvas" aria-label={`Mô phỏng ${scene} tại thời điểm ${displayTime.toFixed(2)} giây`} />
       ) : <div className="learn-blocked" role="alert">
-        {validation.status === "ASSET_CONFIRMATION_REQUIRED"
-          ? "Không tìm thấy asset phù hợp trong catalog; cần giáo viên xác nhận hoặc từ chối để dừng mô phỏng."
-          : "Visual intent hoặc primitive renderer chưa được phê duyệt; mô phỏng đã dừng."}
+        {"Visual intent hoặc primitive renderer chưa được phê duyệt; mô phỏng đã dừng."}
       </div>}
     </div>
   );

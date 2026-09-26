@@ -37,8 +37,14 @@ public record WaveSuperpositionParameters(
         double domainStart = PhysicsValues.optional(specification, overrides, 0, "domain_start");
         double configuredEnd = PhysicsValues.optional(specification, overrides, Double.NaN, "domain_end");
         double configuredLength = PhysicsValues.optional(specification, overrides, Double.NaN, "domain_length");
-        double domainEnd = Double.isFinite(configuredEnd) ? configuredEnd
-                : domainStart + (Double.isFinite(configuredLength) ? configuredLength : Math.max(2 * wavelength, 1));
+        double domainEnd;
+        if (Double.isFinite(configuredEnd)) {
+            domainEnd = configuredEnd;
+        } else if (Double.isFinite(configuredLength)) {
+            domainEnd = domainStart + configuredLength;
+        } else {
+            domainEnd = domainStart + Math.max(2 * wavelength, 1);
+        }
         if (!Double.isFinite(domainStart) || !Double.isFinite(domainEnd) || domainStart < 0 || domainEnd <= domainStart) {
             throw new IllegalArgumentException("Superposition domain must be finite, non-negative and increasing");
         }

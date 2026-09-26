@@ -26,7 +26,7 @@ const SchoolReports = lazy(() => import("../pages/school/SchoolReports"));
 const SchoolLayout = lazy(() => import("../pages/school/SchoolLayout"));
 const SchoolDashboard = lazy(() => import("../pages/school/SchoolDashboard"));
 const Curriculum = lazy(() => import("../pages/curriculum/Curriculum"));
-const Workspace = lazy(() => import("../pages/teacher/Workspace"));
+const Workspace = lazy(() => import("../pages/teacher/MatterPipelineWorkspace"));
 const AssignmentWorkspace = lazy(() => import("../pages/teacher/AssignmentWorkspace"));
 const Lab = lazy(() => import("../pages/Lab"));
 const StudentAssignments = lazy(() => import("../pages/student/StudentAssignments"));

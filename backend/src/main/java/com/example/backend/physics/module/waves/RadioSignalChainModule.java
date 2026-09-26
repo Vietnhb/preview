@@ -18,6 +18,14 @@ public final class RadioSignalChainModule implements PhysicsModule<RadioSignalCh
     public static final String MODULE_ID = "radio_signal_chain";
     public static final String NUMERICAL_SOLVER_ID = "radio_signal_chain_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "radio_signal_chain_reference_v2";
+    private static final String WAVELENGTH = "wavelength";
+    private static final String LOWER_SIDEBAND = "lowerSideband";
+    private static final String UPPER_SIDEBAND = "upperSideband";
+    private static final String FM_MODULATION_INDEX = "fmModulationIndex";
+    private static final String CARSON_BANDWIDTH = "carsonBandwidth";
+    private static final String ATTENUATION_FACTOR = "attenuationFactor";
+    private static final String RECEIVED_AMPLITUDE = "receivedAmplitude";
+    private static final String REFERENCE_PREFIX = "reference ";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -47,22 +55,22 @@ public final class RadioSignalChainModule implements PhysicsModule<RadioSignalCh
         double attenuationDb = parameters.attenuationDbPerMeter() * parameters.pathLength();
         double attenuationFactor = Math.pow(10.0, -attenuationDb / 20.0);
         double receivedAmplitude = parameters.signalAmplitude() * attenuationFactor;
-        requirePositiveFinite("wavelength", wavelength);
-        requirePositiveFinite("lowerSideband", lowerSideband);
-        requirePositiveFinite("upperSideband", upperSideband);
-        requireFinite("fmModulationIndex", fmIndex);
-        requireFinite("carsonBandwidth", carsonBandwidth);
-        requireFinite("attenuationFactor", attenuationFactor);
-        requireFinite("receivedAmplitude", receivedAmplitude);
+        requirePositiveFinite(WAVELENGTH, wavelength);
+        requirePositiveFinite(LOWER_SIDEBAND, lowerSideband);
+        requirePositiveFinite(UPPER_SIDEBAND, upperSideband);
+        requireFinite(FM_MODULATION_INDEX, fmIndex);
+        requireFinite(CARSON_BANDWIDTH, carsonBandwidth);
+        requireFinite(ATTENUATION_FACTOR, attenuationFactor);
+        requireFinite(RECEIVED_AMPLITUDE, receivedAmplitude);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("wavelength", repeated(wavelength, time.size()));
-        values.put("lowerSideband", repeated(lowerSideband, time.size()));
-        values.put("upperSideband", repeated(upperSideband, time.size()));
-        values.put("fmModulationIndex", repeated(fmIndex, time.size()));
-        values.put("carsonBandwidth", repeated(carsonBandwidth, time.size()));
-        values.put("attenuationFactor", repeated(attenuationFactor, time.size()));
-        values.put("receivedAmplitude", repeated(receivedAmplitude, time.size()));
+        values.put(WAVELENGTH, repeated(wavelength, time.size()));
+        values.put(LOWER_SIDEBAND, repeated(lowerSideband, time.size()));
+        values.put(UPPER_SIDEBAND, repeated(upperSideband, time.size()));
+        values.put(FM_MODULATION_INDEX, repeated(fmIndex, time.size()));
+        values.put(CARSON_BANDWIDTH, repeated(carsonBandwidth, time.size()));
+        values.put(ATTENUATION_FACTOR, repeated(attenuationFactor, time.size()));
+        values.put(RECEIVED_AMPLITUDE, repeated(receivedAmplitude, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -81,17 +89,17 @@ public final class RadioSignalChainModule implements PhysicsModule<RadioSignalCh
         double received = parameters.signalAmplitude() * attenuation;
         double lowerSideband = parameters.carrierFrequency() - parameters.modulationFrequency();
         double upperSideband = parameters.carrierFrequency() + parameters.modulationFrequency();
-        requirePositiveFinite("reference wavelength", wavelength);
-        requirePositiveFinite("reference lowerSideband", lowerSideband);
-        requirePositiveFinite("reference upperSideband", upperSideband);
-        requireFinite("reference fmModulationIndex", beta);
-        requireFinite("reference carsonBandwidth", occupiedBandwidth);
-        requireFinite("reference attenuationFactor", attenuation);
-        requireFinite("reference receivedAmplitude", received);
-        return new AnalyticalPoint(Map.of("wavelength", wavelength,
-                "lowerSideband", lowerSideband, "upperSideband", upperSideband,
-                "fmModulationIndex", beta, "carsonBandwidth", occupiedBandwidth,
-                "attenuationFactor", attenuation, "receivedAmplitude", received));
+        requirePositiveFinite(REFERENCE_PREFIX + WAVELENGTH, wavelength);
+        requirePositiveFinite(REFERENCE_PREFIX + LOWER_SIDEBAND, lowerSideband);
+        requirePositiveFinite(REFERENCE_PREFIX + UPPER_SIDEBAND, upperSideband);
+        requireFinite(REFERENCE_PREFIX + FM_MODULATION_INDEX, beta);
+        requireFinite(REFERENCE_PREFIX + CARSON_BANDWIDTH, occupiedBandwidth);
+        requireFinite(REFERENCE_PREFIX + ATTENUATION_FACTOR, attenuation);
+        requireFinite(REFERENCE_PREFIX + RECEIVED_AMPLITUDE, received);
+        return new AnalyticalPoint(Map.of(WAVELENGTH, wavelength,
+                LOWER_SIDEBAND, lowerSideband, UPPER_SIDEBAND, upperSideband,
+                FM_MODULATION_INDEX, beta, CARSON_BANDWIDTH, occupiedBandwidth,
+                ATTENUATION_FACTOR, attenuation, RECEIVED_AMPLITUDE, received));
     }
 
     private static double requireCanonical(CanonicalQuantityBag quantities, String key, String unit) {

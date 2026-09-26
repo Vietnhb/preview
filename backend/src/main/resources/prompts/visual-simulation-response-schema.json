@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "status": { "type": "string", "enum": ["READY", "UNSUPPORTED"] },
+    "reason": { "type": ["string", "null"] },
+    "durationSeconds": { "type": ["number", "null"] },
+    "program": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "init": { "type": "string" },
+        "step": { "type": "string" },
+        "draw": { "type": "string" }
+      },
+      "required": ["init", "step", "draw"]
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "label": { "type": "string" },
+          "value": { "type": "number" },
+          "min": { "type": "number" },
+          "max": { "type": "number" },
+          "unit": { "type": "string" }
+        },
+        "required": ["name", "label", "value", "min", "max", "unit"]
+      }
+    }
+  },
+  "required": ["status", "reason", "durationSeconds", "program", "parameters"]
+}

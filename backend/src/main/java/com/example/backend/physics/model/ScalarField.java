@@ -5,9 +5,7 @@ import com.example.backend.physics.model.ScalarField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Version 1 of the transport-safe scalar-field payload shared by numerical
@@ -32,7 +30,7 @@ public record ScalarField(
         String boundary) {
 
     public static final int CONTRACT_VERSION = 1;
-    public static final String TYPE = "scalarField";
+    public static final String SCALAR_FIELD_TYPE = "scalarField";
     public static final int MAX_SPATIAL_SAMPLES = 4_096;
     public static final int MAX_TIME_SAMPLES = 16_384;
     public static final int MAX_CELLS = 1_000_000;
@@ -42,8 +40,8 @@ public record ScalarField(
         if (version != CONTRACT_VERSION) {
             throw new IllegalArgumentException("Unsupported scalar-field contract version: " + version);
         }
-        if (!TYPE.equals(type)) {
-            throw new IllegalArgumentException("Scalar field type must be " + TYPE);
+        if (!SCALAR_FIELD_TYPE.equals(type)) {
+            throw new IllegalArgumentException("Scalar field type must be " + SCALAR_FIELD_TYPE);
         }
         if (physicalDimension != 1 && physicalDimension != 2) {
             throw new IllegalArgumentException("Scalar field physicalDimension must be 1 or 2");

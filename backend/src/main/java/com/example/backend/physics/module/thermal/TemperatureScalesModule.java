@@ -16,6 +16,8 @@ public final class TemperatureScalesModule implements PhysicsModule<TemperatureS
     public static final String MODULE_ID = "temperature_scales";
     public static final String NUMERICAL_SOLVER_ID = "temperature_scale_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "temperature_scale_reference_v2";
+    private static final String KELVIN = "kelvin";
+    private static final String FAHRENHEIT = "fahrenheit";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -42,14 +44,14 @@ public final class TemperatureScalesModule implements PhysicsModule<TemperatureS
         // Numerical path uses the direct affine conversions from Celsius.
         double kelvin = parameters.celsius() + 273.15;
         double fahrenheit = parameters.celsius() * (9.0 / 5.0) + 32.0;
-        requireFinite("kelvin", kelvin);
-        requireFinite("fahrenheit", fahrenheit);
+        requireFinite(KELVIN, kelvin);
+        requireFinite(FAHRENHEIT, fahrenheit);
 
         List<Double> time = clock.sampleTimes();
         Map<String, List<Double>> values = new LinkedHashMap<>();
         values.put("celsius", repeated(parameters.celsius(), time.size()));
-        values.put("kelvin", repeated(kelvin, time.size()));
-        values.put("fahrenheit", repeated(fahrenheit, time.size()));
+        values.put(KELVIN, repeated(kelvin, time.size()));
+        values.put(FAHRENHEIT, repeated(fahrenheit, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -64,13 +66,13 @@ public final class TemperatureScalesModule implements PhysicsModule<TemperatureS
         // Fahrenheit offset defined relative to absolute zero.
         double kelvin = parameters.celsius() - (-273.15);
         double fahrenheit = kelvin * (9.0 / 5.0) - 459.67;
-        requireFinite("reference kelvin", kelvin);
-        requireFinite("reference fahrenheit", fahrenheit);
+        requireFinite("reference " + KELVIN, kelvin);
+        requireFinite("reference " + FAHRENHEIT, fahrenheit);
 
         Map<String, Double> values = new LinkedHashMap<>();
         values.put("celsius", parameters.celsius());
-        values.put("kelvin", kelvin);
-        values.put("fahrenheit", fahrenheit);
+        values.put(KELVIN, kelvin);
+        values.put(FAHRENHEIT, fahrenheit);
         return new AnalyticalPoint(values);
     }
 

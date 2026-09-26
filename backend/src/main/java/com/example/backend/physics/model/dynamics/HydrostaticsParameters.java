@@ -2,7 +2,6 @@ package com.example.backend.physics.model.dynamics;
 
 import com.example.backend.physics.model.PhysicalConstants;
 import com.example.backend.physics.model.CanonicalQuantityBag;
-import com.example.backend.physics.compatibility.legacy.PhysicsValues;
 
 
 /** Gauge pressure and Archimedes buoyancy in a quiescent fluid. */
@@ -15,7 +14,7 @@ public record HydrostaticsParameters(double fluidDensity, double depth, double d
         double volume = quantities.require("displaced_volume");
         double gravity = quantities.optional("gravitational_acceleration", PhysicalConstants.STANDARD_GRAVITY);
         double atmosphere = quantities.optional("atmospheric_pressure", PhysicalConstants.STANDARD_ATMOSPHERIC_PRESSURE);
-        if (!(density > 0) || depth < 0 || volume < 0 || !(gravity > 0) || atmosphere < 0) {
+        if (density <= 0 || depth < 0 || volume < 0 || gravity <= 0 || atmosphere < 0) {
             throw new IllegalArgumentException("Invalid hydrostatics inputs");
         }
         return new HydrostaticsParameters(density, depth, volume, gravity, atmosphere);

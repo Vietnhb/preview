@@ -36,6 +36,10 @@ public final class LegacyPhysicsExecutionAdapterV1 {
     public static final String VERSION = "legacy-physics-execution-v1";
     private static final String ACTIVE_CATALOG_RESOURCE = "schemas/catalog.json";
     private static final String HISTORY_CATALOG_RESOURCE = "schemas/history/published-versions.json";
+    private static final String LEGACY_ARCHIVE_RESOURCE = "schemas/history/legacy-published-versions.json";
+    private static final String SCHEMA_ID = "schemaId";
+    private static final String SOLVER_ID = "solverId";
+    private static final String REFERENCE_SOLVER_ID = "referenceSolverId";
 
     private final Set<Permit> permits;
 
@@ -123,9 +127,10 @@ public final class LegacyPhysicsExecutionAdapterV1 {
         try {
             JsonNode activeEntries = readArray(mapper, ACTIVE_CATALOG_RESOURCE);
             JsonNode historicalEntries = readArray(mapper, HISTORY_CATALOG_RESOURCE);
+            JsonNode preservedEntries = readArray(mapper, LEGACY_ARCHIVE_RESOURCE);
             Map<String, String> latestActiveVersion = new HashMap<>();
             for (JsonNode entry : activeEntries) {
-                String id = text(entry, "schemaId").toLowerCase(Locale.ROOT);
+                String id = text(entry, SCHEMA_ID).toLowerCase(Locale.ROOT);
                 String version = text(entry, "version");
                 latestActiveVersion.merge(id, version,
                         (left, right) -> compareVersions(left, right) >= 0 ? left : right);
@@ -135,15 +140,27 @@ public final class LegacyPhysicsExecutionAdapterV1 {
                     .collect(java.util.stream.Collectors.toUnmodifiableSet());
             Set<Permit> permits = new HashSet<>();
             for (JsonNode entry : activeEntries) {
-                Permit permit = permit(entry);
-                if (!latestActiveIdentities.contains(identity(permit))) {
-                    addUnique(permits, permit, ACTIVE_CATALOG_RESOURCE);
+                if (hasLegacySolvers(entry)) {
+                    Permit permit = permit(entry);
+                    if (!latestActiveIdentities.contains(identity(permit))) {
+                        addUnique(permits, permit, ACTIVE_CATALOG_RESOURCE);
+                    }
                 }
             }
             for (JsonNode entry : historicalEntries) {
-                Permit permit = permit(entry);
-                if (!latestActiveIdentities.contains(identity(permit))) {
-                    addUnique(permits, permit, HISTORY_CATALOG_RESOURCE);
+                if (hasLegacySolvers(entry)) {
+                    Permit permit = permit(entry);
+                    if (!latestActiveIdentities.contains(identity(permit))) {
+                        addUnique(permits, permit, HISTORY_CATALOG_RESOURCE);
+                    }
+                }
+            }
+            for (JsonNode entry : preservedEntries) {
+                if (hasLegacySolvers(entry)) {
+                    Permit permit = permit(entry);
+                    if (!latestActiveIdentities.contains(identity(permit)) && !permits.contains(permit)) {
+                        addUnique(permits, permit, LEGACY_ARCHIVE_RESOURCE);
+                    }
                 }
             }
             return Set.copyOf(permits);
@@ -151,6 +168,12 @@ public final class LegacyPhysicsExecutionAdapterV1 {
             throw new IllegalStateException("Cannot load versioned legacy physics permit catalog: "
                     + HISTORY_CATALOG_RESOURCE, exception);
         }
+    }
+
+    private static boolean hasLegacySolvers(JsonNode entry) {
+        return entry != null
+                && entry.hasNonNull(SOLVER_ID) && !entry.path(SOLVER_ID).asText().isBlank()
+                && entry.hasNonNull(REFERENCE_SOLVER_ID) && !entry.path(REFERENCE_SOLVER_ID).asText().isBlank();
     }
 
     private static JsonNode readArray(ObjectMapper mapper, String resource) throws IOException {
@@ -165,10 +188,10 @@ public final class LegacyPhysicsExecutionAdapterV1 {
     }
 
     private static Permit permit(JsonNode entry) {
-        String schemaId = text(entry, "schemaId");
+        String schemaId = text(entry, SCHEMA_ID);
         String schemaVersion = text(entry, "version");
         return new Permit(schemaId, schemaVersion, schemaVersion,
-                text(entry, "solverId"), text(entry, "referenceSolverId"));
+                text(entry, SOLVER_ID), text(entry, REFERENCE_SOLVER_ID));
     }
 
     private static void addUnique(Set<Permit> permits, Permit permit, String source) {
@@ -210,24 +233,26 @@ public final class LegacyPhysicsExecutionAdapterV1 {
 
     public record PinnedExecution(String schemaId, String schemaVersion, String bindingVersion,
                                   String numericalSolverId, String referenceSolverId) {
-        public PinnedExecution {
-            schemaId = required(schemaId, "schemaId");
-            schemaVersion = required(schemaVersion, "schemaVersion");
-            bindingVersion = required(bindingVersion, "bindingVersion");
-            numericalSolverId = required(numericalSolverId, "numericalSolverId");
-            referenceSolverId = required(referenceSolverId, "referenceSolverId");
+        public PinnedExecution(String schemaId, String schemaVersion, String bindingVersion,
+                               String numericalSolverId, String referenceSolverId) {
+            this.schemaId = required(schemaId, SCHEMA_ID);
+            this.schemaVersion = required(schemaVersion, "schemaVersion");
+            this.bindingVersion = required(bindingVersion, "bindingVersion");
+            this.numericalSolverId = required(numericalSolverId, "numericalSolverId");
+            this.referenceSolverId = required(referenceSolverId, REFERENCE_SOLVER_ID);
         }
 
     }
 
     public record Permit(String schemaId, String schemaVersion, String bindingVersion,
                          String numericalSolverId, String referenceSolverId) {
-        public Permit {
-            schemaId = required(schemaId, "schemaId");
-            schemaVersion = required(schemaVersion, "schemaVersion");
-            bindingVersion = required(bindingVersion, "bindingVersion");
-            numericalSolverId = required(numericalSolverId, "numericalSolverId");
-            referenceSolverId = required(referenceSolverId, "referenceSolverId");
+        public Permit(String schemaId, String schemaVersion, String bindingVersion,
+                      String numericalSolverId, String referenceSolverId) {
+            this.schemaId = required(schemaId, SCHEMA_ID);
+            this.schemaVersion = required(schemaVersion, "schemaVersion");
+            this.bindingVersion = required(bindingVersion, "bindingVersion");
+            this.numericalSolverId = required(numericalSolverId, "numericalSolverId");
+            this.referenceSolverId = required(referenceSolverId, REFERENCE_SOLVER_ID);
         }
 
         private static Permit from(PinnedExecution pinned) {

@@ -49,8 +49,8 @@ public record AiProviderProperties(
         if (!Double.isFinite(temperature) || temperature < 0 || temperature > 2) {
             throw new IllegalArgumentException("AI temperature must be between 0 and 2");
         }
-        if (maxAttempts < 1 || maxAttempts > 3) {
-            throw new IllegalArgumentException("AI max attempts must be between 1 and 3");
+        if (maxAttempts < 1 || maxAttempts > 5) {
+            throw new IllegalArgumentException("AI max attempts must be between 1 and 5");
         }
         if (systemPromptResource.isEmpty()) {
             throw new IllegalArgumentException("AI system prompt resource is required");

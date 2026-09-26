@@ -50,7 +50,6 @@ function specEntityNode(entity: Record<string, unknown>, index: number): Visuali
     layer: "dynamic",
     transform: transform && typeof transform === "object" ? transform as Record<string, Binding> : {},
     properties: {
-      ...(typeof entity.assetHint === "string" ? { assetHint: entity.assetHint } : {}),
       ...(typeof entity.type === "string" ? { entityType: entity.type } : {}),
       label: typeof entity.label === "string" ? entity.label : undefined,
       ...(typeof entity.properties === "object" && entity.properties !== null ? entity.properties as Record<string, unknown> : {}),
@@ -98,7 +97,6 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
       layer: "dynamic",
       transform: { x: binding(actor.x), y: binding(actor.y) },
       properties: {
-        ...(actor.assetHint ? { assetHint: actor.assetHint } : {}),
         label: actor.label,
         lane: actor.lane ?? 0,
         vx: actor.vx,
@@ -160,7 +158,7 @@ function schemaDrivenFallbackGraph(simulation: Simulation): SceneNode[] {
       type: "prop",
       layer: "dynamic",
       properties: {
-        assetHint: prop,
+        label: prop,
         anchorId: actors[0]?.id,
         ...(layout ? { layout } : {}),
         ...(actors.length ? {} : { anchorXRatio: 0.25 + (propIndex / Math.max(1, props.length - 1)) * 0.5, anchorYRatio: 0.42 }),

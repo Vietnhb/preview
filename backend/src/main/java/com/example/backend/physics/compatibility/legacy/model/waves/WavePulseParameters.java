@@ -28,8 +28,14 @@ public record WavePulseParameters(double amplitude, double waveSpeed, double wid
                 "domain_end");
         double configuredLength = PhysicsValues.optional(specification, overrides, Double.NaN,
                 "domain_length");
-        double domainEnd = Double.isFinite(configuredEnd) ? configuredEnd
-                : domainStart + (Double.isFinite(configuredLength) ? configuredLength : Math.max(8 * width, 1));
+        double domainEnd;
+        if (Double.isFinite(configuredEnd)) {
+            domainEnd = configuredEnd;
+        } else if (Double.isFinite(configuredLength)) {
+            domainEnd = domainStart + configuredLength;
+        } else {
+            domainEnd = domainStart + Math.max(8 * width, 1);
+        }
         if (!Double.isFinite(initialPosition) || !Double.isFinite(domainStart) || !Double.isFinite(domainEnd)
                 || domainEnd <= domainStart || initialPosition < domainStart || initialPosition > domainEnd) {
             throw new IllegalArgumentException("Pulse position and domain must be finite and ordered");

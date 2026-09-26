@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 /** Compatibility adapter for the historical multi-topic reference binding. */
-@Deprecated
 @Component
 public class ApplicationsReferenceSolver implements ReferenceSolver {
     private final Map<String, ReferenceSolver> routes;

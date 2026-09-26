@@ -41,6 +41,11 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 @Service
 public class AssignmentService {
+    private static final String MEASUREMENT = "MEASUREMENT";
+    private static final String EXPECTED_VALUE = "expectedValue";
+    private static final String TOLERANCE = "tolerance";
+    private static final String ANSWER_TEXT = "answerText";
+    private static final String ESTIMATED_VALUE = "estimatedValue";
     private static final String ASSIGNMENT_NOT_FOUND = "Assignment not found";
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
@@ -60,7 +65,7 @@ public class AssignmentService {
     private static String activityType(JsonNode questions) {
         String value = questions == null ? "" : questions.path("activityType").asText("");
         return switch (value) {
-            case "MEASUREMENT", "PARAMETER_INVESTIGATION", "FREE_EXPLORATION" -> value;
+            case MEASUREMENT, "PARAMETER_INVESTIGATION", "FREE_EXPLORATION" -> value;
             default -> "PREDICT_OBSERVE_EXPLAIN";
         };
     }
@@ -87,8 +92,10 @@ public class AssignmentService {
         if (sampleTime <= times.getFirst()) return values.getFirst();
         for (int i = 1; i < times.size(); i++) {
             if (times.get(i) >= sampleTime) {
-                double t0 = times.get(i - 1), t1 = times.get(i);
-                double v0 = values.get(i - 1), v1 = values.get(i);
+                double t0 = times.get(i - 1);
+                double t1 = times.get(i);
+                double v0 = values.get(i - 1);
+                double v1 = values.get(i);
                 return t1 == t0 ? v1 : v0 + (sampleTime - t0) / (t1 - t0) * (v1 - v0);
             }
         }
@@ -128,10 +135,10 @@ public class AssignmentService {
                 && request.classId() == null)
             throw new ApiException(HttpStatus.BAD_REQUEST, "Select a class before assigning this activity");
         String activityType = activityType(request.questions());
-        if (Boolean.TRUE.equals(request.autoGrade()) && !"MEASUREMENT".equals(activityType)) {
+        if (Boolean.TRUE.equals(request.autoGrade()) && !MEASUREMENT.equals(activityType)) {
             JsonNode criteria = request.gradingCriteria();
-            if (criteria == null || !finiteNumber(criteria.path("expectedValue"))
-                    || !finiteNumber(criteria.path("tolerance")) || criteria.path("tolerance").asDouble() < 0)
+            if (criteria == null || !finiteNumber(criteria.path(EXPECTED_VALUE))
+                    || !finiteNumber(criteria.path(TOLERANCE)) || criteria.path(TOLERANCE).asDouble() < 0)
                 throw new ApiException(HttpStatus.BAD_REQUEST, "A numeric answer and non-negative tolerance are required");
         }
         LibraryItem libraryItem = libraryItemRepository.findByIdAndOwnerIdAndActiveTrue(request.libraryItemId(), teacher.getId())
@@ -175,18 +182,18 @@ public class AssignmentService {
         assignment.setQuestions(request.questions());
         JsonNode gradingCriteria = request.gradingCriteria();
         boolean autoGrade = Boolean.TRUE.equals(request.autoGrade());
-        if ("MEASUREMENT".equals(activityType)) {
+        if (MEASUREMENT.equals(activityType)) {
             JsonNode measurement = request.questions().path("measurement");
             String source = measurement.path("seriesSource").asText("");
             double sampleTime = measurement.path("sampleTime").asDouble(Double.NaN);
-            double tolerance = measurement.path("tolerance").asDouble(Double.NaN);
+            double tolerance = measurement.path(TOLERANCE).asDouble(Double.NaN);
             if (source.isBlank() || !Double.isFinite(sampleTime) || !Double.isFinite(tolerance) || tolerance < 0)
                 throw new ApiException(HttpStatus.BAD_REQUEST, "Measurement assignments require a series, sample time and non-negative tolerance");
             SimulationResponse snapshot = simulationService.replay(libraryItem.getSimulation(), assignedRunId);
             double expected = sampleSeries(snapshot, source, sampleTime);
             ObjectNode derived = JsonNodeFactory.instance.objectNode();
-            derived.put("expectedValue", expected);
-            derived.put("tolerance", tolerance);
+            derived.put(EXPECTED_VALUE, expected);
+            derived.put(TOLERANCE, tolerance);
             derived.put("seriesSource", source);
             derived.put("sampleTime", sampleTime);
             derived.put("unit", measurement.path("unit").asText(""));
@@ -319,10 +326,10 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Assignment is closed");
         // Late work remains accepted and is identifiable from dueAt/submittedAt.
         JsonNode prediction = request.predictions();
-        if (prediction == null || !prediction.path("answerText").isTextual()
-                || prediction.path("answerText").asText().isBlank())
+        if (prediction == null || !prediction.path(ANSWER_TEXT).isTextual()
+                || prediction.path(ANSWER_TEXT).asText().isBlank())
             throw new ApiException(HttpStatus.BAD_REQUEST, "Prediction answer is required");
-        if (assignment.isAutoGrade() && !finiteNumber(prediction.path("estimatedValue")))
+        if (assignment.isAutoGrade() && !finiteNumber(prediction.path(ESTIMATED_VALUE)))
             throw new ApiException(HttpStatus.BAD_REQUEST, "A numeric prediction is required for this assignment");
         if (submission != null && !submission.isRetryAllowed())
             throw new ApiException(HttpStatus.CONFLICT, "Prediction already submitted");
@@ -363,11 +370,11 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Prediction answer is invalid");
         String answer = request.answerText() == null || request.answerText().isBlank()
                 ? request.conclusion().trim() : request.answerText().trim();
-        prediction.put("answerText", answer);
+            prediction.put(ANSWER_TEXT, answer);
         prediction.put("conclusion", request.conclusion().trim());
         if (request.estimatedValue() != null && Double.isFinite(request.estimatedValue()))
-            prediction.put("estimatedValue", request.estimatedValue());
-        if (assignment.isAutoGrade() && !finiteNumber(prediction.path("estimatedValue")))
+            prediction.put(ESTIMATED_VALUE, request.estimatedValue());
+        if (assignment.isAutoGrade() && !finiteNumber(prediction.path(ESTIMATED_VALUE)))
             throw new ApiException(HttpStatus.BAD_REQUEST, "A numeric measurement is required for this assignment");
         submission.setCompletedAt(Instant.now());
         submission.setRetryAllowed(false);
@@ -383,11 +390,11 @@ public class AssignmentService {
     private void autoGrade(Assignment assignment, AssignmentSubmission submission) {
         JsonNode criteria = assignment.getGradingCriteria();
         JsonNode prediction = submission.getPredictions();
-        if (criteria == null || prediction == null || !finiteNumber(criteria.path("expectedValue"))
-                || !finiteNumber(prediction.path("estimatedValue"))) return;
-        double expected = criteria.get("expectedValue").asDouble();
-        double actual = prediction.get("estimatedValue").asDouble();
-        double tolerance = criteria.has("tolerance") ? Math.max(0d, criteria.get("tolerance").asDouble()) : 0d;
+        if (criteria == null || prediction == null || !finiteNumber(criteria.path(EXPECTED_VALUE))
+                || !finiteNumber(prediction.path(ESTIMATED_VALUE))) return;
+        double expected = criteria.get(EXPECTED_VALUE).asDouble();
+        double actual = prediction.get(ESTIMATED_VALUE).asDouble();
+        double tolerance = criteria.has(TOLERANCE) ? Math.max(0d, criteria.get(TOLERANCE).asDouble()) : 0d;
         submission.setMaxScore(assignment.getMaxScore());
         submission.setScore(Math.abs(expected - actual) <= tolerance ? assignment.getMaxScore() : BigDecimal.ZERO);
         submission.setGradingStatus(com.example.backend.entity.enums.GradingStatus.AI_GRADED);
@@ -457,7 +464,11 @@ public class AssignmentService {
         BigDecimal total = completed.stream().map(AssignmentSubmission::getScore).filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
         long graded = completed.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.AI_GRADED || row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.TEACHER_CONFIRMED).count();
         long confirmed = completed.stream().filter(row -> row.getGradingStatus() == com.example.backend.entity.enums.GradingStatus.TEACHER_CONFIRMED).count();
-        return new AssignmentReport(assignment.getAssignedStudentIds().size(), completed.size(), assignment.getAssignedStudentIds().size() - completed.size(), graded, confirmed, rows.stream().filter(AssignmentSubmission::isRetryAllowed).count(), graded == 0 ? null : total.divide(BigDecimal.valueOf(graded), 3, java.math.RoundingMode.HALF_UP), assignment.getMaxScore());
+        return new AssignmentReport(assignment.getAssignedStudentIds().size(), completed.size(),
+                (long) assignment.getAssignedStudentIds().size() - completed.size(), graded, confirmed,
+                rows.stream().filter(AssignmentSubmission::isRetryAllowed).count(),
+                graded == 0 ? null : total.divide(BigDecimal.valueOf(graded), 3, java.math.RoundingMode.HALF_UP),
+                assignment.getMaxScore());
     }
 
     private AssignmentResponse toResponse(Assignment item) {
@@ -477,7 +488,7 @@ public class AssignmentService {
                 item.getStatus(), item.getAssignedAt(), item.getDueAt(),
                 predictionSubmitted, ownSubmission != null && ownSubmission.getCompletedAt() != null,
                 ownSubmission == null ? null : ownSubmission.getCompletedAt(),
-                RoleName.STUDENT.matches(current.getRole() == null ? null : current.getRole().getName())
+                current.getRole() != null && RoleName.STUDENT.matches(current.getRole().getName())
                         ? null : item.getGradingCriteria(), item.getMaxScore(), item.isAutoGrade(),
                 ownSubmission == null ? null : ownSubmission.getScore(), ownSubmission == null ? null : ownSubmission.getFeedback(),
                 ownSubmission == null ? null : ownSubmission.getGradingStatus(), ownSubmission != null && ownSubmission.isRetryAllowed(),

@@ -63,21 +63,7 @@ export type ActorFrame = {
 };
 
 export function presentationFor(simulation: Simulation): VisualizationPresentation {
-  const configured = simulation.visualization?.presentation ?? {};
-  const configuredActors = configured?.actors?.length
-    ? configured.actors.map(actor => {
-      const withoutLegacyAsset = { ...actor };
-      delete withoutLegacyAsset.asset;
-      return {
-        ...withoutLegacyAsset,
-        ...(actor.assetHint ? { assetHint: actor.assetHint } : {}),
-      };
-    })
-    : undefined;
-  return {
-    ...configured,
-    ...(configuredActors ? { actors: configuredActors } : {}),
-  };
+  return simulation.visualization?.presentation ?? {};
 }
 
 export function paletteFor(_theme: string | undefined, darkMode: boolean): CanvasPalette {

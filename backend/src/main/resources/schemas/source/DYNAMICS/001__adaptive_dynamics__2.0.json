@@ -1,0 +1,496 @@
+{
+  "schemaId": "adaptive_dynamics",
+  "model": "matter_js",
+  "name": "Dynamics Concept Capability",
+  "topic": "DYNAMICS",
+  "version": "2.0",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for dynamics. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "body",
+        "label": "vật",
+        "description": "Body with mechanical state."
+      },
+      {
+        "type": "spring",
+        "label": "lò xo",
+        "description": "Elastic component with stated stiffness."
+      },
+      {
+        "type": "force_source",
+        "label": "nguồn lực",
+        "description": "Source of force on a body."
+      },
+      {
+        "type": "surface",
+        "label": "bề mặt",
+        "description": "Surface involved in contact."
+      },
+      {
+        "type": "fluid",
+        "label": "chất lưu",
+        "description": "Medium that may exert buoyancy or drag under a stated law."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "acts_on",
+        "label": "tác dụng lên",
+        "description": "Source applies force to body.",
+        "subjectTypes": [
+          "force_source",
+          "spring",
+          "fluid"
+        ],
+        "objectTypes": [
+          "body"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "force_source",
+            "spring",
+            "fluid",
+            "body"
+          ]
+        }
+      },
+      {
+        "type": "attached_to",
+        "label": "gắn với",
+        "description": "Spring attached to body.",
+        "subjectTypes": [
+          "spring"
+        ],
+        "objectTypes": [
+          "body"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "spring",
+            "body"
+          ]
+        }
+      },
+      {
+        "type": "contacts",
+        "label": "tiếp xúc",
+        "description": "Bodies meet and may exchange impulse or exert sustained contact forces.",
+        "subjectTypes": [
+          "body"
+        ],
+        "objectTypes": [
+          "surface"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "surface"
+          ]
+        }
+      },
+      {
+        "type": "immersed_in",
+        "label": "chìm trong",
+        "description": "Body is in fluid.",
+        "subjectTypes": [
+          "body"
+        ],
+        "objectTypes": [
+          "fluid"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "fluid"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "mass",
+        "label": "khối lượng",
+        "description": "Inertial mass.",
+        "aliases": [
+          "m"
+        ],
+        "allowedUnits": [
+          "kg"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ]
+        }
+      },
+      {
+        "key": "position",
+        "label": "tọa độ",
+        "description": "Signed position on selected axis.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ]
+        }
+      },
+      {
+        "key": "velocity",
+        "label": "vận tốc",
+        "description": "Position derivative.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ]
+        }
+      },
+      {
+        "key": "acceleration",
+        "label": "gia tốc",
+        "description": "Velocity derivative.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s^2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ]
+        }
+      },
+      {
+        "key": "force",
+        "label": "lực",
+        "description": "Signed force along an axis.",
+        "aliases": [
+          "F"
+        ],
+        "allowedUnits": [
+          "N"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "force_source",
+            "spring",
+            "fluid"
+          ]
+        }
+      },
+      {
+        "key": "spring_constant",
+        "label": "độ cứng lò xo",
+        "description": "Linear spring coefficient.",
+        "aliases": [
+          "k"
+        ],
+        "allowedUnits": [
+          "N/m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "spring"
+          ]
+        }
+      },
+      {
+        "key": "extension",
+        "label": "độ biến dạng",
+        "description": "Displacement from spring equilibrium.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "spring",
+            "body"
+          ]
+        }
+      },
+      {
+        "key": "damping_coefficient",
+        "label": "hệ số cản tuyến tính",
+        "description": "Coefficient only for an accepted linear drag model.",
+        "aliases": [],
+        "allowedUnits": [
+          "kg/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "fluid"
+          ]
+        }
+      },
+      {
+        "key": "gravitational_acceleration",
+        "label": "gia tốc trọng trường",
+        "description": "Gravity value stated or accepted.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s^2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ]
+        }
+      },
+      {
+        "key": "fluid_density",
+        "label": "khối lượng riêng",
+        "description": "Fluid mass per volume.",
+        "aliases": [],
+        "allowedUnits": [
+          "kg/m^3"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "fluid"
+          ]
+        }
+      },
+      {
+        "key": "displaced_volume",
+        "label": "thể tích chiếm chỗ",
+        "description": "Fluid volume displaced by the body.",
+        "aliases": [],
+        "allowedUnits": [
+          "m^3"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "fluid"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "kg",
+        "dimension": "mass"
+      },
+      {
+        "symbol": "m",
+        "dimension": "length"
+      },
+      {
+        "symbol": "m/s",
+        "dimension": "velocity"
+      },
+      {
+        "symbol": "m/s^2",
+        "dimension": "acceleration"
+      },
+      {
+        "symbol": "N",
+        "dimension": "force"
+      },
+      {
+        "symbol": "N/m",
+        "dimension": "spring constant"
+      },
+      {
+        "symbol": "kg/s",
+        "dimension": "damping coefficient"
+      },
+      {
+        "symbol": "kg/m^3",
+        "dimension": "density"
+      },
+      {
+        "symbol": "m^3",
+        "dimension": "volume"
+      }
+    ],
+    "laws": [
+      {
+        "id": "newton_second",
+        "name": "Định luật II Newton",
+        "inputs": [
+          "force",
+          "mass"
+        ],
+        "outputs": [
+          "acceleration"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ],
+          "quantities": [
+            "force",
+            "mass",
+            "acceleration"
+          ]
+        },
+        "assumptions": [
+          "Inertial frame or justified approximation.",
+          "Relevant forces and directions identified."
+        ],
+        "description": "Acceleration follows the net force."
+      },
+      {
+        "id": "hooke",
+        "name": "Định luật Hooke",
+        "inputs": [
+          "spring_constant",
+          "extension"
+        ],
+        "outputs": [
+          "force"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "spring",
+            "body"
+          ],
+          "quantities": [
+            "spring_constant",
+            "extension",
+            "force"
+          ]
+        },
+        "assumptions": [
+          "Spring remains in linear elastic range."
+        ],
+        "description": "Restoring force is proportional to extension."
+      },
+      {
+        "id": "linear_drag",
+        "name": "Lực cản tuyến tính",
+        "inputs": [
+          "damping_coefficient",
+          "velocity"
+        ],
+        "outputs": [
+          "force"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "fluid"
+          ],
+          "quantities": [
+            "damping_coefficient",
+            "velocity",
+            "force"
+          ]
+        },
+        "assumptions": [
+          "Linear drag model stated or accepted."
+        ],
+        "description": "Drag opposes velocity."
+      },
+      {
+        "id": "buoyancy",
+        "name": "Lực đẩy Archimedes",
+        "inputs": [
+          "fluid_density",
+          "gravitational_acceleration",
+          "displaced_volume"
+        ],
+        "outputs": [
+          "force"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "fluid"
+          ],
+          "quantities": [
+            "fluid_density",
+            "gravitational_acceleration",
+            "displaced_volume",
+            "force"
+          ]
+        },
+        "assumptions": [
+          "Static fluid and displaced volume known."
+        ],
+        "description": "Buoyant force magnitude."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "force_inventory",
+        "description": "Clarify relevant forces and directions before constructing dynamics.",
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ],
+          "relationTypes": [
+            "acts_on"
+          ],
+          "quantities": []
+        }
+      },
+      {
+        "id": "contact_limit",
+        "description": "Contact geometry and collision properties must be defined when they affect the motion.",
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "surface"
+          ],
+          "relationTypes": [
+            "contacts"
+          ],
+          "quantities": []
+        }
+      },
+      {
+        "id": "initial_state",
+        "description": "Dynamic states need user-supplied or accepted initial values.",
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "matter_js",
+      "scope": "Two-dimensional rigid bodies with initial positions and velocities, gravity, collisions, static obstacles, and Matter.js constraints or springs. Other grounded high-school behavior may use the AI-authored visual runtime.",
+      "limitations": [
+        "Matter.js is limited to its rigid-body primitives. The AI-authored visual runtime can express other grounded high-school models, but its physics is not independently verified."
+      ],
+      "runtimes": [
+        "matter_js",
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "Matter.js is limited to its rigid-body primitives. The AI-authored visual runtime can express other grounded high-school models, but its physics is not independently verified."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+    }
+  }
+}

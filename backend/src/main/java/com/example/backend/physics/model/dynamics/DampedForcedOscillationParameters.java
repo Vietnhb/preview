@@ -1,6 +1,5 @@
 package com.example.backend.physics.model.dynamics;
 
-import com.example.backend.physics.compatibility.legacy.PhysicsValues;
 import com.example.backend.physics.model.CanonicalQuantityBag;
 import com.example.backend.physics.model.PhysicalChecks;
 

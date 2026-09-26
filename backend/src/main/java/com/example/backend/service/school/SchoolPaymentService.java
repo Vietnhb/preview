@@ -42,6 +42,20 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 @Service @RequiredArgsConstructor
 public class SchoolPaymentService {
+    private static final String PENDING = "PENDING";
+    private static final String FAILED = "FAILED";
+    private static final String REGISTRATION = "REGISTRATION";
+    private static final String REQUIRES_REVIEW = "REQUIRES_REVIEW";
+    private static final String ORDER_NOT_FOUND = "Order not found";
+    private static final String VNP_AMOUNT = "vnp_Amount";
+    private static final String VNP_COMMAND = "vnp_Command";
+    private static final String VNP_ORDER_INFO = "vnp_OrderInfo";
+    private static final String VNP_RESPONSE_CODE = "vnp_ResponseCode";
+    private static final String VNP_SECURE_HASH = "vnp_SecureHash";
+    private static final String VNP_TMN_CODE = "vnp_TmnCode";
+    private static final String VNP_TRANSACTION_NO = "vnp_TransactionNo";
+    private static final String VNP_TRANSACTION_STATUS = "vnp_TransactionStatus";
+    private static final String VNP_TXN_REF = "vnp_TxnRef";
     private final LicensePlanRepository plans;
     private final SchoolPaymentRepository payments;
     private final SchoolRepository schools;
@@ -80,11 +94,11 @@ public class SchoolPaymentService {
         if (schools.existsByCode(code) || schools.findByName(request.schoolName().trim()).isPresent())
             throw new ApiException(HttpStatus.CONFLICT, "Trường đã đăng ký. Vui lòng liên hệ người quản lý trường.");
         var previous = payments.findFirstByRegistrationEmailIgnoreCaseOrderByCreatedAtDesc(email);
-        if (previous.isPresent() && "PENDING".equals(previous.get().getStatus())) {
+        if (previous.isPresent() && PENDING.equals(previous.get().getStatus())) {
             var pending = previous.get();
             if (code.equals(pending.getRegistrationSchoolCode())
                     && passwords.matches(request.password(), pending.getRegistrationPasswordHash()))
-                return recover(new SchoolPaymentRecoveryRequest(email, request.password()), ip);
+                return recoverInternal(new SchoolPaymentRecoveryRequest(email, request.password()), ip);
             throw new ApiException(HttpStatus.CONFLICT, "Email hoặc thông tin trường đang có giao dịch chờ thanh toán.");
         }
         if (payments.hasPendingRegistrationConflict(email, code, request.schoolName().trim()))
@@ -113,21 +127,21 @@ public class SchoolPaymentService {
         var now = ZonedDateTime.now(vnpay.zoneId());
         var format = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
         Map<String, String> params = new TreeMap<>();
-        params.put("vnp_Version", "2.1.0"); params.put("vnp_Command", "pay"); params.put("vnp_TmnCode", vnpay.tmnCode());
-        params.put("vnp_Amount", Long.toString(Math.multiplyExact(payment.getAmountVnd(), 100)));
+        params.put("vnp_Version", "2.1.0"); params.put(VNP_COMMAND, "pay"); params.put(VNP_TMN_CODE, vnpay.tmnCode());
+        params.put(VNP_AMOUNT, Long.toString(Math.multiplyExact(payment.getAmountVnd(), 100)));
         params.put("vnp_CurrCode", "VND"); params.put("vnp_Locale", "vn"); params.put("vnp_OrderType", "other");
         // VNPAY accepts an alphanumeric merchant reference only. Keep the
         // internal UUID mapping while removing hyphens from the provider ref.
-        params.put("vnp_TxnRef", providerTxnRef(payment.getId())); params.put("vnp_OrderInfo", "PhysLive" + payment.getPlanCode());
+        params.put(VNP_TXN_REF, providerTxnRef(payment.getId())); params.put(VNP_ORDER_INFO, "PhysLive" + payment.getPlanCode());
         params.put("vnp_ReturnUrl", vnpay.returnUrl()); params.put("vnp_IpAddr", clientIp(ip));
         params.put("vnp_CreateDate", now.format(format)); params.put("vnp_ExpireDate", now.plusMinutes(15).format(format));
         String query = canonical(params);
-        return vnpay.paymentUrl() + "?" + query + "&vnp_SecureHash=" + sign(query);
+        return vnpay.paymentUrl() + "?" + query + "&" + VNP_SECURE_HASH + "=" + sign(query);
     }
 
     static String canonical(Map<String, String> fields) {
         return new TreeMap<>(fields).entrySet().stream()
-            .filter(e -> e.getKey().startsWith("vnp_") && !e.getKey().equals("vnp_SecureHash") && !e.getKey().equals("vnp_SecureHashType") && e.getValue() != null && !e.getValue().isEmpty())
+            .filter(e -> e.getKey().startsWith("vnp_") && !e.getKey().equals(VNP_SECURE_HASH) && !e.getKey().equals("vnp_SecureHashType") && e.getValue() != null && !e.getValue().isEmpty())
             .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.US_ASCII) + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII))
             .collect(Collectors.joining("&"));
     }
@@ -135,7 +149,7 @@ public class SchoolPaymentService {
     /** VNPAY's Java IPN example hashes decoded request values without URL encoding. */
     static String canonicalIpn(Map<String, String> fields) {
         return new TreeMap<>(fields).entrySet().stream()
-            .filter(e -> e.getKey().startsWith("vnp_") && !e.getKey().equals("vnp_SecureHash")
+            .filter(e -> e.getKey().startsWith("vnp_") && !e.getKey().equals(VNP_SECURE_HASH)
                 && !e.getKey().equals("vnp_SecureHashType") && e.getValue() != null && !e.getValue().isEmpty())
             .map(e -> e.getKey() + "=" + e.getValue())
             .collect(Collectors.joining("&"));
@@ -152,41 +166,41 @@ public class SchoolPaymentService {
     @Transactional
     public Map<String, String> ipn(Map<String, String> fields) {
         if (vnpay.hashSecret().isBlank() || !MessageDigest.isEqual(sign(canonicalIpn(fields)).getBytes(StandardCharsets.US_ASCII),
-            fields.getOrDefault("vnp_SecureHash", "").toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII))) return reply("97", "Invalid signature");
-        if (!vnpay.tmnCode().equals(fields.get("vnp_TmnCode"))) return reply("97", "Invalid merchant");
-        UUID id = parsePaymentId(fields.get("vnp_TxnRef")).orElse(null);
-        if (id == null) return reply("01", "Order not found");
+            fields.getOrDefault(VNP_SECURE_HASH, "").toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII))) return reply("97", "Invalid signature");
+        if (!vnpay.tmnCode().equals(fields.get(VNP_TMN_CODE))) return reply("97", "Invalid merchant");
+        UUID id = parsePaymentId(fields.get(VNP_TXN_REF)).orElse(null);
+        if (id == null) return reply("01", ORDER_NOT_FOUND);
         var reference = payments.findById(id);
-        if (reference.isEmpty()) return reply("01", "Order not found");
+        if (reference.isEmpty()) return reply("01", ORDER_NOT_FOUND);
         if (reference.get().getSchool() != null) lockedSchool(reference.get().getSchool().getId());
         var found = payments.findLockedById(id);
-        if (found.isEmpty()) return reply("01", "Order not found");
+        if (found.isEmpty()) return reply("01", ORDER_NOT_FOUND);
         var payment = found.get();
-        if (!Long.toString(payment.getAmountVnd() * 100).equals(fields.get("vnp_Amount"))) return reply("04", "Invalid amount");
-        boolean success = "00".equals(fields.get("vnp_ResponseCode")) && "00".equals(fields.get("vnp_TransactionStatus"));
-        if (!"PENDING".equals(payment.getStatus()) && !("FAILED".equals(payment.getStatus()) && success)) return reply("02", "Order already confirmed");
-        if ("00".equals(fields.get("vnp_ResponseCode")) && "00".equals(fields.get("vnp_TransactionStatus"))) {
-            activate(payment, fields.get("vnp_TransactionNo"));
-        } else if ("02".equals(fields.get("vnp_TransactionStatus"))) payment.setStatus("FAILED");
+        if (!Long.toString(payment.getAmountVnd() * 100).equals(fields.get(VNP_AMOUNT))) return reply("04", "Invalid amount");
+        boolean success = "00".equals(fields.get(VNP_RESPONSE_CODE)) && "00".equals(fields.get(VNP_TRANSACTION_STATUS));
+        if (!PENDING.equals(payment.getStatus()) && !(FAILED.equals(payment.getStatus()) && success)) return reply("02", "Order already confirmed");
+        if ("00".equals(fields.get(VNP_RESPONSE_CODE)) && "00".equals(fields.get(VNP_TRANSACTION_STATUS))) {
+            activate(payment, fields.get(VNP_TRANSACTION_NO));
+        } else if ("02".equals(fields.get(VNP_TRANSACTION_STATUS))) payment.setStatus(FAILED);
         return reply("00", "Confirm success");
     }
 
     private static Map<String, String> reply(String code, String message) { return Map.of("RspCode", code, "Message", message); }
 
     private void activate(SchoolPayment payment, String transactionNo) {
-        if ("REGISTRATION".equals(payment.getPurpose()) && payment.getSchool() == null) {
+        if (REGISTRATION.equals(payment.getPurpose()) && payment.getSchool() == null) {
             createPaidRegistration(payment, transactionNo);
             return;
         }
         var school = lockedSchool(payment.getSchool().getId());
-        if (("REGISTRATION".equals(payment.getPurpose()) && school.getPlanCode() != null)
-            || (!"REGISTRATION".equals(payment.getPurpose()) && !Objects.equals(school.getPlanCode(), payment.getPreviousPlanCode()))
+        if ((REGISTRATION.equals(payment.getPurpose()) && school.getPlanCode() != null)
+            || (!REGISTRATION.equals(payment.getPurpose()) && !Objects.equals(school.getPlanCode(), payment.getPreviousPlanCode()))
             || (payment.getStudentQuota() != null && users.countActiveStudents(school.getId()) > payment.getStudentQuota())) {
-            payment.setStatus("REQUIRES_REVIEW"); payment.setPaidAt(Instant.now()); payment.setProviderTransactionNo(transactionNo); return;
+            payment.setStatus(REQUIRES_REVIEW); payment.setPaidAt(Instant.now()); payment.setProviderTransactionNo(transactionNo); return;
         }
         LocalDate start = payment.getLicenseStart() == null ? LocalDate.now(vnpay.zoneId()) : payment.getLicenseStart();
         LocalDate end = payment.getLicenseEnd() == null ? start.plusYears(1).minusDays(1) : payment.getLicenseEnd();
-        if ("REGISTRATION".equals(payment.getPurpose())) {
+        if (REGISTRATION.equals(payment.getPurpose())) {
             school.setActive(true); payment.getManager().setActive(true);
         }
         school.setLicenseStart(start); school.setLicenseEnd(end);
@@ -202,7 +216,7 @@ public class SchoolPaymentService {
         if (email == null || code == null || payment.getRegistrationPasswordHash() == null
                 || users.findByEmail(email).isPresent() || schools.existsByCode(code)
                 || schools.findByName(payment.getRegistrationSchoolName()).isPresent()) {
-            payment.setStatus("REQUIRES_REVIEW"); payment.setPaidAt(Instant.now());
+            payment.setStatus(REQUIRES_REVIEW); payment.setPaidAt(Instant.now());
             payment.setProviderTransactionNo(transactionNo); return;
         }
         School school = new School();
@@ -229,6 +243,10 @@ public class SchoolPaymentService {
 
     @Transactional
     public Checkout recover(SchoolPaymentRecoveryRequest credentials, String ip) {
+        return recoverInternal(credentials, ip);
+    }
+
+    private Checkout recoverInternal(SchoolPaymentRecoveryRequest credentials, String ip) {
         requireConfigured();
         String email = credentials.email().trim().toLowerCase(Locale.ROOT);
         var registration = payments.findFirstByRegistrationEmailIgnoreCaseOrderByCreatedAtDesc(email)
@@ -249,11 +267,11 @@ public class SchoolPaymentService {
     private Checkout recoverPayment(SchoolPayment latest, String ip) {
         var payment = payments.findLockedById(latest.getId()).orElseThrow();
         if ("PAID".equals(payment.getStatus())) return new Checkout(payment.getId(), null);
-        if ("PENDING".equals(payment.getStatus()) && !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now())) reconcile(payment);
+        if (PENDING.equals(payment.getStatus()) && !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now())) reconcile(payment);
         if ("PAID".equals(payment.getStatus())) return new Checkout(payment.getId(), null);
-        if ("REQUIRES_REVIEW".equals(payment.getStatus())) throw new ApiException(HttpStatus.CONFLICT, "Giao dịch cần admin đối soát. Vui lòng liên hệ hỗ trợ.");
-        if (!"REGISTRATION".equals(payment.getPurpose()) && "FAILED".equals(payment.getStatus())) return new Checkout(payment.getId(), null);
-        if ("PENDING".equals(payment.getStatus())) {
+        if (REQUIRES_REVIEW.equals(payment.getStatus())) throw new ApiException(HttpStatus.CONFLICT, "Giao dịch cần admin đối soát. Vui lòng liên hệ hỗ trợ.");
+        if (!REGISTRATION.equals(payment.getPurpose()) && FAILED.equals(payment.getStatus())) return new Checkout(payment.getId(), null);
+        if (PENDING.equals(payment.getStatus())) {
             if (!payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now()))
                 throw new ApiException(HttpStatus.CONFLICT, "VNPAY đang xử lý giao dịch. Vui lòng kiểm tra lại trước khi thanh toán lần nữa.");
             return new Checkout(payment.getId(), buildUrl(payment, ip));
@@ -273,10 +291,10 @@ public class SchoolPaymentService {
     Map<String, String> queryProvider(SchoolPayment payment) {
         Map<String,String> fields = new LinkedHashMap<>();
         fields.put("vnp_RequestId", UUID.randomUUID().toString().replace("-", "")); fields.put("vnp_Version", "2.1.0");
-        fields.put("vnp_Command", "querydr"); fields.put("vnp_TmnCode", vnpay.tmnCode()); fields.put("vnp_TxnRef", providerTxnRef(payment.getId()));
+        fields.put(VNP_COMMAND, "querydr"); fields.put(VNP_TMN_CODE, vnpay.tmnCode()); fields.put(VNP_TXN_REF, providerTxnRef(payment.getId()));
         fields.put("vnp_TransactionDate", payment.getCreatedAt().atZone(vnpay.zoneId()).format(DATE_FORMAT));
         fields.put("vnp_CreateDate", ZonedDateTime.now(vnpay.zoneId()).format(DATE_FORMAT)); fields.put("vnp_IpAddr", vnpay.serverIp());
-        fields.put("vnp_OrderInfo", "Query PhysLive payment"); fields.put("vnp_SecureHash", sign(String.join("|", fields.values())));
+        fields.put(VNP_ORDER_INFO, "Query PhysLive payment"); fields.put(VNP_SECURE_HASH, sign(String.join("|", fields.values())));
         try {
             var mapper = new ObjectMapper();
             var request = HttpRequest.newBuilder(URI.create(vnpay.queryUrl())).timeout(vnpay.requestTimeout())
@@ -291,17 +309,17 @@ public class SchoolPaymentService {
 
     void reconcile(SchoolPayment payment) {
         var fields = queryProvider(payment);
-        String input = java.util.stream.Stream.of("vnp_ResponseId", "vnp_Command", "vnp_ResponseCode", "vnp_Message", "vnp_TmnCode", "vnp_TxnRef", "vnp_Amount", "vnp_BankCode", "vnp_PayDate", "vnp_TransactionNo", "vnp_TransactionType", "vnp_TransactionStatus", "vnp_OrderInfo", "vnp_PromotionCode", "vnp_PromotionAmount")
+        String input = java.util.stream.Stream.of("vnp_ResponseId", VNP_COMMAND, VNP_RESPONSE_CODE, "vnp_Message", VNP_TMN_CODE, VNP_TXN_REF, VNP_AMOUNT, "vnp_BankCode", "vnp_PayDate", VNP_TRANSACTION_NO, "vnp_TransactionType", VNP_TRANSACTION_STATUS, VNP_ORDER_INFO, "vnp_PromotionCode", "vnp_PromotionAmount")
             .map(key -> Objects.toString(fields.get(key), "")).collect(Collectors.joining("|"));
-        if (!MessageDigest.isEqual(sign(input).getBytes(StandardCharsets.US_ASCII), fields.getOrDefault("vnp_SecureHash", "").toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII))
-            || !vnpay.tmnCode().equals(fields.get("vnp_TmnCode"))
-            || !payment.getId().equals(parsePaymentId(fields.get("vnp_TxnRef")).orElse(null)))
+        if (!MessageDigest.isEqual(sign(input).getBytes(StandardCharsets.US_ASCII), fields.getOrDefault(VNP_SECURE_HASH, "").toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII))
+            || !vnpay.tmnCode().equals(fields.get(VNP_TMN_CODE))
+            || !payment.getId().equals(parsePaymentId(fields.get(VNP_TXN_REF)).orElse(null)))
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Phản hồi VNPAY không hợp lệ.");
-        if ("91".equals(fields.get("vnp_ResponseCode"))) { payment.setStatus("FAILED"); return; }
-        if (!"00".equals(fields.get("vnp_ResponseCode")) || !Long.toString(payment.getAmountVnd() * 100).equals(fields.get("vnp_Amount")))
+        if ("91".equals(fields.get(VNP_RESPONSE_CODE))) { payment.setStatus(FAILED); return; }
+        if (!"00".equals(fields.get(VNP_RESPONSE_CODE)) || !Long.toString(payment.getAmountVnd() * 100).equals(fields.get(VNP_AMOUNT)))
             throw new ApiException(HttpStatus.BAD_GATEWAY, "VNPAY chưa xác minh được giao dịch.");
-        if ("00".equals(fields.get("vnp_TransactionStatus")) && "01".equals(fields.get("vnp_TransactionType"))) activate(payment, fields.get("vnp_TransactionNo"));
-        else if ("02".equals(fields.get("vnp_TransactionStatus"))) payment.setStatus("FAILED");
+        if ("00".equals(fields.get(VNP_TRANSACTION_STATUS)) && "01".equals(fields.get("vnp_TransactionType"))) activate(payment, fields.get(VNP_TRANSACTION_NO));
+        else if ("02".equals(fields.get(VNP_TRANSACTION_STATUS))) payment.setStatus(FAILED);
     }
 
     @Scheduled(fixedDelayString = "${VNPAY_RECONCILE_DELAY_MS}")
@@ -309,10 +327,10 @@ public class SchoolPaymentService {
     public void reconcileExpiredPayments() {
         if (vnpay.tmnCode().isBlank() || vnpay.hashSecret().isBlank()) return;
         Instant cutoff = Instant.now().minusSeconds(900);
-        for (SchoolPayment payment : payments.findByStatusAndCreatedAtBefore("PENDING", cutoff)) {
+        for (SchoolPayment payment : payments.findByStatusAndCreatedAtBefore(PENDING, cutoff)) {
             String before = payment.getStatus();
             try { reconcile(payments.findLockedById(payment.getId()).orElse(payment)); }
-            catch (RuntimeException ex) { payment.setStatus("REQUIRES_REVIEW"); payments.save(payment); }
+            catch (RuntimeException ex) { payment.setStatus(REQUIRES_REVIEW); payments.save(payment); }
             if (!Objects.equals(before, payment.getStatus()))
                 realtime.publish("/api/auth/payments/" + payment.getId(), "scheduler");
         }
@@ -321,7 +339,7 @@ public class SchoolPaymentService {
     @Transactional
     public String reconcilePayment(UUID id) {
         SchoolPayment payment = payments.findLockedById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy giao dịch."));
-        if ("PENDING".equals(payment.getStatus())) reconcile(payment);
+        if (PENDING.equals(payment.getStatus())) reconcile(payment);
         return payment.getStatus();
     }
 
@@ -343,15 +361,19 @@ public class SchoolPaymentService {
 
     @Transactional(readOnly=true)
     public String status(UUID id) {
+        return statusInternal(id);
+    }
+
+    private String statusInternal(UUID id) {
         var payment = payments.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy giao dịch."));
-        return "PENDING".equals(payment.getStatus()) && !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now()) ? "EXPIRED" : payment.getStatus();
+        return PENDING.equals(payment.getStatus()) && !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now()) ? "EXPIRED" : payment.getStatus();
     }
 
     @Transactional(readOnly=true)
     public String status(String providerRef) {
         UUID id = parsePaymentId(providerRef)
             .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Mã giao dịch không hợp lệ."));
-        return status(id);
+        return statusInternal(id);
     }
 
     static String providerTxnRef(UUID id) {
@@ -395,7 +417,7 @@ public class SchoolPaymentService {
         return new Billing(school.getPlanCode(), school.getNextPlanCode(), school.getLicenseStart(), school.getLicenseEnd(),
             school.getStudentQuota(), users.countActiveStudents(school.getId()), school.getMonthlyTokenQuota(), used,
             payments.findBySchoolIdOrderByCreatedAtDesc(school.getId()).stream().map(p -> new PaymentRow(p.getId(), p.getPlanCode(), p.getPurpose(), p.getAmountVnd(),
-                "PENDING".equals(p.getStatus()) && p.getCreatedAt().plusSeconds(900).isBefore(Instant.now()) ? "EXPIRED" : p.getStatus(), p.getCreatedAt(), p.getPaidAt())).toList());
+                PENDING.equals(p.getStatus()) && p.getCreatedAt().plusSeconds(900).isBefore(Instant.now()) ? "EXPIRED" : p.getStatus(), p.getCreatedAt(), p.getPaidAt())).toList());
     }
 
     private LicensePlan availablePlan(String code) {
@@ -428,17 +450,18 @@ public class SchoolPaymentService {
     public Checkout purchase(String code, Long expectedAmount, String ip) {
         requireConfigured(); var manager = manager();
         var school = lockedSchool(manager.getSchool().getId());
-        var pending = payments.findBySchoolIdOrderByCreatedAtDesc(school.getId()).stream().filter(p -> "PENDING".equals(p.getStatus())).findFirst();
+        var pending = payments.findBySchoolIdOrderByCreatedAtDesc(school.getId()).stream().filter(p -> PENDING.equals(p.getStatus())).findFirst();
         if (pending.isPresent()) {
             var payment = payments.findLockedById(pending.get().getId()).orElseThrow();
             if (!payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now())) reconcile(payment);
-            if (!"PENDING".equals(payment.getStatus())) return new Checkout(payment.getId(), null);
+            if (!PENDING.equals(payment.getStatus())) return new Checkout(payment.getId(), null);
             if (!payment.getPlanCode().equals(code) || !payment.getCreatedAt().plusSeconds(900).isAfter(Instant.now()))
                 throw new ApiException(HttpStatus.CONFLICT, "Còn giao dịch đang xử lý. Vui lòng kiểm tra giao dịch đó trước.");
             if (!Objects.equals(expectedAmount, payment.getAmountVnd())) throw new ApiException(HttpStatus.CONFLICT, "Có giao dịch cũ với số tiền khác. Vui lòng kiểm tra lịch sử thanh toán.");
             return new Checkout(payment.getId(), buildUrl(payment, ip));
         }
-        var plan = availablePlan(code); var quote = quote(school, plan);
+        var plan = availablePlan(code);
+        var quote = quote(school, plan);
         if (!Objects.equals(expectedAmount, quote.amountVnd())) throw new ApiException(HttpStatus.CONFLICT, "Báo giá đã thay đổi. Vui lòng lấy lại báo giá trước khi thanh toán.");
         var payment = new SchoolPayment(); payment.setSchool(school); payment.setManager(manager);
         payment.setPlanCode(code); payment.setPreviousPlanCode(school.getPlanCode()); payment.setPurpose(quote.purpose());
@@ -459,7 +482,7 @@ public class SchoolPaymentService {
 
     @Transactional(readOnly=true)
     public List<Notification> notifications() {
-        return payments.findTop20ByStatusInOrderByPaidAtDesc(List.of("PAID", "REQUIRES_REVIEW")).stream()
+        return payments.findTop20ByStatusInOrderByPaidAtDesc(List.of("PAID", REQUIRES_REVIEW)).stream()
             .map(p -> new Notification(p.getId(), p.getSchool() == null ? p.getRegistrationSchoolName() : p.getSchool().getName(),
                 p.getPlanCode(), p.getAmountVnd(), p.getPaidAt(), p.getStatus())).toList();
     }

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 
@@ -34,6 +35,16 @@ public class SchemaController {
                         || a.getAuthority().equals(RoleName.REVIEWER.authority()));
         return schemaService.list(enabledOnly).stream().filter(s -> privileged
                 || s.getLifecycleStatus() == LifecycleStatus.APPROVED).toList();
+    }
+
+    @GetMapping("/meta-schema")
+    public JsonNode topicPackMetaSchema() {
+        return schemaService.topicPackMetaSchema();
+    }
+
+    @GetMapping("/core-types")
+    public JsonNode coreTypeLibrary() {
+        return schemaService.coreTypeLibrary();
     }
 
     @GetMapping("/{schemaId}")

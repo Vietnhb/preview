@@ -86,14 +86,6 @@
       ]
     },
     {
-      "name": "OPTICS",
-      "slug": "optics",
-      "modules": [
-        {"name":"Geometric Optics","slug":"geometric-optics","levels":[{"name":"Grade 11","lessons":[{"name":"Reflection and Refraction","slug":"reflection-refraction"},{"name":"Thin Lenses","slug":"thin-lenses"},{"name":"Optical Instruments","slug":"optical-instruments"}]}]},
-        {"name":"Wave Optics","slug":"wave-optics","levels":[{"name":"Grade 12","lessons":[{"name":"Interference of Light","slug":"light-interference"},{"name":"Diffraction and Polarization","slug":"diffraction-polarization"}]}]}
-      ]
-    },
-    {
       "name": "ELECTROMAGNETISM",
       "slug": "electromagnetism",
       "modules": [

@@ -23,10 +23,10 @@ public class MedicalImagingSolver implements PhysicsSolver {
     public SolverOutput solve(JsonNode specification, Map<String, Double> overrides,
                               double durationSeconds, double stepSeconds) {
         String model = PhysicsValues.model(specification);
-        if (!(durationSeconds > 0) || !(stepSeconds > 0) || !Double.isFinite(durationSeconds + stepSeconds)) {
+        if (durationSeconds <= 0 || stepSeconds <= 0 || !Double.isFinite(durationSeconds + stepSeconds)) {
             throw new IllegalArgumentException("durationSeconds and stepSeconds must be finite and positive");
         }
-        int points = Math.min(16_384, Math.max(1, (int) Math.ceil(durationSeconds / stepSeconds)));
+        int points = Math.clamp((int) Math.ceil(durationSeconds / stepSeconds), 1, 16_384);
         List<Double> time = new ArrayList<>(points + 1);
         Map<String, List<Double>> values = new LinkedHashMap<>();
         switch (model) {

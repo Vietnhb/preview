@@ -3,7 +3,6 @@ import type { RuntimeData } from "../simulation-runtime/SimulationData";
 import { compileSceneGraph, flattenSceneGraph, type SceneGraph } from "./SceneGraph";
 import { validateVectorScene } from './VectorScene';
 import { isSupportedEffect, isSupportedEnvironment, isSupportedLayout, isSupportedPrimitive } from './PrimitiveCapabilities';
-import { canvasAssetRegistry } from "../simulation-assets/AssetRegistry";
 
 export type SceneValidationResult = {
   valid: boolean;
@@ -100,23 +99,12 @@ export function validateSceneGraph(graph: SceneGraph, data?: RuntimeData, simula
       }).map(error => `${node.id}: ${error}`));
     }
     if (node.type === "body" && typeof node.transform.x === "undefined") errors.push(`Body ${node.id} is missing transform.x`);
-    if (node.type === "body") {
-      const hint = typeof node.properties.assetHint === "string" ? node.properties.assetHint : "";
-      if (!hint.trim()) errors.push(`Body ${node.id} is missing an approved asset hint; ask the teacher to confirm an asset.`);
-      else if (!canvasAssetRegistry.hasAsset(hint, "actor")) errors.push(`Body ${node.id} has no matching approved asset for '${hint}'; ask the teacher to confirm or stop the simulation.`);
-    }
-    if (node.type === "prop") {
-      const hint = typeof node.properties.assetHint === "string" ? node.properties.assetHint : "";
-      if (!hint.trim()) errors.push(`Prop ${node.id} is missing an approved asset hint; ask the teacher to confirm an asset.`);
-      else if (!canvasAssetRegistry.hasAsset(hint, "prop")) errors.push(`Prop ${node.id} has no matching approved asset for '${hint}'; ask the teacher to confirm or stop the simulation.`);
-    }
     if (node.type === "waveField") validateWaveField(graph, node, data, errors);
   }
-  const assetConfirmationRequired = errors.some(error => error.includes("approved asset") || error.includes("matching approved asset"));
   return {
     valid: errors.length === 0,
     errors,
-    status: errors.length === 0 ? "READY" : assetConfirmationRequired ? "ASSET_CONFIRMATION_REQUIRED" : "UNSUPPORTED",
+    status: errors.length === 0 ? "READY" : "UNSUPPORTED",
   };
 }
 

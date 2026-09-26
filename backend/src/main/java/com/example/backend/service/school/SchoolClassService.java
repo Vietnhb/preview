@@ -76,6 +76,10 @@ public class SchoolClassService {
 
     @Transactional(readOnly = true)
     public ClassDetail get(UUID schoolId, UUID classId) {
+        return getInternal(schoolId, classId);
+    }
+
+    private ClassDetail getInternal(UUID schoolId, UUID classId) {
         requireSchoolAccess(schoolId);
         SchoolClass schoolClass = activeClassInSchool(schoolId, classId);
         List<Person> teachers = teacherAssignments.findByClassIdAndIsActiveTrue(classId).stream()
@@ -97,14 +101,15 @@ public class SchoolClassService {
         SchoolClass schoolClass = new SchoolClass();
         schoolClass.setSchool(school); schoolClass.setName(name); schoolClass.setGradeLevel(request.gradeLevel());
         schoolClass.setSchoolYear(year); schoolClass.setSubject(blankToNull(request.subject())); schoolClass.setIsActive(true);
-        return get(schoolId, classes.save(schoolClass).getId());
+        return getInternal(schoolId, classes.save(schoolClass).getId());
     }
 
     @Transactional
     public ClassDetail update(UUID schoolId, UUID classId, SchoolClassRequest request) {
         requireWriteAccess(schoolId);
         SchoolClass schoolClass = activeClassInSchool(schoolId, classId);
-        String name = clean(request.name()); String year = clean(request.schoolYear());
+        String name = clean(request.name());
+        String year = clean(request.schoolYear());
         if ((!schoolClass.getName().equalsIgnoreCase(name) || !schoolClass.getSchoolYear().equals(year))
                 && classes.existsBySchoolIdAndNameIgnoreCaseAndSchoolYear(schoolId, name, year))
             throw new ApiException(HttpStatus.CONFLICT, "Lớp đã tồn tại trong năm học này.");
@@ -112,7 +117,7 @@ public class SchoolClassService {
             throw new ApiException(HttpStatus.CONFLICT, "Không thể đổi năm học khi lớp đã có enrollment.");
         schoolClass.setName(name); schoolClass.setGradeLevel(request.gradeLevel()); schoolClass.setSchoolYear(year);
         schoolClass.setSubject(blankToNull(request.subject()));
-        return get(schoolId, classes.save(schoolClass).getId());
+        return getInternal(schoolId, classes.save(schoolClass).getId());
     }
 
     @Transactional
@@ -144,6 +149,10 @@ public class SchoolClassService {
 
     @Transactional
     public Enrollment enrollStudent(UUID schoolId, UUID classId, Integer studentId) {
+        return enrollStudentInternal(schoolId, classId, studentId);
+    }
+
+    private Enrollment enrollStudentInternal(UUID schoolId, UUID classId, Integer studentId) {
         requireWriteAccess(schoolId);
         School school = schools.findByIdForUpdate(schoolId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy trường."));
@@ -173,7 +182,7 @@ public class SchoolClassService {
                 existing.setStatus(ClassEnrollment.EnrollmentStatus.TRANSFERRED); enrollments.save(existing);
             }
         });
-        return enrollStudent(schoolId, targetClassId, student.getId());
+        return enrollStudentInternal(schoolId, targetClassId, student.getId());
     }
 
     @Transactional

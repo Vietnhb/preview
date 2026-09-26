@@ -3,10 +3,7 @@ package com.example.backend.service.simulation;
 import com.example.backend.service.account.CurrentUserService;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import com.example.backend.service.problem.SpecificationReadinessService;
-import com.example.backend.simulation.assets.AssetSelectionService;
 
-import com.example.backend.dto.simulation.ParameterAdjustmentRequest;
-import com.example.backend.dto.simulation.SimulationRequest;
 import com.example.backend.dto.simulation.SimulationResponse;
 import com.example.backend.dto.simulation.SimulationSummaryResponse;
 import com.example.backend.dto.simulation.ValidationResponse;
@@ -47,7 +44,6 @@ import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.service.problem.CompiledSchema;
 import com.example.backend.repository.simulation.SimulationRepository;
 import com.example.backend.repository.simulation.SimulationRunRepository;
-import com.example.backend.repository.problem.SpecificationRepository;
 import com.example.backend.repository.library.LibraryItemRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -70,10 +66,14 @@ import java.time.Instant;
 public class SimulationService {
     private static final String PARAMETERS = "parameters";
     private static final String VALIDATION = "validation";
+    private static final String VISUALIZATION = "visualization";
+    private static final String SCHEMA_ID = "schemaId";
+    private static final String SCHEMA_VERSION = "schemaVersion";
+    private static final String RESOLVED_END = "resolvedEnd";
+    private static final String SCALAR_FIELDS = "scalarFields";
     private final SimulationRepository simulationRepository;
     private final LibraryItemRepository libraryItemRepository;
     private final SimulationRunRepository simulationRunRepository;
-    private final SpecificationRepository specificationRepository;
     private final PhysicsSolverRegistry solverRegistry;
     private final PhysicsValidationService validationService;
     private final CurrentUserService currentUserService;
@@ -85,7 +85,7 @@ public class SimulationService {
     private final LegacyPhysicsExecutionAdapterV1 legacyPhysicsExecution;
 
     private record CalculationContext(JsonNode input, String schemaId, String schemaVersion,
-                                      Map<String, Double> params, double duration, double step, String runType,
+                                      Map<String, Double> params, double duration, double step,
                                       SchemaDefinitionService.SolverBinding binding,
                                       BoundPhysicsModule typedModule,
                                       LegacyPhysicsExecutionAdapterV1.AuthorizedNumericalSolver legacySolver,
@@ -112,77 +112,6 @@ public class SimulationService {
         }
         return new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                 "Simulation failed: " + failure.getMessage());
-    }
-
-    @Transactional
-    public SimulationResponse run(SimulationRequest request) {
-        User user = currentUserService.requireCurrentUser();
-        Specification specification = requireOwnedSpecification(request.specificationId(), user);
-        assertReady(specification);
-        AssetSelectionService.requireReady(specification);
-        String requestedSchemaId = specification.getSchemaId();
-        JsonNode input = readinessService.toJson(specification);
-        Map<String, Double> requestedParams = request.adjustableParams() == null
-                ? Map.of() : new LinkedHashMap<>(request.adjustableParams());
-        SchemaVersion schema = schemaDefinitions.requireCurrentApproved(
-                requestedSchemaId, specification.getSchemaVersion());
-        String schemaId = schema.getSchemaId();
-        assertAllowedAdjustments(schema, requestedParams);
-        Map<String, Double> params = schemaDefinitions.effectiveAdjustments(input, schema.getDefinition(), requestedParams, Map.of());
-        JsonNode execution = schema.getDefinition().path("execution");
-        double duration = schemaDefinitions.durationSeconds(input, schema.getDefinition());
-        double step = execution.path("stepSeconds").asDouble();
-        var binding = schemaDefinitions.requireSolverBinding(schema.getSchemaId(), specification.getSchemaVersion());
-        CompiledSchema compiledSchema = schemaDefinitions.compiled(schema);
-        RuntimePhysicsBinding runtimeBinding = bindRuntime(compiledSchema, params, input, binding);
-        EndConditionContract endCondition = compileEndCondition(
-                compiledSchema, input, duration, runtimeBinding.typedModule() != null);
-
-        Simulation simulation = new Simulation();
-        simulation.setSpecification(specification);
-        simulation.setOwner(user);
-        simulation.setSchemaId(schemaId);
-        simulation.setSolverVersion(binding.version() + ":" + binding.numericalSolverId());
-        simulation.setStatus(SimulationStatus.VALIDATING);
-        simulation = simulationRepository.save(simulation);
-        return calculateAndPersist(simulation, new CalculationContext(
-                input, schemaId, specification.getSchemaVersion(), params, duration, step, "INITIAL",
-                binding,
-                runtimeBinding.typedModule(), runtimeBinding.legacySolver(),
-                compiledSchema, schema.getDefinition().deepCopy(), endCondition));
-    }
-
-    @Transactional
-    public SimulationResponse adjust(ParameterAdjustmentRequest request) {
-        User user = currentUserService.requireCurrentUser();
-        Simulation simulation = simulationRepository.findByIdAndOwnerId(request.simulationId(), user.getId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Simulation not found"));
-        assertReady(simulation.getSpecification());
-        JsonNode input = readinessService.toJson(simulation.getSpecification());
-        SchemaVersion schema = schemaDefinitions.requirePublishedVersion(
-                simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion());
-        Map<String, Double> requestedParams = request.adjustableParams() == null
-                ? Map.of() : new LinkedHashMap<>(request.adjustableParams());
-        assertAllowedAdjustments(schema, requestedParams);
-        Map<String, Double> previousParams = mapNumbers(latestResult(simulation), PARAMETERS);
-        Map<String, Double> params = schemaDefinitions.effectiveAdjustments(input, schema.getDefinition(), requestedParams, previousParams);
-        List<Double> previousTime = list(latestResult(simulation), "time");
-        if (previousTime.size() < 2) throw new ApiException(HttpStatus.CONFLICT, "Previous simulation timeline is unavailable");
-        // Re-read the persisted execution contract. The previous resolved
-        // duration is an output, not the next run's input horizon.
-        double duration = schemaDefinitions.durationSeconds(input, schema.getDefinition());
-        double step = schema.getDefinition().path("execution").path("stepSeconds").asDouble();
-        var binding = schemaDefinitions.requireSolverBinding(
-                schema.getSchemaId(), simulation.getSpecification().getSchemaVersion());
-        CompiledSchema compiledSchema = schemaDefinitions.compiled(schema);
-        RuntimePhysicsBinding runtimeBinding = bindRuntime(compiledSchema, params, input, binding);
-        EndConditionContract endCondition = compileEndCondition(
-                compiledSchema, input, duration, runtimeBinding.typedModule() != null);
-        return calculateAndPersist(simulation, new CalculationContext(
-                input, simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion(),
-                params, duration, step, "ADJUSTMENT", binding,
-                runtimeBinding.typedModule(), runtimeBinding.legacySolver(),
-                compiledSchema, schema.getDefinition().deepCopy(), endCondition));
     }
 
     /**
@@ -224,8 +153,8 @@ public class SimulationService {
         }
         double duration = schemaDefinitions.durationSeconds(input, schema.getDefinition());
         double step = schema.getDefinition().path("execution").path("stepSeconds").asDouble();
-        var binding = schemaDefinitions.requireSolverBinding(schema.getSchemaId(), schemaVersion);
-        CompiledSchema compiledSchema = schemaDefinitions.compiled(schema);
+        var binding = requireExecutionBinding(schema.getSchemaId(), schemaVersion);
+        CompiledSchema compiledSchema = schemaDefinitions.compiled(schema, input);
         RuntimePhysicsBinding runtimeBinding = bindRuntime(compiledSchema, params, input, binding);
         EndConditionContract endCondition = compileEndCondition(
                 compiledSchema, input, duration, runtimeBinding.typedModule() != null);
@@ -233,10 +162,10 @@ public class SimulationService {
         CalculationResult calculation;
         try {
             calculation = solveWithEndCondition(new CalculationContext(
-                    input, simulation.getSchemaId(), schemaVersion, params, duration, step, null,
+                    input, simulation.getSchemaId(), schemaVersion, params, duration, step,
                     binding,
                     runtimeBinding.typedModule(), runtimeBinding.legacySolver(),
-                    compiledSchema, schema.getDefinition().deepCopy(), endCondition));
+                    compiledSchema, schemaDefinitions.runtimeDefinition(schema, input).deepCopy(), endCondition));
         } catch (RuntimeException exception) {
             throw translateSimulationFailure(exception);
         }
@@ -245,7 +174,7 @@ public class SimulationService {
         ValidationResponse validation = validateCalculation(input, simulation.getSchemaId(), schemaVersion,
                 calculation, params, runtimeBinding.typedModule());
         JsonNode result = resultJson(output, params, validation, resolvedEnd, compiledSchema, binding);
-        ((ObjectNode) result).set("visualization", visual);
+        ((ObjectNode) result).set(VISUALIZATION, visual);
         double elapsed = (System.nanoTime() - started) / 1_000_000.0;
         return new SimulationResponse(simulation.getId(), baseRunId, simulation.getSpecification().getId(),
                 simulation.getSchemaId(), validation.passed(), validation.passed(), output.time(),
@@ -301,7 +230,7 @@ public class SimulationService {
                 .findVisiblePublishedSimulation(id, java.util.Set.of(Visibility.SHARED, Visibility.PUBLIC), Visibility.PUBLIC,
                         java.util.Set.of(com.example.backend.entity.enums.LibraryModerationStatus.APPROVED,
                                 com.example.backend.entity.enums.LibraryModerationStatus.FEATURED), user.getInstitutionId())
-                .map(item -> item.getSimulation())
+                .map(com.example.backend.entity.library.LibraryItem::getSimulation)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shared simulation not found"));
         return latestResponse(simulation, true);
     }
@@ -335,60 +264,6 @@ public class SimulationService {
         return schemaId;
     }
 
-    private SimulationResponse calculateAndPersist(Simulation simulation, CalculationContext context) {
-        JsonNode visual = runVisualization(simulation, latestResult(simulation));
-        long started = System.nanoTime();
-        CalculationResult calculation;
-        try {
-            calculation = solveWithEndCondition(context);
-        } catch (RuntimeException exception) {
-            simulation.setStatus(SimulationStatus.FAILED);
-            simulationRepository.save(simulation);
-            throw translateSimulationFailure(exception);
-        }
-        SolverOutput output = calculation.output();
-        ResolvedEnd resolvedEnd = calculation.resolvedEnd();
-        ValidationResponse validation = validateCalculation(context.input(), context.schemaId(), context.schemaVersion(),
-                calculation, context.params(), context.typedModule());
-        JsonNode result = resultJson(output, context.params(), validation, resolvedEnd,
-                context.compiledSchema(), context.binding());
-        ((ObjectNode) result).set("visualization", visual);
-        SimulationRun run = new SimulationRun();
-        run.setSimulation(simulation);
-        run.setRunType(context.runType());
-        run.setSchemaId(context.schemaId());
-        run.setSchemaVersion(context.schemaVersion());
-        run.setBindingVersion(context.binding().version());
-        run.setNumericalSolverId(context.binding().numericalSolverId());
-        run.setReferenceSolverId(context.binding().referenceSolverId());
-        run.setOutputContractVersion(context.schemaVersion());
-        run.setOutputContractChecksum(context.compiledSchema().checksum());
-        run.setValidationPassed(validation.passed());
-        run.setValidationCheckpoints(objectMapper.valueToTree(validation.checkpoints()));
-        run.setValidationError(validation.errors().isEmpty() ? null : String.join("; ", validation.errors()));
-        run.setDurationSeconds(output.time().isEmpty() ? 0 : output.time().get(output.time().size() - 1));
-        run.setResult(result);
-        simulationRunRepository.save(run);
-        validation = new ValidationResponse(run.getId(), validation.passed(), validation.schemaId(),
-                validation.tolerance(), validation.checkpoints(), validation.errors(), validation.validationTimeMs());
-        result = resultJson(output, context.params(), validation, resolvedEnd,
-                context.compiledSchema(), context.binding());
-        ((ObjectNode) result).set("visualization", visual);
-        run.setResult(result);
-        simulation.setLatestRun(run);
-        simulation.setStatus(validation.passed() ? SimulationStatus.READY : SimulationStatus.BLOCKED);
-        simulationRepository.save(simulation);
-        specificationStatus(simulation.getSpecification(), validation, result);
-        double elapsed = (System.nanoTime() - started) / 1_000_000.0;
-        return new SimulationResponse(simulation.getId(), run.getId(), simulation.getSpecification().getId(), context.schemaId(),
-                validation.passed(), validation.passed(), output.time(), output.positions(), output.velocities(),
-                output.accelerations(),
-                LegacyScalarOutputSeriesAdapter.project(output.values(), output.scalarOutputs(), output.time().size()),
-                output.scalarOutputs(), output.scalarFields(), context.params(),
-                visual, validation, result, resolvedEnd, elapsed,
-                validation.passed() ? "Validation passed" : "Simulation blocked because validation failed");
-    }
-
     private CalculationResult solveWithEndCondition(CalculationContext context) {
         EndConditionContract condition = context.endCondition();
         double requestedHorizon = Math.max(0.01,
@@ -405,8 +280,8 @@ public class SimulationService {
         // crossing/period. Grow only to a bounded engine horizon; no solver
         // loop can run indefinitely.
         while (EndConditionResolver.expandable(condition, resolved, horizon)) {
-            double nextHorizon = Math.min(EndConditionResolver.MAX_DYNAMIC_SECONDS,
-                    Math.max(horizon + Math.max(context.step(), 0.01), horizon * 2));
+            double nextHorizon = Math.clamp(Math.max(horizon + Math.max(context.step(), 0.01), horizon * 2),
+                    0, EndConditionResolver.MAX_DYNAMIC_SECONDS);
             if (nextHorizon <= horizon) break;
             horizon = nextHorizon;
             solved = solve(context, horizon);
@@ -487,8 +362,15 @@ public class SimulationService {
             var pinned = new LegacyPhysicsExecutionAdapterV1.PinnedExecution(
                     compiledSchema.schemaId(), compiledSchema.version(), binding.version(),
                     binding.numericalSolverId(), binding.referenceSolverId());
-            var authorized = legacyPhysicsExecution.authorizeNumerical(
-                    LegacyPhysicsExecutionAdapterV1.VERSION, pinned, latestApproved, solverRegistry);
+            LegacyPhysicsExecutionAdapterV1.AuthorizedNumericalSolver authorized;
+            try {
+                authorized = legacyPhysicsExecution.authorizeNumerical(
+                        LegacyPhysicsExecutionAdapterV1.VERSION, pinned, latestApproved, solverRegistry);
+            } catch (SolverBindingException unavailable) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Topic pack đã được lưu nhưng chưa thể chạy: runtime hiện chưa có solver phù hợp với năng lực đã khai báo.",
+                        "EXECUTION_CAPABILITY_LIMITED", "SIMULATION_EXECUTION");
+            }
             return new RuntimePhysicsBinding(null, authorized);
         }
         CanonicalQuantityBag quantities = canonicalQuantityCompiler.compile(
@@ -500,11 +382,17 @@ public class SimulationService {
     private EndConditionContract compileEndCondition(CompiledSchema compiledSchema, JsonNode input,
             double fallbackDuration, boolean typedRuntime) {
         try {
+            JsonNode requested = EndConditionResolver.normalize(input, fallbackDuration);
+            String endType = requested.path("type").asText("");
+            if (!endType.isBlank() && com.example.backend.physics.validation.EndConditionType.fromWireName(endType) == null) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Runtime hiện chưa hỗ trợ điều kiện dừng mà topic pack đã khai báo.",
+                        "EXECUTION_CAPABILITY_LIMITED", "SIMULATION_EXECUTION");
+            }
             if (typedRuntime) {
                 return TypedEndConditionCompiler.compile(compiledSchema, input, fallbackDuration);
             }
-            JsonNode normalized = EndConditionResolver.normalize(input, fallbackDuration);
-            return LegacyEndConditionJsonAdapterV1.compile(normalized, fallbackDuration);
+            return LegacyEndConditionJsonAdapterV1.compile(requested, fallbackDuration);
         } catch (IllegalArgumentException exception) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Invalid end condition for schemaId=" + compiledSchema.schemaId()
@@ -544,7 +432,7 @@ public class SimulationService {
                 map(result, "accelerations"),
                 LegacyScalarOutputSeriesAdapter.project(map(result, "values"), scalarOutputs, time.size()), scalarOutputs,
                 scalarFields(result), parameters,
-                result != null && result.path("visualization").isObject() ? result.path("visualization")
+                result != null && result.path(VISUALIZATION).isObject() ? result.path(VISUALIZATION)
                         : safeVisualization(simulation.getSchemaId(), simulation.getSpecification().getSchemaVersion()),
                 validationFromResult(result), result, resolvedEnd, 0, message);
     }
@@ -561,13 +449,13 @@ public class SimulationService {
      */
     private void assertRunIdentity(Simulation simulation, SimulationRun run) {
         Specification specification = simulation.getSpecification();
-        requireMatchingIdentity(run.getSchemaId(), simulation.getSchemaId(), "schemaId");
+        requireMatchingIdentity(run.getSchemaId(), simulation.getSchemaId(), SCHEMA_ID);
         requireMatchingIdentity(run.getSchemaVersion(), specification == null ? null : specification.getSchemaVersion(),
-                "schemaVersion");
+                SCHEMA_VERSION);
         JsonNode result = run.getResult();
         if (result == null || !result.isObject()) return;
-        requireMatchingIdentity(textOrNull(result, "schemaId"), run.getSchemaId(), "result.schemaId");
-        requireMatchingIdentity(textOrNull(result, "schemaVersion"), run.getSchemaVersion(), "result.schemaVersion");
+        requireMatchingIdentity(textOrNull(result, SCHEMA_ID), run.getSchemaId(), "result." + SCHEMA_ID);
+        requireMatchingIdentity(textOrNull(result, SCHEMA_VERSION), run.getSchemaVersion(), "result." + SCHEMA_VERSION);
         requireMatchingIdentity(textOrNull(result, "bindingVersion"), run.getBindingVersion(), "result.bindingVersion");
         requireMatchingIdentity(textOrNull(result, "numericalSolverId"), run.getNumericalSolverId(),
                 "result.numericalSolverId");
@@ -591,9 +479,9 @@ public class SimulationService {
     }
 
     private ResolvedEnd resolvedEndFromResult(JsonNode result) {
-        if (result != null && result.get("resolvedEnd") != null && !result.get("resolvedEnd").isNull()) {
+        if (result != null && result.get(RESOLVED_END) != null && !result.get(RESOLVED_END).isNull()) {
             try {
-                return objectMapper.treeToValue(result.get("resolvedEnd"), ResolvedEnd.class);
+                return objectMapper.treeToValue(result.get(RESOLVED_END), ResolvedEnd.class);
             } catch (Exception ignored) {
                 // Legacy result payloads are completed below.
             }
@@ -625,21 +513,10 @@ public class SimulationService {
         }
     }
 
-    private void specificationStatus(Specification specification, ValidationResponse validation, JsonNode result) {
-        specification.setValidationStatus(validation.passed() ? "PASSED" : "FAILED");
-        specification.setValidationResult(result);
-        specificationRepository.save(specification);
-    }
-
     private void assertReady(Specification specification) {
         List<String> blockers = readinessService.blockers(specification);
         if (!blockers.isEmpty()) throw new ApiException(HttpStatus.CONFLICT,
                 "Specification is not ready: " + String.join("; ", blockers));
-    }
-
-    private Specification requireOwnedSpecification(UUID id, User user) {
-        return specificationRepository.findByIdAndSubmissionOwner(id, user)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Specification not found"));
     }
 
     private void assertAllowedAdjustments(SchemaVersion schema, Map<String, Double> params) {
@@ -655,17 +532,21 @@ public class SimulationService {
         });
     }
 
+    private SchemaDefinitionService.SolverBinding requireExecutionBinding(String schemaId, String schemaVersion) {
+        try {
+            return schemaDefinitions.requireSolverBinding(schemaId, schemaVersion);
+        } catch (SolverBindingException unavailable) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Topic pack đã được lưu nhưng chưa thể chạy: runtime hiện chưa có solver phù hợp với năng lực đã khai báo.",
+                    "EXECUTION_CAPABILITY_LIMITED", "SIMULATION_EXECUTION");
+        }
+    }
+
     private JsonNode runVisualization(Simulation simulation, JsonNode previousResult) {
         Specification specification = simulation.getSpecification();
-        // An existing run pins its visual identity just as it pins its solver output.
-        if (specification.getAssetSelection() != null) AssetSelectionService.requireReady(specification);
-        if (previousResult != null && previousResult.path("visualization").isObject()) {
-            return previousResult.path("visualization").deepCopy();
+        if (previousResult != null && previousResult.path(VISUALIZATION).isObject()) {
+            return previousResult.path(VISUALIZATION).deepCopy();
         }
-        if (specification.getAssetSelection() != null || previousResult == null) {
-            return AssetSelectionService.requireReady(specification);
-        }
-        // Runs predating visual selections retain their exact historical catalog IDs.
         return safeVisualization(simulation.getSchemaId(), specification.getSchemaVersion());
     }
 
@@ -681,8 +562,8 @@ public class SimulationService {
                                 SchemaDefinitionService.SolverBinding binding) {
         ObjectNode node = objectMapper.createObjectNode();
         if (compiledSchema != null) {
-            node.put("schemaId", compiledSchema.schemaId());
-            node.put("schemaVersion", compiledSchema.version());
+            node.put(SCHEMA_ID, compiledSchema.schemaId());
+            node.put(SCHEMA_VERSION, compiledSchema.version());
             node.put("outputContractVersion", compiledSchema.version());
             node.put("outputContractChecksum", compiledSchema.checksum());
         }
@@ -697,10 +578,10 @@ public class SimulationService {
         node.set("accelerations", objectMapper.valueToTree(output.accelerations()));
         node.set("values", objectMapper.valueToTree(output.values()));
         node.set("scalarOutputs", objectMapper.valueToTree(output.scalarOutputs()));
-        node.set("scalarFields", objectMapper.valueToTree(output.scalarFields()));
+        node.set(SCALAR_FIELDS, objectMapper.valueToTree(output.scalarFields()));
         node.set(PARAMETERS, objectMapper.valueToTree(params));
         node.set(VALIDATION, objectMapper.valueToTree(validation));
-        node.set("resolvedEnd", objectMapper.valueToTree(resolvedEnd));
+        node.set(RESOLVED_END, objectMapper.valueToTree(resolvedEnd));
         return node;
     }
 
@@ -723,8 +604,8 @@ public class SimulationService {
     }
 
     private Map<String, ScalarField> scalarFields(JsonNode node) {
-        if (node == null || node.get("scalarFields") == null || !node.get("scalarFields").isObject()) return Map.of();
+        if (node == null || node.get(SCALAR_FIELDS) == null || !node.get(SCALAR_FIELDS).isObject()) return Map.of();
         var type = objectMapper.getTypeFactory().constructMapType(Map.class, String.class, ScalarField.class);
-        return objectMapper.convertValue(node.get("scalarFields"), type);
+        return objectMapper.convertValue(node.get(SCALAR_FIELDS), type);
     }
 }

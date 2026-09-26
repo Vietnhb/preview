@@ -17,6 +17,9 @@ public final class CtReconstructionModule implements PhysicsModule<CtReconstruct
     public static final String MODULE_ID = "ct_reconstruction";
     public static final String NUMERICAL_SOLVER_ID = "ct_reconstruction_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "ct_reconstruction_reference_v2";
+    private static final String TRANSMITTED_INTENSITY = "transmittedIntensity";
+    private static final String LINE_INTEGRAL = "lineIntegral";
+    private static final String ANGULAR_STEP = "angularStep";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -42,14 +45,14 @@ public final class CtReconstructionModule implements PhysicsModule<CtReconstruct
         double lineIntegral = parameters.attenuationCoefficient() * parameters.pathLength();
         double transmitted = parameters.incidentIntensity() * Math.exp(-lineIntegral);
         double angularStep = 2.0 * Math.PI / parameters.projectionCount();
-        requireFinite("transmittedIntensity", transmitted);
-        requireFinite("lineIntegral", lineIntegral);
-        requireFinite("angularStep", angularStep);
+        requireFinite(TRANSMITTED_INTENSITY, transmitted);
+        requireFinite(LINE_INTEGRAL, lineIntegral);
+        requireFinite(ANGULAR_STEP, angularStep);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("transmittedIntensity", repeated(transmitted, time.size()));
-        values.put("lineIntegral", repeated(lineIntegral, time.size()));
-        values.put("angularStep", repeated(angularStep, time.size()));
+        values.put(TRANSMITTED_INTENSITY, repeated(transmitted, time.size()));
+        values.put(LINE_INTEGRAL, repeated(lineIntegral, time.size()));
+        values.put(ANGULAR_STEP, repeated(angularStep, time.size()));
         values.put("reconstructedAttenuation", repeated(parameters.attenuationCoefficient(), time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
@@ -63,12 +66,12 @@ public final class CtReconstructionModule implements PhysicsModule<CtReconstruct
         double transmitted = Math.exp(Math.log(parameters.incidentIntensity())
                 - parameters.attenuationCoefficient() * parameters.pathLength());
         double logProjection = Math.log(parameters.incidentIntensity()) - Math.log(transmitted);
-        double angle = 2.0 * Math.PI / (double) parameters.projectionCount();
-        requireFinite("reference transmittedIntensity", transmitted);
-        requireFinite("reference lineIntegral", logProjection);
-        requireFinite("reference angularStep", angle);
-        return new AnalyticalPoint(Map.of("transmittedIntensity", transmitted,
-                "lineIntegral", logProjection, "angularStep", angle,
+        double angle = 2.0 * Math.PI / parameters.projectionCount();
+        requireFinite("reference " + TRANSMITTED_INTENSITY, transmitted);
+        requireFinite("reference " + LINE_INTEGRAL, logProjection);
+        requireFinite("reference " + ANGULAR_STEP, angle);
+        return new AnalyticalPoint(Map.of(TRANSMITTED_INTENSITY, transmitted,
+                LINE_INTEGRAL, logProjection, ANGULAR_STEP, angle,
                 "reconstructedAttenuation", parameters.attenuationCoefficient()));
     }
 

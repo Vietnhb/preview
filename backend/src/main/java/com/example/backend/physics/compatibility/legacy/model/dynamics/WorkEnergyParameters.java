@@ -17,7 +17,7 @@ public record WorkEnergyParameters(double mass, double initialSpeed, double fina
         double displacement = PhysicsValues.require(specification, overrides, "displacement");
         double angle = PhysicsValues.require(specification, overrides, "force_angle");
         double duration = PhysicsValues.require(specification, overrides, "duration");
-        if (!(mass > 0) || initialSpeed < 0 || finalSpeed < 0 || force < 0 || displacement < 0
+        if (mass <= 0 || initialSpeed < 0 || finalSpeed < 0 || force < 0 || displacement < 0
                 || duration <= 0 || !Double.isFinite(angle) || angle < 0 || angle > Math.PI) {
             throw new IllegalArgumentException("Invalid work-energy inputs");
         }

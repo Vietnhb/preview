@@ -15,7 +15,7 @@ public record SensorOpAmpParameters(double supplyVoltage, double sensorResistanc
         double reference = PhysicsValues.require(specification, overrides, "reference_resistance");
         double gain = PhysicsValues.require(specification, overrides, "op_amp_gain");
         double threshold = PhysicsValues.require(specification, overrides, "threshold_voltage");
-        if (!(supply > 0) || !(sensor > 0) || !(reference > 0) || !(gain > 0)
+        if (supply <= 0 || sensor <= 0 || reference <= 0 || gain <= 0
                 || !Double.isFinite(threshold)) {
             throw new IllegalArgumentException("Sensor/op-amp parameters are invalid");
         }
@@ -24,7 +24,7 @@ public record SensorOpAmpParameters(double supplyVoltage, double sensorResistanc
     public double sensorVoltage() { return supplyVoltage * sensorResistance / (sensorResistance + referenceResistance); }
     public double referenceVoltage() { return supplyVoltage * referenceResistance / (sensorResistance + referenceResistance); }
     public double amplifiedOutput() {
-        return Math.max(0, Math.min(supplyVoltage, opAmpGain * (sensorVoltage() - referenceVoltage())));
+        return Math.clamp(opAmpGain * (sensorVoltage() - referenceVoltage()), 0, supplyVoltage);
     }
     public double ledState() { return amplifiedOutput() >= thresholdVoltage ? 1 : 0; }
     public double sensorPower() { return supplyVoltage * supplyVoltage / (sensorResistance + referenceResistance); }

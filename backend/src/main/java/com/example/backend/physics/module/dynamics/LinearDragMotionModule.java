@@ -17,7 +17,11 @@ public final class LinearDragMotionModule implements PhysicsModule<LinearDragMot
     public static final String NUMERICAL_SOLVER_ID = "linear_drag_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "linear_drag_reference_v2";
 
-    private static final List<String> OUTPUT_KEYS = List.of("position", "velocity", "acceleration", "dragForce");
+    private static final String POSITION = "position";
+    private static final String VELOCITY = "velocity";
+    private static final String ACCELERATION = "acceleration";
+    private static final String DRAG_FORCE = "dragForce";
+    private static final List<String> OUTPUT_KEYS = List.of(POSITION, VELOCITY, ACCELERATION, DRAG_FORCE);
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -45,10 +49,10 @@ public final class LinearDragMotionModule implements PhysicsModule<LinearDragMot
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
         for (String key : OUTPUT_KEYS) values.put(key, new java.util.ArrayList<>(time.size()));
-        List<Double> position = values.get("position");
-        List<Double> velocity = values.get("velocity");
-        List<Double> acceleration = values.get("acceleration");
-        List<Double> dragForce = values.get("dragForce");
+        List<Double> position = values.get(POSITION);
+        List<Double> velocity = values.get(VELOCITY);
+        List<Double> acceleration = values.get(ACCELERATION);
+        List<Double> dragForce = values.get(DRAG_FORCE);
 
         for (double t : time) {
             double decay = Math.exp(-rate * t);
@@ -96,10 +100,10 @@ public final class LinearDragMotionModule implements PhysicsModule<LinearDragMot
         double dragForce = parameters.mass() * acceleration - parameters.constantForce();
         requireFiniteResults(timeSeconds, position, velocity, acceleration, dragForce);
         Map<String, Double> values = new LinkedHashMap<>();
-        values.put("position", position);
-        values.put("velocity", velocity);
-        values.put("acceleration", acceleration);
-        values.put("dragForce", dragForce);
+        values.put(POSITION, position);
+        values.put(VELOCITY, velocity);
+        values.put(ACCELERATION, acceleration);
+        values.put(DRAG_FORCE, dragForce);
         return new AnalyticalPoint(values);
     }
 

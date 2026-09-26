@@ -15,6 +15,9 @@ public final class CapacitorBasicModule implements PhysicsModule<CapacitorBasicM
     public static final String MODULE_ID = "capacitor_basic";
     public static final String NUMERICAL_SOLVER_ID = "capacitor_solver";
     public static final String REFERENCE_SOLVER_ID = "capacitor_reference";
+    private static final String VOLTAGE = "voltage";
+    private static final String CHARGE = "charge";
+    private static final String ENERGY = "energy";
 
     @Override
     public String moduleId() {
@@ -34,7 +37,7 @@ public final class CapacitorBasicModule implements PhysicsModule<CapacitorBasicM
     @Override
     public Parameters bind(CanonicalQuantityBag quantities) {
         if (quantities == null) throw new IllegalArgumentException("Canonical quantities are required");
-        return new Parameters(quantities.require("capacitance"), quantities.require("voltage"));
+        return new Parameters(quantities.require("capacitance"), quantities.require(VOLTAGE));
     }
 
     @Override
@@ -46,14 +49,14 @@ public final class CapacitorBasicModule implements PhysicsModule<CapacitorBasicM
         double voltage = parameters.voltage();
         double charge = capacitance * voltage;
         double energy = 0.5 * capacitance * voltage * voltage;
-        requireFiniteResult(charge, "charge");
-        requireFiniteResult(energy, "energy");
+        requireFiniteResult(charge, CHARGE);
+        requireFiniteResult(energy, ENERGY);
 
         List<Double> time = clock.sampleTimes();
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("charge", repeated(charge, time.size()));
-        values.put("energy", repeated(energy, time.size()));
-        values.put("voltage", repeated(voltage, time.size()));
+        values.put(CHARGE, repeated(charge, time.size()));
+        values.put(ENERGY, repeated(energy, time.size()));
+        values.put(VOLTAGE, repeated(voltage, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -69,12 +72,12 @@ public final class CapacitorBasicModule implements PhysicsModule<CapacitorBasicM
         double oracleVoltage = parameters.voltage();
         double oracleCharge = oracleCapacitance * oracleVoltage;
         double oracleEnergy = 0.5 * (oracleCapacitance * oracleVoltage) * oracleVoltage;
-        requireFiniteResult(oracleCharge, "charge");
-        requireFiniteResult(oracleEnergy, "energy");
+        requireFiniteResult(oracleCharge, CHARGE);
+        requireFiniteResult(oracleEnergy, ENERGY);
         return new AnalyticalPoint(Map.of(
-                "charge", oracleCharge,
-                "energy", oracleEnergy,
-                "voltage", oracleVoltage));
+                CHARGE, oracleCharge,
+                ENERGY, oracleEnergy,
+                VOLTAGE, oracleVoltage));
     }
 
     private static List<Double> repeated(double value, int count) {

@@ -29,7 +29,7 @@ Implemented in this increment:
 
 Validation:
 - Backend unit tests and frontend production build pass; B2B policy and HTTP authorization regression tests added.
-- Deployment target is Supabase PostgreSQL. The application already supports Supabase transaction pooler (`6543`) and direct/session connections (`5432`); run `data.sql` once through Supabase SQL Editor or the direct connection, then deploy with `JPA_DDL_AUTO=validate` and `SQL_INIT_MODE=never`. A live Supabase migration was not executed from this workspace.
+- Deployment target is Supabase PostgreSQL. The application already supports Supabase transaction pooler (`6543`) and direct/session connections (`5432`); run `backend/ops/database/bootstrap.sql` once through Supabase SQL Editor or the direct connection, then deploy with `JPA_DDL_AUTO=validate`. A live Supabase migration was not executed from this workspace.
 - No live provider request was made. Missing/invalid provider usage returns an error rather than an invented token count. Network failures without usage cannot yet be reconciled against provider billing.
 
 Still outstanding (not claimed complete): solver-specific multi-step grading formulas, realtime action-log streaming, VNPAY refund/auto-renew/email integrations, production migration and live provider/browser QA. Legacy users without a known school need explicit administrator assignment; no school is guessed.
@@ -111,7 +111,7 @@ Checked existing UI components:
 ## 📋 What Was Implemented
 
 ### 1. Database Schema & Migrations ✅
-**Files**: `backend/src/main/resources/data.sql`
+**Files**: `backend/ops/database/bootstrap.sql`
 
 - ✅ 5 roles: `ADMIN`, `REVIEWER`, `SCHOOL_MANAGER`, `TEACHER`, `STUDENT`
   - **REVIEWER** = Curriculum Expert (creates schema/solver/benchmark, reviews shared library)
@@ -252,7 +252,7 @@ The current frontend includes role-aware admin, school, teacher, reviewer and st
 - `LicenseStatusResponse.java`
 
 **Database**:
-- `data.sql` (updated with roles + constraints)
+- `backend/ops/database/bootstrap.sql` (manual roles + constraints bootstrap)
 
 ### Frontend (5 files)
 **Types**:
@@ -267,7 +267,7 @@ The current frontend includes role-aware admin, school, teacher, reviewer and st
 ## ✅ Verification Checklist
 
 ### Database
-- [ ] Run Spring Boot → check `data.sql` executes
+- [ ] Run the explicit database bootstrap SQL and verify Flyway/JPA startup
 - [ ] Verify 5 roles in `roles` table
 - [ ] Verify constraints: `check_role_school_consistency`
 - [ ] Verify UNIQUE index: `idx_one_school_manager_per_school`

@@ -14,7 +14,7 @@ public record DeBroglieDiffractionParameters(double particleMass, double speed,
         double speed = PhysicsValues.require(specification, overrides, "particle_speed");
         double spacing = PhysicsValues.require(specification, overrides, "lattice_spacing");
         double order = PhysicsValues.require(specification, overrides, "diffraction_order");
-        if (!(mass > 0) || !(speed > 0) || !(spacing > 0) || order < 1
+        if (mass <= 0 || speed <= 0 || spacing <= 0 || order < 1
                 || order != Math.rint(order) || speed >= 299_792_458) {
             throw new IllegalArgumentException("Matter-wave parameters are invalid or relativistic");
         }

@@ -16,6 +16,9 @@ public final class IdealGasIsothermalModule implements PhysicsModule<IdealGasIso
     public static final String MODULE_ID = "ideal_gas_isothermal";
     public static final String NUMERICAL_SOLVER_ID = "ideal_gas_isothermal_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "ideal_gas_isothermal_reference_v2";
+    private static final String TEMPERATURE = "temperature";
+    private static final String VOLUME = "volume";
+    private static final String PRESSURE = "pressure";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -27,13 +30,13 @@ public final class IdealGasIsothermalModule implements PhysicsModule<IdealGasIso
             throw new IllegalArgumentException("Canonical isothermal ideal-gas quantities are required");
         }
         requireUnit(quantities, "amount_of_substance", "mol");
-        requireUnit(quantities, "temperature", "K");
+        requireUnit(quantities, TEMPERATURE, "K");
         requireUnit(quantities, "initial_volume", "m3");
         requireUnit(quantities, "volume_rate", "m3/s");
         requireUnit(quantities, "gas_constant", "J/(mol*K)");
         return new Parameters(
                 quantities.require("amount_of_substance"),
-                quantities.require("temperature"),
+                quantities.require(TEMPERATURE),
                 quantities.require("initial_volume"),
                 quantities.require("volume_rate"),
                 quantities.require("gas_constant"));
@@ -58,7 +61,7 @@ public final class IdealGasIsothermalModule implements PhysicsModule<IdealGasIso
         for (double currentTime : time) {
             double currentVolume = parameters.initialVolume()
                     + parameters.volumeRate() * currentTime;
-            requirePositiveFinite("volume", currentVolume);
+            requirePositiveFinite(VOLUME, currentVolume);
 
             // The numerical path evaluates P = nRT/V and uses log1p to retain
             // precision when the volume changes only slightly.
@@ -69,7 +72,7 @@ public final class IdealGasIsothermalModule implements PhysicsModule<IdealGasIso
                     ? Math.log1p(relativeVolumeChange)
                     : Math.log(currentVolume) - Math.log(parameters.initialVolume());
             double workByGas = pressureScale * logVolumeRatio;
-            requirePositiveFinite("pressure", currentPressure);
+            requirePositiveFinite(PRESSURE, currentPressure);
             requireFinite("work", workByGas);
 
             volume.add(currentVolume);
@@ -79,9 +82,9 @@ public final class IdealGasIsothermalModule implements PhysicsModule<IdealGasIso
         }
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("volume", volume);
-        values.put("pressure", pressure);
-        values.put("temperature", temperature);
+        values.put(VOLUME, volume);
+        values.put(PRESSURE, pressure);
+        values.put(TEMPERATURE, temperature);
         values.put("work", work);
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
@@ -94,7 +97,7 @@ public final class IdealGasIsothermalModule implements PhysicsModule<IdealGasIso
         }
 
         double volume = parameters.initialVolume() + parameters.volumeRate() * timeSeconds;
-        requirePositiveFinite("reference volume", volume);
+        requirePositiveFinite("reference " + VOLUME, volume);
 
         // The oracle evaluates the ideal-gas law in log space and obtains work
         // as a difference of logarithms. It does not reuse the numerical
@@ -108,13 +111,13 @@ public final class IdealGasIsothermalModule implements PhysicsModule<IdealGasIso
                 * parameters.temperature();
         double workByGas = pressureScale
                 * (Math.log(volume) - Math.log(parameters.initialVolume()));
-        requirePositiveFinite("reference pressure", pressure);
+        requirePositiveFinite("reference " + PRESSURE, pressure);
         requireFinite("reference work", workByGas);
 
         return new AnalyticalPoint(Map.of(
-                "volume", volume,
-                "pressure", pressure,
-                "temperature", parameters.temperature(),
+                VOLUME, volume,
+                PRESSURE, pressure,
+                TEMPERATURE, parameters.temperature(),
                 "work", workByGas));
     }
 

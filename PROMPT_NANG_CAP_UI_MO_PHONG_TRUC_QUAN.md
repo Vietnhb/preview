@@ -33,9 +33,6 @@ Mục tiêu cuối cùng:
 - `react-client/src/simulation-renderer/CanvasRenderer.ts`
 - `react-client/src/simulation-renderer/PrimitiveRendererRegistry.ts`
 - `react-client/src/simulation-renderer/VectorSceneRenderer.ts`
-- `react-client/src/simulation-assets/AssetRegistry.ts`
-- `react-client/src/simulation-assets/AssetSelector.ts`
-- `react-client/src/simulation-assets/SvgAssetManifest.ts`
 - `react-client/src/types/physlive.ts`
 - `react-client/src/api/simulationApi.ts`
 - `backend/src/main/java/com/example/backend/service/simulation/SimulationService.java`
@@ -125,7 +122,7 @@ Scene phải hỗ trợ số lượng object theo contract/output thực tế. K
 
 ## 6. Asset SVG và ngôn ngữ hình ảnh
 
-Nâng cấp `simulation-assets/svg`, `SvgAssetManifest`, `AssetSelector` và `AssetRegistry` thành thư viện vector có semantic metadata đầy đủ theo họ hiện tượng. Không yêu cầu một SVG riêng cho mỗi schema; yêu cầu đủ component tái sử dụng để mỗi scene có hình ảnh đúng ngữ cảnh.
+Không tạo thư viện asset tĩnh. Mỗi scene phải dùng primitive renderer hoặc markup do AI sinh theo mô tả đã xác nhận; không có SVG catalog, asset selector hay asset manifest trong runtime.
 
 Tối thiểu phải có coverage phù hợp cho:
 

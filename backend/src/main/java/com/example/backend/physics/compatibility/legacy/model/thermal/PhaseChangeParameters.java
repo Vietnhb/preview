@@ -29,10 +29,10 @@ public record PhaseChangeParameters(
         double fusion = PhysicsValues.require(specification, overrides, "latent_heat_fusion");
         double vaporization = PhysicsValues.require(specification, overrides, "latent_heat_vaporization");
         double power = PhysicsValues.require(specification, overrides, "heating_power");
-        if (!(mass > 0) || !(solidHeat > 0) || !(liquidHeat > 0) || !(gasHeat > 0)
-                || !(fusion > 0) || !(vaporization > 0) || !(power > 0)
+        if (mass <= 0 || solidHeat <= 0 || liquidHeat <= 0 || gasHeat <= 0
+                || fusion <= 0 || vaporization <= 0 || power <= 0
                 || !Double.isFinite(initial) || !Double.isFinite(melting) || !Double.isFinite(boiling)
-                || initial > melting || !(melting < boiling)) {
+                || initial > melting || melting >= boiling) {
             throw new IllegalArgumentException("Invalid phase-change parameters or phase ordering");
         }
         return new PhaseChangeParameters(mass, initial, melting, boiling, solidHeat, liquidHeat,

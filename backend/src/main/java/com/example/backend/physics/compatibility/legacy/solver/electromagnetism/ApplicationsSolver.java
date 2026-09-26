@@ -17,7 +17,6 @@ import java.util.Map;
  * {@code applications_solver}. New schema versions bind directly to the
  * topic-owned modules and never dispatch here.
  */
-@Deprecated
 @Component
 public class ApplicationsSolver implements PhysicsSolver {
     private final Map<String, PhysicsSolver> routes;

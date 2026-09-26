@@ -1,0 +1,469 @@
+{
+  "schemaId": "adaptive_thermal",
+  "model": "matter_js",
+  "name": "Thermal Concept Capability",
+  "topic": "THERMAL",
+  "version": "2.0",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for thermal. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "body",
+        "label": "vật trao đổi nhiệt",
+        "description": "Body with temperature and heat capacity."
+      },
+      {
+        "type": "gas",
+        "label": "khí",
+        "description": "Gas in a stated thermodynamic model."
+      },
+      {
+        "type": "container",
+        "label": "bình chứa",
+        "description": "Container with defined volume or boundary."
+      },
+      {
+        "type": "heat_source",
+        "label": "nguồn nhiệt",
+        "description": "Source adding or removing heat."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "thermal_contact",
+        "label": "tiếp xúc nhiệt",
+        "description": "Objects may exchange heat under a declared transfer law.",
+        "subjectTypes": [
+          "body",
+          "gas",
+          "container"
+        ],
+        "objectTypes": [
+          "body",
+          "gas",
+          "container"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "gas",
+            "container"
+          ]
+        }
+      },
+      {
+        "type": "contained_in",
+        "label": "chứa trong",
+        "description": "Object lies in a container.",
+        "subjectTypes": [
+          "gas",
+          "body"
+        ],
+        "objectTypes": [
+          "container"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "gas",
+            "body",
+            "container"
+          ]
+        }
+      },
+      {
+        "type": "heated_by",
+        "label": "được gia nhiệt bởi",
+        "description": "Heat source adds energy to the object.",
+        "subjectTypes": [
+          "body",
+          "gas"
+        ],
+        "objectTypes": [
+          "heat_source"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "gas",
+            "heat_source"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "temperature",
+        "label": "nhiệt độ",
+        "description": "Absolute temperature.",
+        "aliases": [
+          "T"
+        ],
+        "allowedUnits": [
+          "K"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "gas",
+            "container"
+          ]
+        }
+      },
+      {
+        "key": "initial_temperature",
+        "label": "nhiệt độ ban đầu",
+        "description": "Temperature at the start.",
+        "aliases": [],
+        "allowedUnits": [
+          "K"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "gas"
+          ]
+        }
+      },
+      {
+        "key": "mass",
+        "label": "khối lượng",
+        "description": "Object mass.",
+        "aliases": [
+          "m"
+        ],
+        "allowedUnits": [
+          "kg"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "gas"
+          ]
+        }
+      },
+      {
+        "key": "specific_heat",
+        "label": "nhiệt dung riêng",
+        "description": "Heat per kilogram per kelvin.",
+        "aliases": [],
+        "allowedUnits": [
+          "J/(kg*K)"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ]
+        }
+      },
+      {
+        "key": "heat",
+        "label": "nhiệt lượng",
+        "description": "Transferred heat with sign convention.",
+        "aliases": [
+          "Q"
+        ],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "gas",
+            "heat_source"
+          ]
+        }
+      },
+      {
+        "key": "power",
+        "label": "công suất nhiệt",
+        "description": "Rate of heat transfer.",
+        "aliases": [],
+        "allowedUnits": [
+          "W"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "heat_source"
+          ]
+        }
+      },
+      {
+        "key": "pressure",
+        "label": "áp suất",
+        "description": "Absolute pressure.",
+        "aliases": [
+          "p"
+        ],
+        "allowedUnits": [
+          "Pa"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "gas",
+            "container"
+          ]
+        }
+      },
+      {
+        "key": "volume",
+        "label": "thể tích",
+        "description": "State volume.",
+        "aliases": [
+          "V"
+        ],
+        "allowedUnits": [
+          "m^3"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "gas",
+            "container"
+          ]
+        }
+      },
+      {
+        "key": "amount",
+        "label": "lượng chất",
+        "description": "Amount of substance.",
+        "aliases": [
+          "n"
+        ],
+        "allowedUnits": [
+          "mol"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "gas"
+          ]
+        }
+      },
+      {
+        "key": "internal_energy",
+        "label": "nội năng",
+        "description": "System internal energy.",
+        "aliases": [
+          "U"
+        ],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "gas",
+            "body"
+          ]
+        }
+      },
+      {
+        "key": "work",
+        "label": "công",
+        "description": "Work with stated sign convention.",
+        "aliases": [
+          "W"
+        ],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "gas"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "K",
+        "dimension": "temperature"
+      },
+      {
+        "symbol": "kg",
+        "dimension": "mass"
+      },
+      {
+        "symbol": "J/(kg*K)",
+        "dimension": "specific heat"
+      },
+      {
+        "symbol": "J",
+        "dimension": "energy"
+      },
+      {
+        "symbol": "W",
+        "dimension": "power"
+      },
+      {
+        "symbol": "Pa",
+        "dimension": "pressure"
+      },
+      {
+        "symbol": "m^3",
+        "dimension": "volume"
+      },
+      {
+        "symbol": "mol",
+        "dimension": "amount"
+      }
+    ],
+    "laws": [
+      {
+        "id": "calorimetry",
+        "name": "Nhiệt lượng",
+        "inputs": [
+          "mass",
+          "specific_heat",
+          "initial_temperature",
+          "temperature"
+        ],
+        "outputs": [
+          "heat"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "body"
+          ],
+          "quantities": [
+            "mass",
+            "specific_heat",
+            "initial_temperature",
+            "temperature",
+            "heat"
+          ]
+        },
+        "assumptions": [
+          "No phase transition in the interval.",
+          "Specific heat is constant if this form is used."
+        ],
+        "description": "Heat from temperature change."
+      },
+      {
+        "id": "ideal_gas",
+        "name": "Khí lý tưởng",
+        "inputs": [
+          "pressure",
+          "volume",
+          "amount",
+          "temperature"
+        ],
+        "outputs": [
+          "pressure",
+          "volume"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "gas"
+          ],
+          "quantities": [
+            "pressure",
+            "volume",
+            "amount",
+            "temperature"
+          ]
+        },
+        "assumptions": [
+          "Ideal gas assumption accepted.",
+          "Gas constant value has a trusted source or user acceptance."
+        ],
+        "description": "Ideal gas state relation."
+      },
+      {
+        "id": "first_law",
+        "name": "Định luật I nhiệt động lực học",
+        "inputs": [
+          "heat",
+          "work"
+        ],
+        "outputs": [
+          "internal_energy"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "gas",
+            "body"
+          ],
+          "quantities": [
+            "heat",
+            "work",
+            "internal_energy"
+          ]
+        },
+        "assumptions": [
+          "Heat and work sign convention clear."
+        ],
+        "description": "Energy conservation for thermal system."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "system_boundary",
+        "description": "Clarify isolation and external heat exchange when it affects energy balance.",
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "gas",
+            "heat_source"
+          ],
+          "relationTypes": [
+            "thermal_contact",
+            "heated_by"
+          ],
+          "quantities": []
+        }
+      },
+      {
+        "id": "phase_transition_limit",
+        "description": "Phase transitions require a model of the material state and energy exchange.",
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "gas"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "initial_state",
+        "description": "Dynamic thermal states need user-supplied or accepted initial values.",
+        "appliesTo": {
+          "objectTypes": [
+            "body",
+            "gas"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "AI-authored interactive visual models of high-school heat, gases, and thermal state changes.",
+      "limitations": [
+        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+    }
+  }
+}

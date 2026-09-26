@@ -18,9 +18,6 @@ public final class StrictJsonParser {
         if (mapper == null) throw new IllegalArgumentException("ObjectMapper is required");
         if (content == null || content.isBlank()) throw new IllegalArgumentException("JSON content is required");
         String normalized = content.trim();
-        if (normalized.startsWith("```")) {
-            normalized = normalized.replaceFirst("^```(?:json)?\\s*", "").replaceFirst("\\s*```$", "");
-        }
         if (normalized.length() > MAX_RESPONSE_CHARACTERS
                 || normalized.getBytes(StandardCharsets.UTF_8).length > MAX_RESPONSE_CHARACTERS) {
             throw new IllegalArgumentException("AI response exceeds the strict JSON size limit.");
@@ -39,20 +36,39 @@ public final class StrictJsonParser {
         for (int index = 0; index < json.length(); index++) {
             char current = json.charAt(index);
             if (inString) {
-                if (escaped) escaped = false;
-                else if (current == '\\') escaped = true;
-                else if (current == '"') inString = false;
-                continue;
-            }
-            if (current == '"') {
-                inString = true;
-            } else if (current == '{' || current == '[') {
-                if (++depth > MAX_NESTING_DEPTH) {
-                    throw new IllegalArgumentException("AI response exceeds the strict JSON nesting limit.");
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == '"') {
+                    inString = false;
                 }
-            } else if (current == '}' || current == ']') {
-                depth--;
+            } else {
+                if (current == '"') {
+                    inString = true;
+                } else {
+                    depth = updateDepth(depth, current);
+                }
             }
         }
+    }
+
+    private static int updateDepth(int depth, char current) {
+        if (isOpeningDelimiter(current)) {
+            int nextDepth = depth + 1;
+            if (nextDepth > MAX_NESTING_DEPTH) {
+                throw new IllegalArgumentException("AI response exceeds the strict JSON nesting limit.");
+            }
+            return nextDepth;
+        }
+        return isClosingDelimiter(current) ? depth - 1 : depth;
+    }
+
+    private static boolean isOpeningDelimiter(char value) {
+        return value == '{' || value == '[';
+    }
+
+    private static boolean isClosingDelimiter(char value) {
+        return value == '}' || value == ']';
     }
 }

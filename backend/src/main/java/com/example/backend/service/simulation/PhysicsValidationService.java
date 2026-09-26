@@ -9,7 +9,6 @@ import com.example.backend.dto.simulation.ValidationCheckpointResponse;
 import com.example.backend.dto.simulation.ValidationResponse;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.physics.model.AnalyticalPoint;
-import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolver;
 import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
 import com.example.backend.physics.model.SolverOutput;
 import com.example.backend.physics.module.BoundPhysicsModule;
@@ -78,7 +77,7 @@ public class PhysicsValidationService {
             legacySolver = legacyPhysicsExecution.authorizeReference(
                     LegacyPhysicsExecutionAdapterV1.VERSION, pinned, latestApproved, referenceSolvers);
         }
-        CompiledSchema compiled = schemaDefinitions.compiled(schema);
+        CompiledSchema compiled = schemaDefinitions.compiled(schema, specification);
         PhysicsOutputFrame numericalFrame = typedNumerical;
         if (numericalFrame == null && legacyNumerical == null)
             throw new IllegalArgumentException("Numerical output is required");

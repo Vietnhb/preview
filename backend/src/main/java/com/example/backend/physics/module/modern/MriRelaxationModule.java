@@ -17,6 +17,9 @@ public final class MriRelaxationModule implements PhysicsModule<MriRelaxationMod
     public static final String MODULE_ID = "mri_relaxation";
     public static final String NUMERICAL_SOLVER_ID = "mri_relaxation_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "mri_relaxation_reference_v2";
+    private static final String LONGITUDINAL_MAGNETIZATION = "longitudinalMagnetization";
+    private static final String TRANSVERSE_MAGNETIZATION = "transverseMagnetization";
+    private static final String ECHO_SIGNAL = "echoSignal";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -42,18 +45,18 @@ public final class MriRelaxationModule implements PhysicsModule<MriRelaxationMod
                     * (1.0 - Math.exp(-currentTime / parameters.longitudinalRelaxationTime()));
             double mxy = parameters.equilibriumMagnetization()
                     * Math.exp(-currentTime / parameters.transverseRelaxationTime());
-            requireFinite("longitudinalMagnetization", mz);
-            requireFinite("transverseMagnetization", mxy);
+            requireFinite(LONGITUDINAL_MAGNETIZATION, mz);
+            requireFinite(TRANSVERSE_MAGNETIZATION, mxy);
             longitudinal.add(mz);
             transverse.add(mxy);
         }
         double echoSignal = parameters.equilibriumMagnetization()
                 * Math.exp(-parameters.echoTime() / parameters.transverseRelaxationTime());
-        requireFinite("echoSignal", echoSignal);
+        requireFinite(ECHO_SIGNAL, echoSignal);
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("longitudinalMagnetization", List.copyOf(longitudinal));
-        values.put("transverseMagnetization", List.copyOf(transverse));
-        values.put("echoSignal", java.util.Collections.nCopies(time.size(), echoSignal));
+        values.put(LONGITUDINAL_MAGNETIZATION, List.copyOf(longitudinal));
+        values.put(TRANSVERSE_MAGNETIZATION, List.copyOf(transverse));
+        values.put(ECHO_SIGNAL, java.util.Collections.nCopies(time.size(), echoSignal));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -70,11 +73,11 @@ public final class MriRelaxationModule implements PhysicsModule<MriRelaxationMod
                 parameters.transverseRelaxationTime(), timeSeconds);
         double echo = decayedMagnetization(parameters.equilibriumMagnetization(),
                 parameters.transverseRelaxationTime(), parameters.echoTime());
-        requireFinite("reference longitudinalMagnetization", mz);
-        requireFinite("reference transverseMagnetization", mxy);
-        requireFinite("reference echoSignal", echo);
-        return new AnalyticalPoint(Map.of("longitudinalMagnetization", mz,
-                "transverseMagnetization", mxy, "echoSignal", echo));
+        requireFinite("reference " + LONGITUDINAL_MAGNETIZATION, mz);
+        requireFinite("reference " + TRANSVERSE_MAGNETIZATION, mxy);
+        requireFinite("reference " + ECHO_SIGNAL, echo);
+        return new AnalyticalPoint(Map.of(LONGITUDINAL_MAGNETIZATION, mz,
+                TRANSVERSE_MAGNETIZATION, mxy, ECHO_SIGNAL, echo));
     }
 
     private static double decayedMagnetization(double initial, double timeConstant, double time) {

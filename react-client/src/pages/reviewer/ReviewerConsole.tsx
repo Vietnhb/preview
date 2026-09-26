@@ -8,7 +8,7 @@ import { SharedLibraryTab } from "../../components/roles/reviewer/SharedLibraryT
 
 const TABS = [
   { id: "queue", label: "Hàng đợi ambiguity" },
-  { id: "schemas", label: "Schema versions" },
+  { id: "schemas", label: "Topic packs" },
   { id: "solvers", label: "Solver versions" },
   { id: "modules", label: "Module approval" },
   { id: "benchmarks", label: "Benchmark & evaluation" },

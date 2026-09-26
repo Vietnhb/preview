@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public final class DatabaseSchemaModeValidator {
-    public DatabaseSchemaModeValidator(
+    DatabaseSchemaModeValidator(
             @Value("${spring.jpa.hibernate.ddl-auto}") String ddlAuto,
             @Value("${spring.flyway.enabled}") boolean flywayEnabled) {
         validate(ddlAuto, flywayEnabled);

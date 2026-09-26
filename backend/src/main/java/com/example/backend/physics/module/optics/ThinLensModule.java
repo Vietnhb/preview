@@ -16,6 +16,10 @@ public final class ThinLensModule implements PhysicsModule<ThinLensModule.Parame
     public static final String MODULE_ID = "thin_lens_imaging";
     public static final String NUMERICAL_SOLVER_ID = "thin_lens_solver";
     public static final String REFERENCE_SOLVER_ID = "thin_lens_reference";
+    private static final String IMAGE_DISTANCE = "imageDistance";
+    private static final String MAGNIFICATION = "magnification";
+    private static final String IMAGE_HEIGHT = "imageHeight";
+    private static final String REFERENCE_PREFIX = "reference ";
 
     @Override
     public String moduleId() {
@@ -49,18 +53,18 @@ public final class ThinLensModule implements PhysicsModule<ThinLensModule.Parame
                 / (parameters.objectDistance() - parameters.focalLength());
         double magnification = -imageDistance / parameters.objectDistance();
         double imageHeight = magnification * parameters.objectHeight();
-        requireFinite(imageDistance, "imageDistance");
-        requireFinite(magnification, "magnification");
-        requireFinite(imageHeight, "imageHeight");
+        requireFinite(imageDistance, IMAGE_DISTANCE);
+        requireFinite(magnification, MAGNIFICATION);
+        requireFinite(imageHeight, IMAGE_HEIGHT);
 
         List<Double> time = clock.sampleTimes();
         List<Double> imageDistances = repeated(imageDistance, time.size());
         List<Double> imageHeights = repeated(imageHeight, time.size());
         List<Double> magnifications = repeated(magnification, time.size());
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("imageDistance", imageDistances);
-        values.put("imageHeight", imageHeights);
-        values.put("magnification", magnifications);
+        values.put(IMAGE_DISTANCE, imageDistances);
+        values.put(IMAGE_HEIGHT, imageHeights);
+        values.put(MAGNIFICATION, magnifications);
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -78,13 +82,13 @@ public final class ThinLensModule implements PhysicsModule<ThinLensModule.Parame
         double imageDistance = 1.0 / reciprocalImageDistance;
         double lateralMagnification = -imageDistance / parameters.objectDistance();
         double imageHeight = lateralMagnification * parameters.objectHeight();
-        requireFinite(imageDistance, "reference imageDistance");
-        requireFinite(lateralMagnification, "reference magnification");
-        requireFinite(imageHeight, "reference imageHeight");
+        requireFinite(imageDistance, REFERENCE_PREFIX + IMAGE_DISTANCE);
+        requireFinite(lateralMagnification, REFERENCE_PREFIX + MAGNIFICATION);
+        requireFinite(imageHeight, REFERENCE_PREFIX + IMAGE_HEIGHT);
         return new AnalyticalPoint(Map.of(
-                "imageDistance", imageDistance,
-                "imageHeight", imageHeight,
-                "magnification", lateralMagnification));
+                IMAGE_DISTANCE, imageDistance,
+                IMAGE_HEIGHT, imageHeight,
+                MAGNIFICATION, lateralMagnification));
     }
 
     private static List<Double> repeated(double value, int count) {

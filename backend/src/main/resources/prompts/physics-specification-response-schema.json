@@ -2,37 +2,88 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "contractVersion": { "type": "string", "const": "1.0" },
-    "schemaVersion": { "type": "string" },
-    "topic": { "type": ["string", "null"] },
-    "schemaId": { "type": "string" },
+    "contractVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "schemaVersion": {
+      "type": "string"
+    },
+    "topic": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schemaId": {
+      "type": "string"
+    },
     "objects": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string" },
-          "label": { "type": "string" },
-          "type": { "type": "string" },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
           "quantities": {
             "type": "array",
             "items": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "name": { "type": "string" },
-                "symbol": { "type": ["string", "null"] },
-                "value": { "type": "number" },
-                "originalUnit": { "type": "string" },
-                "confidence": { "type": ["number", "null"] },
-                "sourceText": { "type": ["string", "null"] }
+                "name": {
+                  "type": "string"
+                },
+                "symbol": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "value": {
+                  "type": "number"
+                },
+                "originalUnit": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "sourceText": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               },
-              "required": ["name", "symbol", "value", "originalUnit", "confidence", "sourceText"]
+              "required": [
+                "name",
+                "symbol",
+                "value",
+                "originalUnit",
+                "confidence",
+                "sourceText"
+              ]
             }
           }
         },
-        "required": ["id", "label", "type", "quantities"]
+        "required": [
+          "id",
+          "label",
+          "type",
+          "quantities"
+        ]
       }
     },
     "quantities": {
@@ -41,14 +92,42 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "name": { "type": "string" },
-          "symbol": { "type": ["string", "null"] },
-          "value": { "type": "number" },
-          "originalUnit": { "type": "string" },
-          "confidence": { "type": ["number", "null"] },
-          "sourceText": { "type": ["string", "null"] }
+          "name": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {
+            "type": "number"
+          },
+          "originalUnit": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "sourceText": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         },
-        "required": ["name", "symbol", "value", "originalUnit", "confidence", "sourceText"]
+        "required": [
+          "name",
+          "symbol",
+          "value",
+          "originalUnit",
+          "confidence",
+          "sourceText"
+        ]
       }
     },
     "relations": {
@@ -57,78 +136,216 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "type": { "type": "string" },
-          "subject": { "type": "string" },
-          "object": { "type": ["string", "null"] },
-          "value": { "type": ["number", "string", "boolean", "null"] },
-          "unit": { "type": ["string", "null"] },
-          "sourceText": { "type": ["string", "null"] }
+          "type": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "object": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {
+            "type": [
+              "number",
+              "string",
+              "boolean",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceText": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         },
-        "required": ["type", "subject", "object", "value", "unit", "sourceText"]
+        "required": [
+          "type",
+          "subject",
+          "object",
+          "value",
+          "unit",
+          "sourceText"
+        ]
       }
     },
     "endCondition": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "properties": {
-        "type": { "type": "string", "enum": ["time_limit", "threshold", "event", "cycle_count", "manual"] },
-        "duration": { "type": ["number", "null"] },
-        "maxTime": { "type": ["number", "null"] },
-        "quantity": { "type": ["string", "null"] },
-        "operator": { "type": ["string", "null"] },
-        "value": { "type": ["number", "null"] },
-        "count": { "type": ["number", "null"] },
+        "type": {
+          "type": "string",
+          "enum": [
+            "time_limit",
+            "threshold",
+            "event",
+            "cycle_count",
+            "manual"
+          ]
+        },
+        "duration": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maxTime": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "quantity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operator": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "count": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "event": {
           "anyOf": [
-            { "type": "null" },
+            {
+              "type": "null"
+            },
             {
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "type": { "type": "string" },
-                "entities": { "type": ["array", "null"], "items": { "type": "string" } },
-                "quantity": { "type": ["string", "null"] },
-                "operator": { "type": ["string", "null"] },
-                "value": { "type": ["number", "null"] },
-                "firstQuantity": { "type": ["string", "null"] },
-                "secondQuantity": { "type": ["string", "null"] },
-                "markerQuantity": { "type": ["string", "null"] }
+                "type": {
+                  "type": "string"
+                },
+                "entities": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "quantity": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "operator": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "firstQuantity": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "secondQuantity": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "markerQuantity": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               },
-              "required": ["type", "entities", "quantity", "operator", "value", "firstQuantity", "secondQuantity", "markerQuantity"]
+              "required": [
+                "type",
+                "entities",
+                "quantity",
+                "operator",
+                "value",
+                "firstQuantity",
+                "secondQuantity",
+                "markerQuantity"
+              ]
             }
           ]
         }
       },
-      "required": ["type", "duration", "maxTime", "quantity", "operator", "value", "count", "event"]
+      "required": [
+        "type",
+        "duration",
+        "maxTime",
+        "quantity",
+        "operator",
+        "value",
+        "count",
+        "event"
+      ]
     },
-    "confidence": { "type": "number" },
+    "confidence": {
+      "type": "number"
+    },
     "ambiguities": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "code": { "type": "string" },
-          "fieldPath": { "type": "string" },
-          "question": { "type": "string" },
-          "options": { "type": "array", "items": { "type": "string" } }
+          "code": {
+            "type": "string"
+          },
+          "fieldPath": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["code", "fieldPath", "question", "options"]
-      }
-    },
-    "visualBindings": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "targetId": { "type": "string" },
-          "entityId": { "type": ["string", "null"] },
-          "assetId": { "type": ["string", "null"] },
-          "match": { "type": "string", "enum": ["EXACT", "SUBSTITUTE", "UNSUPPORTED", "OMITTED"] },
-          "visualDifference": { "type": ["string", "null"] }
-        },
-        "required": ["targetId", "entityId", "assetId", "match", "visualDifference"]
+        "required": [
+          "code",
+          "fieldPath",
+          "question",
+          "options"
+        ]
       }
     },
     "resolutionDecisions": {
@@ -137,13 +354,46 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "code": { "type": "string" },
-          "outcome": { "type": "string", "enum": ["ANSWERED", "ACCEPT_SIMPLIFICATION", "DECLINE_SIMPLIFICATION", "REVISE_REQUEST", "START_NEW_PROBLEM", "UNRESOLVED"] },
-          "omittedObjectIds": { "type": "array", "items": { "type": "string" } }
+          "code": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "ANSWERED",
+              "ACCEPT_SIMPLIFICATION",
+              "DECLINE_SIMPLIFICATION",
+              "REVISE_REQUEST",
+              "START_NEW_PROBLEM",
+              "UNRESOLVED"
+            ]
+          },
+          "omittedObjectIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["code", "outcome", "omittedObjectIds"]
+        "required": [
+          "code",
+          "outcome",
+          "omittedObjectIds"
+        ]
       }
     }
   },
-  "required": ["contractVersion", "schemaVersion", "topic", "schemaId", "objects", "quantities", "relations", "endCondition", "confidence", "ambiguities", "visualBindings", "resolutionDecisions"]
+  "required": [
+    "contractVersion",
+    "schemaVersion",
+    "topic",
+    "schemaId",
+    "objects",
+    "quantities",
+    "relations",
+    "endCondition",
+    "confidence",
+    "ambiguities",
+    "resolutionDecisions"
+  ]
 }

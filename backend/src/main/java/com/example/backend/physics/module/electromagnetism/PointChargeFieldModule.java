@@ -15,6 +15,8 @@ public final class PointChargeFieldModule implements PhysicsModule<PointChargeFi
     public static final String MODULE_ID = "point_charge_field";
     public static final String NUMERICAL_SOLVER_ID = "point_charge_field_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "point_charge_field_reference_v2";
+    private static final String ELECTRIC_FIELD = "electricField";
+    private static final String ELECTRIC_POTENTIAL = "electricPotential";
     private static final double COULOMB_CONSTANT = 8.9875517923e9;
 
     @Override public String moduleId() { return MODULE_ID; }
@@ -39,11 +41,11 @@ public final class PointChargeFieldModule implements PhysicsModule<PointChargeFi
         double field = COULOMB_CONSTANT * Math.abs(parameters.charge())
                 / (parameters.distance() * parameters.distance());
         double potential = COULOMB_CONSTANT * parameters.charge() / parameters.distance();
-        requireFinite(field, "electricField");
-        requireFinite(potential, "electricPotential");
+        requireFinite(field, ELECTRIC_FIELD);
+        requireFinite(potential, ELECTRIC_POTENTIAL);
 
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), Map.of(), Map.of(),
-                Map.of("electricField", field, "electricPotential", potential));
+                Map.of(ELECTRIC_FIELD, field, ELECTRIC_POTENTIAL, potential));
     }
 
     @Override
@@ -72,7 +74,7 @@ public final class PointChargeFieldModule implements PhysicsModule<PointChargeFi
         }
         requireFinite(field, "reference electricField");
         requireFinite(potential, "reference electricPotential");
-        return new AnalyticalPoint(Map.of("electricField", field, "electricPotential", potential));
+        return new AnalyticalPoint(Map.of(ELECTRIC_FIELD, field, ELECTRIC_POTENTIAL, potential));
     }
 
     private static double requireCanonical(CanonicalQuantityBag quantities, String key, String expectedUnit) {

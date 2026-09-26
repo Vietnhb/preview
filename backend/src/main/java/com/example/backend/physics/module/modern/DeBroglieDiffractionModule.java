@@ -17,6 +17,10 @@ public final class DeBroglieDiffractionModule implements PhysicsModule<DeBroglie
     public static final String MODULE_ID = "de_broglie_diffraction";
     public static final String NUMERICAL_SOLVER_ID = "de_broglie_diffraction_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "de_broglie_diffraction_reference_v2";
+    private static final String MOMENTUM = "momentum";
+    private static final String WAVELENGTH = "wavelength";
+    private static final String KINETIC_ENERGY = "kineticEnergy";
+    private static final String DIFFRACTION_ANGLE = "diffractionAngle";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -42,18 +46,18 @@ public final class DeBroglieDiffractionModule implements PhysicsModule<DeBroglie
         double wavelength = PhysicalConstants.PLANCK / momentum;
         double kineticEnergy = 0.5 * momentum * parameters.particleSpeed();
         double sineArgument = parameters.diffractionOrder() * wavelength / parameters.latticeSpacing();
-        requirePositiveFinite("momentum", momentum);
-        requirePositiveFinite("wavelength", wavelength);
-        requireFinite("kineticEnergy", kineticEnergy);
+        requirePositiveFinite(MOMENTUM, momentum);
+        requirePositiveFinite(WAVELENGTH, wavelength);
+        requireFinite(KINETIC_ENERGY, kineticEnergy);
         requireFinite("diffraction sine", sineArgument);
         boolean allowed = sineArgument <= 1.0;
         double diffractionAngle = allowed ? Math.asin(sineArgument) : 0.0;
-        requireFinite("diffractionAngle", diffractionAngle);
+        requireFinite(DIFFRACTION_ANGLE, diffractionAngle);
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("momentum", List.of(momentum));
-        values.put("wavelength", List.of(wavelength));
-        values.put("kineticEnergy", List.of(kineticEnergy));
-        values.put("diffractionAngle", List.of(diffractionAngle));
+        values.put(MOMENTUM, List.of(momentum));
+        values.put(WAVELENGTH, List.of(wavelength));
+        values.put(KINETIC_ENERGY, List.of(kineticEnergy));
+        values.put(DIFFRACTION_ANGLE, List.of(diffractionAngle));
         values.put("diffractionAllowed", List.of(allowed ? 1.0 : 0.0));
         return new SolverOutput(List.of(0.0), Map.of(), Map.of(), Map.of(), values);
     }
@@ -69,16 +73,16 @@ public final class DeBroglieDiffractionModule implements PhysicsModule<DeBroglie
                 * parameters.particleSpeed() * parameters.particleSpeed();
         double momentum = Math.sqrt(2.0 * parameters.particleMass() * kineticEnergy);
         double wavelength = PhysicalConstants.PLANCK / momentum;
-        double sineArgument = ((double) parameters.diffractionOrder() / parameters.latticeSpacing()) * wavelength;
-        requirePositiveFinite("reference momentum", momentum);
-        requirePositiveFinite("reference wavelength", wavelength);
-        requireFinite("reference kineticEnergy", kineticEnergy);
+        double sineArgument = (parameters.diffractionOrder() / parameters.latticeSpacing()) * wavelength;
+        requirePositiveFinite("reference " + MOMENTUM, momentum);
+        requirePositiveFinite("reference " + WAVELENGTH, wavelength);
+        requireFinite("reference " + KINETIC_ENERGY, kineticEnergy);
         requireFinite("reference diffraction sine", sineArgument);
         boolean allowed = parameters.diffractionOrder() <= parameters.latticeSpacing() / wavelength;
         double diffractionAngle = allowed ? Math.acos(Math.sqrt(Math.max(0.0, 1.0 - sineArgument * sineArgument))) : 0.0;
-        requireFinite("reference diffractionAngle", diffractionAngle);
-        return new AnalyticalPoint(Map.of("momentum", momentum, "wavelength", wavelength,
-                "kineticEnergy", kineticEnergy, "diffractionAngle", diffractionAngle,
+        requireFinite("reference " + DIFFRACTION_ANGLE, diffractionAngle);
+        return new AnalyticalPoint(Map.of(MOMENTUM, momentum, WAVELENGTH, wavelength,
+                KINETIC_ENERGY, kineticEnergy, DIFFRACTION_ANGLE, diffractionAngle,
                 "diffractionAllowed", allowed ? 1.0 : 0.0));
     }
 

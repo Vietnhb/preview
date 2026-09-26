@@ -17,6 +17,8 @@ public final class FirstLawThermodynamicsModule
     public static final String MODULE_ID = "first_law_thermodynamics";
     public static final String NUMERICAL_SOLVER_ID = "first_law_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "first_law_reference_v2";
+    private static final String DELTA_INTERNAL_ENERGY = "deltaInternalEnergy";
+    private static final String INTERNAL_ENERGY = "internalEnergy";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -46,13 +48,13 @@ public final class FirstLawThermodynamicsModule
         // Numerical path applies the ΔU = Q - W balance, then updates U.
         double deltaInternalEnergy = parameters.heatAdded() - parameters.workDone();
         double finalInternalEnergy = parameters.initialInternalEnergy() + deltaInternalEnergy;
-        requireFinite("deltaInternalEnergy", deltaInternalEnergy);
-        requireFinite("internalEnergy", finalInternalEnergy);
+        requireFinite(DELTA_INTERNAL_ENERGY, deltaInternalEnergy);
+        requireFinite(INTERNAL_ENERGY, finalInternalEnergy);
 
         List<Double> time = clock.sampleTimes();
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("internalEnergy", repeated(finalInternalEnergy, time.size()));
-        values.put("deltaInternalEnergy", repeated(deltaInternalEnergy, time.size()));
+        values.put(INTERNAL_ENERGY, repeated(finalInternalEnergy, time.size()));
+        values.put(DELTA_INTERNAL_ENERGY, repeated(deltaInternalEnergy, time.size()));
         values.put("heat", repeated(parameters.heatAdded(), time.size()));
         values.put("work", repeated(parameters.workDone(), time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
@@ -71,12 +73,12 @@ public final class FirstLawThermodynamicsModule
         double finalInternalEnergy = energyAfterHeat - parameters.workDone();
         double deltaInternalEnergy = finalInternalEnergy - parameters.initialInternalEnergy();
         requireFinite("reference energy after heat", energyAfterHeat);
-        requireFinite("reference internalEnergy", finalInternalEnergy);
-        requireFinite("reference deltaInternalEnergy", deltaInternalEnergy);
+        requireFinite("reference " + INTERNAL_ENERGY, finalInternalEnergy);
+        requireFinite("reference " + DELTA_INTERNAL_ENERGY, deltaInternalEnergy);
 
         Map<String, Double> values = new LinkedHashMap<>();
-        values.put("internalEnergy", finalInternalEnergy);
-        values.put("deltaInternalEnergy", deltaInternalEnergy);
+        values.put(INTERNAL_ENERGY, finalInternalEnergy);
+        values.put(DELTA_INTERNAL_ENERGY, deltaInternalEnergy);
         values.put("heat", parameters.heatAdded());
         values.put("work", parameters.workDone());
         return new AnalyticalPoint(values);

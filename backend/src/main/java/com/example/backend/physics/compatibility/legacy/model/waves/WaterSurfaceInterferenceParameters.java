@@ -17,7 +17,7 @@ public record WaterSurfaceInterferenceParameters(double wavelength, double waveS
         double amplitude = PhysicsValues.require(specification, overrides, "amplitude");
         double domain = PhysicsValues.require(specification, overrides, "domain_size");
         double samples = PhysicsValues.require(specification, overrides, "spatial_samples");
-        if (!(wavelength > 0) || !(speed > 0) || !(separation > 0) || !(amplitude >= 0) || !(domain > 0)
+        if (wavelength <= 0 || speed <= 0 || separation <= 0 || amplitude < 0 || domain <= 0
                 || !Double.isFinite(wavelength) || !Double.isFinite(speed) || !Double.isFinite(separation)
                 || !Double.isFinite(amplitude) || !Double.isFinite(domain)
                 || samples != Math.rint(samples) || samples < 8 || samples > 128) {

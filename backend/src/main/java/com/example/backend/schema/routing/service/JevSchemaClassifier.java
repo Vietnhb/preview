@@ -1,11 +1,9 @@
 package com.example.backend.schema.routing.service;
 
 import java.net.http.HttpClient;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -14,24 +12,20 @@ import org.springframework.web.client.RestClient;
 
 import com.example.backend.config.properties.JevProperties;
 import com.example.backend.exception.EmbeddingUnavailableException;
-import com.example.backend.simulation.assets.AssetRoutingDecision;
-import com.example.backend.simulation.assets.SvgAssetCatalog;
 import com.fasterxml.jackson.databind.JsonNode;
 
-/** Classifies approved physics schemas and, after confirmation, existing SVG assets. */
+/** Classifies approved physics schemas. */
 @Component
 public final class JevSchemaClassifier {
     private final RestClient client;
     private final JevProperties properties;
-    private final SvgAssetCatalog catalog;
 
-    public JevSchemaClassifier(RestClient.Builder builder, JevProperties properties, SvgAssetCatalog catalog) {
+    public JevSchemaClassifier(RestClient.Builder builder, JevProperties properties) {
         var factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder()
                 .connectTimeout(properties.timeout()).build());
         factory.setReadTimeout(properties.timeout());
         this.client = builder.requestFactory(factory).baseUrl(properties.baseUrl().toString()).build();
         this.properties = properties;
-        this.catalog = catalog;
     }
 
     public Result classifySchemas(String problemText, Map<String, String> schemaCriteria) {
@@ -47,7 +41,7 @@ public final class JevSchemaClassifier {
         schemaQuestion.put("criteria", schemaCriteria);
         Map<String, Object> scopeQuestion = new LinkedHashMap<>();
         scopeQuestion.put("type", "noul");
-        scopeQuestion.put("instructions", "Does this request describe a physics simulation problem suitable for the approved high-school physics catalog?");
+        scopeQuestion.put("instructions", "Does this request seek a simulation of a physical system or phenomenon? Judge its intent against the supplied capability descriptions. Incomplete values, contradictions, unfamiliar objects, and missing equations do not make a physics request out of scope.");
 
         Map<String, Object> questions = new LinkedHashMap<>();
         questions.put("schema", schemaQuestion);
@@ -78,57 +72,6 @@ public final class JevSchemaClassifier {
         } catch (RuntimeException failure) {
             throw new EmbeddingUnavailableException("Jev schema routing request failed: " + failure.getMessage());
         }
-    }
-
-    public AssetRoutingDecision classifyAssets(String problemText, Map<String, Object> specificationContext) {
-        if (properties.apiKey().isBlank()) {
-            throw new EmbeddingUnavailableException("JEV_API_KEY is required for asset routing.");
-        }
-        Map<String, String> assetQuestions = new LinkedHashMap<>();
-        Map<String, Object> questions = new LinkedHashMap<>();
-        for (SvgAssetCatalog.Asset asset : catalog.entries()) {
-            String questionId = "asset_" + asset.id();
-            assetQuestions.put(questionId, asset.id());
-            questions.put(questionId, assetQuestion(asset));
-        }
-        Map<String, Object> request = Map.of(
-                "state", Map.of("problem", problemText, "confirmedSpecification", specificationContext),
-                "model", properties.model(),
-                "questions", questions);
-        try {
-            JsonNode response = client.post().uri("/systemone")
-                    .header("Authorization", "Bearer " + properties.apiKey())
-                    .contentType(MediaType.APPLICATION_JSON).body(request).retrieve().body(JsonNode.class);
-            if (response == null) throw new IllegalStateException("JEV returned no asset response.");
-            JsonNode answers = response.path("answers");
-            var candidates = new ArrayList<AssetRoutingDecision.Candidate>();
-            for (var entry : assetQuestions.entrySet()) {
-                var asset = choice(answers.path(entry.getKey()), Set.of("EXACT", "SUBSTITUTE", "IRRELEVANT"));
-                if (!"IRRELEVANT".equals(asset.value())) {
-                    candidates.add(new AssetRoutingDecision.Candidate(entry.getValue(), asset.value(), asset.confidence()));
-                }
-            }
-            return new AssetRoutingDecision(catalog.checksum(), candidates);
-        } catch (EmbeddingUnavailableException failure) {
-            throw failure;
-        } catch (RuntimeException failure) {
-            throw new EmbeddingUnavailableException("JEV asset routing request failed: " + failure.getMessage());
-        }
-    }
-
-    private Map<String, Object> assetQuestion(SvgAssetCatalog.Asset asset) {
-        return Map.of(
-                "type", "choice",
-                "instructions", Map.of(
-                        "question", "Evaluate whether this catalog SVG can depict a physical object in the confirmed specification. "
-                                + "Judge its actual appearance and named object, not the physics topic. Mark EXACT only for a faithful depiction; "
-                                + "mark SUBSTITUTE when it can serve as an explicitly reviewable visual replacement; otherwise mark IRRELEVANT. "
-                                + "Do not infer appearance or add apparatus.",
-                        "asset", Map.of("label", asset.label(), "description", asset.description(), "kind", asset.kind())),
-                "criteria", Map.of(
-                        "EXACT", "Faithfully depicts the described object.",
-                        "SUBSTITUTE", "Can be used as an explicitly reviewed symbolic representation.",
-                        "IRRELEVANT", "Does not represent an object in the confirmed specification."));
     }
 
     private Choice choice(JsonNode answer, Set<String> options) {

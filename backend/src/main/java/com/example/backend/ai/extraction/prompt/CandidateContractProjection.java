@@ -1,7 +1,6 @@
 package com.example.backend.ai.extraction.prompt;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.example.backend.simulation.assets.VisualTargets;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -29,11 +28,19 @@ public record CandidateContractProjection(
         List<String> endConditionCapabilities,
         List<EntityTypeProjection> entityTypes,
         BigDecimal executionDurationSeconds,
-        int rendererActorCapacity) {
+        JsonNode capabilities) {
 
     private static final Set<String> CONSTRAINT_FIELDS = Set.of(
             "positive", "nonNegative", "integer", "sameUnitAs",
             "min", "max", "minimum", "maximum", "minInclusive", "maxInclusive");
+    private static final String REQUIRED_QUANTITIES = "requiredQuantities";
+    private static final String OPTIONAL_QUANTITIES = "optionalQuantities";
+    private static final String RELATION_TYPES = "relationTypes";
+    private static final String END_CONDITION_CAPABILITIES = "endConditionCapabilities";
+    private static final String END_CONDITION = "endCondition";
+    private static final String EXECUTION = "execution";
+    private static final String DURATION_SECONDS = "durationSeconds";
+    private static final String TYPES = "types";
 
     public CandidateContractProjection {
         schemaId = required(schemaId, "schemaId");
@@ -41,19 +48,15 @@ public record CandidateContractProjection(
         topic = required(topic, "topic");
         name = required(name, "name");
         modelId = required(modelId, "modelId");
-        requiredQuantities = List.copyOf(Objects.requireNonNull(requiredQuantities, "requiredQuantities"));
-        optionalQuantities = List.copyOf(Objects.requireNonNull(optionalQuantities, "optionalQuantities"));
-        relationTypes = List.copyOf(Objects.requireNonNull(relationTypes, "relationTypes"));
+        requiredQuantities = List.copyOf(Objects.requireNonNull(requiredQuantities, REQUIRED_QUANTITIES));
+        optionalQuantities = List.copyOf(Objects.requireNonNull(optionalQuantities, OPTIONAL_QUANTITIES));
+        relationTypes = List.copyOf(Objects.requireNonNull(relationTypes, RELATION_TYPES));
         endConditionCapabilities = List.copyOf(Objects.requireNonNull(endConditionCapabilities,
-                "endConditionCapabilities"));
+                END_CONDITION_CAPABILITIES));
         entityTypes = List.copyOf(Objects.requireNonNull(entityTypes, "entityTypes"));
-        if (rendererActorCapacity < 0) throw new IllegalArgumentException("Renderer actor capacity cannot be negative.");
         Set<String> entityNames = new LinkedHashSet<>();
         for (EntityTypeProjection entity : entityTypes) {
             if (!entityNames.add(entity.type())) throw new IllegalArgumentException("Duplicate entity type.");
-        }
-        if (requiredQuantities.isEmpty() && optionalQuantities.isEmpty() && entityTypes.isEmpty()) {
-            throw new IllegalArgumentException("Candidate contract must declare at least one quantity.");
         }
     }
 
@@ -68,45 +71,67 @@ public record CandidateContractProjection(
         }
         String modelId = text(definition.get("model"), "model");
         Map<String, List<String>> symbolsByKey = adjustableSymbols(definition.path("adjustableParameters"));
-        List<QuantityProjection> required = quantities(definition.get("requiredQuantities"),
-                "requiredQuantities", symbolsByKey);
-        List<QuantityProjection> optional = quantities(definition.get("optionalQuantities"),
-                "optionalQuantities", symbolsByKey);
+        List<QuantityProjection> required = quantities(definition.get(REQUIRED_QUANTITIES),
+                REQUIRED_QUANTITIES, symbolsByKey);
+        List<QuantityProjection> optional = quantities(definition.get(OPTIONAL_QUANTITIES),
+                OPTIONAL_QUANTITIES, symbolsByKey);
         List<EntityTypeProjection> entities = entityTypes(definition, symbolsByKey);
-        int actorCapacity = (int) VisualTargets.read(definition.path("visualization")).stream()
-                .filter(target -> "actor".equals(target.kind())).count();
-        if (required.isEmpty() && optional.isEmpty() && entities.isEmpty()) {
-            throw new IllegalArgumentException("Candidate contract must declare at least one quantity or entity type.");
-        }
         return new CandidateContractProjection(schemaId, schemaVersion, topic, name, modelId, required, optional,
                 declaredRelationTypes(definition), declaredEndConditionCapabilities(definition),
                 entities,
-                definition.path("execution").path("durationSeconds").isNumber()
-                        ? definition.path("execution").path("durationSeconds").decimalValue() : null,
-                actorCapacity);
+                duration(definition),
+                capabilityContext(definition));
+    }
+
+    private static JsonNode capabilityContext(JsonNode definition) {
+        // Keep the pack's full data contract. New pack fields must reach the LLM
+        // without requiring an Understanding Engine code change.
+        return definition.deepCopy();
+    }
+
+    private static BigDecimal duration(JsonNode definition) {
+        JsonNode duration = definition.path(EXECUTION).path(DURATION_SECONDS);
+        return duration.isNumber() ? duration.decimalValue() : null;
     }
 
     private static List<EntityTypeProjection> entityTypes(JsonNode definition,
             Map<String, List<String>> symbolsByKey) {
-        JsonNode contract = definition.path("entityContract");
-        JsonNode nodes = contract.path("types");
-        if (!nodes.isArray()) nodes = definition.path("entityTypes");
+        JsonNode nodes = entityTypeNodes(definition);
         if (nodes.isMissingNode() || nodes.isNull()) return List.of();
         if (!nodes.isArray()) throw new IllegalArgumentException("Candidate entityContract.types must be an array.");
         List<EntityTypeProjection> result = new ArrayList<>();
+        boolean conceptual = "2.0".equals(definition.path("metaSchemaVersion").asText());
         for (JsonNode node : nodes) {
-            if (!node.isObject()) throw new IllegalArgumentException("Candidate entity type must be an object.");
-            String type = text(node.get("type"), "entity type");
-            int min = integer(node.has("min") ? node.get("min") : node.get("minCount"), 1, "entity min");
-            int max = integer(node.has("max") ? node.get("max") : node.get("maxCount"), min, "entity max");
-            if (min < 0 || max < min || max > 512) throw new IllegalArgumentException("Entity count bounds are invalid.");
-            List<QuantityProjection> required = quantities(node.get("requiredQuantities"),
-                    "entity requiredQuantities", symbolsByKey);
-            List<QuantityProjection> optional = quantities(node.get("optionalQuantities"),
-                    "entity optionalQuantities", symbolsByKey);
-            result.add(new EntityTypeProjection(type, min, max, required, optional));
+            result.add(entityType(node, conceptual, symbolsByKey));
         }
         return List.copyOf(result);
+    }
+
+    private static JsonNode entityTypeNodes(JsonNode definition) {
+        JsonNode nodes = definition.path("objectTypes");
+        if (nodes.isArray()) return nodes;
+        nodes = definition.path("entityContract").path(TYPES);
+        return nodes.isArray() ? nodes : definition.path("entityTypes");
+    }
+
+    private static EntityTypeProjection entityType(JsonNode node, boolean conceptual,
+            Map<String, List<String>> symbolsByKey) {
+        if (!node.isObject()) throw new IllegalArgumentException("Candidate entity type must be an object.");
+        String type = text(node.get("type"), "entity type");
+        int min = integer(first(node, "min", "minCount"), conceptual ? 0 : 1, "entity min");
+        int max = integer(first(node, "max", "maxCount"), conceptual ? 512 : min, "entity max");
+        if (min < 0 || max < min || max > 512) {
+            throw new IllegalArgumentException("Entity count bounds are invalid.");
+        }
+        List<QuantityProjection> required = quantities(node.get(REQUIRED_QUANTITIES),
+                "entity " + REQUIRED_QUANTITIES, symbolsByKey);
+        List<QuantityProjection> optional = quantities(node.get(OPTIONAL_QUANTITIES),
+                "entity " + OPTIONAL_QUANTITIES, symbolsByKey);
+        return new EntityTypeProjection(type, min, max, required, optional);
+    }
+
+    private static JsonNode first(JsonNode node, String primary, String fallback) {
+        return node.has(primary) ? node.get(primary) : node.get(fallback);
     }
 
     private static int integer(JsonNode node, int defaultValue, String label) {
@@ -151,19 +176,22 @@ public record CandidateContractProjection(
         if (!parameters.isArray()) throw new IllegalArgumentException("Candidate adjustableParameters must be an array.");
         Map<String, List<String>> result = new TreeMap<>();
         for (JsonNode parameter : parameters) {
-            if (!parameter.isObject()) continue;
-            JsonNode keyNode = parameter.get("key");
-            JsonNode symbolNode = parameter.get("symbol");
-            if (keyNode == null || !keyNode.isTextual() || symbolNode == null || !symbolNode.isTextual()) continue;
-            String key = keyNode.asText().trim();
-            String symbol = symbolNode.asText().trim();
-            if (!key.isEmpty() && !symbol.isEmpty()) {
-                List<String> values = new ArrayList<>(result.getOrDefault(key, List.of()));
-                if (!values.contains(symbol)) values.add(symbol);
-                result.put(key, List.copyOf(values));
-            }
+            addAdjustableSymbol(result, parameter);
         }
         return Collections.unmodifiableMap(result);
+    }
+
+    private static void addAdjustableSymbol(Map<String, List<String>> destination, JsonNode parameter) {
+        if (!parameter.isObject()) return;
+        JsonNode keyNode = parameter.get("key");
+        JsonNode symbolNode = parameter.get("symbol");
+        if (keyNode == null || !keyNode.isTextual() || symbolNode == null || !symbolNode.isTextual()) return;
+        String key = keyNode.asText().trim();
+        String symbol = symbolNode.asText().trim();
+        if (key.isEmpty() || symbol.isEmpty()) return;
+        List<String> values = new ArrayList<>(destination.getOrDefault(key, List.of()));
+        if (!values.contains(symbol)) values.add(symbol);
+        destination.put(key, List.copyOf(values));
     }
 
     private static Map<String, Object> constraints(JsonNode quantity) {
@@ -193,14 +221,23 @@ public record CandidateContractProjection(
 
     private static List<String> declaredRelationTypes(JsonNode definition) {
         LinkedHashSet<String> result = new LinkedHashSet<>();
-        addDeclaredStrings(result, definition.get("relationTypes"));
+        addDeclaredStrings(result, definition.get(RELATION_TYPES));
+        addRelationTypeObjects(result, definition.get(RELATION_TYPES));
         addRelationTypeFields(result, definition.path("relations"));
         addRelationTypeFields(result, definition.path("relationContract"));
-        JsonNode bindings = definition.path("execution").path("durationBindings");
+        JsonNode bindings = definition.path(EXECUTION).path("durationBindings");
         if (bindings.isArray()) {
-            for (JsonNode binding : bindings) addDeclaredStrings(result, binding.get("relationTypes"));
+            for (JsonNode binding : bindings) addDeclaredStrings(result, binding.get(RELATION_TYPES));
         }
         return List.copyOf(result);
+    }
+
+    private static void addRelationTypeObjects(Set<String> destination, JsonNode values) {
+        if (values == null || !values.isArray()) return;
+        for (JsonNode value : values) {
+            String type = value.path("type").asText("").trim();
+            if (!type.isBlank()) destination.add(type);
+        }
     }
 
     private static void addRelationTypeFields(Set<String> destination, JsonNode node) {
@@ -210,22 +247,28 @@ public record CandidateContractProjection(
             return;
         }
         if (node.isObject()) {
-            addDeclaredStrings(destination, node.get("relationTypes"));
+            addDeclaredStrings(destination, node.get(RELATION_TYPES));
             addDeclaredStrings(destination, node.get("allowedTypes"));
-            addDeclaredStrings(destination, node.get("types"));
+            addDeclaredStrings(destination, node.get(TYPES));
+            addRelationTypeObjects(destination, node.get(TYPES));
         }
     }
 
     public static List<String> declaredEndConditionCapabilities(JsonNode definition) {
         LinkedHashSet<String> result = new LinkedHashSet<>();
-        addEndCapabilities(result, definition.get("endConditionCapabilities"));
-        addEndCapabilities(result, definition.path("execution").get("endConditionCapabilities"));
-        addEndCapabilities(result, definition.path("endCondition").get("capabilities"));
-        addEndCapabilities(result, definition.path("endCondition").get("supportedTypes"));
+        boolean explicitlyDeclared = definition.has(END_CONDITION_CAPABILITIES)
+                || definition.path(EXECUTION).has(END_CONDITION_CAPABILITIES)
+                || definition.path(END_CONDITION).has("capabilities")
+                || definition.path(END_CONDITION).has("supportedTypes")
+                || definition.has("endConditions");
+        addEndCapabilities(result, definition.get(END_CONDITION_CAPABILITIES));
+        addEndCapabilities(result, definition.path(EXECUTION).get(END_CONDITION_CAPABILITIES));
+        addEndCapabilities(result, definition.path(END_CONDITION).get("capabilities"));
+        addEndCapabilities(result, definition.path(END_CONDITION).get("supportedTypes"));
         JsonNode declared = definition.get("endConditions");
         if (declared != null && declared.isArray()) addEndCapabilities(result, declared);
-        JsonNode duration = definition.path("execution").path("durationSeconds");
-        if (result.isEmpty() && duration.isNumber() && Double.isFinite(duration.asDouble())
+        JsonNode duration = definition.path(EXECUTION).path(DURATION_SECONDS);
+        if (!explicitlyDeclared && result.isEmpty() && duration.isNumber() && Double.isFinite(duration.asDouble())
                 && duration.asDouble() > 0.0) {
             result.add("time_limit");
         }
@@ -307,8 +350,8 @@ public record CandidateContractProjection(
             if (minCount < 0 || maxCount < minCount || maxCount > 512) {
                 throw new IllegalArgumentException("Entity count bounds are invalid.");
             }
-            requiredQuantities = List.copyOf(Objects.requireNonNull(requiredQuantities, "requiredQuantities"));
-            optionalQuantities = List.copyOf(Objects.requireNonNull(optionalQuantities, "optionalQuantities"));
+            requiredQuantities = List.copyOf(Objects.requireNonNull(requiredQuantities, REQUIRED_QUANTITIES));
+            optionalQuantities = List.copyOf(Objects.requireNonNull(optionalQuantities, OPTIONAL_QUANTITIES));
         }
 
         public List<QuantityProjection> allQuantities() {

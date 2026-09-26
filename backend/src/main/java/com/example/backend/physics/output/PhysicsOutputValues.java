@@ -8,7 +8,6 @@ final class PhysicsOutputValues {
     private PhysicsOutputValues() { }
 
     static Optional<String> validateUnit(Optional<String> unit) {
-        if (unit == null) throw new IllegalArgumentException("Output unit optional is required");
         unit.ifPresent(value -> {
             if (value.isBlank()) throw new IllegalArgumentException("Output unit cannot be blank");
         });

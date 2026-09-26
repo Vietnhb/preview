@@ -1,0 +1,386 @@
+{
+  "schemaId": "adaptive_modern_physics",
+  "model": "matter_js",
+  "name": "Modern Physics Concept Capability",
+  "topic": "MODERN_PHYSICS",
+  "version": "2.0",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for modern physics. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "photon",
+        "label": "photon",
+        "description": "Quantum of light with frequency-dependent energy."
+      },
+      {
+        "type": "electron",
+        "label": "electron",
+        "description": "Particle absorbing or receiving energy."
+      },
+      {
+        "type": "material",
+        "label": "vật liệu",
+        "description": "Material with a stated work function."
+      },
+      {
+        "type": "nucleus",
+        "label": "hạt nhân",
+        "description": "Population under a mean decay model."
+      },
+      {
+        "type": "detector",
+        "label": "bộ dò",
+        "description": "Device observing a declared signal."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "absorbed_by",
+        "label": "được hấp thụ bởi",
+        "description": "Photon absorbed by material or particle.",
+        "subjectTypes": [
+          "photon"
+        ],
+        "objectTypes": [
+          "material",
+          "electron"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material",
+            "electron"
+          ]
+        }
+      },
+      {
+        "type": "emitted_from",
+        "label": "phát ra từ",
+        "description": "Particle or photon emitted from source.",
+        "subjectTypes": [
+          "photon",
+          "electron"
+        ],
+        "objectTypes": [
+          "material",
+          "nucleus"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material",
+            "nucleus"
+          ]
+        }
+      },
+      {
+        "type": "detected_by",
+        "label": "được dò bởi",
+        "description": "Object detected by a detector.",
+        "subjectTypes": [
+          "photon",
+          "electron"
+        ],
+        "objectTypes": [
+          "detector"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "detector"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "frequency",
+        "label": "tần số",
+        "description": "Photon frequency.",
+        "aliases": [
+          "f"
+        ],
+        "allowedUnits": [
+          "Hz"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon"
+          ]
+        }
+      },
+      {
+        "key": "wavelength",
+        "label": "bước sóng",
+        "description": "Wavelength in a stated medium.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon"
+          ]
+        }
+      },
+      {
+        "key": "photon_energy",
+        "label": "năng lượng photon",
+        "description": "Energy per photon.",
+        "aliases": [],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon"
+          ]
+        }
+      },
+      {
+        "key": "work_function",
+        "label": "công thoát",
+        "description": "Minimum release energy.",
+        "aliases": [],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "material"
+          ]
+        }
+      },
+      {
+        "key": "kinetic_energy",
+        "label": "động năng",
+        "description": "Electron kinetic energy.",
+        "aliases": [],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "electron"
+          ]
+        }
+      },
+      {
+        "key": "population",
+        "label": "số hạt trung bình",
+        "description": "Continuous expected population, not individual random decays.",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ]
+        }
+      },
+      {
+        "key": "decay_constant",
+        "label": "hằng số phân rã",
+        "description": "Mean decay rate.",
+        "aliases": [],
+        "allowedUnits": [
+          "1/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ]
+        }
+      },
+      {
+        "key": "half_life",
+        "label": "chu kỳ bán rã",
+        "description": "Time for mean population to halve.",
+        "aliases": [],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "Hz",
+        "dimension": "frequency"
+      },
+      {
+        "symbol": "m",
+        "dimension": "length"
+      },
+      {
+        "symbol": "J",
+        "dimension": "energy"
+      },
+      {
+        "symbol": "1",
+        "dimension": "dimensionless"
+      },
+      {
+        "symbol": "1/s",
+        "dimension": "rate"
+      },
+      {
+        "symbol": "s",
+        "dimension": "time"
+      }
+    ],
+    "laws": [
+      {
+        "id": "planck_energy",
+        "name": "Năng lượng photon",
+        "inputs": [
+          "frequency"
+        ],
+        "outputs": [
+          "photon_energy"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon"
+          ],
+          "quantities": [
+            "frequency",
+            "photon_energy"
+          ]
+        },
+        "assumptions": [
+          "Planck constant has an accepted source or value."
+        ],
+        "description": "Photon energy from frequency."
+      },
+      {
+        "id": "photoelectric",
+        "name": "Hiệu ứng quang điện",
+        "inputs": [
+          "frequency",
+          "work_function"
+        ],
+        "outputs": [
+          "kinetic_energy"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ],
+          "quantities": [
+            "frequency",
+            "work_function",
+            "kinetic_energy"
+          ]
+        },
+        "assumptions": [
+          "Photon energy reaches emission threshold.",
+          "Other losses are neglected only when accepted."
+        ],
+        "description": "Basic photoelectric energy balance."
+      },
+      {
+        "id": "mean_decay",
+        "name": "Phân rã trung bình",
+        "inputs": [
+          "decay_constant",
+          "population"
+        ],
+        "outputs": [
+          "population"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ],
+          "quantities": [
+            "decay_constant",
+            "population"
+          ]
+        },
+        "assumptions": [
+          "Continuous mean model, not single stochastic event."
+        ],
+        "description": "Exponential mean population decay."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "physical_constants",
+        "description": "Physical constants need a trusted source or explicit user acceptance; instance measurements are never seeded.",
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "stochastic_limit",
+        "description": "Distinguish individual random decay events from population averages.",
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "emission_threshold",
+        "description": "If photon energy is below threshold, state the limit rather than fabricate emitted electrons.",
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material"
+          ],
+          "relationTypes": [
+            "absorbed_by"
+          ],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "AI-authored interactive visual models of high-school modern physics, including quantum, nuclear, and radiation processes.",
+      "limitations": [
+        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+    }
+  }
+}

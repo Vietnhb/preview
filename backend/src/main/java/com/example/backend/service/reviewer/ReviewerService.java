@@ -76,7 +76,7 @@ public class ReviewerService {
         }
         ambiguity.setClaimedBy(actor.getId());
         ambiguity.setClaimedAt(now);
-        ambiguity.setClaimExpiresAt(now.plusSeconds(30 * 60));
+        ambiguity.setClaimExpiresAt(now.plusSeconds(30L * 60L));
         return toResponse(ambiguity);
     }
 
@@ -111,7 +111,7 @@ public class ReviewerService {
         }
         ambiguity.setClaimedBy(actor.getId());
         ambiguity.setClaimedAt(now);
-        ambiguity.setClaimExpiresAt(now.plusSeconds(30 * 60));
+        ambiguity.setClaimExpiresAt(now.plusSeconds(30L * 60L));
         try {
             ambiguityResolutionApplier.applyAll(ambiguity.getSpecification(), java.util.Map.of(ambiguity.getCode(), request.answer().trim()));
         } catch (RuntimeException exception) {

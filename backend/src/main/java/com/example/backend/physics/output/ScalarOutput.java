@@ -1,6 +1,5 @@
 package com.example.backend.physics.output;
 
-import java.util.Objects;
 import java.util.Optional;
 
 public record ScalarOutput(String key, Optional<String> unit, double value) implements PhysicsOutput {

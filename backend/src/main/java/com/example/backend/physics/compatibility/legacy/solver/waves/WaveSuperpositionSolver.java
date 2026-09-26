@@ -45,7 +45,7 @@ public class WaveSuperpositionSolver implements PhysicsSolver {
             displacement.add(probe.displacement()); velocity.add(probe.velocity()); acceleration.add(probe.acceleration());
         }
         double dx = (parameters.domainEnd() - parameters.domainStart()) / (parameters.spatialSamples() - 1d);
-        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.TYPE, 1,
+        ScalarField field = new ScalarField(ScalarField.CONTRACT_VERSION, ScalarField.SCALAR_FIELD_TYPE, 1,
                 List.of(new ScalarField.Axis("x", "m", x)), List.of(time.size(), x.size()), time, rows,
                 "m", "s", new ScalarField.Sampling(dx, stepSeconds), "linear", "open;superposition;components=2;direction=+x");
         Map<String, List<Double>> values = new LinkedHashMap<>();

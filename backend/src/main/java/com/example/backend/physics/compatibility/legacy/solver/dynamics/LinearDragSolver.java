@@ -21,10 +21,13 @@ public class LinearDragSolver implements PhysicsSolver {
             throw new IllegalArgumentException("Unsupported drag model: " + PhysicsValues.model(specification));
         }
         LinearDragParameters p = LinearDragParameters.from(specification, overrides);
-        if (!(durationSeconds > 0) || !(stepSeconds > 0)) throw new IllegalArgumentException("Duration and step must be positive");
-        int points = Math.min(16_384, Math.max(1, (int) Math.ceil(durationSeconds / stepSeconds)));
-        List<Double> time = new ArrayList<>(points + 1), position = new ArrayList<>(points + 1);
-        List<Double> velocity = new ArrayList<>(points + 1), acceleration = new ArrayList<>(points + 1), drag = new ArrayList<>(points + 1);
+        if (durationSeconds <= 0 || stepSeconds <= 0) throw new IllegalArgumentException("Duration and step must be positive");
+        int points = Math.clamp((int) Math.ceil(durationSeconds / stepSeconds), 1, 16_384);
+        List<Double> time = new ArrayList<>(points + 1);
+        List<Double> position = new ArrayList<>(points + 1);
+        List<Double> velocity = new ArrayList<>(points + 1);
+        List<Double> acceleration = new ArrayList<>(points + 1);
+        List<Double> drag = new ArrayList<>(points + 1);
         for (int i = 0; i <= points; i++) {
             double t = Math.min(durationSeconds, i * stepSeconds);
             LinearDragParameters.State state = p.stateAt(t);

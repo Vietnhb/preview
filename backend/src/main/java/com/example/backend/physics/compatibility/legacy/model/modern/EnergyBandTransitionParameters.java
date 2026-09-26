@@ -13,7 +13,7 @@ public record EnergyBandTransitionParameters(double valenceBandEnergy, double co
         double valence = PhysicsValues.require(specification, overrides, "valence_band_energy");
         double conduction = PhysicsValues.require(specification, overrides, "conduction_band_energy");
         double frequency = PhysicsValues.require(specification, overrides, "photon_frequency");
-        if (!(conduction > valence) || !(frequency > 0)) {
+        if (conduction <= valence || frequency <= 0) {
             throw new IllegalArgumentException("Band energies and photon frequency are invalid");
         }
         return new EnergyBandTransitionParameters(valence, conduction, frequency);

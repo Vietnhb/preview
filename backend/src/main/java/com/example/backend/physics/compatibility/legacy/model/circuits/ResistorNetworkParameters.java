@@ -11,7 +11,7 @@ public record ResistorNetworkParameters(double voltage, double resistance1, doub
         double voltage = PhysicsValues.require(specification, overrides, "voltage");
         double r1 = PhysicsValues.require(specification, overrides, "resistance_1");
         double r2 = PhysicsValues.require(specification, overrides, "resistance_2");
-        if (!Double.isFinite(voltage) || !(r1 > 0) || !(r2 > 0))
+        if (!Double.isFinite(voltage) || r1 <= 0 || r2 <= 0)
             throw new IllegalArgumentException("Voltage finite and both resistances positive required");
         return new ResistorNetworkParameters(voltage, r1, r2);
     }

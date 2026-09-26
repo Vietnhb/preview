@@ -1,45 +1,30 @@
 # PhysLive documentation map
 
-This directory keeps only documents that are needed to complete and operate the
-production backend work. Historical checkpoint reports are intentionally not
-kept here; Git history is the archive for superseded documentation.
+## Current architecture
 
-## Production status
+- `implementation/simulation-creation-flow.md` describes routing, confirmation,
+  generation, sandbox execution, and local controls.
+- [Rebuild report](implementation/matter-rebuild-report.md) records the implemented
+  flow, real provider/runtime evidence, deleted files, and observed limitations.
+- `implementation/schema-catalog-source-modules.md` documents pack sources,
+  catalog generation, and the legacy replay archive.
 
-- `implementation/backend-schema-routing-production-report.md` is the single
-  implementation status report and evidence ledger for the production prompt.
-- `curriculum/official-program-gap-audit.md` is the single human-readable
-  curriculum coverage report. It distinguishes internal catalog coverage from
-  coverage of the official Vietnamese high-school physics program.
+## Operations
 
-## Operational runbooks
+- `implementation/fresh-database-bootstrap.md` applies only to a new, empty
+  database. It is not a repair procedure for a database with existing data.
 
-- `implementation/fresh-database-bootstrap.md` documents the verified empty
-  database bootstrap sequence and its limitation.
-- `implementation/schema-catalog-source-modules.md` documents catalog source
-  generation, drift checks, and historical-version handling.
+## Curriculum and physics evidence
 
-## Architecture and academic evidence
+- `curriculum/coverage.csv`, `registry-ids.json`, and `source-catalog.json` are
+  the curriculum audit inputs.
+- `curriculum/official-program-gap-audit.md` reports the current source and
+  coverage gaps.
+- `physics/formula-index.md`, `physics/models/`, and
+  `physics/model-evidence-manifest.json` preserve model-level formula and test
+  evidence. They include legacy specialized models and are not the active topic
+  pack catalog; active packs are listed in
+  `backend/src/main/resources/schemas/catalog.json`.
 
-- `adr/` contains accepted architecture decisions. ADRs are retained even when
-  implementation evolves because they explain the contract and migration
-  choices.
-- `physics/formula-index.md` is the cross-model formula and scope index.
-- `physics/models/` contains model-specific assumptions and reference evidence.
-
-## Machine-readable curriculum evidence
-
-- `curriculum/coverage.csv` is the coverage gate input.
-- `curriculum/registry-ids.json` and `curriculum/source-catalog.json` are inputs
-  used by the curriculum scripts.
-
-## Machine-readable physics evidence
-
-- `physics/model-evidence-manifest.json` is generated from the latest schema
-  catalog and records the six required evidence kinds for every active model.
-  Run `node scripts/check-physics-evidence-manifest.mjs --check` for the
-  structural gate and `--release` for the strict production gate.
-
-Do not add another checkpoint report for the same production effort. Update the
-single production report or curriculum audit above, or add an ADR/runbook when
-the document has a distinct long-lived purpose.
+Superseded implementation reports are omitted from the working documentation;
+Git history remains the archive for those snapshots.

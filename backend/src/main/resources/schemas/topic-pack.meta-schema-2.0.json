@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://physlive.local/schemas/topic-pack/2.0",
+  "title": "PhysLive high-school physics topic template",
+  "description": "Open conceptual domain vocabulary and declared physical/visual capabilities; no instance values, equations, executable code, or solver configuration.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metaSchemaVersion",
+    "description",
+    "objectTypes",
+    "relationTypes",
+    "quantityDefinitions",
+    "unitCatalog",
+    "laws",
+    "applicationRequirements",
+    "conceptVocabulary",
+    "simulationCapability",
+    "visualCapability",
+    "limitations"
+  ],
+  "properties": {
+    "metaSchemaVersion": { "const": "2.0" },
+    "model": { "const": "matter_js" },
+    "description": { "type": "string" },
+    "objectTypes": { "type": "array", "items": { "$ref": "#/$defs/objectType" } },
+    "relationTypes": { "type": "array", "items": { "$ref": "#/$defs/relationType" } },
+    "quantityDefinitions": { "type": "array", "items": { "$ref": "#/$defs/quantity" } },
+    "unitCatalog": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+    "laws": { "type": "array", "items": { "$ref": "#/$defs/law" } },
+    "applicationRequirements": { "type": "array", "items": { "$ref": "#/$defs/applicationRequirement" } },
+    "coreTypeRefs": { "type": "array", "items": { "type": "string" } },
+    "conceptVocabulary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["openWorld", "scope", "guidance"],
+      "properties": {
+        "openWorld": { "const": true },
+        "scope": { "const": "high_school_physics" },
+        "guidance": { "type": "string" }
+      }
+    },
+    "simulationCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "scope", "limitations"],
+      "properties": {
+        "mode": { "enum": ["matter_js", "generated_visual", "unsupported"] },
+        "runtimes": { "type": "array", "items": { "enum": ["matter_js", "generated_visual"] } },
+        "scope": { "type": "string" },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "visualCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "scope", "purpose", "interaction"],
+      "properties": {
+        "mode": { "const": "generated_scene" },
+        "scope": { "type": "string" },
+        "purpose": { "type": "string" },
+        "interaction": { "type": "string" }
+      }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "objectTypes": { "type": "array", "items": { "type": "string" } },
+        "relationTypes": { "type": "array", "items": { "type": "string" } },
+        "quantities": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "objectType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "label", "description"],
+      "properties": {
+        "type": { "type": "string" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "appliesTo": { "$ref": "#/$defs/applicability" }
+      }
+    },
+    "relationType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "label", "description", "subjectTypes", "objectTypes"],
+      "properties": {
+        "type": { "type": "string" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "subjectTypes": { "type": "array", "items": { "type": "string" } },
+        "objectTypes": { "type": "array", "items": { "type": "string" } },
+        "appliesTo": { "$ref": "#/$defs/applicability" }
+      }
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "description", "allowedUnits", "appliesTo"],
+      "properties": {
+        "key": { "type": "string" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "aliases": { "type": "array", "items": { "type": "string" } },
+        "symbol": { "type": "string" },
+        "symbols": { "type": "array", "items": { "type": "string" } },
+        "allowedUnits": { "type": "array", "items": { "type": "string" } },
+        "dimension": { "type": "string" },
+        "positive": { "type": "boolean" },
+        "nonNegative": { "type": "boolean" },
+        "integer": { "type": "boolean" },
+        "appliesTo": { "$ref": "#/$defs/applicability" }
+      }
+    },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["symbol", "dimension"],
+      "properties": {
+        "symbol": { "type": "string" },
+        "dimension": { "type": "string" }
+      }
+    },
+    "law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "description", "inputs", "outputs", "appliesTo", "assumptions"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "inputs": { "type": "array", "items": { "type": "string" } },
+        "outputs": { "type": "array", "items": { "type": "string" } },
+        "appliesTo": { "$ref": "#/$defs/applicability" },
+        "assumptions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "applicationRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "appliesTo"],
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "appliesTo": { "$ref": "#/$defs/applicability" }
+      }
+    }
+  }
+}

@@ -39,8 +39,11 @@ public class AdvancedOscillationReferenceSolver implements ReferenceSolver {
      */
     private ReferenceState independentStateAt(DampedForcedOscillationParameters p, double t) {
         if (!Double.isFinite(t) || t < 0) throw new IllegalArgumentException("Time must be finite and non-negative");
-        double m = p.mass(), k = p.springConstant(), c = p.dampingCoefficient();
-        double f0 = p.drivingAmplitude(), w = p.drivingFrequency();
+        double m = p.mass();
+        double k = p.springConstant();
+        double c = p.dampingCoefficient();
+        double f0 = p.drivingAmplitude();
+        double w = p.drivingFrequency();
         double w0 = Math.sqrt(k / m);
         double gamma = c / (2 * m);
         double denominator = Math.sqrt(Math.pow(w0 * w0 - w * w, 2) + Math.pow(2 * gamma * w, 2));
@@ -68,16 +71,20 @@ public class AdvancedOscillationReferenceSolver implements ReferenceSolver {
             double wd = Math.sqrt(w0 * w0 - gamma * gamma);
             double d = (velocityDifference + gamma * c0) / wd;
             double envelope = Math.exp(-gamma * t);
-            double cosine = Math.cos(wd * t), sine = Math.sin(wd * t);
+            double cosine = Math.cos(wd * t);
+            double sine = Math.sin(wd * t);
             h = envelope * (c0 * cosine + d * sine);
             hVelocity = envelope * ((d * wd - gamma * c0) * cosine
                     + (-c0 * wd - gamma * d) * sine);
             hAcceleration = -2 * gamma * hVelocity - w0 * w0 * h;
         } else {
             double root = Math.sqrt(gamma * gamma - w0 * w0);
-            double r1 = -gamma + root, r2 = -gamma - root;
-            double c1 = (velocityDifference - r2 * c0) / (r1 - r2), c2 = c0 - c1;
-            double e1 = Math.exp(r1 * t), e2 = Math.exp(r2 * t);
+            double r1 = -gamma + root;
+            double r2 = -gamma - root;
+            double c1 = (velocityDifference - r2 * c0) / (r1 - r2);
+            double c2 = c0 - c1;
+            double e1 = Math.exp(r1 * t);
+            double e2 = Math.exp(r2 * t);
             h = c1 * e1 + c2 * e2;
             hVelocity = r1 * c1 * e1 + r2 * c2 * e2;
             hAcceleration = -2 * gamma * hVelocity - w0 * w0 * h;

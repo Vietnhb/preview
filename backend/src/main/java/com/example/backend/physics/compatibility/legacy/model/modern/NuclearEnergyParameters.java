@@ -11,7 +11,7 @@ public record NuclearEnergyParameters(double massDefect, double reactionCount) {
     public static NuclearEnergyParameters from(JsonNode specification, Map<String, Double> overrides) {
         double dm = PhysicsValues.require(specification, overrides, "mass_defect");
         double count = PhysicsValues.optional(specification, overrides, 1.0, "reaction_count");
-        if (!(dm >= 0) || !(count > 0) || !Double.isFinite(dm)) {
+        if (dm < 0 || count <= 0 || !Double.isFinite(dm)) {
             throw new IllegalArgumentException("Mass defect must be non-negative and reaction count positive");
         }
         return new NuclearEnergyParameters(dm, count);

@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Matter sandbox browser check</title></head><body>
+<div id="root"></div>
+<script type="module">
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import MatterSandbox from '../src/matter-flow/MatterSandbox.tsx';
+import '../src/styles/matter-pipeline.css';
+const healthyCode = `const engine = Matter.Engine.create();
+engine.gravity.y = 0;
+const body = Matter.Bodies.circle(120, 120, 28, {friction:0, frictionAir:0, restitution:1});
+Matter.Composite.add(engine.world, body);
+Matter.Body.setVelocity(body, {x:params.speed,y:0});
+return engine;`;
+const failingCode = `const engine = Matter.Engine.create();
+const body = Matter.Bodies.circle(120, 120, 28);
+Matter.Composite.add(engine.world, body);
+const invalidVelocity = body.mass / 0;
+Matter.Body.setVelocity(body, {x: invalidVelocity, y: 0});
+return engine;`;
+const code = new URLSearchParams(location.search).has('fail') ? failingCode : healthyCode;
+function App() {
+  const [result, setResult] = React.useState('waiting');
+  return React.createElement('main', {style:{maxWidth:900,margin:'20px auto',fontFamily:'sans-serif'}},
+    React.createElement('h1', null, 'Matter sandbox browser check'),
+    React.createElement('p', {id:'validation-result'}, result),
+    React.createElement(MatterSandbox, {code, parameters:{speed:2},
+      simulationSpec:{externalForces:false,friction:false,conservativeInteractions:true},
+      onValidation:(value)=>setResult(value.status + ' ' + JSON.stringify(value.metrics) + ' ' + JSON.stringify(value.flags))}));
+}
+createRoot(document.getElementById('root')).render(React.createElement(App));
+</script></body></html>

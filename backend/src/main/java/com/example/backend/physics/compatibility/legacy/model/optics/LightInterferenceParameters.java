@@ -11,7 +11,7 @@ public record LightInterferenceParameters(double wavelength, double pathDifferen
         double wavelength = PhysicsValues.require(specification, overrides, "wavelength");
         double path = PhysicsValues.require(specification, overrides, "path_difference");
         double intensity = PhysicsValues.require(specification, overrides, "reference_intensity");
-        if (!(wavelength > 0) || !Double.isFinite(path) || intensity < 0) throw new IllegalArgumentException("Wavelength positive, path difference finite and intensity non-negative required");
+        if (wavelength <= 0 || !Double.isFinite(path) || intensity < 0) throw new IllegalArgumentException("Wavelength positive, path difference finite and intensity non-negative required");
         return new LightInterferenceParameters(wavelength, path, intensity);
     }
     public double phaseDifference() { return 2 * Math.PI * pathDifference / wavelength; }

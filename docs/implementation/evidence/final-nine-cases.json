@@ -1,0 +1,1609 @@
+[ {
+  "case" : "complete",
+  "input" : "On a horizontal frictionless surface, two circular pucks of 1 kg and radius 0.1 m\nstart at x = 0 m and x = 2 m. The first moves right at 2 m/s and the second is\nstationary. Their collision is perfectly elastic. Show the motion for 3 seconds.",
+  "sourceMode" : "TEXT",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "On a horizontal frictionless surface, two circular pucks of 1 kg and radius 0.1 m\nstart at x = 0 m and x = 2 m. The first moves right at 2 m/s and the second is\nstationary. Their collision is perfectly elastic. Show the motion for 3 seconds.",
+  "understandingStage" : "EXPLAIN",
+  "question" : null,
+  "explanation" : "Hai vật tròn (pucks) khối lượng 1 kg, bán kính 0.1 m nằm trên mặt phẳng ngang không ma sát. Vật thứ nhất ở x=0 m có vận tốc ban đầu 2 m/s sang phải, vật thứ hai ở x=2 m đứng yên. Vì va chạm hoàn toàn đàn hồi (hệ số phục hồi = 1) và khối lượng bằng nhau, sau va chạm chúng hoán đổi vận tốc: vật thứ nhất dừng lại, vật thứ hai di chuyển sang phải với 2 m/s. Động học được mô phỏng trong 3 s bằng luật II Newton và bảo toàn động lượng, năng lượng.",
+  "schemaId" : "adaptive_dynamics",
+  "parameters" : [ {
+    "name" : "gravity_y",
+    "value" : 0.0,
+    "unit" : "m/s^2",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "Gravity · y"
+  }, {
+    "name" : "body0_mass",
+    "value" : 1.0,
+    "unit" : "kg",
+    "min" : 0.1,
+    "max" : 5.0,
+    "label" : "vật [puck0] · mass"
+  }, {
+    "name" : "body0_vx",
+    "value" : 2.0,
+    "unit" : "m/s",
+    "min" : -2.0,
+    "max" : 6.0,
+    "label" : "vật [puck0] · vx"
+  }, {
+    "name" : "body0_vy",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "vật [puck0] · vy"
+  }, {
+    "name" : "body0_radius",
+    "value" : 0.1,
+    "unit" : "m",
+    "min" : 0.01,
+    "max" : 0.5,
+    "label" : "vật [puck0] · radius"
+  }, {
+    "name" : "body0_restitution",
+    "value" : 1.0,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "vật [puck0] · restitution"
+  }, {
+    "name" : "body1_mass",
+    "value" : 1.0,
+    "unit" : "kg",
+    "min" : 0.1,
+    "max" : 5.0,
+    "label" : "vật [puck1] · mass"
+  }, {
+    "name" : "body1_x",
+    "value" : 2.0,
+    "unit" : "m",
+    "min" : -2.0,
+    "max" : 6.0,
+    "label" : "vật [puck1] · x"
+  }, {
+    "name" : "body1_vx",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "vật [puck1] · vx"
+  }, {
+    "name" : "body1_vy",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "vật [puck1] · vy"
+  }, {
+    "name" : "body1_radius",
+    "value" : 0.1,
+    "unit" : "m",
+    "min" : 0.01,
+    "max" : 0.5,
+    "label" : "vật [puck1] · radius"
+  }, {
+    "name" : "body1_restitution",
+    "value" : 1.0,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "vật [puck1] · restitution"
+  } ],
+  "defaults" : [ "Assumed coefficient of restitution = 1 (perfectly elastic)", "Assumed no external forces", "Assumed frictionless surface" ],
+  "simulationStage" : "SIMULATION",
+  "simulationExplanation" : "Hai vật tròn (pucks) khối lượng 1 kg, bán kính 0.1 m nằm trên mặt phẳng ngang không ma sát. Vật thứ nhất ở x=0 m có vận tốc ban đầu 2 m/s sang phải, vật thứ hai ở x=2 m đứng yên. Vì va chạm hoàn toàn đàn hồi (hệ số phục hồi = 1) và khối lượng bằng nhau, sau va chạm chúng hoán đổi vận tốc: vật thứ nhất dừng lại, vật thứ hai di chuyển sang phải với 2 m/s. Động học được mô phỏng trong 3 s bằng luật II Newton và bảo toàn động lượng, năng lượng.",
+  "code" : "const engine = Matter.Engine.create();\nconst left = Math.min(-0.5, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius));\nconst right = Math.max(6.5, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius));\nconst top = Math.min(-0.5, (0.0) - (params.body0_radius), (0.0) - (params.body1_radius));\nconst bottom = Math.max(0.5, (0.0) + (params.body0_radius), (0.0) + (params.body1_radius));\nconst scale = Math.min((width - 96) / Math.max(0.1, right - left), (height - 96) / Math.max(0.1, bottom - top));\nconst centerX = (left + right) / 2;\nconst centerY = (top + bottom) / 2;\nengine.gravity.x = 0.0;\nengine.gravity.y = params.gravity_y;\nengine.gravity.scale = scale / 1000000;\nconst body0 = Matter.Bodies.circle((width / 2 + ((0.0) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body0_radius) * scale, { isStatic: false, restitution: params.body0_restitution, friction: 0.0, frictionAir: 0.0, label: \"vật\", plugin: { physliveId: \"puck0\" } });\nMatter.Body.setMass(body0, params.body0_mass);\nMatter.Body.setVelocity(body0, { x: (params.body0_vx) * scale / 60, y: (params.body0_vy) * scale / 60 });\nconst body1 = Matter.Bodies.circle((width / 2 + ((params.body1_x) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body1_radius) * scale, { isStatic: false, restitution: params.body1_restitution, friction: 0.0, frictionAir: 0.0, label: \"vật\", plugin: { physliveId: \"puck1\" } });\nMatter.Body.setMass(body1, params.body1_mass);\nMatter.Body.setVelocity(body1, { x: (params.body1_vx) * scale / 60, y: (params.body1_vy) * scale / 60 });\nMatter.Composite.add(engine.world, [body0, body1]);\nreturn engine;",
+  "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-0.5, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius));\nconst right = Math.max(6.5, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius));\nconst top = Math.min(-0.5, (0.0) - (params.body0_radius), (0.0) - (params.body1_radius));\nconst bottom = Ma",
+  "simulationSpec" : {
+    "runtimeKind" : "MATTER",
+    "externalForces" : false,
+    "friction" : false,
+    "conservativeInteractions" : true,
+    "physicalObjects" : [ "vật", "vật" ],
+    "interactions" : [ ],
+    "initialState" : "Puck 1 at x=0 m with v=2 m/s, puck 2 at x=2 m with v=0 m/s on a frictionless horizontal surface.",
+    "requiredObjects" : [ {
+      "sourceQuote" : "On a horizontal frictionless surface, two circular pucks of 1 kg and radius 0.1 m start at x = 0 m",
+      "label" : "vật",
+      "count" : 1,
+      "shape" : "circle"
+    }, {
+      "sourceQuote" : "and x = 2 m",
+      "label" : "vật",
+      "count" : 1,
+      "shape" : "circle"
+    } ],
+    "requiredConstraints" : [ ],
+    "spatialRelations" : [ {
+      "sourceQuote" : "start at x = 0 m and x = 2 m",
+      "subjectObjectIndex" : 0,
+      "referenceObjectIndex" : 1,
+      "axis" : "x",
+      "ordering" : "LESS_THAN"
+    } ],
+    "fixedQuantities" : [ {
+      "sourceQuote" : "two circular pucks of 1 kg",
+      "name" : "mass",
+      "valueSI" : 1,
+      "unitSI" : "kg",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "mass",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "two circular pucks of 1 kg",
+      "name" : "mass",
+      "valueSI" : 1,
+      "unitSI" : "kg",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "mass",
+      "bodyRequirementIndexes" : [ 1 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "The first moves right at 2 m/s",
+      "name" : "velocity",
+      "valueSI" : 2,
+      "unitSI" : "m/s",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "velocity",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "the second is stationary",
+      "name" : "velocity",
+      "valueSI" : 0,
+      "unitSI" : "m/s",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "velocity",
+      "bodyRequirementIndexes" : [ 1 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    } ],
+    "qualitativeValues" : [ ],
+    "inventoryWarnings" : [ "A source numeral may be missing from the fixed values: 0", "A source numeral may be missing from the fixed values: 0.1", "A source numeral may be missing from the fixed values: 3" ],
+    "durationSeconds" : 3.0,
+    "expectedContacts" : [ {
+      "bodyA" : "puck0",
+      "bodyB" : "puck1"
+    } ],
+    "plannedScene" : {
+      "units" : "SI",
+      "durationSeconds" : 3,
+      "gravity" : {
+        "x" : 0,
+        "y" : 0
+      },
+      "view" : {
+        "minX" : -0.5,
+        "maxX" : 6.5,
+        "minY" : -0.5,
+        "maxY" : 0.5
+      },
+      "bodies" : [ {
+        "id" : "puck0",
+        "label" : "vật",
+        "sourceObjectIndex" : 0,
+        "shape" : "circle",
+        "x" : 0,
+        "y" : 0,
+        "radius" : 0.1,
+        "width" : 0,
+        "height" : 0,
+        "mass" : 1,
+        "vx" : 2,
+        "vy" : 0,
+        "isStatic" : false,
+        "restitution" : 1,
+        "friction" : 0,
+        "frictionAir" : 0
+      }, {
+        "id" : "puck1",
+        "label" : "vật",
+        "sourceObjectIndex" : 1,
+        "shape" : "circle",
+        "x" : 2,
+        "y" : 0,
+        "radius" : 0.1,
+        "width" : 0,
+        "height" : 0,
+        "mass" : 1,
+        "vx" : 0,
+        "vy" : 0,
+        "isStatic" : false,
+        "restitution" : 1,
+        "friction" : 0,
+        "frictionAir" : 0
+      } ],
+      "constraints" : [ ],
+      "expectedContacts" : [ {
+        "bodyA" : "puck0",
+        "bodyB" : "puck1"
+      } ]
+    },
+    "sceneWarnings" : [ "Check 'The first moves right at 2 m/s' against the displayed scene; its value is not automatically verifiable.", "Check 'the second is stationary' against the displayed scene; its value is not automatically verifiable." ]
+  },
+  "validationStatus" : "OK",
+  "runtimeStdout" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-complete.jsonl",
+  "runtimeStderr" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-complete.stderr.txt",
+  "runtimeExitCode" : 0,
+  "runtimeReport" : {
+    "description" : "On a horizontal frictionless surface, two circular pucks of 1 kg and radius 0.1 m\nstart at x = 0 m and x = 2 m. The first moves right at 2 m/s and the second is\nstationary. Their collision is perfectly elastic. Show the motion for 3 seconds.",
+    "explanation" : "Hai vật tròn (pucks) khối lượng 1 kg, bán kính 0.1 m nằm trên mặt phẳng ngang không ma sát. Vật thứ nhất ở x=0 m có vận tốc ban đầu 2 m/s sang phải, vật thứ hai ở x=2 m đứng yên. Vì va chạm hoàn toàn đàn hồi (hệ số phục hồi = 1) và khối lượng bằng nhau, sau va chạm chúng hoán đổi vận tốc: vật thứ nhất dừng lại, vật thứ hai di chuyển sang phải với 2 m/s. Động học được mô phỏng trong 3 s bằng luật II Newton và bảo toàn động lượng, năng lượng.",
+    "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-0.5, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius));\nconst right = Math.max(6.5, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius));\nconst top = Math.",
+    "validation" : {
+      "status" : "OK",
+      "flags" : [ ],
+      "metrics" : {
+        "maxPositionDeviationPx" : 3.0745758289252763,
+        "maxSweptTravelToFeatureRatio" : 0.17095843573031305,
+        "expectedContactCount" : 1,
+        "observedExpectedContactCount" : 1,
+        "maxRelativeMomentumDrift" : 2.4178190314058967E-14,
+        "maxRelativeEnergyDrift" : 0.048696043999267885
+      }
+    }
+  },
+  "runtimeStatus" : "OK",
+  "recordedValidation" : {
+    "status" : "OK",
+    "flags" : [ ]
+  },
+  "recordedRuntimeMetrics" : {
+    "maxPositionDeviationPx" : 3.0745758289252763,
+    "maxSweptTravelToFeatureRatio" : 0.17095843573031305,
+    "expectedContactCount" : 1.0,
+    "observedExpectedContactCount" : 1.0,
+    "maxRelativeMomentumDrift" : 2.4178190314058967E-14,
+    "maxRelativeEnergyDrift" : 0.048696043999267885
+  }
+}, {
+  "case" : "clarify",
+  "input" : "Two 1 kg pucks are on a horizontal frictionless table. They interact for 3 seconds,\nbut the interaction itself is unspecified: they might collide or be connected.\nSimulate what happens.",
+  "sourceMode" : "TEXT",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "Two 1 kg pucks are on a horizontal frictionless table. They interact for 3 seconds,\nbut the interaction itself is unspecified: they might collide or be connected.\nSimulate what happens.",
+  "understandingStage" : "CLARIFY",
+  "question" : "Bạn muốn các pucks va chạm (đàn hồi, không đàn hồi) hay được nối bằng lò xo, hay một kiểu tương tác khác?",
+  "explanation" : null,
+  "schemaId" : "adaptive_dynamics",
+  "parameters" : [ {
+    "name" : "gravity_y",
+    "value" : 0.0,
+    "unit" : "m/s^2",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "Gravity · y"
+  }, {
+    "name" : "body0_mass",
+    "value" : 1.0,
+    "unit" : "kg",
+    "min" : 0.1,
+    "max" : 5.0,
+    "label" : "vật [puck1] · mass"
+  }, {
+    "name" : "body0_vx",
+    "value" : 2.0,
+    "unit" : "m/s",
+    "min" : -2.0,
+    "max" : 6.0,
+    "label" : "vật [puck1] · vx"
+  }, {
+    "name" : "body0_vy",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "vật [puck1] · vy"
+  }, {
+    "name" : "body0_radius",
+    "value" : 0.1,
+    "unit" : "m",
+    "min" : 0.01,
+    "max" : 0.5,
+    "label" : "vật [puck1] · radius"
+  }, {
+    "name" : "body0_restitution",
+    "value" : 1.0,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "vật [puck1] · restitution"
+  }, {
+    "name" : "body1_mass",
+    "value" : 1.0,
+    "unit" : "kg",
+    "min" : 0.1,
+    "max" : 5.0,
+    "label" : "vật [puck2] · mass"
+  }, {
+    "name" : "body1_x",
+    "value" : 4.0,
+    "unit" : "m",
+    "min" : -4.0,
+    "max" : 12.0,
+    "label" : "vật [puck2] · x"
+  }, {
+    "name" : "body1_vx",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "vật [puck2] · vx"
+  }, {
+    "name" : "body1_vy",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "vật [puck2] · vy"
+  }, {
+    "name" : "body1_radius",
+    "value" : 0.1,
+    "unit" : "m",
+    "min" : 0.01,
+    "max" : 0.5,
+    "label" : "vật [puck2] · radius"
+  }, {
+    "name" : "body1_restitution",
+    "value" : 1.0,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "vật [puck2] · restitution"
+  } ],
+  "defaults" : null,
+  "resolvedStage" : "EXPLAIN",
+  "resolvedQuestion" : null,
+  "resolvedExplanation" : "Hai vật (mỗi khối lượng 1 kg) trượt trên mặt bàn không ma sát. Khi va chạm đàn hồi, vì khối lượng bằng nhau, vận tốc được trao đổi: sau va chạm, vật thứ nhất dừng lại và vật thứ hai di chuyển sang phải với 2 m/s. Với vị trí ban đầu giả định (vật 1 ở x=0 m, vật 2 ở x=4 m) va chạm xảy ra khoảng t=2 s và kéo dài tới 3 s tổng thời gian mô phỏng. Sau va chạm, vật 2 tiếp tục di chuyển 2 m/s trong 1 s còn lại, trong khi vật 1 đứng yên.",
+  "resolvedDefaults" : [ "Giả định vị trí ban đầu: vật 1 tại x=0 m, vật 2 tại x=4 m (khoảng cách đủ để va chạm trong 3 s)." ],
+  "simulationStage" : "SIMULATION",
+  "simulationExplanation" : "Hai vật (mỗi khối lượng 1 kg) trượt trên mặt bàn không ma sát. Khi va chạm đàn hồi, vì khối lượng bằng nhau, vận tốc được trao đổi: sau va chạm, vật thứ nhất dừng lại và vật thứ hai di chuyển sang phải với 2 m/s. Với vị trí ban đầu giả định (vật 1 ở x=0 m, vật 2 ở x=4 m) va chạm xảy ra khoảng t=2 s và kéo dài tới 3 s tổng thời gian mô phỏng. Sau va chạm, vật 2 tiếp tục di chuyển 2 m/s trong 1 s còn lại, trong khi vật 1 đứng yên.",
+  "code" : "const engine = Matter.Engine.create();\nconst left = Math.min(-1.0, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius));\nconst right = Math.max(5.0, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius));\nconst top = Math.min(-1.0, (0.0) - (params.body0_radius), (0.0) - (params.body1_radius));\nconst bottom = Math.max(1.0, (0.0) + (params.body0_radius), (0.0) + (params.body1_radius));\nconst scale = Math.min((width - 96) / Math.max(0.1, right - left), (height - 96) / Math.max(0.1, bottom - top));\nconst centerX = (left + right) / 2;\nconst centerY = (top + bottom) / 2;\nengine.gravity.x = 0.0;\nengine.gravity.y = params.gravity_y;\nengine.gravity.scale = scale / 1000000;\nconst body0 = Matter.Bodies.circle((width / 2 + ((0.0) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body0_radius) * scale, { isStatic: false, restitution: params.body0_restitution, friction: 0.0, frictionAir: 0.0, label: \"vật\", plugin: { physliveId: \"puck1\" } });\nMatter.Body.setMass(body0, params.body0_mass);\nMatter.Body.setVelocity(body0, { x: (params.body0_vx) * scale / 60, y: (params.body0_vy) * scale / 60 });\nconst body1 = Matter.Bodies.circle((width / 2 + ((params.body1_x) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body1_radius) * scale, { isStatic: false, restitution: params.body1_restitution, friction: 0.0, frictionAir: 0.0, label: \"vật\", plugin: { physliveId: \"puck2\" } });\nMatter.Body.setMass(body1, params.body1_mass);\nMatter.Body.setVelocity(body1, { x: (params.body1_vx) * scale / 60, y: (params.body1_vy) * scale / 60 });\nMatter.Composite.add(engine.world, [body0, body1]);\nreturn engine;",
+  "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-1.0, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius));\nconst right = Math.max(5.0, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius));\nconst top = Math.min(-1.0, (0.0) - (params.body0_radius), (0.0) - (params.body1_radius));\nconst bottom = Ma",
+  "simulationSpec" : {
+    "runtimeKind" : "MATTER",
+    "externalForces" : false,
+    "friction" : false,
+    "conservativeInteractions" : true,
+    "physicalObjects" : [ "puck1", "puck2" ],
+    "interactions" : [ "elastic collision" ],
+    "initialState" : "puck1 velocity = 2 m/s (right), puck2 velocity = 0 m/s; positions as per defaults.",
+    "requiredObjects" : [ {
+      "sourceQuote" : "Two 1 kg pucks are on a horizontal frictionless table.",
+      "label" : "vật",
+      "count" : 1,
+      "shape" : "circle"
+    }, {
+      "sourceQuote" : "Two 1 kg pucks are on a horizontal frictionless table.",
+      "label" : "vật",
+      "count" : 1,
+      "shape" : "circle"
+    } ],
+    "requiredConstraints" : [ ],
+    "spatialRelations" : [ {
+      "sourceQuote" : "Two 1 kg pucks are on a horizontal frictionless table.",
+      "subjectObjectIndex" : 0,
+      "referenceObjectIndex" : 1,
+      "axis" : "x",
+      "ordering" : "LESS_THAN"
+    } ],
+    "fixedQuantities" : [ {
+      "sourceQuote" : "Two 1 kg pucks are on a horizontal frictionless table.",
+      "name" : "mass",
+      "valueSI" : 1,
+      "unitSI" : "kg",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "mass",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Two 1 kg pucks are on a horizontal frictionless table.",
+      "name" : "mass",
+      "valueSI" : 1,
+      "unitSI" : "kg",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "mass",
+      "bodyRequirementIndexes" : [ 1 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "The first puck moves right at 2 m/s",
+      "name" : "velocity",
+      "valueSI" : 2,
+      "unitSI" : "m/s",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "velocity",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "the second is stationary",
+      "name" : "velocity",
+      "valueSI" : 0,
+      "unitSI" : "m/s",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "velocity",
+      "bodyRequirementIndexes" : [ 1 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    } ],
+    "qualitativeValues" : [ ],
+    "inventoryWarnings" : [ "A source numeral may be missing from the fixed values: 3" ],
+    "durationSeconds" : 3.0,
+    "expectedContacts" : [ {
+      "bodyA" : "puck1",
+      "bodyB" : "puck2"
+    } ],
+    "plannedScene" : {
+      "units" : "SI",
+      "durationSeconds" : 3,
+      "gravity" : {
+        "x" : 0,
+        "y" : 0
+      },
+      "view" : {
+        "minX" : -1,
+        "maxX" : 5,
+        "minY" : -1,
+        "maxY" : 1
+      },
+      "bodies" : [ {
+        "id" : "puck1",
+        "label" : "vật",
+        "sourceObjectIndex" : 0,
+        "shape" : "circle",
+        "x" : 0,
+        "y" : 0,
+        "radius" : 0.1,
+        "width" : 0,
+        "height" : 0,
+        "mass" : 1,
+        "vx" : 2,
+        "vy" : 0,
+        "isStatic" : false,
+        "restitution" : 1,
+        "friction" : 0,
+        "frictionAir" : 0
+      }, {
+        "id" : "puck2",
+        "label" : "vật",
+        "sourceObjectIndex" : 1,
+        "shape" : "circle",
+        "x" : 4,
+        "y" : 0,
+        "radius" : 0.1,
+        "width" : 0,
+        "height" : 0,
+        "mass" : 1,
+        "vx" : 0,
+        "vy" : 0,
+        "isStatic" : false,
+        "restitution" : 1,
+        "friction" : 0,
+        "frictionAir" : 0
+      } ],
+      "constraints" : [ ],
+      "expectedContacts" : [ {
+        "bodyA" : "puck1",
+        "bodyB" : "puck2"
+      } ]
+    },
+    "sceneWarnings" : [ "Check 'The first puck moves right at 2 m/s' against the displayed scene; its value is not automatically verifiable.", "Check 'the second is stationary' against the displayed scene; its value is not automatically verifiable." ]
+  },
+  "validationStatus" : "OK",
+  "runtimeStdout" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-clarify.jsonl",
+  "runtimeStderr" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-clarify.stderr.txt",
+  "runtimeExitCode" : 0,
+  "runtimeReport" : {
+    "description" : "Two 1 kg pucks are on a horizontal frictionless table. They interact for 3 seconds,\nbut the interaction itself is unspecified: they might collide or be connected.\nSimulate what happens.",
+    "explanation" : "",
+    "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-1.0, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius));\nconst right = Math.max(5.0, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius));\nconst top = Math.",
+    "validation" : {
+      "status" : "OK",
+      "flags" : [ ],
+      "metrics" : {
+        "maxPositionDeviationPx" : 3.583441412931734,
+        "maxSweptTravelToFeatureRatio" : 0.1699355660978578,
+        "expectedContactCount" : 1,
+        "observedExpectedContactCount" : 1,
+        "maxRelativeMomentumDrift" : 3.552713678800493E-14,
+        "maxRelativeEnergyDrift" : 0.03756344318648859
+      }
+    }
+  },
+  "runtimeStatus" : "OK",
+  "recordedValidation" : {
+    "status" : "OK",
+    "flags" : [ ]
+  },
+  "recordedRuntimeMetrics" : {
+    "maxPositionDeviationPx" : 3.583441412931734,
+    "maxSweptTravelToFeatureRatio" : 0.1699355660978578,
+    "expectedContactCount" : 1.0,
+    "observedExpectedContactCount" : 1.0,
+    "maxRelativeMomentumDrift" : 3.552713678800493E-14,
+    "maxRelativeEnergyDrift" : 0.03756344318648859
+  }
+}, {
+  "case" : "circuit",
+  "input" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+  "sourceMode" : "TEXT",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+  "understandingStage" : "EXPLAIN",
+  "question" : null,
+  "explanation" : "The circuit consists of a voltage source (battery), a resistor, and a capacitor connected in series (RC circuit). The capacitor starts uncharged (0 V). When the switch is closed, the capacitor charges according to the RC‑charging law Vc(t)=Vb·(1‑e^{‑t/(R·C)}). The simulation will display the capacitor voltage versus time, showing the exponential rise toward the battery voltage. Assumed values (not given in the description) are a 5 V battery, a 1 kΩ resistor, and a 100 µF capacitor. These assumptions are marked as ASSUMPTION in the fixedQuantities list.",
+  "schemaId" : "adaptive_circuits",
+  "parameters" : [ {
+    "name" : "Vb",
+    "value" : 5.0,
+    "unit" : "V",
+    "min" : 1.0,
+    "max" : 12.0,
+    "label" : "Battery voltage (V)"
+  }, {
+    "name" : "R",
+    "value" : 1000.0,
+    "unit" : "Ω",
+    "min" : 100.0,
+    "max" : 100000.0,
+    "label" : "Resistance (Ω)"
+  }, {
+    "name" : "C",
+    "value" : 1.0E-4,
+    "unit" : "F",
+    "min" : 1.0E-6,
+    "max" : 0.001,
+    "label" : "Capacitance (F)"
+  } ],
+  "defaults" : [ "Assumed battery voltage = 5 V (ASSUMPTION)", "Assumed resistor value = 1 kΩ (ASSUMPTION)", "Assumed capacitor value = 100 µF (ASSUMPTION)" ],
+  "simulationStage" : "SIMULATION",
+  "simulationExplanation" : "The circuit consists of a voltage source (battery), a resistor, and a capacitor connected in series (RC circuit). The capacitor starts uncharged (0 V). When the switch is closed, the capacitor charges according to the RC‑charging law Vc(t)=Vb·(1‑e^{‑t/(R·C)}). The simulation will display the capacitor voltage versus time, showing the exponential rise toward the battery voltage. Assumed values (not given in the description) are a 5 V battery, a 1 kΩ resistor, and a 100 µF capacitor. These assumptions are marked as ASSUMPTION in the fixedQuantities list.",
+  "code" : null,
+  "codeExcerpt" : null,
+  "simulationSpec" : {
+    "runtimeKind" : "VISUAL",
+    "externalForces" : false,
+    "friction" : false,
+    "conservativeInteractions" : true,
+    "physicalObjects" : [ "voltage_source", "resistor", "capacitor", "node" ],
+    "interactions" : [ "connected_to", "connected_to", "connected_to" ],
+    "initialState" : "Capacitor voltage = 0 V at t = 0 s (uncharged).",
+    "requiredObjects" : [ {
+      "sourceQuote" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+      "label" : "voltage_source",
+      "count" : 1,
+      "shape" : "unspecified"
+    }, {
+      "sourceQuote" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+      "label" : "resistor",
+      "count" : 1,
+      "shape" : "unspecified"
+    }, {
+      "sourceQuote" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+      "label" : "capacitor",
+      "count" : 1,
+      "shape" : "unspecified"
+    }, {
+      "sourceQuote" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+      "label" : "node",
+      "count" : 2,
+      "shape" : "unspecified"
+    } ],
+    "requiredConstraints" : [ ],
+    "spatialRelations" : [ ],
+    "fixedQuantities" : [ ],
+    "qualitativeValues" : [ {
+      "sourceQuote" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+      "name" : "voltage",
+      "valueSI" : 5,
+      "unitSI" : "V",
+      "provenance" : "ASSUMPTION",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "DERIVED",
+      "bodyRequirementIndexes" : [ ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+      "name" : "resistance",
+      "valueSI" : 1000,
+      "unitSI" : "Ω",
+      "provenance" : "ASSUMPTION",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "DERIVED",
+      "bodyRequirementIndexes" : [ ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Simulate the voltage across a capacitor while an RC circuit charges from a battery.",
+      "name" : "capacitance",
+      "valueSI" : 1.0E-4,
+      "unitSI" : "F",
+      "provenance" : "ASSUMPTION",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "DERIVED",
+      "bodyRequirementIndexes" : [ ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    } ],
+    "inventoryWarnings" : [ ],
+    "visualProgram" : {
+      "init" : "const margin=32;const plotX=margin+200;const plotY=margin;const plotW=width-plotX-margin;const plotH=height-2*margin;const tau=params.R*params.C;return{t:0,Vc:0,Vb:params.Vb,tau:tau,prevX:plotX,prevY:plotY+plotH,plot:{x:plotX,y:plotY,w:plotW,h:plotH},margin:margin};",
+      "step" : "state.t+=dt;const Vb=params.Vb;const tau=params.R*params.C;state.tau=tau;state.Vb=Vb;const exp=Math.exp(-state.t/tau);state.Vc=Vb*(1-exp);if(state.Vc>Vb)state.Vc=Vb;",
+      "draw" : "const m=state.margin;const cx=m+50;const cy=height/2;paint.line(cx-40,cy-20,cx-40,cy+20,'#fff',2);paint.line(cx-30,cy-15,cx-30,cy+15,'#fff',2);paint.text(cx-35,cy-25,params.Vb.toFixed(1)+'V','#fff',12);paint.rect(cx-20,cy-10,40,20,'#fff');paint.line(cx+30,cy-15,cx+30,cy+15,'#fff',2);paint.line(cx+40,cy-15,cx+40,cy+15,'#fff',2);paint.line(cx-40,cy,cx-20,cy,'#fff',2);paint.line(cx+20,cy,cx+30,cy,'#fff',2);const p=state.plot;paint.line(p.x,p.y+p.h,p.x+p.w,p.y+p.h,'#fff',1);paint.line(p.x,p.y,p.x,p.y+p.h,'#fff',1);paint.text(p.x+p.w+5,p.y+p.h,'0 V','#fff',12);paint.text(p.x-20,p.y,params.Vb.toFixed(1)+' V','#fff',12);paint.text(p.x,p.y+p.h+15,'0 s','#fff',12);paint.text(p.x+p.w-30,p.y+p.h+15,state.t.toFixed(1)+' s','#fff',12);const x=p.x+(state.t/20)*p.w;const y=p.y+p.h-(state.Vc/params.Vb)*p.h;paint.line(state.prevX,state.prevY,x,y,'#0f0',2);paint.circle(x,y,4,'#ff0');state.prevX=x;state.prevY=y;"
+    },
+    "durationSeconds" : 20.0,
+    "sceneWarnings" : [ "This AI-generated visual model has not been independently checked against a physics solver. Review its values and behavior." ]
+  },
+  "validationStatus" : "UNVERIFIED",
+  "runtimeStdout" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-circuit.jsonl",
+  "runtimeStderr" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-circuit.stderr.txt",
+  "runtimeExitCode" : 0,
+  "runtimeReport" : {
+    "case" : "circuit",
+    "status" : "RUNTIME_OK",
+    "physics" : "UNVERIFIED",
+    "durationSeconds" : 20,
+    "maximumCommands" : 16,
+    "sampleLabels" : [ "5.0V", "0 V", "5.0 V", "0 s", "0.0 s" ],
+    "finalState" : {
+      "t" : 20.000000000000146,
+      "Vc" : 5,
+      "Vb" : 5,
+      "tau" : 0.1,
+      "prevX" : 928.0000000000051,
+      "prevY" : 32,
+      "plot" : {
+        "x" : 232,
+        "y" : 32,
+        "w" : 696,
+        "h" : 476
+      },
+      "margin" : 32,
+      "pointer" : {
+        "x" : 480,
+        "y" : 270,
+        "down" : false
+      }
+    }
+  },
+  "runtimeStatus" : "RUNTIME_OK",
+  "recordedValidation" : {
+    "status" : "UNVERIFIED",
+    "flags" : [ ]
+  },
+  "recordedRuntimeMetrics" : {
+    "durationSeconds" : 20.0,
+    "maximumCommands" : 16.0
+  }
+}, {
+  "case" : "outside-scope",
+  "input" : "Simulate how a shop's monthly sales change when it launches a social-media campaign.",
+  "sourceMode" : "TEXT",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "Simulate how a shop's monthly sales change when it launches a social-media campaign.",
+  "understandingStage" : "UNSUPPORTED",
+  "question" : null,
+  "explanation" : "The request concerns a shop's monthly sales and a social‑media campaign, which is outside the scope of high‑school physics topics supported by the available concept capabilities.",
+  "schemaId" : null,
+  "parameters" : null,
+  "defaults" : null
+}, {
+  "case" : "instability",
+  "input" : "On a frictionless horizontal surface, a circular 1 kg puck with radius 0.05 m starts at x = 0 m and\nmoves right at 10000 m/s toward a thin fixed wall at x = 1 m. The collision is\nperfectly elastic. Show the motion for 0.1 seconds.",
+  "sourceMode" : "TEXT",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "On a frictionless horizontal surface, a circular 1 kg puck with radius 0.05 m starts at x = 0 m and\nmoves right at 10000 m/s toward a thin fixed wall at x = 1 m. The collision is\nperfectly elastic. Show the motion for 0.1 seconds.",
+  "understandingStage" : "EXPLAIN",
+  "question" : null,
+  "explanation" : "Một vật tròn (puck) khối lượng 1 kg, bán kính 0.05 m nằm trên mặt phẳng ngang không ma sát. Ban đầu nó ở vị trí x = 0 m và di chuyển sang phải với vận tốc 10000 m/s. Ở x = 1 m có một bức tường mỏng cố định. Khi puck chạm tường, va chạm được giả định hoàn toàn đàn hồi, vì vậy vận tốc của puck đổi hướng nhưng giữ nguyên độ lớn (‑10000 m/s). Trong 0.1 s, puck di chuyển sang phải trong 0.0001 s, va chạm, rồi di chuyển sang trái trong phần thời gian còn lại. Không có lực ngoại lực nào (không có trọng lực trên mặt ngang), không có ma sát, và va chạm được coi là tương tác bảo toàn năng lượng.",
+  "schemaId" : "adaptive_dynamics",
+  "parameters" : [ {
+    "name" : "gravity_y",
+    "value" : 0.0,
+    "unit" : "m/s^2",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "Gravity · y"
+  }, {
+    "name" : "body0_mass",
+    "value" : 1.0,
+    "unit" : "kg",
+    "min" : 0.1,
+    "max" : 5.0,
+    "label" : "vật [puck] · mass"
+  }, {
+    "name" : "body0_vx",
+    "value" : 10000.0,
+    "unit" : "m/s",
+    "min" : -10000.0,
+    "max" : 30000.0,
+    "label" : "vật [puck] · vx"
+  }, {
+    "name" : "body0_vy",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "vật [puck] · vy"
+  }, {
+    "name" : "body0_radius",
+    "value" : 0.05,
+    "unit" : "m",
+    "min" : 0.005,
+    "max" : 0.25,
+    "label" : "vật [puck] · radius"
+  }, {
+    "name" : "body0_restitution",
+    "value" : 1.0,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "vật [puck] · restitution"
+  }, {
+    "name" : "body1_x",
+    "value" : 1.0,
+    "unit" : "m",
+    "min" : -1.0,
+    "max" : 3.0,
+    "label" : "bề mặt [wall] · x"
+  }, {
+    "name" : "body1_width",
+    "value" : 0.01,
+    "unit" : "m",
+    "min" : 0.001,
+    "max" : 0.05,
+    "label" : "bề mặt [wall] · width"
+  }, {
+    "name" : "body1_height",
+    "value" : 1.0,
+    "unit" : "m",
+    "min" : 0.1,
+    "max" : 5.0,
+    "label" : "bề mặt [wall] · height"
+  }, {
+    "name" : "body1_restitution",
+    "value" : 1.0,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "bề mặt [wall] · restitution"
+  } ],
+  "defaults" : [ ],
+  "simulationStage" : "SIMULATION",
+  "simulationExplanation" : "Một vật tròn (puck) khối lượng 1 kg, bán kính 0.05 m nằm trên mặt phẳng ngang không ma sát. Ban đầu nó ở vị trí x = 0 m và di chuyển sang phải với vận tốc 10000 m/s. Ở x = 1 m có một bức tường mỏng cố định. Khi puck chạm tường, va chạm được giả định hoàn toàn đàn hồi, vì vậy vận tốc của puck đổi hướng nhưng giữ nguyên độ lớn (‑10000 m/s). Trong 0.1 s, puck di chuyển sang phải trong 0.0001 s, va chạm, rồi di chuyển sang trái trong phần thời gian còn lại. Không có lực ngoại lực nào (không có trọng lực trên mặt ngang), không có ma sát, và va chạm được coi là tương tác bảo toàn năng lượng.",
+  "code" : "const engine = Matter.Engine.create();\nconst left = Math.min(-1000.0, (0.0) - (params.body0_radius), (params.body1_x) - ((params.body1_width) / 2));\nconst right = Math.max(2.0, (0.0) + (params.body0_radius), (params.body1_x) + ((params.body1_width) / 2));\nconst top = Math.min(-1.0, (0.0) - (params.body0_radius), (0.0) - ((params.body1_height) / 2));\nconst bottom = Math.max(1.0, (0.0) + (params.body0_radius), (0.0) + ((params.body1_height) / 2));\nconst scale = Math.min((width - 96) / Math.max(0.1, right - left), (height - 96) / Math.max(0.1, bottom - top));\nconst centerX = (left + right) / 2;\nconst centerY = (top + bottom) / 2;\nengine.gravity.x = 0.0;\nengine.gravity.y = params.gravity_y;\nengine.gravity.scale = scale / 1000000;\nconst body0 = Matter.Bodies.circle((width / 2 + ((0.0) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body0_radius) * scale, { isStatic: false, restitution: params.body0_restitution, friction: 0.0, frictionAir: 0.0, label: \"vật\", plugin: { physliveId: \"puck\" } });\nMatter.Body.setMass(body0, params.body0_mass);\nMatter.Body.setVelocity(body0, { x: (params.body0_vx) * scale / 60, y: (params.body0_vy) * scale / 60 });\nconst body1 = Matter.Bodies.rectangle((width / 2 + ((params.body1_x) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body1_width) * scale, (params.body1_height) * scale, { isStatic: true, restitution: params.body1_restitution, friction: 0.0, frictionAir: 0.0, label: \"bề mặt\", plugin: { physliveId: \"wall\" } });\nMatter.Composite.add(engine.world, [body0, body1]);\nreturn engine;",
+  "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-1000.0, (0.0) - (params.body0_radius), (params.body1_x) - ((params.body1_width) / 2));\nconst right = Math.max(2.0, (0.0) + (params.body0_radius), (params.body1_x) + ((params.body1_width) / 2));\nconst top = Math.min(-1.0, (0.0) - (params.body0_radius), (0.0) - ((params.body1_height) / 2))",
+  "simulationSpec" : {
+    "runtimeKind" : "MATTER",
+    "externalForces" : false,
+    "friction" : false,
+    "conservativeInteractions" : true,
+    "physicalObjects" : [ "puck", "wall" ],
+    "interactions" : [ "elastic_collision" ],
+    "initialState" : "puck tại x=0 m, vận tốc +10000 m/s; wall cố định tại x=1 m.",
+    "requiredObjects" : [ {
+      "sourceQuote" : "circular 1 kg puck with radius 0.05 m",
+      "label" : "vật",
+      "count" : 1,
+      "shape" : "circle"
+    }, {
+      "sourceQuote" : "thin fixed wall at x = 1 m",
+      "label" : "bề mặt",
+      "count" : 1,
+      "shape" : "unspecified"
+    } ],
+    "requiredConstraints" : [ ],
+    "spatialRelations" : [ ],
+    "fixedQuantities" : [ {
+      "sourceQuote" : "1 kg",
+      "name" : "mass",
+      "valueSI" : 1.0,
+      "unitSI" : "kg",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "mass",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "radius 0.05 m",
+      "name" : "radius",
+      "valueSI" : 0.05,
+      "unitSI" : "m",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "radius",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "x = 0 m",
+      "name" : "position",
+      "valueSI" : 0.0,
+      "unitSI" : "m",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "position",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "moves right at 10000 m/s",
+      "name" : "velocity",
+      "valueSI" : 10000.0,
+      "unitSI" : "m/s",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "velocity",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    } ],
+    "qualitativeValues" : [ ],
+    "inventoryWarnings" : [ "A source numeral may be missing from the fixed values: 0.1" ],
+    "durationSeconds" : 0.1,
+    "expectedContacts" : [ {
+      "bodyA" : "puck",
+      "bodyB" : "wall"
+    } ],
+    "plannedScene" : {
+      "units" : "SI",
+      "durationSeconds" : 0.1,
+      "gravity" : {
+        "x" : 0,
+        "y" : 0
+      },
+      "view" : {
+        "minX" : -1000,
+        "maxX" : 2,
+        "minY" : -1,
+        "maxY" : 1
+      },
+      "bodies" : [ {
+        "id" : "puck",
+        "label" : "vật",
+        "sourceObjectIndex" : 0,
+        "shape" : "circle",
+        "x" : 0,
+        "y" : 0,
+        "radius" : 0.05,
+        "width" : 0,
+        "height" : 0,
+        "mass" : 1,
+        "vx" : 10000,
+        "vy" : 0,
+        "isStatic" : false,
+        "restitution" : 1,
+        "friction" : 0,
+        "frictionAir" : 0
+      }, {
+        "id" : "wall",
+        "label" : "bề mặt",
+        "sourceObjectIndex" : 1,
+        "shape" : "rectangle",
+        "x" : 1,
+        "y" : 0,
+        "radius" : 0,
+        "width" : 0.01,
+        "height" : 1,
+        "mass" : 1000,
+        "vx" : 0,
+        "vy" : 0,
+        "isStatic" : true,
+        "restitution" : 1,
+        "friction" : 0,
+        "frictionAir" : 0
+      } ],
+      "constraints" : [ ],
+      "expectedContacts" : [ {
+        "bodyA" : "puck",
+        "bodyB" : "wall"
+      } ]
+    },
+    "sceneWarnings" : [ "Check 'x = 0 m' against the displayed scene; its value is not automatically verifiable.", "Check 'moves right at 10000 m/s' against the displayed scene; its value is not automatically verifiable." ]
+  },
+  "validationStatus" : "FLAGGED",
+  "runtimeStdout" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-instability.jsonl",
+  "runtimeStderr" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-instability.stderr.txt",
+  "runtimeExitCode" : 0,
+  "runtimeReport" : {
+    "description" : "On a frictionless horizontal surface, a circular 1 kg puck with radius 0.05 m starts at x = 0 m and\nmoves right at 10000 m/s toward a thin fixed wall at x = 1 m. The collision is\nperfectly elastic. Show the motion for 0.1 seconds.",
+    "explanation" : "Một vật tròn (puck) khối lượng 1 kg, bán kính 0.05 m nằm trên mặt phẳng ngang không ma sát. Ban đầu nó ở vị trí x = 0 m và di chuyển sang phải với vận tốc 10000 m/s. Ở x = 1 m có một bức tường mỏng cố định. Khi puck chạm tường, va chạm được giả định hoàn toàn đàn hồi, vì vậy vận tốc của puck đổi hướng nhưng giữ nguyên độ lớn (‑10000 m/s). Trong 0.1 s, puck di chuyển sang phải trong 0.0001 s, va chạm, rồi di chuyển sang trái trong phần thời gian còn lại. Không có lực ngoại lực nào (không có trọng lực trên mặt ngang), không có ma sát, và va chạm được coi là tương tác bảo toàn năng lượng.",
+    "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-1000.0, (0.0) - (params.body0_radius), (params.body1_x) - ((params.body1_width) / 2));\nconst right = Math.max(2.0, (0.0) + (params.body0_radius), (params.body1_x) + ((params.body1_width) / 2));\ncons",
+    "validation" : {
+      "status" : "FLAGGED",
+      "flags" : [ "A fast body may cross another body's collision feature in one physics step; contact may be missed.", "Expected contact between puck and wall was not observed within the requested duration." ],
+      "metrics" : {
+        "maxPositionDeviationPx" : 0,
+        "maxSweptTravelToFeatureRatio" : 143.71257485029935,
+        "expectedContactCount" : 1,
+        "observedExpectedContactCount" : 0
+      }
+    }
+  },
+  "runtimeStatus" : "FLAGGED",
+  "recordedValidation" : {
+    "status" : "FLAGGED",
+    "flags" : [ "A fast body may cross another body's collision feature in one physics step; contact may be missed.", "Expected contact between puck and wall was not observed within the requested duration." ]
+  },
+  "recordedRuntimeMetrics" : {
+    "maxPositionDeviationPx" : 0.0,
+    "maxSweptTravelToFeatureRatio" : 143.71257485029935,
+    "expectedContactCount" : 1.0,
+    "observedExpectedContactCount" : 0.0
+  }
+}, {
+  "case" : "vietnamese",
+  "input" : "Một quả bóng khối lượng 1 kg, bán kính 0,1 m được thả từ độ cao 2 m\nxuống sàn ngang cố định. Lấy g = 9,81 m/s² hướng xuống, hệ số đàn hồi\ngiữa bóng và sàn là 0,8. Mô phỏng chuyển động trong 3 giây.",
+  "sourceMode" : "TEXT",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "Một quả bóng khối lượng 1 kg, bán kính 0,1 m được thả từ độ cao 2 m\nxuống sàn ngang cố định. Lấy g = 9,81 m/s² hướng xuống, hệ số đàn hồi\ngiữa bóng và sàn là 0,8. Mô phỏng chuyển động trong 3 giây.",
+  "understandingStage" : "EXPLAIN",
+  "question" : null,
+  "explanation" : "Quả bóng (khối lượng 1 kg, bán kính 0,1 m) được thả từ độ cao 2 m so với sàn ngang cố định. Trọng lực g = 9,81 m/s² hướng xuống tạo ra lực trọng trường F = m·g. Khi bóng chạm sàn, va chạm được mô tả bằng định luật II Newton và hệ số phục hồi e = 0.8: vận tốc sau va chạm = –e·v_before (đảo chiều và giảm độ lớn). Không có lực cản không khí hay ma sát, vì vậy chỉ có trọng lực và lực va chạm. Mô phỏng dùng Matter.js (runtime MATTER) với một vật rắn (ball) và một vật tĩnh (floor). Thời gian mô phỏng 3 s, đủ để thấy quá trình rơi, va chạm đầu tiên và một phần nảy lên rồi rơi lại.",
+  "schemaId" : "adaptive_dynamics",
+  "parameters" : [ {
+    "name" : "gravity_y",
+    "value" : 9.81,
+    "unit" : "m/s^2",
+    "min" : -9.81,
+    "max" : 29.43,
+    "label" : "Gravity · y"
+  }, {
+    "name" : "body0_mass",
+    "value" : 1.0,
+    "unit" : "kg",
+    "min" : 0.1,
+    "max" : 5.0,
+    "label" : "vật [ball0] · mass"
+  }, {
+    "name" : "body0_y",
+    "value" : -2.0,
+    "unit" : "m",
+    "min" : -6.0,
+    "max" : 2.0,
+    "label" : "vật [ball0] · y"
+  }, {
+    "name" : "body0_vx",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "vật [ball0] · vx"
+  }, {
+    "name" : "body0_vy",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "vật [ball0] · vy"
+  }, {
+    "name" : "body0_radius",
+    "value" : 0.1,
+    "unit" : "m",
+    "min" : 0.01,
+    "max" : 0.5,
+    "label" : "vật [ball0] · radius"
+  }, {
+    "name" : "body0_restitution",
+    "value" : 0.8,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "vật [ball0] · restitution"
+  }, {
+    "name" : "body1_width",
+    "value" : 5.0,
+    "unit" : "m",
+    "min" : 0.5,
+    "max" : 25.0,
+    "label" : "bề mặt [floor1] · width"
+  }, {
+    "name" : "body1_height",
+    "value" : 0.2,
+    "unit" : "m",
+    "min" : 0.02,
+    "max" : 1.0,
+    "label" : "bề mặt [floor1] · height"
+  } ],
+  "defaults" : [ "Vận tốc ban đầu của bóng = 0 m/s (được thả không đẩy).", "Sàn được đặt tại y = 0 và có khối lượng vô hạn (đối tượng tĩnh).", "Không có lực cản không khí hoặc ma sát giữa bóng và không khí." ],
+  "simulationStage" : "SIMULATION",
+  "simulationExplanation" : "Quả bóng (khối lượng 1 kg, bán kính 0,1 m) được thả từ độ cao 2 m so với sàn ngang cố định. Trọng lực g = 9,81 m/s² hướng xuống tạo ra lực trọng trường F = m·g. Khi bóng chạm sàn, va chạm được mô tả bằng định luật II Newton và hệ số phục hồi e = 0.8: vận tốc sau va chạm = –e·v_before (đảo chiều và giảm độ lớn). Không có lực cản không khí hay ma sát, vì vậy chỉ có trọng lực và lực va chạm. Mô phỏng dùng Matter.js (runtime MATTER) với một vật rắn (ball) và một vật tĩnh (floor). Thời gian mô phỏng 3 s, đủ để thấy quá trình rơi, va chạm đầu tiên và một phần nảy lên rồi rơi lại.",
+  "code" : "const engine = Matter.Engine.create();\nconst left = Math.min(-3.0, (0.0) - (params.body0_radius), (0.0) - ((params.body1_width) / 2));\nconst right = Math.max(3.0, (0.0) + (params.body0_radius), (0.0) + ((params.body1_width) / 2));\nconst top = Math.min(-3.0, (params.body0_y) - (params.body0_radius), (0.0) - ((params.body1_height) / 2));\nconst bottom = Math.max(2.0, (params.body0_y) + (params.body0_radius), (0.0) + ((params.body1_height) / 2));\nconst scale = Math.min((width - 96) / Math.max(0.1, right - left), (height - 96) / Math.max(0.1, bottom - top));\nconst centerX = (left + right) / 2;\nconst centerY = (top + bottom) / 2;\nengine.gravity.x = 0.0;\nengine.gravity.y = params.gravity_y;\nengine.gravity.scale = scale / 1000000;\nconst body0 = Matter.Bodies.circle((width / 2 + ((0.0) - centerX) * scale), (height / 2 + ((params.body0_y) - centerY) * scale), (params.body0_radius) * scale, { isStatic: false, restitution: params.body0_restitution, friction: 0.0, frictionAir: 0.0, label: \"vật\", plugin: { physliveId: \"ball0\" } });\nMatter.Body.setMass(body0, params.body0_mass);\nMatter.Body.setVelocity(body0, { x: (params.body0_vx) * scale / 60, y: (params.body0_vy) * scale / 60 });\nconst body1 = Matter.Bodies.rectangle((width / 2 + ((0.0) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body1_width) * scale, (params.body1_height) * scale, { isStatic: true, restitution: 0.0, friction: 0.0, frictionAir: 0.0, label: \"bề mặt\", plugin: { physliveId: \"floor1\" } });\nMatter.Composite.add(engine.world, [body0, body1]);\nreturn engine;",
+  "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-3.0, (0.0) - (params.body0_radius), (0.0) - ((params.body1_width) / 2));\nconst right = Math.max(3.0, (0.0) + (params.body0_radius), (0.0) + ((params.body1_width) / 2));\nconst top = Math.min(-3.0, (params.body0_y) - (params.body0_radius), (0.0) - ((params.body1_height) / 2));\nconst bottom",
+  "simulationSpec" : {
+    "runtimeKind" : "MATTER",
+    "externalForces" : true,
+    "friction" : false,
+    "conservativeInteractions" : false,
+    "physicalObjects" : [ "ball", "floor" ],
+    "interactions" : [ "gravity", "collision" ],
+    "initialState" : "Bóng ở vị trí y = -2 m (2 m phía trên sàn) với vận tốc 0 m/s.",
+    "requiredObjects" : [ {
+      "sourceQuote" : "Một quả bóng khối lượng 1 kg, bán kính 0,1 m",
+      "label" : "vật",
+      "count" : 1,
+      "shape" : "circle"
+    }, {
+      "sourceQuote" : "sàn ngang cố định",
+      "label" : "bề mặt",
+      "count" : 1,
+      "shape" : "rectangle"
+    } ],
+    "requiredConstraints" : [ ],
+    "spatialRelations" : [ {
+      "sourceQuote" : "được thả từ độ cao 2 m xuống sàn",
+      "subjectObjectIndex" : 0,
+      "referenceObjectIndex" : 1,
+      "axis" : "y",
+      "ordering" : "LESS_THAN"
+    } ],
+    "fixedQuantities" : [ {
+      "sourceQuote" : "khối lượng 1 kg",
+      "name" : "mass",
+      "valueSI" : 1,
+      "unitSI" : "kg",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "direct",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "bán kính 0,1 m",
+      "name" : "radius",
+      "valueSI" : 0.1,
+      "unitSI" : "m",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "direct",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "g = 9,81 m/s² hướng xuống",
+      "name" : "gravitational_acceleration",
+      "valueSI" : 9.81,
+      "unitSI" : "m/s^2",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "direct",
+      "bodyRequirementIndexes" : [ ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "hệ số đàn hồi giữa bóng và sàn là 0,8",
+      "name" : "restitution",
+      "valueSI" : 0.8,
+      "unitSI" : "",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "direct",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ 1 ]
+    } ],
+    "qualitativeValues" : [ ],
+    "inventoryWarnings" : [ "A source numeral may be missing from the fixed values: 2", "A source numeral may be missing from the fixed values: 3" ],
+    "durationSeconds" : 3.0,
+    "expectedContacts" : [ {
+      "bodyA" : "ball0",
+      "bodyB" : "floor1"
+    } ],
+    "plannedScene" : {
+      "units" : "SI",
+      "durationSeconds" : 3,
+      "gravity" : {
+        "x" : 0,
+        "y" : 9.81
+      },
+      "view" : {
+        "minX" : -3,
+        "maxX" : 3,
+        "minY" : -3,
+        "maxY" : 2
+      },
+      "bodies" : [ {
+        "id" : "ball0",
+        "label" : "vật",
+        "sourceObjectIndex" : 0,
+        "shape" : "circle",
+        "x" : 0,
+        "y" : -2,
+        "radius" : 0.1,
+        "width" : 0,
+        "height" : 0,
+        "mass" : 1,
+        "vx" : 0,
+        "vy" : 0,
+        "isStatic" : false,
+        "restitution" : 0.8,
+        "friction" : 0,
+        "frictionAir" : 0
+      }, {
+        "id" : "floor1",
+        "label" : "bề mặt",
+        "sourceObjectIndex" : 1,
+        "shape" : "rectangle",
+        "x" : 0,
+        "y" : 0,
+        "radius" : 0,
+        "width" : 5,
+        "height" : 0.2,
+        "mass" : 1000,
+        "vx" : 0,
+        "vy" : 0,
+        "isStatic" : true,
+        "restitution" : 0,
+        "friction" : 0,
+        "frictionAir" : 0
+      } ],
+      "constraints" : [ ],
+      "expectedContacts" : [ {
+        "bodyA" : "ball0",
+        "bodyB" : "floor1"
+      } ]
+    },
+    "sceneWarnings" : [ "Check 'khối lượng 1 kg' against the displayed scene; its value is not automatically verifiable.", "Check 'bán kính 0,1 m' against the displayed scene; its value is not automatically verifiable.", "Check 'g = 9,81 m/s² hướng xuống' against the displayed scene; its value is not automatically verifiable.", "Check 'hệ số đàn hồi giữa bóng và sàn là 0,8' against the displayed scene; its value is not automatically verifiable." ]
+  },
+  "validationStatus" : "FLAGGED",
+  "runtimeStdout" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-vietnamese.jsonl",
+  "runtimeStderr" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-vietnamese.stderr.txt",
+  "runtimeExitCode" : 0,
+  "runtimeReport" : {
+    "description" : "Một quả bóng khối lượng 1 kg, bán kính 0,1 m được thả từ độ cao 2 m\nxuống sàn ngang cố định. Lấy g = 9,81 m/s² hướng xuống, hệ số đàn hồi\ngiữa bóng và sàn là 0,8. Mô phỏng chuyển động trong 3 giây.",
+    "explanation" : "Quả bóng (khối lượng 1 kg, bán kính 0,1 m) được thả từ độ cao 2 m so với sàn ngang cố định. Trọng lực g = 9,81 m/s² hướng xuống tạo ra lực trọng trường F = m·g. Khi bóng chạm sàn, va chạm được mô tả bằng định luật II Newton và hệ số phục hồi e = 0.8: vận tốc sau va chạm = –e·v_before (đảo chiều và giảm độ lớn). Không có lực cản không khí hay ma sát, vì vậy chỉ có trọng lực và lực va chạm. Mô phỏng dùng Matter.js (runtime MATTER) với một vật rắn (ball) và một vật tĩnh (floor). Thời gian mô phỏng 3 s, đủ để thấy quá trình rơi, va chạm đầu tiên và một phần nảy lên rồi rơi lại.",
+    "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-3.0, (0.0) - (params.body0_radius), (0.0) - ((params.body1_width) / 2));\nconst right = Math.max(3.0, (0.0) + (params.body0_radius), (0.0) + ((params.body1_width) / 2));\nconst top = Math.min(-3.0, (p",
+    "validation" : {
+      "status" : "FLAGGED",
+      "flags" : [ "The simulation changes noticeably at a finer timestep." ],
+      "metrics" : {
+        "maxPositionDeviationPx" : 25.59691824620353,
+        "maxSweptTravelToFeatureRatio" : 0.5014387211367932,
+        "expectedContactCount" : 1,
+        "observedExpectedContactCount" : 1
+      }
+    }
+  },
+  "runtimeStatus" : "FLAGGED",
+  "recordedValidation" : {
+    "status" : "FLAGGED",
+    "flags" : [ "The simulation changes noticeably at a finer timestep." ]
+  },
+  "recordedRuntimeMetrics" : {
+    "maxPositionDeviationPx" : 25.59691824620353,
+    "maxSweptTravelToFeatureRatio" : 0.5014387211367932,
+    "expectedContactCount" : 1.0,
+    "observedExpectedContactCount" : 1.0
+  }
+}, {
+  "case" : "three-bodies",
+  "input" : "Three circular pucks move on a frictionless horizontal surface. Puck A has\nmass 1 kg, radius 0.1 m, starts at x = 0 m and moves right at 2 m/s.\nPuck B has mass 2 kg, radius 0.1 m, starts at x = 1.5 m and is stationary.\nPuck C has mass 3 kg, radius 0.1 m, starts at x = 3 m and is stationary.\nTheir collisions are perfectly elastic. Show the motion for 3 seconds.",
+  "sourceMode" : "TEXT",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "Three circular pucks move on a frictionless horizontal surface. Puck A has\nmass 1 kg, radius 0.1 m, starts at x = 0 m and moves right at 2 m/s.\nPuck B has mass 2 kg, radius 0.1 m, starts at x = 1.5 m and is stationary.\nPuck C has mass 3 kg, radius 0.1 m, starts at x = 3 m and is stationary.\nTheir collisions are perfectly elastic. Show the motion for 3 seconds.",
+  "understandingStage" : "EXPLAIN",
+  "question" : null,
+  "explanation" : "Three circular pucks slide on a friction‑free horizontal plane. Their masses, radii, initial x‑positions and initial velocities are taken directly from the description. No external forces (gravity, friction) act, and the collisions are perfectly elastic (coefficient of restitution = 1). The system is modeled with Matter.js as three rigid circular bodies that can collide elastically. The simulation runs for the physical duration of 3 s (well within the 0.1–40 s limit).",
+  "schemaId" : "adaptive_dynamics",
+  "parameters" : [ {
+    "name" : "gravity_y",
+    "value" : 0.0,
+    "unit" : "m/s^2",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "Gravity · y"
+  }, {
+    "name" : "body0_mass",
+    "value" : 1.0,
+    "unit" : "kg",
+    "min" : 0.1,
+    "max" : 5.0,
+    "label" : "Puck A [puckA] · mass"
+  }, {
+    "name" : "body0_vx",
+    "value" : 2.0,
+    "unit" : "m/s",
+    "min" : -2.0,
+    "max" : 6.0,
+    "label" : "Puck A [puckA] · vx"
+  }, {
+    "name" : "body0_vy",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "Puck A [puckA] · vy"
+  }, {
+    "name" : "body0_radius",
+    "value" : 0.1,
+    "unit" : "m",
+    "min" : 0.01,
+    "max" : 0.5,
+    "label" : "Puck A [puckA] · radius"
+  }, {
+    "name" : "body0_restitution",
+    "value" : 1.0,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "Puck A [puckA] · restitution"
+  }, {
+    "name" : "body1_mass",
+    "value" : 2.0,
+    "unit" : "kg",
+    "min" : 0.2,
+    "max" : 10.0,
+    "label" : "Puck B [puckB] · mass"
+  }, {
+    "name" : "body1_x",
+    "value" : 1.5,
+    "unit" : "m",
+    "min" : -1.5,
+    "max" : 4.5,
+    "label" : "Puck B [puckB] · x"
+  }, {
+    "name" : "body1_vx",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "Puck B [puckB] · vx"
+  }, {
+    "name" : "body1_vy",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "Puck B [puckB] · vy"
+  }, {
+    "name" : "body1_radius",
+    "value" : 0.1,
+    "unit" : "m",
+    "min" : 0.01,
+    "max" : 0.5,
+    "label" : "Puck B [puckB] · radius"
+  }, {
+    "name" : "body1_restitution",
+    "value" : 1.0,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "Puck B [puckB] · restitution"
+  }, {
+    "name" : "body2_mass",
+    "value" : 3.0,
+    "unit" : "kg",
+    "min" : 0.3,
+    "max" : 15.0,
+    "label" : "Puck C [puckC] · mass"
+  }, {
+    "name" : "body2_x",
+    "value" : 3.0,
+    "unit" : "m",
+    "min" : -3.0,
+    "max" : 9.0,
+    "label" : "Puck C [puckC] · x"
+  }, {
+    "name" : "body2_vx",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "Puck C [puckC] · vx"
+  }, {
+    "name" : "body2_vy",
+    "value" : 0.0,
+    "unit" : "m/s",
+    "min" : -1.0,
+    "max" : 1.0,
+    "label" : "Puck C [puckC] · vy"
+  }, {
+    "name" : "body2_radius",
+    "value" : 0.1,
+    "unit" : "m",
+    "min" : 0.01,
+    "max" : 0.5,
+    "label" : "Puck C [puckC] · radius"
+  }, {
+    "name" : "body2_restitution",
+    "value" : 1.0,
+    "unit" : "",
+    "min" : 0.0,
+    "max" : 1.0,
+    "label" : "Puck C [puckC] · restitution"
+  } ],
+  "defaults" : [ "Assume coefficient of restitution = 1 for perfectly elastic collisions.", "No external forces or friction are present; the surface is idealized as frictionless." ],
+  "simulationStage" : "SIMULATION",
+  "simulationExplanation" : "Three circular pucks slide on a friction‑free horizontal plane. Their masses, radii, initial x‑positions and initial velocities are taken directly from the description. No external forces (gravity, friction) act, and the collisions are perfectly elastic (coefficient of restitution = 1). The system is modeled with Matter.js as three rigid circular bodies that can collide elastically. The simulation runs for the physical duration of 3 s (well within the 0.1–40 s limit).",
+  "code" : "const engine = Matter.Engine.create();\nconst left = Math.min(-1.0, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius), (params.body2_x) - (params.body2_radius));\nconst right = Math.max(7.0, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius), (params.body2_x) + (params.body2_radius));\nconst top = Math.min(-1.0, (0.0) - (params.body0_radius), (0.0) - (params.body1_radius), (0.0) - (params.body2_radius));\nconst bottom = Math.max(1.0, (0.0) + (params.body0_radius), (0.0) + (params.body1_radius), (0.0) + (params.body2_radius));\nconst scale = Math.min((width - 96) / Math.max(0.1, right - left), (height - 96) / Math.max(0.1, bottom - top));\nconst centerX = (left + right) / 2;\nconst centerY = (top + bottom) / 2;\nengine.gravity.x = 0.0;\nengine.gravity.y = params.gravity_y;\nengine.gravity.scale = scale / 1000000;\nconst body0 = Matter.Bodies.circle((width / 2 + ((0.0) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body0_radius) * scale, { isStatic: false, restitution: params.body0_restitution, friction: 0.0, frictionAir: 0.0, label: \"Puck A\", plugin: { physliveId: \"puckA\" } });\nMatter.Body.setMass(body0, params.body0_mass);\nMatter.Body.setVelocity(body0, { x: (params.body0_vx) * scale / 60, y: (params.body0_vy) * scale / 60 });\nconst body1 = Matter.Bodies.circle((width / 2 + ((params.body1_x) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body1_radius) * scale, { isStatic: false, restitution: params.body1_restitution, friction: 0.0, frictionAir: 0.0, label: \"Puck B\", plugin: { physliveId: \"puckB\" } });\nMatter.Body.setMass(body1, params.body1_mass);\nMatter.Body.setVelocity(body1, { x: (params.body1_vx) * scale / 60, y: (params.body1_vy) * scale / 60 });\nconst body2 = Matter.Bodies.circle((width / 2 + ((params.body2_x) - centerX) * scale), (height / 2 + ((0.0) - centerY) * scale), (params.body2_radius) * scale, { isStatic: false, restitution: params.body2_restitution, friction: 0.0, frictionAir: 0.0, label: \"Puck C\", plugin: { physliveId: \"puckC\" } });\nMatter.Body.setMass(body2, params.body2_mass);\nMatter.Body.setVelocity(body2, { x: (params.body2_vx) * scale / 60, y: (params.body2_vy) * scale / 60 });\nMatter.Composite.add(engine.world, [body0, body1, body2]);\nreturn engine;",
+  "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-1.0, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius), (params.body2_x) - (params.body2_radius));\nconst right = Math.max(7.0, (0.0) + (params.body0_radius), (params.body1_x) + (params.body1_radius), (params.body2_x) + (params.body2_radius));\nconst top = Math.min(-1",
+  "simulationSpec" : {
+    "runtimeKind" : "MATTER",
+    "externalForces" : false,
+    "friction" : false,
+    "conservativeInteractions" : true,
+    "physicalObjects" : [ "Puck A", "Puck B", "Puck C" ],
+    "interactions" : [ "elastic collisions between the three pucks" ],
+    "initialState" : "All pucks start at the given x‑positions with the given velocities on a frictionless horizontal surface.",
+    "requiredObjects" : [ {
+      "sourceQuote" : "Puck A has mass 1 kg, radius 0.1 m, starts at x = 0 m and moves right at 2 m/s.",
+      "label" : "Puck A",
+      "count" : 1,
+      "shape" : "circle"
+    }, {
+      "sourceQuote" : "Puck B has mass 2 kg, radius 0.1 m, starts at x = 1.5 m and is stationary.",
+      "label" : "Puck B",
+      "count" : 1,
+      "shape" : "circle"
+    }, {
+      "sourceQuote" : "Puck C has mass 3 kg, radius 0.1 m, starts at x = 3 m and is stationary.",
+      "label" : "Puck C",
+      "count" : 1,
+      "shape" : "circle"
+    } ],
+    "requiredConstraints" : [ ],
+    "spatialRelations" : [ {
+      "sourceQuote" : "Puck A starts at x = 0 m and Puck B starts at x = 1.5 m.",
+      "subjectObjectIndex" : 0,
+      "referenceObjectIndex" : 1,
+      "axis" : "x",
+      "ordering" : "LESS_THAN"
+    }, {
+      "sourceQuote" : "Puck B starts at x = 1.5 m and Puck C starts at x = 3 m.",
+      "subjectObjectIndex" : 1,
+      "referenceObjectIndex" : 2,
+      "axis" : "x",
+      "ordering" : "LESS_THAN"
+    } ],
+    "fixedQuantities" : [ {
+      "sourceQuote" : "Puck A has mass 1 kg",
+      "name" : "mass",
+      "valueSI" : 1,
+      "unitSI" : "kg",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "mass",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Puck B has mass 2 kg",
+      "name" : "mass",
+      "valueSI" : 2,
+      "unitSI" : "kg",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "mass",
+      "bodyRequirementIndexes" : [ 1 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Puck C has mass 3 kg",
+      "name" : "mass",
+      "valueSI" : 3,
+      "unitSI" : "kg",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "mass",
+      "bodyRequirementIndexes" : [ 2 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Puck A starts at x = 0 m",
+      "name" : "position",
+      "valueSI" : 0,
+      "unitSI" : "m",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "position",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Puck B starts at x = 1.5 m",
+      "name" : "position",
+      "valueSI" : 1.5,
+      "unitSI" : "m",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "position",
+      "bodyRequirementIndexes" : [ 1 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Puck C starts at x = 3 m",
+      "name" : "position",
+      "valueSI" : 3,
+      "unitSI" : "m",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "position",
+      "bodyRequirementIndexes" : [ 2 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Puck A moves right at 2 m/s",
+      "name" : "velocity",
+      "valueSI" : 2,
+      "unitSI" : "m/s",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "velocity",
+      "bodyRequirementIndexes" : [ 0 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Puck B is stationary",
+      "name" : "velocity",
+      "valueSI" : 0,
+      "unitSI" : "m/s",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "velocity",
+      "bodyRequirementIndexes" : [ 1 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    }, {
+      "sourceQuote" : "Puck C is stationary",
+      "name" : "velocity",
+      "valueSI" : 0,
+      "unitSI" : "m/s",
+      "provenance" : "EXPLICIT",
+      "valueStructure" : "SCALAR",
+      "sceneField" : "velocity",
+      "bodyRequirementIndexes" : [ 2 ],
+      "constraintRequirementIndexes" : [ ],
+      "referenceObjectIndexes" : [ ]
+    } ],
+    "qualitativeValues" : [ ],
+    "inventoryWarnings" : [ "A spatialRelations source cue is missing or paraphrased: Puck A starts at x = 0 m and Puck B starts at x = 1.5 m.", "A spatialRelations source cue is missing or paraphrased: Puck B starts at x = 1.5 m and Puck C starts at x = 3 m.", "A fixedQuantities source cue is missing or paraphrased: Puck A starts at x = 0 m", "A fixedQuantities source cue is missing or paraphrased: Puck B starts at x = 1.5 m", "A fixedQuantities source cue is missing or paraphrased: Puck C starts at x = 3 m", "A fixedQuantities source cue is missing or paraphrased: Puck A moves right at 2 m/s", "A fixedQuantities source cue is missing or paraphrased: Puck B is stationary", "A fixedQuantities source cue is missing or paraphrased: Puck C is stationary", "A source numeral may be missing from the fixed values: 0.1" ],
+    "durationSeconds" : 3.0,
+    "expectedContacts" : [ ],
+    "plannedScene" : {
+      "units" : "SI",
+      "durationSeconds" : 3,
+      "view" : {
+        "minX" : -1,
+        "maxX" : 7,
+        "minY" : -1,
+        "maxY" : 1
+      },
+      "gravity" : {
+        "x" : 0,
+        "y" : 0
+      },
+      "bodies" : [ {
+        "id" : "puckA",
+        "label" : "Puck A",
+        "sourceObjectIndex" : 0,
+        "shape" : "circle",
+        "x" : 0,
+        "y" : 0,
+        "radius" : 0.1,
+        "width" : 0,
+        "height" : 0,
+        "mass" : 1,
+        "vx" : 2,
+        "vy" : 0,
+        "isStatic" : false,
+        "restitution" : 1,
+        "friction" : 0,
+        "frictionAir" : 0
+      }, {
+        "id" : "puckB",
+        "label" : "Puck B",
+        "sourceObjectIndex" : 1,
+        "shape" : "circle",
+        "x" : 1.5,
+        "y" : 0,
+        "radius" : 0.1,
+        "width" : 0,
+        "height" : 0,
+        "mass" : 2,
+        "vx" : 0,
+        "vy" : 0,
+        "isStatic" : false,
+        "restitution" : 1,
+        "friction" : 0,
+        "frictionAir" : 0
+      }, {
+        "id" : "puckC",
+        "label" : "Puck C",
+        "sourceObjectIndex" : 2,
+        "shape" : "circle",
+        "x" : 3,
+        "y" : 0,
+        "radius" : 0.1,
+        "width" : 0,
+        "height" : 0,
+        "mass" : 3,
+        "vx" : 0,
+        "vy" : 0,
+        "isStatic" : false,
+        "restitution" : 1,
+        "friction" : 0,
+        "frictionAir" : 0
+      } ],
+      "constraints" : [ ],
+      "expectedContacts" : [ ]
+    },
+    "sceneWarnings" : [ "Check 'Puck A starts at x = 0 m' against the displayed scene; its value is not automatically verifiable.", "Check 'Puck B starts at x = 1.5 m' against the displayed scene; its value is not automatically verifiable.", "Check 'Puck C starts at x = 3 m' against the displayed scene; its value is not automatically verifiable.", "Check 'Puck A moves right at 2 m/s' against the displayed scene; its value is not automatically verifiable.", "Check 'Puck B is stationary' against the displayed scene; its value is not automatically verifiable.", "Check 'Puck C is stationary' against the displayed scene; its value is not automatically verifiable." ]
+  },
+  "validationStatus" : "FLAGGED",
+  "runtimeStdout" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-three-bodies.jsonl",
+  "runtimeStderr" : "D:\\FPT_FALL_2026\\SEP490\\physLive_preview\\backend\\target\\matter-live-runtime-three-bodies.stderr.txt",
+  "runtimeExitCode" : 0,
+  "runtimeReport" : {
+    "description" : "Three circular pucks move on a frictionless horizontal surface. Puck A has\nmass 1 kg, radius 0.1 m, starts at x = 0 m and moves right at 2 m/s.\nPuck B has mass 2 kg, radius 0.1 m, starts at x = 1.5 m and is stationary.\nPuck C has mass 3 kg, radius 0.1 m, starts at x = 3 m and is stationary.\nTheir collisions are perfectly elastic. Show the motion for 3 seconds.",
+    "explanation" : "Three circular pucks slide on a friction‑free horizontal plane. Their masses, radii, initial x‑positions and initial velocities are taken directly from the description. No external forces (gravity, friction) act, and the collisions are perfectly elastic (coefficient of restitution = 1). The system is modeled with Matter.js as three rigid circular bodies that can collide elastically. The simulation runs for the physical duration of 3 s (well within the 0.1–40 s limit).",
+    "codeExcerpt" : "const engine = Matter.Engine.create();\nconst left = Math.min(-1.0, (0.0) - (params.body0_radius), (params.body1_x) - (params.body1_radius), (params.body2_x) - (params.body2_radius));\nconst right = Math.max(7.0, (0.0) + (params.body0_radius), (params.body1_x) +",
+    "validation" : {
+      "status" : "FLAGGED",
+      "flags" : [ "Energy drift exceeds the expected tolerance." ],
+      "metrics" : {
+        "maxPositionDeviationPx" : 3.213466308054876,
+        "maxSweptTravelToFeatureRatio" : 0.17254601226993946,
+        "expectedContactCount" : 0,
+        "observedExpectedContactCount" : 0,
+        "maxRelativeMomentumDrift" : 1.0263395072090353E-13,
+        "maxRelativeEnergyDrift" : 0.15240231355645129
+      }
+    }
+  },
+  "runtimeStatus" : "FLAGGED",
+  "recordedValidation" : {
+    "status" : "FLAGGED",
+    "flags" : [ "Energy drift exceeds the expected tolerance." ]
+  },
+  "recordedRuntimeMetrics" : {
+    "maxPositionDeviationPx" : 3.213466308054876,
+    "maxSweptTravelToFeatureRatio" : 0.17254601226993946,
+    "expectedContactCount" : 0.0,
+    "observedExpectedContactCount" : 0.0,
+    "maxRelativeMomentumDrift" : 1.0263395072090353E-13,
+    "maxRelativeEnergyDrift" : 0.15240231355645129
+  }
+}, {
+  "case" : "latex",
+  "input" : "\\text{Two circular pucks collide elastically on a frictionless surface.}\n\\quad m_1=m_2=1\\,\\mathrm{kg},\\quad v_1=2\\,\\mathrm{m/s},\\quad v_2=0.",
+  "sourceMode" : "LATEX",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "\\text{Two circular pucks collide elastically on a frictionless surface.}\n\\quad m_1=m_2=1\\,\\mathrm{kg},\\quad v_1=2\\,\\mathrm{m/s},\\quad v_2=0.",
+  "understandingStage" : "EXPLAIN",
+  "question" : null,
+  "explanation" : "Hai vòng tròn (puck) tròn, khối lượng mỗi cái 1 kg, di chuyển trên mặt phẳng không ma sát. Puck 1 có vận tốc ban đầu 2 m/s về phía +x, puck 2 đứng yên. Vì bề mặt không ma sát và không có lực ngoài nào tác dụng, chỉ có lực va chạm nội tại. Va chạm được giả định hoàn toàn đàn hồi (hệ số phục hồi = 1), nên năng lượng cơ học được bảo toàn và sau va chạm các vật sẽ đổi vận tốc: puck 1 dừng lại, puck 2 nhận vận tốc 2 m/s về phía +x. Mô hình sẽ vẽ hai vòng tròn, ban đầu ở vị trí x = –1 m và x = +1 m (giả định), sau đó hiển thị quá trình va chạm và các vận tốc sau va chạm.",
+  "schemaId" : "adaptive_dynamics",
+  "parameters" : [ ],
+  "defaults" : [ "Giả định vị trí ban đầu: puck 1 tại (-1,0) m, puck 2 tại (1,0) m để chúng có thể va chạm.", "Giả định hệ số phục hồi = 1 (va chạm hoàn toàn đàn hồi).", "Bề mặt không ma sát, không có lực trọng trường trong mặt phẳng.", "Thời gian mô phỏng được đặt đủ để quan sát va chạm (khoảng 2 s)." ]
+}, {
+  "case" : "image",
+  "sourceMode" : "IMAGE",
+  "recognitionStage" : "RECOGNITION",
+  "recognizedText" : "Two pucks collide on a frictionless horizontal surface.\nm1 = 1 kg, v1 = 2 m/s right; m2 = 1 kg, v2 = 0.\nThe collision is elastic. Show the motion.",
+  "recognitionMessage" : "OCR confidence is unavailable. Check the recognized text before continuing.",
+  "understandingStage" : "EXPLAIN",
+  "question" : null,
+  "explanation" : "Hai pucks trên mặt phẳng ngang không ma sát, mỗi khối lượng 1 kg. Puck 1 di chuyển sang phải với vận tốc 2 m/s, puck 2 đứng yên. Va chạm là đàn hồi, vì khối lượng bằng nhau, sau va chạm vận tốc được trao đổi: puck 1 dừng lại, puck 2 di chuyển sang phải với 2 m/s. Động học được mô phỏng bằng Matter.js với hai thân tròn, không lực ngoại lực, không ma sát, và tương tác bảo toàn năng lượng (elastic collision).",
+  "schemaId" : "adaptive_dynamics",
+  "parameters" : [ ],
+  "defaults" : [ "Giả sử vị trí ban đầu: puck1 tại x=0 m, puck2 tại x=2 m (puck1 nằm trái hơn puck2).", "Bán kính pucks giả định 0.1 m.", "Thời gian mô phỏng 5 s." ]
+} ]

@@ -55,7 +55,6 @@ import com.example.backend.repository.problem.ProblemSubmissionRepository;
 import com.example.backend.repository.problem.SourceAssetRepository;
 import com.example.backend.repository.problem.SpecificationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -189,7 +188,7 @@ public class ProblemService {
     }
 
     private ExtractionInput beginExtraction(UUID id) {
-        return transactionTemplate().execute(status -> {
+        return java.util.Objects.requireNonNull(transactionTemplate().execute(status -> {
             ProblemSubmission problem = requireOwnedProblem(id);
             if (!StringUtils.hasText(problem.getEditableText())) {
                 throw new ApiException(HttpStatus.CONFLICT, "Confirm or enter OCR text before extraction");
@@ -202,7 +201,7 @@ public class ProblemService {
             run.setStatus(ExtractionRunStatus.RUNNING);
             extractionRunRepository.saveAndFlush(run);
             return new ExtractionInput(problem.getId(), run.getId(), problem.getOwner().getId(), problem.getEditableText());
-        });
+        }));
     }
 
     private ProblemResponse completeExtraction(ExtractionInput input, ExtractionResult result) {
@@ -270,11 +269,15 @@ public class ProblemService {
 
     @Transactional
     public ProblemResponse confirm(UUID id, Map<String, String> answers) {
-        return confirm(id, new com.example.backend.dto.problem.ConfirmProblemRequest(answers));
+        return confirmInternal(id, new com.example.backend.dto.problem.ConfirmProblemRequest(answers));
     }
 
     @Transactional
     public ProblemResponse confirm(UUID id, com.example.backend.dto.problem.ConfirmProblemRequest request) {
+        return confirmInternal(id, request);
+    }
+
+    private ProblemResponse confirmInternal(UUID id, com.example.backend.dto.problem.ConfirmProblemRequest request) {
         ProblemSubmission problem = requireOwnedProblem(id);
         Specification specification = problem.getCurrentSpecification();
         if (specification == null) {
@@ -287,28 +290,15 @@ public class ProblemService {
         boolean hasOpenQuestions = specification.getAmbiguityCases().stream()
                 .anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
         if (!hasOpenQuestions) {
-            readinessService.ensureRequiredAmbiguities(specification, conversation);
+            readinessService.ensureRequiredAmbiguities(specification);
             hasOpenQuestions = specification.getAmbiguityCases().stream()
                     .anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
             if (!hasOpenQuestions) {
                 specification.setConfirmationState(ConfirmationState.CONFIRMED);
-                try {
-                    ambiguityResolutionApplier.prepareAssetsAfterConfirmation(specification, conversation);
-                } catch (ApiException exception) {
-                    throw exception;
-                } catch (RuntimeException exception) {
-                    log.warn("Asset preparation failed after teacher confirmation for submission {}", id, exception);
-                    throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
-                            "Dữ liệu mô phỏng đã được xác nhận nhưng chưa thể chuẩn bị hình minh họa. "
-                                    + "Chưa có mô phỏng nào được chạy; vui lòng thử lại.");
-                }
             }
         } else {
-            for (AmbiguityCase ambiguity : specification.getAmbiguityCases()) {
-                if (ambiguity.getStatus() == AmbiguityStatus.OPEN
-                        && !StringUtils.hasText(safeAnswers.get(ambiguity.getCode()))) {
-                    throw new ApiException(HttpStatus.CONFLICT, "Answer every ambiguity before confirming");
-                }
+            if (safeAnswers.isEmpty() || safeAnswers.values().stream().noneMatch(StringUtils::hasText)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "A clarification message is required");
             }
             try { ambiguityResolutionApplier.applyAll(specification, safeAnswers, conversation); }
             catch (ApiException exception) { throw exception; }
@@ -328,11 +318,17 @@ public class ProblemService {
                         "Chưa thể xử lý câu trả lời này. Spec chưa được cập nhật; hãy thử diễn đạt lại.",
                         "CLARIFICATION_FAILED", "SPECIFICATION_CLARIFICATION");
             }
-            readinessService.ensureRequiredAmbiguities(specification, conversation);
+            readinessService.ensureRequiredAmbiguities(specification);
         }
-        problem.setStatus(specification.getConfirmationState() == ConfirmationState.UNRESOLVED
-                ? SubmissionStatus.NEEDS_CONFIRMATION : specification.getConfirmationState() == ConfirmationState.REJECTED
-                        ? SubmissionStatus.EXTRACTED : SubmissionStatus.READY_FOR_VALIDATION);
+        SubmissionStatus status;
+        if (specification.getConfirmationState() == ConfirmationState.UNRESOLVED) {
+            status = SubmissionStatus.NEEDS_CONFIRMATION;
+        } else if (specification.getConfirmationState() == ConfirmationState.REJECTED) {
+            status = SubmissionStatus.EXTRACTED;
+        } else {
+            status = SubmissionStatus.READY_FOR_VALIDATION;
+        }
+        problem.setStatus(status);
         return mapper.toResponse(problem);
     }
 
@@ -386,7 +382,7 @@ public class ProblemService {
         specification.setContractVersion(SpecificationDocument.CURRENT_SCHEMA_VERSION);
         var schema = schemaDefinitions.requireCurrentApproved(document.schemaId(), document.schemaVersion());
         specification.setSchemaVersion(schema.getVersion());
-        specification.setTopic(document.topic());
+        specification.setTopic(schema.getTopic());
         specification.setSchemaId(document.schemaId());
         specification.setConfidence(document.confidence());
         specification.setObjects(objectMapper.valueToTree(document.objects()));
@@ -441,7 +437,8 @@ public class ProblemService {
             throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE,
                     "Image exceeds the configured upload limit");
         }
-        String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase(java.util.Locale.ROOT);
+        String rawContentType = file.getContentType();
+        String contentType = rawContentType == null ? "" : rawContentType.toLowerCase(java.util.Locale.ROOT);
         if (!uploadProperties.allowedImageTypes().contains(contentType)) {
             throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported image content type");
         }

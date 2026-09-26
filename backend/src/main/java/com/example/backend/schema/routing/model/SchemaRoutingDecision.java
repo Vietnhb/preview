@@ -4,20 +4,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.example.backend.simulation.assets.AssetRoutingDecision;
-
 /** Bounded route decision. Candidate identities stay pinned through extraction retries. */
 public record SchemaRoutingDecision(
         Status status,
         String reasonCode,
         List<SchemaCandidate> candidates,
         double confidence,
-        double margin,
-        AssetRoutingDecision assets) {
-    public SchemaRoutingDecision(Status status, String reasonCode, List<SchemaCandidate> candidates,
-            double confidence, double margin) {
-        this(status, reasonCode, candidates, confidence, margin, null);
-    }
+        double margin) {
 
     public SchemaRoutingDecision {
         Objects.requireNonNull(status, "status");

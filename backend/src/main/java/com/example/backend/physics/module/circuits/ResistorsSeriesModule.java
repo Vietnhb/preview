@@ -16,6 +16,10 @@ public final class ResistorsSeriesModule implements PhysicsModule<ResistorsSerie
     public static final String MODULE_ID = "resistors_series";
     public static final String NUMERICAL_SOLVER_ID = "resistors_series_solver";
     public static final String REFERENCE_SOLVER_ID = "resistors_series_reference";
+    private static final String EQUIVALENT_RESISTANCE = "equivalentResistance";
+    private static final String TOTAL_CURRENT = "totalCurrent";
+    private static final String BRANCH_CURRENT_1 = "branchCurrent1";
+    private static final String BRANCH_CURRENT_2 = "branchCurrent2";
 
     @Override
     public String moduleId() {
@@ -49,10 +53,10 @@ public final class ResistorsSeriesModule implements PhysicsModule<ResistorsSerie
         requireFinite(current, "current");
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("equivalentResistance", repeated(equivalentResistance, time.size()));
-        values.put("totalCurrent", repeated(current, time.size()));
-        values.put("branchCurrent1", repeated(current, time.size()));
-        values.put("branchCurrent2", repeated(current, time.size()));
+        values.put(EQUIVALENT_RESISTANCE, repeated(equivalentResistance, time.size()));
+        values.put(TOTAL_CURRENT, repeated(current, time.size()));
+        values.put(BRANCH_CURRENT_1, repeated(current, time.size()));
+        values.put(BRANCH_CURRENT_2, repeated(current, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -68,12 +72,12 @@ public final class ResistorsSeriesModule implements PhysicsModule<ResistorsSerie
         double smallerResistance = Math.min(parameters.resistance1, parameters.resistance2);
         double totalCurrent = (parameters.voltage / largerResistance)
                 / (1.0 + smallerResistance / largerResistance);
-        requireFinite(totalCurrent, "totalCurrent");
+        requireFinite(totalCurrent, TOTAL_CURRENT);
         return new AnalyticalPoint(Map.of(
-                "equivalentResistance", totalResistance,
-                "totalCurrent", totalCurrent,
-                "branchCurrent1", totalCurrent,
-                "branchCurrent2", totalCurrent));
+                EQUIVALENT_RESISTANCE, totalResistance,
+                TOTAL_CURRENT, totalCurrent,
+                BRANCH_CURRENT_1, totalCurrent,
+                BRANCH_CURRENT_2, totalCurrent));
     }
 
     private static List<Double> repeated(double value, int count) {

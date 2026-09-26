@@ -1,0 +1,462 @@
+{
+  "schemaId": "adaptive_kinematics",
+  "model": "matter_js",
+  "name": "Kinematics Concept Capability",
+  "topic": "KINEMATICS",
+  "version": "2.0",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for kinematics. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "moving_body",
+        "label": "vật chuyển động",
+        "description": "Body with position or velocity over time."
+      },
+      {
+        "type": "reference_frame",
+        "label": "hệ quy chiếu",
+        "description": "Origin and positive direction for motion."
+      },
+      {
+        "type": "path",
+        "label": "quỹ đạo",
+        "description": "Described route or trajectory of a moving body."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "measured_in",
+        "label": "đo trong hệ quy chiếu",
+        "description": "Motion is measured in this frame.",
+        "subjectTypes": [
+          "moving_body"
+        ],
+        "objectTypes": [
+          "reference_frame"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body",
+            "reference_frame"
+          ]
+        }
+      },
+      {
+        "type": "moves_along",
+        "label": "chuyển động dọc",
+        "description": "Body follows the stated path.",
+        "subjectTypes": [
+          "moving_body"
+        ],
+        "objectTypes": [
+          "path"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body",
+            "path"
+          ]
+        }
+      },
+      {
+        "type": "relative_to",
+        "label": "chuyển động tương đối",
+        "description": "Motion compared with another body.",
+        "subjectTypes": [
+          "moving_body"
+        ],
+        "objectTypes": [
+          "moving_body"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "position",
+        "label": "tọa độ",
+        "description": "Signed coordinate in a stated frame.",
+        "aliases": [
+          "x",
+          "vị trí"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "initial_position",
+        "label": "tọa độ ban đầu",
+        "description": "Coordinate at the start.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "displacement",
+        "label": "độ dời",
+        "description": "Signed change in position.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "distance",
+        "label": "quãng đường",
+        "description": "Nonnegative path length.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "velocity",
+        "label": "vận tốc",
+        "description": "Signed rate of position change.",
+        "aliases": [
+          "v"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "initial_velocity",
+        "label": "vận tốc ban đầu",
+        "description": "Velocity at the start.",
+        "aliases": [
+          "v0"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "speed",
+        "label": "tốc độ",
+        "description": "Magnitude of velocity.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "acceleration",
+        "label": "gia tốc",
+        "description": "Rate of velocity change.",
+        "aliases": [
+          "a"
+        ],
+        "allowedUnits": [
+          "m/s^2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "elapsed_time",
+        "label": "thời gian trôi qua",
+        "description": "Time since the stated start.",
+        "aliases": [],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "launch_angle",
+        "label": "góc phóng",
+        "description": "Angle from a stated reference direction.",
+        "aliases": [],
+        "allowedUnits": [
+          "rad"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "gravitational_acceleration",
+        "label": "gia tốc trọng trường",
+        "description": "Gravity value from user or explicit acceptance.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s^2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "mass",
+        "label": "khối lượng",
+        "description": "Body mass if it is relevant to the user request.",
+        "aliases": [
+          "m"
+        ],
+        "allowedUnits": [
+          "kg"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "m",
+        "dimension": "length"
+      },
+      {
+        "symbol": "m/s",
+        "dimension": "velocity"
+      },
+      {
+        "symbol": "m/s^2",
+        "dimension": "acceleration"
+      },
+      {
+        "symbol": "s",
+        "dimension": "time"
+      },
+      {
+        "symbol": "rad",
+        "dimension": "angle"
+      },
+      {
+        "symbol": "kg",
+        "dimension": "mass"
+      }
+    ],
+    "laws": [
+      {
+        "id": "velocity_definition",
+        "name": "Định nghĩa vận tốc",
+        "inputs": [
+          "velocity"
+        ],
+        "outputs": [
+          "position"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "velocity",
+            "position"
+          ]
+        },
+        "assumptions": [
+          "Frame and positive axis known when direction matters."
+        ],
+        "description": "Velocity is the rate of position change."
+      },
+      {
+        "id": "acceleration_definition",
+        "name": "Định nghĩa gia tốc",
+        "inputs": [
+          "acceleration"
+        ],
+        "outputs": [
+          "velocity"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "acceleration",
+            "velocity"
+          ]
+        },
+        "assumptions": [
+          "Velocity and acceleration share an axis."
+        ],
+        "description": "Acceleration is the rate of velocity change."
+      },
+      {
+        "id": "constant_acceleration",
+        "name": "Gia tốc không đổi",
+        "inputs": [
+          "initial_position",
+          "initial_velocity",
+          "acceleration",
+          "elapsed_time"
+        ],
+        "outputs": [
+          "position"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "initial_position",
+            "initial_velocity",
+            "acceleration",
+            "elapsed_time",
+            "position"
+          ]
+        },
+        "assumptions": [
+          "Acceleration is constant during the interval."
+        ],
+        "description": "One-dimensional constant-acceleration motion."
+      },
+      {
+        "id": "projectile_components",
+        "name": "Ném trong trọng trường đều",
+        "inputs": [
+          "initial_velocity",
+          "launch_angle",
+          "gravitational_acceleration"
+        ],
+        "outputs": [
+          "position",
+          "velocity"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "initial_velocity",
+            "launch_angle",
+            "gravitational_acceleration",
+            "position",
+            "velocity"
+          ]
+        },
+        "assumptions": [
+          "Air resistance is neglected only if stated or accepted.",
+          "Initial state and vertical direction are clear."
+        ],
+        "description": "Horizontal and vertical components under uniform gravity."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "reference_axis",
+        "description": "Clarify frame and positive axis when direction affects the result.",
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body",
+            "reference_frame"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "initial_state",
+        "description": "Dynamic states need user-supplied or accepted initial values.",
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "constant_acceleration_condition",
+        "description": "Use constant-acceleration formulas only with that assumption.",
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "relationTypes": [],
+          "quantities": [
+            "acceleration"
+          ]
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "matter_js",
+      "scope": "Two-dimensional motion of finite rigid bodies with initial positions and velocities, gravity, collisions, static obstacles, and Matter.js constraints or springs. Other grounded high-school behavior may use the AI-authored visual runtime.",
+      "limitations": [
+        "Matter.js is limited to its rigid-body primitives. The AI-authored visual runtime can express other grounded high-school models, but its physics is not independently verified."
+      ],
+      "runtimes": [
+        "matter_js",
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "Matter.js is limited to its rigid-body primitives. The AI-authored visual runtime can express other grounded high-school models, but its physics is not independently verified."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+    }
+  }
+}

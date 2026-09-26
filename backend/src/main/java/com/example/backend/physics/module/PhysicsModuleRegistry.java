@@ -11,6 +11,8 @@ import java.util.Objects;
 
 /** Immutable registry requiring numerical and reference bindings to resolve as a pair. */
 public final class PhysicsModuleRegistry {
+    private static final String NUMERICAL_SOLVER_ID = "numericalSolverId";
+    private static final String REFERENCE_SOLVER_ID = "referenceSolverId";
     private final Map<String, Registration<?>> byNumericalSolver;
     private final Map<String, Registration<?>> byReferenceSolver;
     private final Map<String, Registration<?>> byModule;
@@ -23,8 +25,8 @@ public final class PhysicsModuleRegistry {
         for (PhysicsModule<?> module : modules) {
             if (module == null) throw new IllegalArgumentException("Physics module registration cannot be null");
             requireId(module.moduleId(), "moduleId");
-            requireId(module.numericalSolverId(), "numericalSolverId");
-            requireId(module.referenceSolverId(), "referenceSolverId");
+            requireId(module.numericalSolverId(), NUMERICAL_SOLVER_ID);
+            requireId(module.referenceSolverId(), REFERENCE_SOLVER_ID);
             Registration<?> registration = new Registration<>(module);
             putUnique(moduleIds, module.moduleId(), registration, "module");
             putUnique(numerical, module.numericalSolverId(), registration, "numerical solver");
@@ -38,8 +40,8 @@ public final class PhysicsModuleRegistry {
     public BoundPhysicsModule bind(String numericalSolverId,
                                    String referenceSolverId,
                                    CanonicalQuantityBag quantities) {
-        requireId(numericalSolverId, "numericalSolverId");
-        requireId(referenceSolverId, "referenceSolverId");
+        requireId(numericalSolverId, NUMERICAL_SOLVER_ID);
+        requireId(referenceSolverId, REFERENCE_SOLVER_ID);
         Objects.requireNonNull(quantities, "quantities");
         Registration<?> numerical = byNumericalSolver.get(numericalSolverId);
         Registration<?> reference = byReferenceSolver.get(referenceSolverId);
@@ -62,8 +64,8 @@ public final class PhysicsModuleRegistry {
      * catalog binding is inconsistent and must fail instead of falling back.
      */
     public boolean supportsPair(String numericalSolverId, String referenceSolverId) {
-        requireId(numericalSolverId, "numericalSolverId");
-        requireId(referenceSolverId, "referenceSolverId");
+        requireId(numericalSolverId, NUMERICAL_SOLVER_ID);
+        requireId(referenceSolverId, REFERENCE_SOLVER_ID);
         Registration<?> numerical = byNumericalSolver.get(numericalSolverId);
         Registration<?> reference = byReferenceSolver.get(referenceSolverId);
         if (numerical == null && reference == null) return false;

@@ -27,6 +27,7 @@ import com.example.backend.dto.problem.ProblemSummaryResponse;
 import com.example.backend.dto.problem.UpdateProblemTextRequest;
 import com.example.backend.dto.problem.UpdateSpecificationRequest;
 import com.example.backend.entity.problem.SourceAsset;
+import com.example.backend.exception.ApiException;
 import com.example.backend.service.problem.ProblemService;
 
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,7 @@ public class ProblemController {
 
     @PostMapping
     public ResponseEntity<ProblemResponse> create(@RequestBody CreateProblemRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(problemService.create(request));
+        throw legacyCreationGone();
     }
 
     @PostMapping(path = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -48,7 +49,7 @@ public class ProblemController {
             @RequestPart("file") MultipartFile file,
             @RequestParam(required = false) String text,
             @RequestParam(required = false) UUID lessonId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(problemService.createFromImage(file, text, lessonId));
+        throw legacyCreationGone();
     }
 
     @GetMapping
@@ -65,23 +66,23 @@ public class ProblemController {
 
     @PutMapping("/{id}/text")
     public ProblemResponse updateText(@PathVariable UUID id, @RequestBody UpdateProblemTextRequest request) {
-        return problemService.updateText(id, request == null ? null : request.text());
+        throw legacyCreationGone();
     }
 
     @PostMapping("/{id}/extract")
     public ProblemResponse extract(@PathVariable UUID id) {
-        return problemService.extract(id);
+        throw legacyCreationGone();
     }
 
     @PutMapping("/{id}/specification")
     public ProblemResponse updateSpecification(@PathVariable UUID id,
             @RequestBody UpdateSpecificationRequest request) {
-        return problemService.updateSpecification(id, request);
+        throw legacyCreationGone();
     }
 
     @PostMapping("/{id}/confirm")
     public ProblemResponse confirm(@PathVariable UUID id, @RequestBody(required = false) ConfirmProblemRequest request) {
-        return problemService.confirm(id, request);
+        throw legacyCreationGone();
     }
 
     @GetMapping("/assets/{assetId}/content")
@@ -96,5 +97,11 @@ public class ProblemController {
                 .contentLength(asset.getContentLength())
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(asset.getContent());
+    }
+
+    private ApiException legacyCreationGone() {
+        return new ApiException(HttpStatus.GONE,
+                "Legacy problem creation has been retired. Use /api/matter-flow for new simulations.",
+                "LEGACY_CREATION_RETIRED", "MATTER_FLOW");
     }
 }

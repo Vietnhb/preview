@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ import com.example.backend.exception.SchemaCompilationException;
 import com.example.backend.exception.SolverBindingException;
 import com.example.backend.physics.validation.EndConditionResolver;
 import com.example.backend.physics.compatibility.LegacySchemaIdentityAdapter;
+import com.example.backend.schema.pack.TopicPackContractValidator;
 import com.example.backend.repository.problem.SchemaVersionRepository;
 import com.example.backend.repository.simulation.SolverVersionRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,10 +36,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class SchemaDefinitionService {
     private static final Set<String> SCENE_PRIMITIVES = Set.of("background", "grid", "environment", "ruler", "body",
             "circle", "rectangle", "line", "arrow", "vector", "trajectory", "spring", "rope", "waveField",
@@ -54,6 +55,24 @@ public class SchemaDefinitionService {
     private static final String ALLOWED_UNITS = "allowedUnits";
     private static final String NORMALIZED_UNIT = "normalizedUnit";
     private static final String ADJUSTABLE_PARAMETERS = "adjustableParameters";
+    private static final String OBJECTS = "objects";
+    private static final String EXECUTION = "execution";
+    private static final String VALUE = "value";
+    private static final String SAME_UNIT_AS = "sameUnitAs";
+    private static final String OPTIONAL_QUANTITIES = "optionalQuantities";
+    private static final String MIN_COUNT = "minCount";
+    private static final String MAX_COUNT = "maxCount";
+    private static final String VISUALIZATION = "visualization";
+    private static final String SERIES = "series";
+    private static final String QUANTITY = "quantity";
+    private static final String ALIASES = "aliases";
+    private static final String SYMBOL = "symbol";
+    private static final String DEFAULT_VALUE = "defaultValue";
+    private static final String MODEL = "model";
+    private static final String POSITIVE = "positive";
+    private static final String NON_NEGATIVE = "nonNegative";
+    private static final String SOURCE = "source";
+    private static final String CHILDREN = "children";
     public record RequiredGap(String key, String unit) { }
     public record SolverBinding(String numericalSolverId, String referenceSolverId, String version) { }
     public record AdjustableParameter(String key, double min, double max) { }
@@ -61,11 +80,33 @@ public class SchemaDefinitionService {
     private final SchemaVersionRepository repository;
     private final SolverVersionRepository solverRepository;
     private final com.example.backend.repository.curriculum.TopicRepository topicRepository;
-    private final SchemaCompiler schemaCompiler = new SchemaCompiler(new ObjectMapper());
+    private final TopicPackContractValidator topicPackContracts;
+    private final com.example.backend.ai.normalization.UnitNormalizer unitNormalizer = new com.example.backend.ai.normalization.UnitNormalizer(new ObjectMapper());
+    private final SchemaCompiler schemaCompiler = new SchemaCompiler(new ObjectMapper(), unitNormalizer);
     private final Map<String, CompiledSchema> compiledCache = new ConcurrentHashMap<>();
+
+    @Autowired
+    public SchemaDefinitionService(SchemaVersionRepository repository, SolverVersionRepository solverRepository,
+            TopicRepository topicRepository, TopicPackContractValidator topicPackContracts) {
+        this.repository = repository;
+        this.solverRepository = solverRepository;
+        this.topicRepository = topicRepository;
+        this.topicPackContracts = topicPackContracts;
+    }
+
+    /** Compatibility constructor retained for existing focused unit tests and callers. */
+    public SchemaDefinitionService(SchemaVersionRepository repository, SolverVersionRepository solverRepository,
+            TopicRepository topicRepository) {
+        this(repository, solverRepository, topicRepository,
+                new TopicPackContractValidator(new ObjectMapper(), new DefaultResourceLoader()));
+    }
 
     @Transactional(readOnly = true)
     public SchemaVersion requireApproved(String schemaId) {
+        return requireApprovedInternal(schemaId);
+    }
+
+    private SchemaVersion requireApprovedInternal(String schemaId) {
         if (!StringUtils.hasText(schemaId)) throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Schema is missing");
         String exactSchemaId = schemaId.trim();
         SchemaVersion schema = repository.findAllBySchemaIdIgnoreCaseAndLifecycleStatusOrderByCreatedAtDesc(
@@ -75,7 +116,7 @@ public class SchemaDefinitionService {
                         "No approved schema definition exists for: " + exactSchemaId));
         validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(), schema.getTopic());
         requireEnabledTopic(schema.getTopic());
-        compiled(schema);
+        if (!isMatterTemplate(schema.getDefinition())) compiled(schema);
         return schema;
     }
 
@@ -85,7 +126,7 @@ public class SchemaDefinitionService {
      */
     @Transactional(readOnly = true)
     public DefinitionSnapshot approvedDefinitionSnapshot(String schemaId) {
-        SchemaVersion schema = requireApproved(schemaId);
+        SchemaVersion schema = requireApprovedInternal(schemaId);
         return new DefinitionSnapshot(schema.getSchemaId(), schema.getVersion(), schema.getDefinition().deepCopy());
     }
 
@@ -116,7 +157,7 @@ public class SchemaDefinitionService {
         }
         validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(), schema.getTopic());
         requireEnabledTopic(schema.getTopic());
-        compiled(schema);
+        if (!isMatterTemplate(schema.getDefinition())) compiled(schema);
         return schema;
     }
 
@@ -152,8 +193,7 @@ public class SchemaDefinitionService {
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
                         "Persisted schema binding is unavailable for replay: " + exactSchemaId + "@" + version));
         validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(), schema.getTopic());
-        requireEnabledTopic(schema.getTopic());
-        compiled(schema);
+        if (!isMatterTemplate(schema.getDefinition())) compiled(schema);
         return schema;
     }
 
@@ -229,6 +269,16 @@ public class SchemaDefinitionService {
         return schemaCompiler.checksum(definition);
     }
 
+    public JsonNode topicPackMetaSchema() { return topicPackContracts.metaSchema(); }
+
+    public JsonNode coreTypeLibrary() { return topicPackContracts.coreTypeLibrary(); }
+
+    public JsonNode projectCoreTypes(JsonNode definition) { return topicPackContracts.projectCoreTypes(definition); }
+
+    public void validateTopicPackForAuthoring(JsonNode definition, String schemaId) {
+        topicPackContracts.validateForAuthoring(definition, schemaId);
+    }
+
     public String solverBindingChecksum(String solverId, JsonNode outputDefinition) {
         ObjectNode binding = JsonNodeFactory.instance.objectNode();
         binding.put("solverId", solverId == null ? "" : solverId.trim());
@@ -252,6 +302,36 @@ public class SchemaDefinitionService {
                         schema.getVersion(), schema.getTopic()));
     }
 
+    public JsonNode runtimeDefinition(SchemaVersion schema, JsonNode specification) {
+        rejectRetiredRuntime(schema.getDefinition(), specification);
+        return schema.getDefinition();
+    }
+
+    public CompiledSchema compiled(SchemaVersion schema, JsonNode specification) {
+        runtimeDefinition(schema, specification);
+        return compiled(schema);
+    }
+
+    public JsonNode visualization(JsonNode definition, JsonNode specification) {
+        rejectRetiredRuntime(definition, specification);
+        return visualization(definition);
+    }
+
+    private static void rejectRetiredRuntime(JsonNode definition, JsonNode specification) {
+        if (definition.path("dynamicsLanguage").isObject()
+                || definition.path("composition").path("enabled").asBoolean(false)) {
+            throw new IllegalArgumentException("Retired numerical runtime is unavailable; use the Matter flow");
+        }
+        if (specification != null) {
+            for (JsonNode object : specification.path(OBJECTS)) {
+                if (object.hasNonNull("dynamics") || (object.path("phases").isArray()
+                        && !object.path("phases").isEmpty())) {
+                    throw new IllegalArgumentException("Retired numerical runtime is unavailable; use the Matter flow");
+                }
+            }
+        }
+    }
+
     @Transactional(readOnly = true)
     public SolverBinding requireSolverBinding(String schemaId, String version) {
         String exactSchemaId = schemaId == null ? "" : schemaId.trim();
@@ -267,13 +347,16 @@ public class SchemaDefinitionService {
     }
 
     public double durationSeconds(JsonNode specification, JsonNode definition) {
-        JsonNode execution = definition.path("execution");
+        if ("explicit".equals(definition.path("inputPolicy").path("stoppingCondition").asText())
+                && (specification.get("endCondition") == null || specification.get("endCondition").isNull()))
+            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "An explicit stopping condition is required");
+        JsonNode execution = definition.path(EXECUTION);
         for (JsonNode binding : execution.path("durationBindings")) {
             Set<String> relationTypes = textSet(binding.path("relationTypes"));
             String requiredUnit = binding.path("unit").asText();
             for (JsonNode relation : specification.path("relations")) {
                 if (!relationTypes.contains(relation.path("type").asText())) continue;
-                JsonNode value = relation.path("value");
+                JsonNode value = relation.path(VALUE);
                 if (!value.isNumber() || !requiredUnit.equals(relation.path("unit").asText())
                         || !Double.isFinite(value.asDouble()) || value.asDouble() <= 0) {
                     throw new ApiException(HttpStatus.CONFLICT,
@@ -308,10 +391,10 @@ public class SchemaDefinitionService {
                 blockers.add("Invalid unit for " + key + ": " + matched.path(NORMALIZED_UNIT).asText());
             }
             if (!sameUnitAsReference(quantities, field, matched)) {
-                blockers.add("Unit for " + key + " must match " + field.path("sameUnitAs").asText());
+                blockers.add("Unit for " + key + " must match " + field.path(SAME_UNIT_AS).asText());
             }
         }
-        for (JsonNode field : definition.path("optionalQuantities")) {
+        for (JsonNode field : definition.path(OPTIONAL_QUANTITIES)) {
             JsonNode matched = findQuantity(quantities, names(field));
             if (matched == null) continue;
             String key = field.path("key").asText();
@@ -324,31 +407,27 @@ public class SchemaDefinitionService {
                 blockers.add("Invalid unit for " + key + ": " + matched.path(NORMALIZED_UNIT).asText());
             }
             if (!sameUnitAsReference(quantities, field, matched)) {
-                blockers.add("Unit for " + key + " must match " + field.path("sameUnitAs").asText());
+                blockers.add("Unit for " + key + " must match " + field.path(SAME_UNIT_AS).asText());
             }
         }
         blockers.addAll(validateEntityObjects(specification, definition));
-        double fallbackDuration = definition.path("execution").path(DURATION_SECONDS).asDouble();
+        double fallbackDuration = definition.path(EXECUTION).path(DURATION_SECONDS).asDouble();
         blockers.addAll(EndConditionResolver.validate(specification, fallbackDuration));
         blockers.addAll(validateEndConditionBindings(specification, definition));
         return List.copyOf(blockers);
     }
 
+    public void validateSpecificationReferences(JsonNode specification, JsonNode definition, String schemaId) {
+        topicPackContracts.validateSpecificationReferences(specification, definition, schemaId);
+    }
+
     /** Validate dynamic entity quantities without assuming a fixed object count. */
     private List<String> validateEntityObjects(JsonNode specification, JsonNode definition) {
-        JsonNode objects = specification == null ? null : specification.path("objects");
-        if (!objects.isArray() || objects.isEmpty()) return List.of();
-        JsonNode types = definition.path("entityContract").path("types");
-        if (!types.isArray()) types = definition.path("entityTypes");
+        JsonNode objects = specification == null ? null : specification.path(OBJECTS);
+        if (objects == null || !objects.isArray() || objects.isEmpty()) return List.of();
+        JsonNode types = declaredObjectTypes(definition);
         List<String> errors = new ArrayList<>();
-        if (!types.isArray()) {
-            for (JsonNode object : objects) {
-                if (object.path("quantities").isArray() && !object.path("quantities").isEmpty()) {
-                    errors.add("Entity-local quantities require an entity contract");
-                }
-            }
-            return errors;
-        }
+        if (!types.isArray() || types.isEmpty()) return errors;
         Map<String, Integer> counts = new HashMap<>();
         Set<String> ids = new HashSet<>();
         for (JsonNode object : objects) {
@@ -365,8 +444,8 @@ public class SchemaDefinitionService {
                 continue;
             }
             counts.merge(type, 1, Integer::sum);
-            JsonNode quantities = object.path("quantities");
-            for (JsonNode field : contract.path("requiredQuantities")) {
+            JsonNode quantities = object.path(QUANTITIES);
+            for (JsonNode field : contract.path(REQUIRED_QUANTITIES)) {
                 JsonNode matched = findQuantity(quantities, names(field));
                 if (matched == null || !matched.path(NORMALIZED_VALUE).isNumber()) {
                     errors.add("Missing required entity quantity: objects." + id + "." + field.path("key").asText());
@@ -381,7 +460,7 @@ public class SchemaDefinitionService {
                     errors.add("Invalid unit for entity quantity: objects." + id + "." + field.path("key").asText());
                 }
             }
-            for (JsonNode field : contract.path("optionalQuantities")) {
+            for (JsonNode field : contract.path(OPTIONAL_QUANTITIES)) {
                 JsonNode matched = findQuantity(quantities, names(field));
                 if (matched == null || !matched.path(NORMALIZED_VALUE).isNumber()) continue;
                 String key = field.path("key").asText();
@@ -395,8 +474,8 @@ public class SchemaDefinitionService {
         }
         for (JsonNode contract : types) {
             String type = contract.path("type").asText("");
-            int min = contract.has("min") ? contract.path("min").asInt(1) : contract.path("minCount").asInt(1);
-            int max = contract.has("max") ? contract.path("max").asInt(min) : contract.path("maxCount").asInt(min);
+            int min = contract.has("min") ? contract.path("min").asInt(1) : contract.path(MIN_COUNT).asInt(1);
+            int max = contract.has("max") ? contract.path("max").asInt(min) : contract.path(MAX_COUNT).asInt(min);
             int count = counts.getOrDefault(type, 0);
             if (count < min || count > max) {
                 errors.add("Entity count is outside the schema contract for type " + type);
@@ -407,7 +486,7 @@ public class SchemaDefinitionService {
 
     private List<String> validateEndConditionBindings(JsonNode specification, JsonNode definition) {
         JsonNode condition = EndConditionResolver.normalize(specification,
-                definition.path("execution").path(DURATION_SECONDS).asDouble());
+                definition.path(EXECUTION).path(DURATION_SECONDS).asDouble());
         Set<String> declared = new HashSet<>();
         Set<String> scalarOutputs = new HashSet<>();
         for (JsonNode output : definition.path("output").path("probeSeries")) {
@@ -420,15 +499,15 @@ public class SchemaDefinitionService {
                 scalarOutputs.add(key);
             }
         }
-        for (JsonNode series : definition.path("visualization").path("series")) {
+        for (JsonNode series : definition.path(VISUALIZATION).path(SERIES)) {
             if (series.path("key").isTextual()) declared.add(series.path("key").asText());
         }
         List<String> errors = new ArrayList<>();
         if (!condition.isObject()) return errors;
-        addBindingError(errors, declared, scalarOutputs, condition.path("quantity").asText(""), "endCondition.quantity");
+        addBindingError(errors, declared, scalarOutputs, condition.path(QUANTITY).asText(""), "endCondition.quantity");
         JsonNode event = condition.path("event");
         if (event.isObject()) {
-            addBindingError(errors, declared, scalarOutputs, event.path("quantity").asText(""), "endCondition.event.quantity");
+            addBindingError(errors, declared, scalarOutputs, event.path(QUANTITY).asText(""), "endCondition.event.quantity");
             addBindingError(errors, declared, scalarOutputs, event.path("firstQuantity").asText(""), "endCondition.event.firstQuantity");
             addBindingError(errors, declared, scalarOutputs, event.path("secondQuantity").asText(""), "endCondition.event.secondQuantity");
             addBindingError(errors, declared, scalarOutputs, event.path("markerQuantity").asText(""), "endCondition.event.markerQuantity");
@@ -461,17 +540,16 @@ public class SchemaDefinitionService {
                     field.path(ALLOWED_UNITS).isArray() && !field.path(ALLOWED_UNITS).isEmpty()
                             ? field.path(ALLOWED_UNITS).get(0).asText() : "SI"));
         }
-        JsonNode entityTypes = definition.path("entityContract").path("types");
-        if (!entityTypes.isArray()) entityTypes = definition.path("entityTypes");
-        if (entityTypes.isArray() && specification != null && specification.path("objects").isArray()) {
+        JsonNode entityTypes = declaredObjectTypes(definition);
+        if (entityTypes.isArray() && specification != null && specification.path(OBJECTS).isArray()) {
             Map<String, Integer> entityCounts = new HashMap<>();
-            for (JsonNode object : specification.path("objects")) {
+            for (JsonNode object : specification.path(OBJECTS)) {
                 JsonNode entity = java.util.stream.StreamSupport.stream(entityTypes.spliterator(), false)
                         .filter(item -> item.path("type").asText().equals(object.path("type").asText()))
                         .findFirst().orElse(null);
                 if (entity == null) continue;
                 entityCounts.merge(entity.path("type").asText(), 1, Integer::sum);
-                for (JsonNode field : entity.path("requiredQuantities")) {
+                for (JsonNode field : entity.path(REQUIRED_QUANTITIES)) {
                     JsonNode matched = findQuantity(object.path(QUANTITIES), names(field));
                     boolean invalid = matched == null || !matched.path(NORMALIZED_VALUE).isNumber()
                             || invalidNumericValue(field, matched.path(NORMALIZED_VALUE).asDouble())
@@ -485,8 +563,8 @@ public class SchemaDefinitionService {
             }
             for (JsonNode entity : entityTypes) {
                 String type = entity.path("type").asText("");
-                int min = entity.has("min") ? entity.path("min").asInt(1) : entity.path("minCount").asInt(1);
-                int max = entity.has("max") ? entity.path("max").asInt(min) : entity.path("maxCount").asInt(min);
+                int min = entity.has("min") ? entity.path("min").asInt(1) : entity.path(MIN_COUNT).asInt(1);
+                int max = entity.has("max") ? entity.path("max").asInt(min) : entity.path(MAX_COUNT).asInt(min);
                 int count = entityCounts.getOrDefault(type, 0);
                 if (count < min || count > max) gaps.add(new RequiredGap("objects." + type, ""));
             }
@@ -502,30 +580,30 @@ public class SchemaDefinitionService {
         String raw = rawName == null ? "" : rawName.trim();
         if (raw.isBlank()) return "";
         if (definition == null || !definition.isObject()) return "";
-        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path("optionalQuantities"))) {
+        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path(OPTIONAL_QUANTITIES))) {
             for (JsonNode field : fields) {
                 String key = field.path("key").asText("").trim();
                 if (key.equals(raw)) return key;
-                for (JsonNode alias : field.path("aliases")) if (alias.asText("").trim().equals(raw)) return key;
-                JsonNode symbol = field.get("symbol");
+                for (JsonNode alias : field.path(ALIASES)) if (alias.asText("").trim().equals(raw)) return key;
+                JsonNode symbol = field.get(SYMBOL);
                 if (symbol != null && symbol.isTextual() && symbol.asText().trim().equals(raw)) return key;
                 for (JsonNode item : field.path("symbols")) if (item.isTextual() && item.asText().trim().equals(raw)) return key;
                 for (JsonNode parameter : definition.path(ADJUSTABLE_PARAMETERS)) {
                     if (key.equals(parameter.path("key").asText())
-                            && parameter.path("symbol").isTextual()
-                            && parameter.path("symbol").asText().trim().equals(raw)) return key;
+                            && parameter.path(SYMBOL).isTextual()
+                            && parameter.path(SYMBOL).asText().trim().equals(raw)) return key;
                 }
             }
         }
         Set<String> caseInsensitiveMatches = new HashSet<>();
-        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path("optionalQuantities"))) {
+        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path(OPTIONAL_QUANTITIES))) {
             for (JsonNode field : fields) {
                 String key = field.path("key").asText("").trim();
                 if (key.equalsIgnoreCase(raw)) caseInsensitiveMatches.add(key);
-                for (JsonNode alias : field.path("aliases")) {
+                for (JsonNode alias : field.path(ALIASES)) {
                     if (alias.asText("").trim().equalsIgnoreCase(raw)) caseInsensitiveMatches.add(key);
                 }
-                JsonNode symbol = field.get("symbol");
+                JsonNode symbol = field.get(SYMBOL);
                 if (symbol != null && symbol.isTextual() && symbol.asText().trim().equalsIgnoreCase(raw)) {
                     caseInsensitiveMatches.add(key);
                 }
@@ -533,8 +611,8 @@ public class SchemaDefinitionService {
                     if (item.isTextual() && item.asText().trim().equalsIgnoreCase(raw)) caseInsensitiveMatches.add(key);
                 }
                 for (JsonNode parameter : definition.path(ADJUSTABLE_PARAMETERS)) {
-                    if (key.equals(parameter.path("key").asText()) && parameter.path("symbol").isTextual()
-                            && parameter.path("symbol").asText().trim().equalsIgnoreCase(raw)) {
+                    if (key.equals(parameter.path("key").asText()) && parameter.path(SYMBOL).isTextual()
+                            && parameter.path(SYMBOL).asText().trim().equalsIgnoreCase(raw)) {
                         caseInsensitiveMatches.add(key);
                     }
                 }
@@ -564,34 +642,6 @@ public class SchemaDefinitionService {
         return canonical;
     }
 
-    /** Materialize only defaults owned by the selected schema at the ingress boundary. */
-    public JsonNode materializeDefaults(JsonNode specification, JsonNode definition) {
-        ObjectNode copy = specification == null || !specification.isObject()
-                ? JsonNodeFactory.instance.objectNode() : (ObjectNode) specification.deepCopy();
-        ArrayNode quantities = copy.path(QUANTITIES).isArray()
-                ? (ArrayNode) copy.path(QUANTITIES).deepCopy() : JsonNodeFactory.instance.arrayNode();
-        Set<String> present = new HashSet<>();
-        for (JsonNode quantity : quantities) present.add(quantity.path("name").asText());
-        for (JsonNode field : definition.path("optionalQuantities")) {
-            String key = field.path("key").asText("").trim();
-            JsonNode value = field.get("defaultValue");
-            if (key.isBlank() || value == null || !value.isNumber() || present.contains(key)) continue;
-            ObjectNode materialized = JsonNodeFactory.instance.objectNode();
-            materialized.put("name", key);
-            materialized.set("value", value.deepCopy());
-            materialized.set(NORMALIZED_VALUE, value.deepCopy());
-            String unit = field.path(ALLOWED_UNITS).path(0).asText("1");
-            materialized.put("originalUnit", unit);
-            materialized.put(NORMALIZED_UNIT, unit);
-            materialized.put("confidence", 1.0);
-            materialized.put("sourceText", "schema.default");
-            quantities.add(materialized);
-            present.add(key);
-        }
-        copy.set(QUANTITIES, quantities);
-        return copy;
-    }
-
     public Set<String> adjustableKeys(JsonNode definition) {
         return adjustableParameters(definition).stream()
                 .map(AdjustableParameter::key)
@@ -615,6 +665,7 @@ public class SchemaDefinitionService {
     /** Builds the complete snapshot used by a solver without silently defaulting values. */
     public Map<String, Double> effectiveAdjustments(JsonNode specification, JsonNode definition,
             Map<String, Double> requested, Map<String, Double> previous) {
+        rejectRetiredRuntime(definition, specification);
         Map<String, Double> supplied = new LinkedHashMap<>();
         if (previous != null) supplied.putAll(previous);
         if (requested != null) supplied.putAll(requested);
@@ -625,12 +676,15 @@ public class SchemaDefinitionService {
                 JsonNode quantity = findQuantityForControl(specification, definition, control.key());
                 if (quantity != null && quantity.path(NORMALIZED_VALUE).isNumber()) {
                     value = quantity.path(NORMALIZED_VALUE).asDouble();
+                } else if (quantity != null && quantity.path(VALUE).isNumber()) {
+                    var normalized = unitNormalizer.normalize(quantity.path(VALUE).decimalValue(), quantity.path("originalUnit").asText());
+                    if (normalized.knownUnit()) value = normalized.normalizedValue().doubleValue();
                 }
             }
             if (value == null) {
                 JsonNode parameterDefinition = findQuantityDefinition(definition, control.key());
-                if (parameterDefinition != null && parameterDefinition.path("defaultValue").isNumber()) {
-                    value = parameterDefinition.path("defaultValue").asDouble();
+                if (parameterDefinition != null && parameterDefinition.path(DEFAULT_VALUE).isNumber()) {
+                    value = parameterDefinition.path(DEFAULT_VALUE).asDouble();
                 }
             }
             if (value == null || !Double.isFinite(value)) {
@@ -647,19 +701,17 @@ public class SchemaDefinitionService {
     }
 
     public JsonNode visualization(JsonNode definition) {
-        ObjectNode presentation = definition.path("visualization").deepCopy();
-        // Normalize legacy wire names for historical replay. New runs replace
-        // these IDs with their independently selected, persisted visual plan.
+        ObjectNode presentation = definition.path(VISUALIZATION).deepCopy();
+        // Historical definitions may still contain retired catalog identifiers.
+        // Strip them at the boundary; rendering is procedural and data-driven.
         JsonNode visualPresentation = presentation.path("presentation");
         if (visualPresentation instanceof ObjectNode visualObject) {
             JsonNode actors = visualObject.path("actors");
             if (actors.isArray()) {
                 for (JsonNode actor : actors) {
                     if (!(actor instanceof ObjectNode actorObject)) continue;
-                    if (!actorObject.has("assetHint") && actorObject.has("asset")) {
-                        actorObject.set("assetHint", actorObject.get("asset"));
-                    }
                     actorObject.remove("asset");
+                    actorObject.remove("assetHint");
                 }
             }
         }
@@ -677,17 +729,25 @@ public class SchemaDefinitionService {
 
     private void validateDefinitionInternal(JsonNode definition, String schemaId, String version, String topic,
                                             boolean legacyInferredIdentity) {
-        JsonNode execution = definition == null ? null : definition.path("execution");
+        topicPackContracts.validateIfDeclared(definition, schemaId);
+        if (isMatterTemplate(definition)) {
+            if (definition.has(MODEL) && !"matter_js".equals(definition.path(MODEL).asText())) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Matter.js topic template has an invalid model: " + schemaId);
+            }
+            return;
+        }
+        JsonNode execution = definition == null ? null : definition.path(EXECUTION);
         if (definition == null || !definition.isObject()
                 || !definition.path(REQUIRED_QUANTITIES).isArray()
                 || !definition.path(ADJUSTABLE_PARAMETERS).isArray()
-                || !definition.path("visualization").isObject()
+                || !definition.path(VISUALIZATION).isObject()
                 || execution == null || !execution.isObject()
                 || !execution.path(DURATION_SECONDS).isNumber()
                 || !execution.path("stepSeconds").isNumber()
                 || !execution.path("durationBindings").isArray()
                 || !definition.path("validation").isObject()
-                || !StringUtils.hasText(definition.path("model").asText())) {
+                || !StringUtils.hasText(definition.path(MODEL).asText())) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Approved schema has an incomplete production definition: " + schemaId);
         }
@@ -701,13 +761,25 @@ public class SchemaDefinitionService {
         validateValidationContract(validation, schemaId);
         validateQuantityDefinitions(definition, schemaId);
         validateEntityContract(definition, schemaId);
-        validateVisualization(definition.path("visualization"), schemaId);
+        validateVisualization(definition.path(VISUALIZATION), schemaId);
         try {
             if (legacyInferredIdentity) schemaCompiler.compile(definition, schemaId);
             else schemaCompiler.compile(definition, schemaId, version, topic);
         } catch (IllegalArgumentException exception) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage());
         }
+    }
+
+    private static boolean isMatterTemplate(JsonNode definition) {
+        return definition != null && TopicPackContractValidator.CURRENT_META_SCHEMA_VERSION.equals(
+                definition.path("metaSchemaVersion").asText());
+    }
+
+    private JsonNode declaredObjectTypes(JsonNode definition) {
+        JsonNode types = definition.path("objectTypes");
+        if (!types.isArray()) types = definition.path("entityContract").path("types");
+        if (!types.isArray()) types = definition.path("entityTypes");
+        return types;
     }
 
     private void validateValidationContract(JsonNode validation, String schemaId) {
@@ -757,7 +829,7 @@ public class SchemaDefinitionService {
     private void validateQuantityDefinitions(JsonNode definition, String schemaId) {
         Set<String> keys = new HashSet<>();
         Set<String> aliases = new HashSet<>();
-        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path("optionalQuantities"))) {
+        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path(OPTIONAL_QUANTITIES))) {
             if (!fields.isMissingNode() && !fields.isArray()) {
                 throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                         "Quantity definitions must be arrays: " + schemaId);
@@ -774,7 +846,7 @@ public class SchemaDefinitionService {
                             "Quantity allowedUnits are required for " + schemaId + "." + key);
                 }
                 Set<String> localAliases = new HashSet<>();
-                for (JsonNode alias : field.path("aliases")) {
+                for (JsonNode alias : field.path(ALIASES)) {
                     String normalized = alias.asText("").trim();
                     if (normalized.isBlank() || !localAliases.add(normalized)
                             || !aliases.add(normalized) || normalized.equals(key)) {
@@ -782,11 +854,11 @@ public class SchemaDefinitionService {
                                 "Duplicate or conflicting quantity alias in: " + schemaId + "." + key);
                     }
                 }
-                if (field.path("positive").asBoolean(false) && field.path("nonNegative").asBoolean(false)) {
+                if (field.path(POSITIVE).asBoolean(false) && field.path(NON_NEGATIVE).asBoolean(false)) {
                     throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                             "Quantity cannot be both positive and nonNegative: " + schemaId + "." + key);
                 }
-                JsonNode defaultValue = field.get("defaultValue");
+                JsonNode defaultValue = field.get(DEFAULT_VALUE);
                 if (defaultValue != null && (!defaultValue.isNumber() || !finite(defaultValue))) {
                     throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                             "Quantity defaultValue must be finite: " + schemaId + "." + key);
@@ -823,17 +895,13 @@ public class SchemaDefinitionService {
     }
 
     private void validateEntityContract(JsonNode definition, String schemaId) {
-        JsonNode contract = definition.path("entityContract");
-        if (contract.isMissingNode() || contract.isNull()) return;
-        JsonNode types = contract.path("types");
-        if (!types.isArray() || types.isEmpty()) {
-            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Entity contract types are required: " + schemaId);
-        }
+        JsonNode types = declaredObjectTypes(definition);
+        if (!types.isArray() || types.isEmpty()) return;
         Set<String> entityTypes = new HashSet<>();
         for (JsonNode entity : types) {
             String type = entity.path("type").asText("").trim();
-            JsonNode minNode = entity.has("min") ? entity.get("min") : entity.get("minCount");
-            JsonNode maxNode = entity.has("max") ? entity.get("max") : entity.get("maxCount");
+            JsonNode minNode = entity.has("min") ? entity.get("min") : entity.get(MIN_COUNT);
+            JsonNode maxNode = entity.has("max") ? entity.get("max") : entity.get(MAX_COUNT);
             int min = minNode == null || minNode.isNull() ? 1 : minNode.asInt(-1);
             int max = maxNode == null || maxNode.isNull() ? min : maxNode.asInt(-1);
             if (type.isBlank() || !entityTypes.add(type) || min < 0 || max < min || max > 512
@@ -843,8 +911,8 @@ public class SchemaDefinitionService {
             }
             Set<String> quantityKeys = new HashSet<>();
             Set<String> quantityAliases = new HashSet<>();
-            validateEntityQuantities(entity.path("requiredQuantities"), schemaId, type, quantityKeys, quantityAliases);
-            validateEntityQuantities(entity.path("optionalQuantities"), schemaId, type, quantityKeys, quantityAliases);
+            validateEntityQuantities(entity.path(REQUIRED_QUANTITIES), schemaId, type, quantityKeys, quantityAliases);
+            validateEntityQuantities(entity.path(OPTIONAL_QUANTITIES), schemaId, type, quantityKeys, quantityAliases);
         }
     }
 
@@ -862,14 +930,14 @@ public class SchemaDefinitionService {
                 throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                         "Invalid entity quantity: " + schemaId + "." + entityType + "." + key);
             }
-            for (JsonNode alias : field.path("aliases")) {
+            for (JsonNode alias : field.path(ALIASES)) {
                 String value = alias.asText("").trim();
                 if (value.isBlank() || !aliases.add(value) || value.equals(key)) {
                     throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                             "Duplicate entity quantity alias: " + schemaId + "." + entityType + "." + key);
                 }
             }
-            if (field.path("positive").asBoolean(false) && field.path("nonNegative").asBoolean(false)) {
+            if (field.path(POSITIVE).asBoolean(false) && field.path(NON_NEGATIVE).asBoolean(false)) {
                 throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                         "Entity quantity cannot be both positive and nonNegative: " + schemaId + "." + key);
             }
@@ -877,7 +945,7 @@ public class SchemaDefinitionService {
     }
 
     private void validateVisualization(JsonNode visualization, String schemaId) {
-        JsonNode series = visualization.path("series");
+        JsonNode series = visualization.path(SERIES);
         JsonNode presentation = visualization.path("presentation");
         JsonNode nodes = presentation.path("sceneGraph").path("nodes");
         JsonNode actors = presentation.path("actors");
@@ -892,8 +960,8 @@ public class SchemaDefinitionService {
         for (JsonNode item : series) {
             String key = item.path("key").asText("").trim();
             if (!StringUtils.hasText(key) || !seriesKeys.add(key)
-                    || !StringUtils.hasText(item.path("source").asText())) invalidScene(schemaId, "invalid visualization series");
-            seriesSources.add(item.path("source").asText());
+                    || !StringUtils.hasText(item.path(SOURCE).asText())) invalidScene(schemaId, "invalid visualization series");
+            seriesSources.add(item.path(SOURCE).asText());
         }
         if (nodes.isArray()) validateSceneNodes(nodes, schemaId, new HashSet<>(), seriesSources, 0, new int[] { 0 });
         for (JsonNode effect : presentation.path("effects")) {
@@ -909,13 +977,13 @@ public class SchemaDefinitionService {
             String type = node.path("type").asText("").trim();
             if (!StringUtils.hasText(id) || !ids.add(id)) invalidScene(schemaId, "missing or duplicate scene node id: " + id);
             if (!SCENE_PRIMITIVES.contains(type)) invalidScene(schemaId, "unsupported primitive: " + type);
-            for (JsonNode binding : node.path("transform")) validateVisualBinding(binding, schemaId, seriesSources, 0);
+            for (JsonNode binding : node.path("transform")) validateDataBinding(binding, schemaId, seriesSources, 0);
             if (("graph".equals(type) || "chart".equals(type))
-                    && !seriesSources.contains(node.path("properties").path("source").asText())) {
+                    && !seriesSources.contains(node.path("properties").path(SOURCE).asText())) {
                 invalidScene(schemaId, "graph source is not declared by visualization.series");
             }
             if ("vectorScene".equals(type)) validateVectorScene(node.path("properties").path("vector"), schemaId, seriesSources);
-            if (node.has("children")) validateSceneNodes(node.path("children"), schemaId, ids, seriesSources, depth + 1, count);
+            if (node.has(CHILDREN)) validateSceneNodes(node.path(CHILDREN), schemaId, ids, seriesSources, depth + 1, count);
         }
     }
 
@@ -934,8 +1002,8 @@ public class SchemaDefinitionService {
             String kind = shape.path("kind").asText();
             if (!VECTOR_SHAPES.contains(kind)) invalidScene(schemaId, "unsupported vector shape: " + kind);
             for (String field : List.of("x", "y", "rotation", "scaleX", "scaleY", "width", "height", "radiusX",
-                    "radiusY", "opacity", "lineWidth", "fontSize", "value")) {
-                if (shape.has(field)) validateVisualBinding(shape.get(field), schemaId, seriesSources, 0);
+                    "radiusY", "opacity", "lineWidth", "fontSize", VALUE)) {
+                if (shape.has(field)) validateDataBinding(shape.get(field), schemaId, seriesSources, 0);
             }
             if ("path".equals(kind)) {
                 JsonNode commands = shape.path("commands");
@@ -946,25 +1014,31 @@ public class SchemaDefinitionService {
                     Integer arity = PATH_ARITY.get(command.path("op").asText());
                     JsonNode args = command.path("args");
                     if (arity == null || !args.isArray() || args.size() != arity) invalidScene(schemaId, "invalid path command");
-                    args.forEach(arg -> validateVisualBinding(arg, schemaId, seriesSources, 0));
+                    args.forEach(arg -> validateDataBinding(arg, schemaId, seriesSources, 0));
                 }
             }
-            if (shape.has("children")) validateVectorShapes(shape.path("children"), schemaId, seriesSources, depth + 1, count);
+            if (shape.has(CHILDREN)) validateVectorShapes(shape.path(CHILDREN), schemaId, seriesSources, depth + 1, count);
         }
     }
 
-    private void validateVisualBinding(JsonNode binding, String schemaId, Set<String> seriesSources, int depth) {
+    private void validateDataBinding(JsonNode binding, String schemaId, Set<String> seriesSources, int depth) {
         if (depth > 32) invalidScene(schemaId, "visual binding nesting exceeds 32");
-        if (binding.isNumber()) { if (!finite(binding)) invalidScene(schemaId, "visual literal must be finite"); return; }
+        if (binding.isNumber()) {
+            if (!finite(binding)) invalidScene(schemaId, "visual literal must be finite");
+            return;
+        }
         if (binding.isTextual()) {
             if (!StringUtils.hasText(binding.asText()) || !seriesSources.contains(binding.asText()))
                 invalidScene(schemaId, "undeclared series binding: " + binding.asText());
             return;
         }
         if (!binding.isObject()) invalidScene(schemaId, "invalid visual binding");
-        String source = binding.path("source").asText();
-        if ("constant".equals(source)) { if (!finite(binding.path("value"))) invalidScene(schemaId, "invalid constant binding"); return; }
-        if ("series".equals(source) || "quantity".equals(source)) {
+        String source = binding.path(SOURCE).asText();
+        if ("constant".equals(source)) {
+            if (!finite(binding.path(VALUE))) invalidScene(schemaId, "invalid constant binding");
+            return;
+        }
+        if (SERIES.equals(source) || QUANTITY.equals(source)) {
             if (!StringUtils.hasText(binding.path("key").asText())) invalidScene(schemaId, "binding key is required");
             return;
         }
@@ -976,10 +1050,17 @@ public class SchemaDefinitionService {
         if (!"expression".equals(source)) invalidScene(schemaId, "unsupported binding source: " + source);
         String operator = binding.path("operator").asText();
         JsonNode args = binding.path("args");
-        int expected = "clamp".equals(operator) ? 3 : Set.of("abs", "negate", "sin", "cos").contains(operator) ? 1 : -1;
+        int expected;
+        if ("clamp".equals(operator)) {
+            expected = 3;
+        } else if (Set.of("abs", "negate", "sin", "cos").contains(operator)) {
+            expected = 1;
+        } else {
+            expected = -1;
+        }
         if (!EXPRESSION_OPERATORS.contains(operator) || !args.isArray() || (expected >= 0 && args.size() != expected)
                 || (expected < 0 && args.size() < 2)) invalidScene(schemaId, "invalid visual expression");
-        args.forEach(arg -> validateVisualBinding(arg, schemaId, seriesSources, depth + 1));
+        args.forEach(arg -> validateDataBinding(arg, schemaId, seriesSources, depth + 1));
     }
 
     private boolean finite(JsonNode value) {
@@ -1006,7 +1087,7 @@ public class SchemaDefinitionService {
     }
 
     private JsonNode findQuantityDefinition(JsonNode definition, String key) {
-        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path("optionalQuantities"))) {
+        for (JsonNode fields : List.of(definition.path(REQUIRED_QUANTITIES), definition.path(OPTIONAL_QUANTITIES))) {
             for (JsonNode field : fields) {
                 if (key.equalsIgnoreCase(field.path("key").asText())) return field;
             }
@@ -1028,13 +1109,13 @@ public class SchemaDefinitionService {
 
     private boolean invalidNumericValue(JsonNode field, double value) {
         return !Double.isFinite(value)
-                || (field.path("positive").asBoolean(false) && value <= 0)
-                || (field.path("nonNegative").asBoolean(false) && value < 0)
+                || (field.path(POSITIVE).asBoolean(false) && value <= 0)
+                || (field.path(NON_NEGATIVE).asBoolean(false) && value < 0)
                 || (field.path("integer").asBoolean(false) && Math.rint(value) != value);
     }
 
     private boolean sameUnitAsReference(JsonNode quantities, JsonNode field, JsonNode matched) {
-        String reference = field.path("sameUnitAs").asText("").trim();
+        String reference = field.path(SAME_UNIT_AS).asText("").trim();
         if (reference.isBlank() || matched == null) return true;
         JsonNode referenceQuantity = findQuantity(quantities, Set.of(reference.toLowerCase()));
         return referenceQuantity == null

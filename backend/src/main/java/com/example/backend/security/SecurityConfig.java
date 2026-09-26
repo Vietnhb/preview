@@ -42,6 +42,10 @@ public class SecurityConfig {
         private static final String SCHOOL_MANAGER = "SCHOOL_MANAGER";
         private static final String TEACHER = "TEACHER";
         private static final String STUDENT = "STUDENT";
+        private static final String LIBRARY = "/api/library";
+        private static final String LIBRARY_ALL = "/api/library/**";
+        private static final String SCHEMAS = "/api/schemas";
+        private static final String SCHEMAS_ALL = "/api/schemas/**";
 
         private final JwtFilter jwtFilter;
         private final ObjectMapper objectMapper;
@@ -102,7 +106,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/schools/*/reports/**")
                                                 .hasAnyRole(SCHOOL_MANAGER, ADMIN)
 
-                                                .requestMatchers("/api/problems/**").hasAnyRole(TEACHER, ADMIN)
+                                                .requestMatchers("/api/problems/**", "/api/matter-flow/**")
+                                                .hasAnyRole(TEACHER, ADMIN)
 
                                                 // Reviewer evaluation runs are platform-level operations. Keep this
                                                 // before the authenticated fallback so school users cannot start or
@@ -149,21 +154,21 @@ public class SecurityConfig {
                                                 // Shared library (view: all auth users, submit: teachers only)
                                                 .requestMatchers("/api/library/folders", "/api/library/folders/**")
                                                 .hasAnyRole(TEACHER, ADMIN)
-                                                .requestMatchers(HttpMethod.POST, "/api/library", "/api/library/**")
+                                                .requestMatchers(HttpMethod.POST, LIBRARY, LIBRARY_ALL)
                                                 .hasAnyRole(TEACHER, ADMIN)
-                                                .requestMatchers(HttpMethod.PATCH, "/api/library", "/api/library/**")
+                                                .requestMatchers(HttpMethod.PATCH, LIBRARY, LIBRARY_ALL)
                                                 .hasAnyRole(TEACHER, ADMIN)
-                                                .requestMatchers(HttpMethod.DELETE, "/api/library", "/api/library/**")
+                                                .requestMatchers(HttpMethod.DELETE, LIBRARY, LIBRARY_ALL)
                                                 .hasAnyRole(TEACHER, ADMIN)
                                                 .requestMatchers("/api/library/mine").hasAnyRole(TEACHER, ADMIN)
-                                                .requestMatchers("/api/library", "/api/library/**").authenticated()
+                                                .requestMatchers(LIBRARY, LIBRARY_ALL).authenticated()
 
                                                 // Schemas (REVIEWER + ADMIN manage, others view approved only)
-                                                .requestMatchers(HttpMethod.POST, "/api/schemas", "/api/schemas/**")
+                                                .requestMatchers(HttpMethod.POST, SCHEMAS, SCHEMAS_ALL)
                                                 .hasAnyRole(REVIEWER, ADMIN)
-                                                .requestMatchers(HttpMethod.PUT, "/api/schemas", "/api/schemas/**")
+                                                .requestMatchers(HttpMethod.PUT, SCHEMAS, SCHEMAS_ALL)
                                                 .hasAnyRole(REVIEWER, ADMIN)
-                                                .requestMatchers("/api/schemas", "/api/schemas/**").authenticated()
+                                                .requestMatchers(SCHEMAS, SCHEMAS_ALL).authenticated()
 
                                                 // All other requests require authentication
                                                 .anyRequest().authenticated())

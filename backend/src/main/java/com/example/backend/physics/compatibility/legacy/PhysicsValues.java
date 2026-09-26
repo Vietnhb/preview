@@ -19,8 +19,7 @@ public final class PhysicsValues {
     private PhysicsValues() {
     }
 
-    /** @deprecated Use a schema-bound CanonicalQuantityBag in new code. */
-    @Deprecated
+    /** Reads a required canonical quantity from the compatibility specification boundary. */
     public static double require(JsonNode specification, Map<String, Double> overrides, String canonicalKey) {
         return LegacySpecificationAdapter.adapt(specification, overrides).require(canonicalKey);
     }
@@ -29,9 +28,8 @@ public final class PhysicsValues {
      * Compatibility bridge for historical JsonNode-based binders. New runtime
      * code must compile a schema-bound CanonicalQuantityBag at ingress.
      *
-     * @deprecated Use a schema-bound CanonicalQuantityBag in new code.
+     * This compatibility boundary remains supported for historical schema replays.
      */
-    @Deprecated
     public static CanonicalQuantityBag bag(JsonNode specification, Map<String, Double> overrides) {
         Map<String, java.math.BigDecimal> values = new java.util.LinkedHashMap<>();
         Map<String, String> units = new java.util.LinkedHashMap<>();
@@ -42,7 +40,7 @@ public final class PhysicsValues {
         if (quantities == null || !quantities.isArray() || quantities.isEmpty()) {
             return LegacySpecificationAdapter.adapt(specification, overrides);
         }
-        if (quantities != null && quantities.isArray()) {
+        if (quantities.isArray()) {
             for (JsonNode quantity : quantities) {
                 String key = quantity.path("name").asText("").trim();
                 if (key.isBlank()) continue;
@@ -78,8 +76,7 @@ public final class PhysicsValues {
         return quantities.optional(canonicalKey, fallback);
     }
 
-    /** @deprecated Use a schema-bound CanonicalQuantityBag in new code. */
-    @Deprecated
+    /** Reads optional gravity from the compatibility specification boundary. */
     public static double gravitationalAcceleration(JsonNode specification, Map<String, Double> overrides) {
         double gravity = optional(specification, overrides, PhysicalConstants.STANDARD_GRAVITY,
                 "gravitational_acceleration");
@@ -88,16 +85,13 @@ public final class PhysicsValues {
         return gravity;
     }
 
-    /** @deprecated Use a schema-bound CanonicalQuantityBag in new code. */
-    @Deprecated
     public static double optional(JsonNode specification, Map<String, Double> overrides,
             double fallback, String canonicalKey) {
         CanonicalQuantityBag bag = LegacySpecificationAdapter.adapt(specification, overrides);
         return bag.optional(canonicalKey, fallback);
     }
 
-    /** @deprecated Use compiled schema identity in new code. */
-    @Deprecated
+    /** Reads schema identity from a compatibility specification. */
     public static String schema(JsonNode specification) {
         if (specification == null)
             throw new IllegalArgumentException("Specification is required");
@@ -107,8 +101,7 @@ public final class PhysicsValues {
         return schemaId.trim();
     }
 
-    /** @deprecated Use typed module binding in new code. */
-    @Deprecated
+    /** Reads the historical model binding used by compatibility solvers. */
     public static String model(JsonNode specification) {
         if (specification == null || specification.path("model").asText().isBlank()) {
             throw new IllegalArgumentException("Specification model binding is required");

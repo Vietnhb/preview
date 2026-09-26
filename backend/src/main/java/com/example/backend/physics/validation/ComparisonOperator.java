@@ -16,6 +16,10 @@ public enum ComparisonOperator {
     }
 
     public ComparisonOperator boundary() {
-        return this == GREATER ? GREATER_OR_EQUAL : this == LESS ? LESS_OR_EQUAL : this;
+        return switch (this) {
+            case GREATER -> GREATER_OR_EQUAL;
+            case LESS -> LESS_OR_EQUAL;
+            default -> this;
+        };
     }
 }

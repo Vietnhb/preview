@@ -1,0 +1,870 @@
+[
+  {
+    "path": "PROMPT_LUONG_SCHEMA_SPEC_ASSET.md",
+    "reason": "Removed documentation for the retired creation architecture."
+  },
+  {
+    "path": "backend/src/main/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAudit.java",
+    "reason": "Removed retired numerical creation/execution code or tests for the retired contract."
+  },
+  {
+    "path": "backend/src/main/java/com/example/backend/bootstrap/ApprovedLatestPhysicsModuleBindingAuditRunner.java",
+    "reason": "Removed retired numerical creation/execution code or tests for the retired contract."
+  },
+  {
+    "path": "backend/src/main/java/com/example/backend/controller/simulation/SimulationWebSocketController.java",
+    "reason": "Removed retired numerical creation/execution code or tests for the retired contract."
+  },
+  {
+    "path": "backend/src/main/java/com/example/backend/dto/simulation/SimulationRequest.java",
+    "reason": "Removed retired numerical creation/execution code or tests for the retired contract."
+  },
+  {
+    "path": "backend/src/main/java/com/example/backend/physics/module/dynamics/DampedForcedOscillationModule.java",
+    "reason": "Removed retired numerical creation/execution code or tests for the retired contract."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/retrieval/multilingual-metadata-v2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/002__thermistor_response__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/005__source_internal_resistance__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/008__sensor_op_amp__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/016__circuits_rc_charging__1.9.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/017__circuits_rc_discharging__1.9.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/031__ac_rlc_circuit__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/039__ohms_law__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/040__resistors_series__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/041__resistors_parallel__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/042__capacitor_basic__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/043__ac_waveform__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/044__ideal_transformer__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/060__diode_characteristic__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/075__resistors_series__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/076__resistors_parallel__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/077__diode_characteristic__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/083__circuits_rc_charging__1.10.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/084__circuits_rc_discharging__1.10.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/116__thermistor_response__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/117__sensor_op_amp__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/118__ac_rlc_circuit__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/138__ac_waveform__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/141__capacitor_basic__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/142__circuits_rc_charging__1.11.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/143__circuits_rc_discharging__1.11.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/147__diode_characteristic__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/155__ideal_transformer__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/163__ohms_law__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/167__resistors_parallel__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/168__resistors_series__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/CIRCUITS/171__source_internal_resistance__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/000__linear_drag_motion__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/010__moment_equilibrium__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/013__dynamics_forces__1.9.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/014__dynamics_collision__1.9.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/015__oscillations_spring__1.9.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/054__work_energy_power__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/055__circular_motion__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/056__hooke_law__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/057__gravity_orbit__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/058__hydrostatics__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/068__damped_forced_oscillation__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/074__gravity_orbit__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/079__circular_motion__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/081__work_energy_power__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/086__linear_drag_motion__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/099__moment_equilibrium__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/123__dynamics_forces__2.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/124__dynamics_collision__2.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/125__oscillations_spring__2.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/144__circular_motion__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/145__damped_forced_oscillation__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/149__gravity_orbit__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/150__hooke_law__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/151__hydrostatics__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/159__linear_drag_motion__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/161__moment_equilibrium__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/DYNAMICS/181__work_energy_power__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/ELECTROMAGNETISM/001__uniform_electric_field__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/ELECTROMAGNETISM/030__electromagnetic_induction__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/ELECTROMAGNETISM/034__point_charge_field__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/ELECTROMAGNETISM/035__magnetic_force__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/ELECTROMAGNETISM/088__uniform_electric_field__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/ELECTROMAGNETISM/108__magnetic_force__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/ELECTROMAGNETISM/110__point_charge_field__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/ELECTROMAGNETISM/119__electromagnetic_induction__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/ELECTROMAGNETISM/177__uniform_electric_field__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/011__kinematics__1.9.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/012__kinematics_projectile__1.9.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/064__kinematics_position_time_graph__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/065__kinematics_velocity_time_graph__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/066__kinematics_acceleration_time_graph__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/089__kinematics__1.10.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/106__kinematics_projectile__1.10.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/126__kinematics_position_time_graph__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/127__kinematics_velocity_time_graph__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/128__kinematics_acceleration_time_graph__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/156__kinematics__1.11.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/KINEMATICS/157__kinematics_projectile__1.11.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/003__eclipse_geometry__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/006__energy_band_transition__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/007__nuclear_reaction_energy__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/026__radioactive_decay__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/032__photoelectric_effect__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/033__nuclear_energy__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/047__atomic_spectra__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/048__radiation_safety__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/070__xray_imaging__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/071__ct_reconstruction__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/072__mri_relaxation__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/073__de_broglie_diffraction__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/091__photoelectric_effect__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/094__radioactive_decay__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/100__nuclear_energy__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/109__radiation_safety__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/112__xray_imaging__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/113__ct_reconstruction__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/114__mri_relaxation__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/115__de_broglie_diffraction__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/129__eclipse_geometry__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/130__energy_band_transition__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/131__nuclear_reaction_energy__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/132__atomic_spectra__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/162__nuclear_energy__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/165__photoelectric_effect__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/MODERN_PHYSICS/166__radioactive_decay__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/025__thin_lens_imaging__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/029__snell_refraction__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/045__light_interference__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/046__diffraction_polarization__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/050__simple_magnifier__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/051__compound_microscope__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/052__astronomical_telescope__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/098__diffraction_polarization__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/102__light_interference__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/120__simple_magnifier__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/121__compound_microscope__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/122__astronomical_telescope__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/146__diffraction_polarization__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/158__light_interference__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/169__snell_refraction__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/OPTICS/176__thin_lens_imaging__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/PRACTICAL_AND_DATA/004__energy_environment__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/PRACTICAL_AND_DATA/036__measurement_uncertainty__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/PRACTICAL_AND_DATA/067__experimental_data_graph__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/PRACTICAL_AND_DATA/097__measurement_uncertainty__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/PRACTICAL_AND_DATA/136__energy_environment__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/PRACTICAL_AND_DATA/137__experimental_data_graph__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/PRACTICAL_AND_DATA/160__measurement_uncertainty__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/024__ideal_gas_isothermal__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/027__calorimetry_mixing__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/028__first_law_thermodynamics__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/037__temperature_scales__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/038__thermal_expansion__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/049__adiabatic_gas__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/062__ideal_gas_isobaric__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/063__ideal_gas_isochoric__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/069__phase_change__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/078__adiabatic_gas__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/080__thermal_expansion__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/082__ideal_gas_isochoric__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/085__ideal_gas_isothermal__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/087__ideal_gas_isobaric__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/090__temperature_scales__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/093__first_law_thermodynamics__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/096__calorimetry_mixing__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/101__phase_change__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/139__adiabatic_gas__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/140__calorimetry_mixing__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/148__first_law_thermodynamics__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/152__ideal_gas_isobaric__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/153__ideal_gas_isochoric__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/154__ideal_gas_isothermal__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/164__phase_change__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/174__temperature_scales__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/THERMAL/175__thermal_expansion__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/009__radio_signal_chain__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/018__string_wave__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/019__wave_pulse__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/020__standing_wave__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/021__wave_reflection__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/022__wave_superposition__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/023__sound_wave__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/053__water_surface_interference__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/059__radio_communication__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/061__ultrasound_imaging__1.0.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/092__sound_wave__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/095__standing_wave__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/103__wave_pulse__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/104__wave_reflection__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/105__wave_superposition__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/107__string_wave__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/111__water_surface_interference__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/133__radio_signal_chain__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/134__radio_communication__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/135__ultrasound_imaging__1.1.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/170__sound_wave__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/172__standing_wave__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/173__string_wave__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/178__wave_pulse__1.3.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/179__wave_reflection__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "backend/src/main/resources/schemas/source/WAVES/180__wave_superposition__1.2.json",
+    "reason": "Replaced specialized or legacy numerical packs/contracts with broad v2 conceptual data packs."
+  },
+  {
+    "path": "docs/implementation/backend-maintainability-refactor-report.md",
+    "reason": "Removed documentation for the retired creation architecture."
+  },
+  {
+    "path": "docs/implementation/reviewer-production-implementation-report.md",
+    "reason": "Removed documentation for the retired creation architecture."
+  },
+  {
+    "path": "docs/physics/models/snell-refraction.md",
+    "reason": "Removed models outside the selected current curriculum catalog."
+  },
+  {
+    "path": "docs/physics/models/thin-lens-imaging.md",
+    "reason": "Removed models outside the selected current curriculum catalog."
+  },
+  {
+    "path": "react-client/src/api/problemApi.ts",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/roles/student/StudentSharedLibrary.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/CreateSimulationModal.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/EmptySimulationFrame.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/LearningWorkspace.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/create-simulation/AssetSelectionReview.module.css",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/create-simulation/AssetSelectionReview.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/create-simulation/CreateChatComposer.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/create-simulation/CreateChatMessages.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/create-simulation/CreateChatSupport.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/create-simulation/ambiguityFlow.ts",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/create-simulation/createSimulationUtils.ts",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/create-simulation/useCameraCapture.ts",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/learning/LearningInspector.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/components/workspace/workspaceResources.ts",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/pages/teacher/Workspace.tsx",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/simulation-scene/SceneProfile.ts",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/styles/assignment-studio.css",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/styles/home.css",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/styles/workspace-live.css",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/src/styles/workspace-modal.css",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/tests/ambiguityFlow.test.mjs",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/tests/assetSelectionReview.test.mjs",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  },
+  {
+    "path": "react-client/tests/sceneProfile.test.mjs",
+    "reason": "Removed retired or unreferenced creation/replay UI modules and their tests/styles; active workspace uses matter-flow."
+  }
+]

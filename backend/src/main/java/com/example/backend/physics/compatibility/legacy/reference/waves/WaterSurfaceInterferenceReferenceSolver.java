@@ -22,7 +22,8 @@ public class WaterSurfaceInterferenceReferenceSolver implements ReferenceSolver 
         }
         WaterSurfaceInterferenceParameters p = WaterSurfaceInterferenceParameters.from(specification, overrides);
         double half = p.sourceSeparation() / 2.0;
-        double r1 = Math.hypot(0, -half), r2 = Math.hypot(0, half);
+        double r1 = Math.hypot(0, -half);
+        double r2 = Math.hypot(0, half);
         double center = p.amplitude() * (Math.cos(p.waveNumber() * r1 - p.angularFrequency() * timeSeconds)
                 + Math.cos(p.waveNumber() * r2 - p.angularFrequency() * timeSeconds));
         return new AnalyticalPoint(Map.of("centerHeight", center));

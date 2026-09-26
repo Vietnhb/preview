@@ -1,0 +1,438 @@
+{
+  "schemaId": "adaptive_circuits",
+  "model": "matter_js",
+  "name": "Circuits Concept Capability",
+  "topic": "CIRCUITS",
+  "version": "2.0",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for circuits. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "resistor",
+        "label": "điện trở",
+        "description": "Dissipative component."
+      },
+      {
+        "type": "capacitor",
+        "label": "tụ điện",
+        "description": "Charge-storage component."
+      },
+      {
+        "type": "inductor",
+        "label": "cuộn cảm",
+        "description": "Magnetic-energy component."
+      },
+      {
+        "type": "voltage_source",
+        "label": "nguồn điện áp",
+        "description": "Specified voltage source."
+      },
+      {
+        "type": "current_source",
+        "label": "nguồn dòng",
+        "description": "Specified current source."
+      },
+      {
+        "type": "node",
+        "label": "nút mạch",
+        "description": "Connection node in the topology."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "connected_to",
+        "label": "nối với",
+        "description": "Component connected to a circuit node.",
+        "subjectTypes": [
+          "resistor",
+          "capacitor",
+          "inductor",
+          "voltage_source",
+          "current_source"
+        ],
+        "objectTypes": [
+          "node"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "resistor",
+            "capacitor",
+            "inductor",
+            "voltage_source",
+            "current_source",
+            "node"
+          ]
+        }
+      },
+      {
+        "type": "in_series_with",
+        "label": "mắc nối tiếp",
+        "description": "Two components in series.",
+        "subjectTypes": [
+          "resistor",
+          "capacitor",
+          "inductor"
+        ],
+        "objectTypes": [
+          "resistor",
+          "capacitor",
+          "inductor"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "resistor",
+            "capacitor",
+            "inductor"
+          ]
+        }
+      },
+      {
+        "type": "in_parallel_with",
+        "label": "mắc song song",
+        "description": "Two components in parallel.",
+        "subjectTypes": [
+          "resistor",
+          "capacitor",
+          "inductor"
+        ],
+        "objectTypes": [
+          "resistor",
+          "capacitor",
+          "inductor"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "resistor",
+            "capacitor",
+            "inductor"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "voltage",
+        "label": "điện áp",
+        "description": "Potential difference with stated polarity.",
+        "aliases": [
+          "U"
+        ],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "resistor",
+            "capacitor",
+            "inductor",
+            "voltage_source",
+            "node"
+          ]
+        }
+      },
+      {
+        "key": "current",
+        "label": "dòng điện",
+        "description": "Current with stated direction.",
+        "aliases": [
+          "I"
+        ],
+        "allowedUnits": [
+          "A"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "resistor",
+            "capacitor",
+            "inductor",
+            "current_source"
+          ]
+        }
+      },
+      {
+        "key": "resistance",
+        "label": "điện trở",
+        "description": "Resistance of the component.",
+        "aliases": [
+          "R"
+        ],
+        "allowedUnits": [
+          "ohm"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "resistor"
+          ]
+        }
+      },
+      {
+        "key": "capacitance",
+        "label": "điện dung",
+        "description": "Capacitance of the component.",
+        "aliases": [
+          "C"
+        ],
+        "allowedUnits": [
+          "F"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "capacitor"
+          ]
+        }
+      },
+      {
+        "key": "inductance",
+        "label": "độ tự cảm",
+        "description": "Inductance of the component.",
+        "aliases": [
+          "L"
+        ],
+        "allowedUnits": [
+          "H"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "inductor"
+          ]
+        }
+      },
+      {
+        "key": "charge",
+        "label": "điện tích",
+        "description": "Stored charge.",
+        "aliases": [
+          "q"
+        ],
+        "allowedUnits": [
+          "C"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "capacitor"
+          ]
+        }
+      },
+      {
+        "key": "power",
+        "label": "công suất",
+        "description": "Power with sign convention.",
+        "aliases": [],
+        "allowedUnits": [
+          "W"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "resistor",
+            "capacitor",
+            "inductor",
+            "voltage_source",
+            "current_source"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "V",
+        "dimension": "voltage"
+      },
+      {
+        "symbol": "A",
+        "dimension": "current"
+      },
+      {
+        "symbol": "ohm",
+        "dimension": "resistance"
+      },
+      {
+        "symbol": "F",
+        "dimension": "capacitance"
+      },
+      {
+        "symbol": "H",
+        "dimension": "inductance"
+      },
+      {
+        "symbol": "C",
+        "dimension": "electric charge"
+      },
+      {
+        "symbol": "W",
+        "dimension": "power"
+      }
+    ],
+    "laws": [
+      {
+        "id": "ohm",
+        "name": "Định luật Ohm",
+        "inputs": [
+          "current",
+          "resistance"
+        ],
+        "outputs": [
+          "voltage"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "resistor"
+          ],
+          "quantities": [
+            "current",
+            "resistance",
+            "voltage"
+          ]
+        },
+        "assumptions": [
+          "Linear resistor in its valid range."
+        ],
+        "description": "Voltage-current-resistance relation."
+      },
+      {
+        "id": "capacitor_current",
+        "name": "Dòng qua tụ",
+        "inputs": [
+          "capacitance",
+          "voltage"
+        ],
+        "outputs": [
+          "current"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "capacitor"
+          ],
+          "quantities": [
+            "capacitance",
+            "voltage",
+            "current"
+          ]
+        },
+        "assumptions": [
+          "Capacitance constant.",
+          "Initial capacitor voltage known."
+        ],
+        "description": "Capacitor differential relation."
+      },
+      {
+        "id": "inductor_voltage",
+        "name": "Áp cuộn cảm",
+        "inputs": [
+          "inductance",
+          "current"
+        ],
+        "outputs": [
+          "voltage"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "inductor"
+          ],
+          "quantities": [
+            "inductance",
+            "current",
+            "voltage"
+          ]
+        },
+        "assumptions": [
+          "Inductance constant.",
+          "Initial inductor current known."
+        ],
+        "description": "Inductor differential relation."
+      },
+      {
+        "id": "kirchhoff_current",
+        "name": "Định luật nút Kirchhoff",
+        "inputs": [
+          "current"
+        ],
+        "outputs": [
+          "current"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "node"
+          ],
+          "quantities": [
+            "current"
+          ]
+        },
+        "assumptions": [
+          "Topology and current directions known.",
+          "The circuit topology and each connection must be known."
+        ],
+        "description": "Charge conservation at a node."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "topology",
+        "description": "Connections and polarities must be clear when they affect the result.",
+        "appliesTo": {
+          "objectTypes": [
+            "node"
+          ],
+          "relationTypes": [
+            "connected_to",
+            "in_series_with",
+            "in_parallel_with"
+          ],
+          "quantities": []
+        }
+      },
+      {
+        "id": "dynamic_initial_state",
+        "description": "Capacitors and inductors need appropriate initial conditions.",
+        "appliesTo": {
+          "objectTypes": [
+            "capacitor",
+            "inductor"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "implicit_circuit_limit",
+        "description": "The circuit topology and component behavior must be defined before determining electrical state.",
+        "appliesTo": {
+          "objectTypes": [
+            "node"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "AI-authored interactive visual models of high-school electrical networks and component behavior.",
+      "limitations": [
+        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+    }
+  }
+}

@@ -12,7 +12,7 @@ public record SimpleMagnifierParameters(double focalLength, double objectDistanc
         double focal = PhysicsValues.require(specification, overrides, "focal_length");
         double object = PhysicsValues.require(specification, overrides, "object_distance");
         double near = PhysicsValues.require(specification, overrides, "near_point");
-        if (!(focal > 0) || !(object > 0) || !(near > 0)
+        if (focal <= 0 || object <= 0 || near <= 0
                 || !Double.isFinite(focal) || !Double.isFinite(object) || !Double.isFinite(near)
                 || object >= focal) {
             throw new IllegalArgumentException("Magnifier requires 0 < object distance < focal length and positive near point");

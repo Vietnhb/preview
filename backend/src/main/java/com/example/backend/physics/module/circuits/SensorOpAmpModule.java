@@ -67,8 +67,7 @@ public final class SensorOpAmpModule implements PhysicsModule<SensorOpAmpModule.
         double sensorVoltage = midpoint + offset;
         double referenceVoltage = midpoint - offset;
         double differentialCommand = p.opAmpGain() * (2.0 * offset);
-        double amplifiedOutput = differentialCommand <= 0.0 ? 0.0
-                : differentialCommand >= p.supplyVoltage() ? p.supplyVoltage() : differentialCommand;
+        double amplifiedOutput = Math.clamp(differentialCommand, 0.0, p.supplyVoltage());
         double ledState = amplifiedOutput < p.thresholdVoltage() ? 0.0 : 1.0;
         double dividerCurrent = (p.supplyVoltage() / scale) / normalizedTotal;
         double sensorPower = p.supplyVoltage() * dividerCurrent;

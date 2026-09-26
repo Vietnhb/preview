@@ -19,6 +19,9 @@ public final class NuclearReactionEnergyModule
     public static final String MODULE_ID = "nuclear_reaction_energy";
     public static final String NUMERICAL_SOLVER_ID = "nuclear_reaction_energy_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "nuclear_reaction_energy_reference_v2";
+    private static final String MASS_DEFECT = "massDefect";
+    private static final String RELEASED_ENERGY_PER_REACTION = "releasedEnergyPerReaction";
+    private static final String TOTAL_RELEASED_ENERGY = "totalReleasedEnergy";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -42,14 +45,14 @@ public final class NuclearReactionEnergyModule
         double energyPerReaction = massDefect * PhysicalConstants.SPEED_OF_LIGHT
                 * PhysicalConstants.SPEED_OF_LIGHT;
         double totalEnergy = energyPerReaction * parameters.reactionCount();
-        requireFinite("massDefect", massDefect);
-        requireFinite("releasedEnergyPerReaction", energyPerReaction);
-        requireFinite("totalReleasedEnergy", totalEnergy);
+        requireFinite(MASS_DEFECT, massDefect);
+        requireFinite(RELEASED_ENERGY_PER_REACTION, energyPerReaction);
+        requireFinite(TOTAL_RELEASED_ENERGY, totalEnergy);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("massDefect", repeated(massDefect, time.size()));
-        values.put("releasedEnergyPerReaction", repeated(energyPerReaction, time.size()));
-        values.put("totalReleasedEnergy", repeated(totalEnergy, time.size()));
+        values.put(MASS_DEFECT, repeated(massDefect, time.size()));
+        values.put(RELEASED_ENERGY_PER_REACTION, repeated(energyPerReaction, time.size()));
+        values.put(TOTAL_RELEASED_ENERGY, repeated(totalEnergy, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -68,11 +71,11 @@ public final class NuclearReactionEnergyModule
         double massDefect = defect.doubleValue();
         double perReaction = energyPerReaction.doubleValue();
         double released = totalEnergy.doubleValue();
-        requireFinite("reference massDefect", massDefect);
-        requireFinite("reference releasedEnergyPerReaction", perReaction);
-        requireFinite("reference totalReleasedEnergy", released);
-        return new AnalyticalPoint(Map.of("massDefect", massDefect,
-                "releasedEnergyPerReaction", perReaction, "totalReleasedEnergy", released));
+        requireFinite("reference " + MASS_DEFECT, massDefect);
+        requireFinite("reference " + RELEASED_ENERGY_PER_REACTION, perReaction);
+        requireFinite("reference " + TOTAL_RELEASED_ENERGY, released);
+        return new AnalyticalPoint(Map.of(MASS_DEFECT, massDefect,
+                RELEASED_ENERGY_PER_REACTION, perReaction, TOTAL_RELEASED_ENERGY, released));
     }
 
     private static void requireUnit(CanonicalQuantityBag quantities, String key, String unit) {

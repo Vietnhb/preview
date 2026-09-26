@@ -14,7 +14,7 @@ public record HydrogenSpectrumParameters(double initialLevel, double finalLevel)
     public static HydrogenSpectrumParameters from(JsonNode specification, Map<String, Double> overrides) {
         double initial = PhysicsValues.require(specification, overrides, "initial_level");
         double finish = PhysicsValues.require(specification, overrides, "final_level");
-        if (!(initial > finish) || !(finish >= 1) || initial != Math.rint(initial) || finish != Math.rint(finish))
+        if (initial <= finish || finish < 1 || initial != Math.rint(initial) || finish != Math.rint(finish))
             throw new IllegalArgumentException("Hydrogen levels must be integers with initial_level > final_level >= 1");
         return new HydrogenSpectrumParameters(initial, finish);
     }

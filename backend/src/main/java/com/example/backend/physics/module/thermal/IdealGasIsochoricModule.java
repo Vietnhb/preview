@@ -16,6 +16,12 @@ public final class IdealGasIsochoricModule implements PhysicsModule<IdealGasIsoc
     public static final String MODULE_ID = "ideal_gas_isochoric";
     public static final String NUMERICAL_SOLVER_ID = "ideal_gas_isochoric_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "ideal_gas_isochoric_reference_v2";
+    private static final String INITIAL_PRESSURE = "initialPressure";
+    private static final String INITIAL_VOLUME = "initialVolume";
+    private static final String INITIAL_TEMPERATURE = "initialTemperature";
+    private static final String FINAL_TEMPERATURE = "finalTemperature";
+    private static final String FINAL_PRESSURE = "finalPressure";
+    private static final String FINAL_VOLUME = "finalVolume";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -48,18 +54,18 @@ public final class IdealGasIsochoricModule implements PhysicsModule<IdealGasIsoc
         double finalPressure = parameters.initialPressure() * temperatureRatio;
         double finalVolume = parameters.initialVolume();
         double work = 0.0;
-        requirePositiveFinite("finalPressure", finalPressure);
-        requirePositiveFinite("finalVolume", finalVolume);
+        requirePositiveFinite(FINAL_PRESSURE, finalPressure);
+        requirePositiveFinite(FINAL_VOLUME, finalVolume);
         requireFinite("work", work);
 
         List<Double> time = clock.sampleTimes();
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("initialPressure", repeated(parameters.initialPressure(), time.size()));
-        values.put("initialVolume", repeated(parameters.initialVolume(), time.size()));
-        values.put("initialTemperature", repeated(parameters.initialTemperature(), time.size()));
-        values.put("finalTemperature", repeated(parameters.finalTemperature(), time.size()));
-        values.put("finalPressure", repeated(finalPressure, time.size()));
-        values.put("finalVolume", repeated(finalVolume, time.size()));
+        values.put(INITIAL_PRESSURE, repeated(parameters.initialPressure(), time.size()));
+        values.put(INITIAL_VOLUME, repeated(parameters.initialVolume(), time.size()));
+        values.put(INITIAL_TEMPERATURE, repeated(parameters.initialTemperature(), time.size()));
+        values.put(FINAL_TEMPERATURE, repeated(parameters.finalTemperature(), time.size()));
+        values.put(FINAL_PRESSURE, repeated(finalPressure, time.size()));
+        values.put(FINAL_VOLUME, repeated(finalVolume, time.size()));
         values.put("work", repeated(work, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
@@ -79,17 +85,17 @@ public final class IdealGasIsochoricModule implements PhysicsModule<IdealGasIsoc
         double finalPressure = Math.exp(logFinalPressure);
         double finalVolume = parameters.initialVolume();
         double work = 0.0;
-        requirePositiveFinite("reference finalPressure", finalPressure);
-        requirePositiveFinite("reference finalVolume", finalVolume);
+        requirePositiveFinite("reference " + FINAL_PRESSURE, finalPressure);
+        requirePositiveFinite("reference " + FINAL_VOLUME, finalVolume);
         requireFinite("reference work", work);
 
         Map<String, Double> values = new LinkedHashMap<>();
-        values.put("initialPressure", parameters.initialPressure());
-        values.put("initialVolume", parameters.initialVolume());
-        values.put("initialTemperature", parameters.initialTemperature());
-        values.put("finalTemperature", parameters.finalTemperature());
-        values.put("finalPressure", finalPressure);
-        values.put("finalVolume", finalVolume);
+        values.put(INITIAL_PRESSURE, parameters.initialPressure());
+        values.put(INITIAL_VOLUME, parameters.initialVolume());
+        values.put(INITIAL_TEMPERATURE, parameters.initialTemperature());
+        values.put(FINAL_TEMPERATURE, parameters.finalTemperature());
+        values.put(FINAL_PRESSURE, finalPressure);
+        values.put(FINAL_VOLUME, finalVolume);
         values.put("work", work);
         return new AnalyticalPoint(values);
     }
@@ -127,10 +133,10 @@ public final class IdealGasIsochoricModule implements PhysicsModule<IdealGasIsoc
     public record Parameters(double initialPressure, double initialVolume,
                              double initialTemperature, double finalTemperature) {
         public Parameters {
-            requirePositiveFinite("initialPressure", initialPressure);
-            requirePositiveFinite("initialVolume", initialVolume);
-            requirePositiveFinite("initialTemperature", initialTemperature);
-            requirePositiveFinite("finalTemperature", finalTemperature);
+            requirePositiveFinite(INITIAL_PRESSURE, initialPressure);
+            requirePositiveFinite(INITIAL_VOLUME, initialVolume);
+            requirePositiveFinite(INITIAL_TEMPERATURE, initialTemperature);
+            requirePositiveFinite(FINAL_TEMPERATURE, finalTemperature);
         }
     }
 }

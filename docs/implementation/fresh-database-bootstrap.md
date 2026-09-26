@@ -2,13 +2,9 @@
 
 This procedure applies only to a verified brand-new, empty PostgreSQL database. The existing V1–V7 Flyway migrations assume Hibernate has created the application's base tables first. Do not use this sequence for an existing database, a partially initialized database, or a database containing production data.
 
-## Legacy V6 repair
+## Legacy partial-bootstrap repair
 
-One historical partial-bootstrap state is repaired automatically: a database whose latest successful Flyway version is exactly `6` and which does not contain `schema_versions`. The Flyway `beforeMigrate__repair_v6_missing_schema_versions.sql` callback creates only that missing table before V7 runs. V7 remains unchanged and adds `definition_checksum`; V8-V14 then continue in order. V12 creates missing ambiguity/reviewer tables, V13 repeats that repair when V12 was already recorded, and V14 adds the remaining Hibernate-owned tables and indexes observed missing from Supabase. All repairs are additive and preserve existing rows.
-
-The callback does nothing when `schema_versions` already exists or when the current Flyway version is anything other than `6`. It does not delete, rewrite, or backfill existing application rows. A database with a different missing base table or a malformed existing `schema_versions` table still fails closed and requires an audited repair specific to its actual schema.
-
-Before restarting an affected deployment, take a database backup and verify the state with read-only queries:
+There is no automatic callback for partially initialized databases. Before restarting an affected deployment, take a database backup and verify the state with read-only queries:
 
 ```sql
 SELECT version, description, success
@@ -18,7 +14,7 @@ ORDER BY installed_rank;
 SELECT to_regclass('schema_versions');
 ```
 
-After startup, verify that versions 7 through 14 succeeded and that `schema_versions.definition_checksum` exists. PostgreSQL normally rolls back the failed V7 DDL transaction. If the history table contains an explicit failed V7 row, stop and repair Flyway history only after confirming that V7 made no partial schema change; the application does not silently rewrite Flyway history.
+If `schema_versions` is missing or Flyway history contains a failed migration, stop and perform an audited, environment-specific repair before retrying. The application does not rewrite Flyway history or infer missing tables.
 
 ## Verify the database is empty
 
@@ -42,7 +38,6 @@ Start the backend once with these settings:
 | `FLYWAY_ENABLED` | `false` |
 | `FLYWAY_BASELINE_ON_MIGRATE` | `false` |
 | `JPA_DDL_AUTO` | `update` |
-| `SQL_INIT_MODE` | `never` |
 | `BOOTSTRAP_CATALOGS_ENABLED` | `false` |
 
 Wait for Spring/JPA initialization to complete, then stop the backend gracefully. Do not direct application traffic to this database during bootstrap.
@@ -56,10 +51,9 @@ Restart the backend with:
 | `FLYWAY_ENABLED` | `true` |
 | `FLYWAY_BASELINE_ON_MIGRATE` | `true` |
 | `JPA_DDL_AUTO` | `validate` |
-| `SQL_INIT_MODE` | `never` |
 | `BOOTSTRAP_CATALOGS_ENABLED` | `true` |
 
-The configured baseline version is `0`. Flyway should record the baseline and apply every migration through the current version `20`. Check that `flyway_schema_history` records successful versions `1` through `20`, the `ambiguity_cases` and `reviewer_decisions` tables, and the `simulation_runs` contract-identity columns/index exist. Migration V20 removes the historical schema-search embedding tables; they must not be required by the Jev runtime. The backend readiness health check must be healthy.
+The configured baseline version is `0`. Flyway should record the baseline and apply every migration through the current version `36`. Check that `flyway_schema_history` records every migration present in `backend/src/main/resources/db/migration/` as successful, the `ambiguity_cases` and `reviewer_decisions` tables exist, and the `simulation_runs` contract-identity columns/index exist. Migrations V33–V36 add clarification persistence, retire superseded schema catalog entries, remove the obsolete non-curriculum optics route, and remove persisted simulation asset selection while preserving pinned history. Migration V20 removes historical schema-search embedding tables; they must not be required by the JEV runtime. The backend readiness health check must be healthy.
 
 After this first successful migration, set `FLYWAY_BASELINE_ON_MIGRATE=false` and keep `FLYWAY_ENABLED=true` and `JPA_DDL_AUTO=validate` for steady-state starts.
 
@@ -70,4 +64,4 @@ deployment from silently mutating a schema outside the migration history.
 rule. The Hibernate mutation modes remain available only while Flyway is
 explicitly disabled for the verified empty-database bootstrap step.
 
-The Testcontainers test `FreshSchemaBootstrapMigrationTest` exercises this sequence by creating the entity schema with the application's Hibernate naming strategy, baselining at `0`, applying every migration, validating the final database against the Hibernate entity model, and checking representative V1/V3 indexes and constraints plus V4–V20 objects. V11's simulation-run identity columns are nullable so rows created before that migration remain readable for historical replay; newly persisted runs populate them from the pinned compiled contract.
+V11's simulation-run identity columns are nullable so rows created before that migration remain readable for historical replay; newly persisted runs populate them from the pinned compiled contract. This runbook does not make an existing or partially initialized database safe to reset or repair; inspect its actual Flyway history and data before any migration action.

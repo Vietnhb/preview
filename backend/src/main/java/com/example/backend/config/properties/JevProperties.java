@@ -12,7 +12,6 @@ public record JevProperties(
         URI baseUrl,
         String model,
         Duration timeout,
-        int candidateTopK,
         double minimumConfidence,
         double minimumMargin,
         int maximumQueryCharacters,
@@ -27,7 +26,6 @@ public record JevProperties(
         if (timeout == null || timeout.isZero() || timeout.isNegative()) {
             throw new IllegalArgumentException("Jev timeout must be positive");
         }
-        if (candidateTopK < 1 || candidateTopK > 20) throw new IllegalArgumentException("Jev candidate top-k must be in [1, 20]");
         if (!betweenZeroAndOne(minimumConfidence) || !betweenZeroAndOne(minimumMargin)) {
             throw new IllegalArgumentException("Jev confidence thresholds must be in [0, 1]");
         }

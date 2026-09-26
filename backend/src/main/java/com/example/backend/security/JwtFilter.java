@@ -1,6 +1,5 @@
 package com.example.backend.security;
 
-import com.example.backend.service.school.LicenseCheckService;
 
 import com.example.backend.repository.account.UserRepository;
 import com.example.backend.dto.common.ErrorResponse;

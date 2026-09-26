@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Generated simulation check</title></head><body>
+<div id="root"></div>
+<script type="module">
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import MatterSandbox from '../src/matter-flow/MatterSandbox.tsx';
+import VisualSandbox from '../src/matter-flow/VisualSandbox.tsx';
+import '../src/styles/matter-pipeline.css';
+const cases = await fetch('/tests/generated-cases.local.json').then(r => r.json());
+const requested = new URLSearchParams(location.search).get('case') || 'complete';
+const item = cases.find(c => c.case === requested);
+function App() {
+  const [status, setStatus] = React.useState('STARTING');
+  const params = React.useMemo(() => Object.fromEntries((item?.parameters || []).map(p => [p.name,p.value])),[]);
+  const spec = item?.simulationSpec;
+  const visual = spec?.runtimeKind === 'VISUAL';
+  return React.createElement('main',{style:{maxWidth:1060,margin:'20px auto',fontFamily:'system-ui'}},
+    React.createElement('h1',null,requested + ' · generated simulation'),
+    React.createElement('p',{id:'runtime-status'},status),
+    React.createElement('p',null,item?.explanation || item?.resolvedExplanation),
+    spec ? React.createElement(visual ? VisualSandbox : MatterSandbox,
+      visual ? {program:spec.visualProgram,parameters:params,durationSeconds:spec.durationSeconds,
+        onValidation:v=>setStatus(v.status+' '+v.flags.join('; '))}
+      : {code:item.code,parameters:params,simulationSpec:spec,
+        onValidation:v=>setStatus(v.status+' '+v.flags.join('; '))})
+      : React.createElement('p',null,item?.error || 'No runnable model'));
+}
+createRoot(document.getElementById('root')).render(React.createElement(App));
+</script></body></html>

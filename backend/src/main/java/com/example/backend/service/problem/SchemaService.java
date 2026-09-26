@@ -18,6 +18,14 @@ public class SchemaService {
     private final SchemaVersionRepository schemaRepository;
     private final SchemaDefinitionService schemaDefinitions;
 
+    public com.fasterxml.jackson.databind.JsonNode topicPackMetaSchema() {
+        return schemaDefinitions.topicPackMetaSchema();
+    }
+
+    public com.fasterxml.jackson.databind.JsonNode coreTypeLibrary() {
+        return schemaDefinitions.coreTypeLibrary();
+    }
+
     @Transactional(readOnly = true)
     public List<SchemaVersion> list(boolean enabledOnly) {
         return enabledOnly
@@ -34,6 +42,7 @@ public class SchemaService {
 
     @Transactional
     public SchemaVersion create(SchemaRequest request) {
+        schemaDefinitions.validateTopicPackForAuthoring(request.definition(), request.schemaId());
         schemaDefinitions.validateDefinition(request.definition(), request.schemaId(), request.version(), request.topic());
         if (schemaRepository.existsBySchemaIdAndVersion(request.schemaId().trim(), request.version().trim())) {
             throw new ApiException(HttpStatus.CONFLICT, "Schema version already exists");
@@ -54,8 +63,7 @@ public class SchemaService {
         SchemaVersion schema = schemaRepository.findTopBySchemaIdIgnoreCaseOrderByCreatedAtDesc(schemaId.trim())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Schema not found"));
         transition(schema, status);
-        SchemaVersion saved = schemaRepository.save(schema);
-        return saved;
+        return schemaRepository.save(schema);
     }
 
     @Transactional
@@ -63,8 +71,7 @@ public class SchemaService {
         if (status == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Lifecycle status is required");
         SchemaVersion schema = schemaRepository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Schema version not found"));
         transition(schema, status);
-        SchemaVersion saved = schemaRepository.save(schema);
-        return saved;
+        return schemaRepository.save(schema);
     }
 
     private void transition(SchemaVersion schema, LifecycleStatus status) {
@@ -77,7 +84,9 @@ public class SchemaService {
         if (status == LifecycleStatus.APPROVED) {
             schemaDefinitions.validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(),
                     schema.getTopic());
-            schemaDefinitions.requireSolverBinding(schema.getSchemaId(), schema.getVersion());
+            if (!"2.0".equals(schema.getDefinition().path("metaSchemaVersion").asText())) {
+                schemaDefinitions.requireSolverBinding(schema.getSchemaId(), schema.getVersion());
+            }
             String actualChecksum = schemaDefinitions.compiledChecksum(schema.getDefinition());
             if (schema.getDefinitionChecksum() != null && !schema.getDefinitionChecksum().equals(actualChecksum)) {
                 throw new ApiException(HttpStatus.CONFLICT,
@@ -95,6 +104,7 @@ public class SchemaService {
         if (schema.getLifecycleStatus() != LifecycleStatus.DRAFT) throw new ApiException(HttpStatus.CONFLICT, "Only drafts can be edited");
         if (!schema.getSchemaId().equals(request.schemaId()) || !schema.getVersion().equals(request.version()))
             throw new ApiException(HttpStatus.CONFLICT, "Schema/version identity cannot be changed");
+        schemaDefinitions.validateTopicPackForAuthoring(request.definition(), request.schemaId());
         schemaDefinitions.validateDefinition(request.definition(), request.schemaId(), request.version(), request.topic());
         schema.setName(request.name().trim()); schema.setTopic(request.topic().trim()); schema.setDefinition(request.definition());
         return schemaRepository.save(schema);

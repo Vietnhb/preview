@@ -48,7 +48,7 @@ public final class BoundPhysicsModule {
         };
     }
 
-    static <P> BoundPhysicsModule bind(PhysicsModule<P> module, P parameters) {
+    public static <P> BoundPhysicsModule bind(PhysicsModule<P> module, P parameters) {
         return new BoundPhysicsModule(module, parameters);
     }
 
@@ -109,8 +109,7 @@ public final class BoundPhysicsModule {
         return operations.reference(timeSeconds);
     }
 
-    /** @deprecated use {@link #closedFormReference(double)}. */
-    @Deprecated
+    /** Compatibility alias for {@link #closedFormReference(double)}. */
     public AnalyticalPoint reference(double timeSeconds) {
         return closedFormReference(timeSeconds);
     }

@@ -1,5 +1,5 @@
 import axiosClient from "./axios";
-import type { ResolvedEnd, Simulation, SimulationSummary } from "../types/physlive";
+import type { ResolvedEnd, Simulation } from "../types/physlive";
 
 /**
  * API endpoints for physics simulation
@@ -30,28 +30,6 @@ export const normalizeSimulation = (value: BackendSimulation): Simulation => {
     elapsedMilliseconds: value.computationTimeMs
   };
 };
-
-export const runSimulation = (
-  specificationId: string, 
-  schemaId: string, 
-  adjustableParams: Record<string, number>
-) => 
-  axiosClient.post<BackendSimulation>("/simulations", { 
-    specificationId, 
-    schemaId, 
-    adjustableParams 
-  }).then(r => normalizeSimulation(r.data));
-
-export const adjustSimulation = (simulationId: string, adjustableParams: Record<string, number>) => 
-  axiosClient.post<BackendSimulation>(
-    "/simulations/adjust", 
-    { simulationId, adjustableParams }, 
-    { timeout: 20000 }
-  ).then(r => normalizeSimulation(r.data));
-
-export const recentSimulationHistory = () =>
-  axiosClient.get<SimulationSummary[]>("/simulations/recent")
-    .then(r => r.data);
 
 export const getSimulation = (simulationId: string) => 
   axiosClient.get<BackendSimulation>(`/simulations/${simulationId}`)

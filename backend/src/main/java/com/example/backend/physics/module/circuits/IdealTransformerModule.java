@@ -17,6 +17,9 @@ public final class IdealTransformerModule implements PhysicsModule<IdealTransfor
     public static final String MODULE_ID = "ideal_transformer";
     public static final String NUMERICAL_SOLVER_ID = "transformer_solver";
     public static final String REFERENCE_SOLVER_ID = "transformer_reference";
+    private static final String TURNS_RATIO = "turnsRatio";
+    private static final String SECONDARY_VOLTAGE = "secondaryVoltage";
+    private static final String PRIMARY_CURRENT = "primaryCurrent";
 
     @Override
     public String moduleId() {
@@ -40,7 +43,7 @@ public final class IdealTransformerModule implements PhysicsModule<IdealTransfor
         double secondaryTurns = quantities.require("secondary_turns");
         double primaryVoltage = quantities.require("primary_voltage");
         double secondaryCurrent = quantities.require("secondary_current");
-        if (!(primaryTurns > 0) || !(secondaryTurns > 0)
+        if (primaryTurns <= 0 || secondaryTurns <= 0
                 || primaryTurns != Math.rint(primaryTurns) || secondaryTurns != Math.rint(secondaryTurns)) {
             throw new IllegalArgumentException("Transformer primary_turns and secondary_turns must be positive integers");
         }
@@ -58,16 +61,16 @@ public final class IdealTransformerModule implements PhysicsModule<IdealTransfor
         double turnsRatio = parameters.secondaryTurns / parameters.primaryTurns;
         double secondaryVoltage = parameters.primaryVoltage * turnsRatio;
         double primaryCurrent = parameters.secondaryCurrent * turnsRatio;
-        requireFinite(turnsRatio, "turnsRatio");
-        requireFinite(secondaryVoltage, "secondaryVoltage");
-        requireFinite(primaryCurrent, "primaryCurrent");
+        requireFinite(turnsRatio, TURNS_RATIO);
+        requireFinite(secondaryVoltage, SECONDARY_VOLTAGE);
+        requireFinite(primaryCurrent, PRIMARY_CURRENT);
         verifyPowerBalance(parameters.primaryVoltage, primaryCurrent,
                 secondaryVoltage, parameters.secondaryCurrent);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("turnsRatio", repeated(turnsRatio, time.size()));
-        values.put("secondaryVoltage", repeated(secondaryVoltage, time.size()));
-        values.put("primaryCurrent", repeated(primaryCurrent, time.size()));
+        values.put(TURNS_RATIO, repeated(turnsRatio, time.size()));
+        values.put(SECONDARY_VOLTAGE, repeated(secondaryVoltage, time.size()));
+        values.put(PRIMARY_CURRENT, repeated(primaryCurrent, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -81,15 +84,15 @@ public final class IdealTransformerModule implements PhysicsModule<IdealTransfor
         double secondaryVoltage = parameters.primaryVoltage / primaryToSecondaryRatio;
         double primaryCurrent = parameters.secondaryCurrent / primaryToSecondaryRatio;
         double turnsRatio = 1.0 / primaryToSecondaryRatio;
-        requireFinite(turnsRatio, "turnsRatio");
-        requireFinite(secondaryVoltage, "secondaryVoltage");
-        requireFinite(primaryCurrent, "primaryCurrent");
+        requireFinite(turnsRatio, TURNS_RATIO);
+        requireFinite(secondaryVoltage, SECONDARY_VOLTAGE);
+        requireFinite(primaryCurrent, PRIMARY_CURRENT);
         verifyPowerBalance(parameters.primaryVoltage, primaryCurrent,
                 secondaryVoltage, parameters.secondaryCurrent);
         return new AnalyticalPoint(Map.of(
-                "turnsRatio", turnsRatio,
-                "secondaryVoltage", secondaryVoltage,
-                "primaryCurrent", primaryCurrent));
+                TURNS_RATIO, turnsRatio,
+                SECONDARY_VOLTAGE, secondaryVoltage,
+                PRIMARY_CURRENT, primaryCurrent));
     }
 
     private static List<Double> repeated(double value, int count) {

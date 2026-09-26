@@ -15,7 +15,7 @@ public record CtReconstructionParameters(double incidentIntensity, double attenu
         double coefficient = PhysicsValues.require(specification, overrides, "attenuation_coefficient");
         double length = PhysicsValues.require(specification, overrides, "path_length");
         double projections = PhysicsValues.require(specification, overrides, "projection_count");
-        if (!(intensity > 0) || coefficient < 0 || !(length > 0) || projections < 1
+        if (intensity <= 0 || coefficient < 0 || length <= 0 || projections < 1
                 || projections != Math.rint(projections)) {
             throw new IllegalArgumentException("CT projection parameters are invalid");
         }

@@ -18,6 +18,8 @@ public final class ExperimentalDataGraphModule
     public static final String MODULE_ID = "experimental_data_graph";
     public static final String NUMERICAL_SOLVER_ID = "experimental_data_graph_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "experimental_data_graph_reference_v2";
+    private static final String SLOPE = "slope";
+    private static final String INTERCEPT = "intercept";
     private static final int MIN_SAMPLE_COUNT = 2;
     private static final int MAX_SAMPLE_COUNT = 4096;
 
@@ -35,8 +37,8 @@ public final class ExperimentalDataGraphModule
         }
         return new Parameters(requireCanonical(quantities, "x_start", "1"),
                 requireCanonical(quantities, "x_end", "1"),
-                requireCanonical(quantities, "slope", "1"),
-                requireCanonical(quantities, "intercept", "1"), (int) sampleCount);
+                requireCanonical(quantities, SLOPE, "1"),
+                requireCanonical(quantities, INTERCEPT, "1"), (int) sampleCount);
     }
 
     @Override
@@ -63,8 +65,8 @@ public final class ExperimentalDataGraphModule
         Map<String, List<Double>> values = new LinkedHashMap<>();
         values.put("x", List.copyOf(x));
         values.put("y", List.copyOf(y));
-        values.put("slope", List.copyOf(slopes));
-        values.put("intercept", List.copyOf(intercepts));
+        values.put(SLOPE, List.copyOf(slopes));
+        values.put(INTERCEPT, List.copyOf(intercepts));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -74,7 +76,7 @@ public final class ExperimentalDataGraphModule
         if (!Double.isFinite(xCoordinate)) {
             throw new IllegalArgumentException("Experimental graph reference coordinate must be finite");
         }
-        double x = Math.max(parameters.xStart(), Math.min(parameters.xEnd(), xCoordinate));
+        double x = Math.clamp(xCoordinate, parameters.xStart(), parameters.xEnd());
         double startY = parameters.intercept() + parameters.slope() * parameters.xStart();
         double endY = parameters.intercept() + parameters.slope() * parameters.xEnd();
         double fractionalPosition = (x - parameters.xStart()) / (parameters.xEnd() - parameters.xStart());
@@ -82,7 +84,7 @@ public final class ExperimentalDataGraphModule
         requireFinite("reference x", x);
         requireFinite("reference y", y);
         return new AnalyticalPoint(Map.of("x", x, "y", y,
-                "slope", parameters.slope(), "intercept", parameters.intercept()));
+                SLOPE, parameters.slope(), INTERCEPT, parameters.intercept()));
     }
 
     private static double requireCanonical(CanonicalQuantityBag quantities, String key, String unit) {

@@ -16,7 +16,8 @@ public class InductionReferenceSolver implements ReferenceSolver {
         if (!"electromagnetic_induction".equals(PhysicsValues.model(specification)))
             throw new IllegalArgumentException("Unsupported induction model: " + PhysicsValues.model(specification));
         InductionParameters p = InductionParameters.from(specification, overrides);
-        double t = Math.max(0, timeSeconds), b = p.magneticField() + p.fieldRate() * t;
+        double t = Math.max(0, timeSeconds);
+        double b = p.magneticField() + p.fieldRate() * t;
         return new AnalyticalPoint(Map.of("magneticField", b, "magneticFlux", b * p.coilArea() * Math.cos(p.coilAngle()), "inducedEmf", p.inducedEmf()));
     }
 }

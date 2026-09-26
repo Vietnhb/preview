@@ -29,8 +29,10 @@ public final class PhysicsOutputValidator {
             if (definition.kind() != output.kind()) fail(prefix, "output " + output.key() + " has kind " + output.kind()
                     + ", expected " + definition.kind());
             if (output.unit().isEmpty()) fail(prefix, "output " + output.key() + " has no unit");
-            if (!definition.unit().equals(output.unit().get())) {
-                fail(prefix, "output " + output.key() + " has unit " + output.unit().get()
+            String unit = output.unit().orElseThrow(() -> new IllegalArgumentException(
+                    "output " + output.key() + " has no unit"));
+            if (!definition.unit().equals(unit)) {
+                fail(prefix, "output " + output.key() + " has unit " + unit
                         + ", expected " + definition.unit());
             }
             validateShape(prefix, contract.maxSamples(), time, output);
@@ -57,23 +59,22 @@ public final class PhysicsOutputValidator {
     }
 
     private static void validateShape(String prefix, int maxSamples, List<Double> frameTime, PhysicsOutput output) {
-        if (output instanceof ScalarOutput scalar) {
-            if (!Double.isFinite(scalar.value())) fail(prefix, "scalar output " + scalar.key() + " is non-finite");
-        } else if (output instanceof TimeSeriesOutput series) {
-            if (series.values().size() > maxSamples || !series.timeSeconds().equals(frameTime)) {
+        switch (output) {
+        case ScalarOutput scalar when !Double.isFinite(scalar.value()) ->
+                fail(prefix, "scalar output " + scalar.key() + " is non-finite");
+        case ScalarOutput scalar -> { /* Already finite. */ }
+        case TimeSeriesOutput series when series.values().size() > maxSamples
+                || !series.timeSeconds().equals(frameTime) ->
                 fail(prefix, "time series " + series.key() + " has invalid axis or exceeds limit");
-            }
-        } else if (output instanceof VectorSeriesOutput vectors) {
-            if (vectors.values().size() > maxSamples || !vectors.timeSeconds().equals(frameTime)) {
+        case TimeSeriesOutput series -> { /* Axis already validated. */ }
+        case VectorSeriesOutput vectors when vectors.values().size() > maxSamples
+                || !vectors.timeSeconds().equals(frameTime) ->
                 fail(prefix, "vector series " + vectors.key() + " has invalid axis or exceeds limit");
-            }
-        } else if (output instanceof ScalarFieldOutput scalarField) {
-            ScalarField field = scalarField.field();
-            if (field.time().size() > maxSamples || !field.time().equals(frameTime)) {
-                fail(prefix, "scalar field " + scalarField.key() + " has invalid time axis or exceeds limit");
-            }
-        } else {
-            fail(prefix, "unsupported output implementation");
+        case VectorSeriesOutput vectors -> { /* Axis already validated. */ }
+        case ScalarFieldOutput(String key, ScalarField field) when field.time().size() > maxSamples
+                || !field.time().equals(frameTime) ->
+                fail(prefix, "scalar field " + key + " has invalid time axis or exceeds limit");
+        case ScalarFieldOutput field -> { /* Axis already validated. */ }
         }
     }
 

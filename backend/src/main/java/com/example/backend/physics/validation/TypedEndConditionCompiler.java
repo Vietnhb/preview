@@ -10,13 +10,15 @@ import java.util.Objects;
 
 /** Compiles one request end condition against the already pinned schema output contract. */
 public final class TypedEndConditionCompiler {
+    private static final String QUANTITY = "quantity";
+    private static final String VALUE = "value";
     private TypedEndConditionCompiler() { }
 
     public static EndConditionContract compile(CompiledSchema schema, JsonNode specification,
             double fallbackDuration) {
         Objects.requireNonNull(schema, "Pinned compiled schema is required");
         JsonNode condition = EndConditionResolver.normalize(specification, fallbackDuration);
-        List<String> errors = EndConditionResolver.validateNode(condition, fallbackDuration);
+        List<String> errors = EndConditionResolver.validateNode(condition);
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException("Invalid end condition for schemaId=" + schema.schemaId()
                     + " schemaVersion=" + schema.version() + ": " + String.join("; ", errors));
@@ -28,11 +30,11 @@ public final class TypedEndConditionCompiler {
         return switch (type) {
             case TIME_LIMIT -> new EndConditionContract.TimeLimit(condition.path("duration").asDouble());
             case THRESHOLD -> new EndConditionContract.Threshold(
-                    source(schema, condition.path("quantity").asText("")),
+                    source(schema, condition.path(QUANTITY).asText("")),
                     ComparisonOperator.parse(condition.path("operator").asText()),
-                    condition.path("value").asDouble(), optionalMaxTime(condition));
+                    condition.path(VALUE).asDouble(), optionalMaxTime(condition));
             case CYCLE_COUNT -> new EndConditionContract.CycleCount(
-                    source(schema, condition.path("quantity").asText("")),
+                    source(schema, condition.path(QUANTITY).asText("")),
                     condition.path("count").asInt(), optionalMaxTime(condition));
             case EVENT -> compileEvent(schema, condition);
             case MANUAL -> new EndConditionContract.Manual(optionalMaxTime(condition));
@@ -51,7 +53,7 @@ public final class TypedEndConditionCompiler {
         event.path("entities").forEach(entity -> {
             if (entity.isTextual()) entities.add(entity.asText());
         });
-        String quantity = nonBlankText(event.get("quantity"));
+                    String quantity = nonBlankText(event.get(QUANTITY));
         String firstQuantity = nonBlankText(event.get("firstQuantity"));
         String secondQuantity = nonBlankText(event.get("secondQuantity"));
         String markerQuantity = nonBlankText(event.get("markerQuantity"));
@@ -65,7 +67,7 @@ public final class TypedEndConditionCompiler {
         return new EndConditionContract.Event(kind, entities,
                 quantity == null ? null : source(schema, quantity),
                 ComparisonOperator.parse(nonBlankText(event.get("operator"))),
-                event.path("value").isNumber() ? event.path("value").asDouble() : null,
+                event.path(VALUE).isNumber() ? event.path(VALUE).asDouble() : null,
                 firstQuantity == null ? null : source(schema, firstQuantity),
                 secondQuantity == null ? null : source(schema, secondQuantity),
                 markerQuantity == null ? null : source(schema, markerQuantity),

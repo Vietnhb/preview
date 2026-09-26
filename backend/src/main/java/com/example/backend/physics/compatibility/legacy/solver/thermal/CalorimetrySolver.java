@@ -21,11 +21,15 @@ public class CalorimetrySolver implements PhysicsSolver {
         if (!"calorimetry_mixing".equals(PhysicsValues.model(specification)))
             throw new IllegalArgumentException("Unsupported calorimetry model: " + PhysicsValues.model(specification));
         CalorimetryParameters p = CalorimetryParameters.from(specification, overrides);
-        if (!(durationSeconds > 0) || !(stepSeconds > 0) || !Double.isFinite(durationSeconds + stepSeconds))
+        if (durationSeconds <= 0 || stepSeconds <= 0 || !Double.isFinite(durationSeconds + stepSeconds))
             throw new IllegalArgumentException("durationSeconds and stepSeconds must be finite and positive");
-        int points = Math.min(16_384, Math.max(1, (int) Math.ceil(durationSeconds / stepSeconds)));
-        List<Double> time = new ArrayList<>(points + 1), t1 = new ArrayList<>(points + 1), t2 = new ArrayList<>(points + 1);
-        List<Double> heat1 = new ArrayList<>(points + 1), heat2 = new ArrayList<>(points + 1), eq = new ArrayList<>(points + 1);
+        int points = Math.clamp((int) Math.ceil(durationSeconds / stepSeconds), 1, 16_384);
+        List<Double> time = new ArrayList<>(points + 1);
+        List<Double> t1 = new ArrayList<>(points + 1);
+        List<Double> t2 = new ArrayList<>(points + 1);
+        List<Double> heat1 = new ArrayList<>(points + 1);
+        List<Double> heat2 = new ArrayList<>(points + 1);
+        List<Double> eq = new ArrayList<>(points + 1);
         double equilibrium = p.equilibriumTemperature();
         for (int i = 0; i <= points; i++) {
             double t = Math.min(durationSeconds, i * stepSeconds);

@@ -17,6 +17,10 @@ public final class MomentEquilibriumModule implements PhysicsModule<MomentEquili
     public static final String MODULE_ID = "moment_equilibrium";
     public static final String NUMERICAL_SOLVER_ID = "moment_equilibrium_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "moment_equilibrium_reference_v2";
+    private static final String MOMENT_1 = "moment1";
+    private static final String MOMENT_2 = "moment2";
+    private static final String NET_MOMENT = "netMoment";
+    private static final String EQUILIBRIUM_RESIDUAL = "equilibriumResidual";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -46,10 +50,10 @@ public final class MomentEquilibriumModule implements PhysicsModule<MomentEquili
         requireFiniteResults(moment1, moment2, netMoment, equilibriumResidual);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("moment1", Collections.singletonList(moment1));
-        values.put("moment2", Collections.singletonList(moment2));
-        values.put("netMoment", Collections.singletonList(netMoment));
-        values.put("equilibriumResidual", Collections.singletonList(equilibriumResidual));
+        values.put(MOMENT_1, Collections.singletonList(moment1));
+        values.put(MOMENT_2, Collections.singletonList(moment2));
+        values.put(NET_MOMENT, Collections.singletonList(netMoment));
+        values.put(EQUILIBRIUM_RESIDUAL, Collections.singletonList(equilibriumResidual));
         return new SolverOutput(List.of(0.0), Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -73,10 +77,10 @@ public final class MomentEquilibriumModule implements PhysicsModule<MomentEquili
         requireFiniteResults(moment1, moment2, netMoment, equilibriumResidual);
 
         Map<String, Double> values = new LinkedHashMap<>();
-        values.put("moment1", moment1);
-        values.put("moment2", moment2);
-        values.put("netMoment", netMoment);
-        values.put("equilibriumResidual", equilibriumResidual);
+        values.put(MOMENT_1, moment1);
+        values.put(MOMENT_2, moment2);
+        values.put(NET_MOMENT, netMoment);
+        values.put(EQUILIBRIUM_RESIDUAL, equilibriumResidual);
         return new AnalyticalPoint(values);
     }
 
@@ -100,7 +104,7 @@ public final class MomentEquilibriumModule implements PhysicsModule<MomentEquili
     private static void requireFiniteResults(double moment1, double moment2,
                                              double netMoment, double residual) {
         double[] values = {moment1, moment2, netMoment, residual};
-        String[] keys = {"moment1", "moment2", "netMoment", "equilibriumResidual"};
+        String[] keys = {MOMENT_1, MOMENT_2, NET_MOMENT, EQUILIBRIUM_RESIDUAL};
         for (int index = 0; index < values.length; index++) {
             if (!Double.isFinite(values[index])) {
                 throw new ArithmeticException("Moment-equilibrium result is not finite: " + keys[index]);

@@ -1,6 +1,5 @@
 package com.example.backend.physics.model;
 
-import com.example.backend.physics.model.ScalarField;
 
 import java.util.List;
 import java.util.Map;

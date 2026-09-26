@@ -23,6 +23,9 @@ public final class AtomicSpectraModule implements PhysicsModule<AtomicSpectraMod
     private static final double RYDBERG_PER_METRE = 10_973_731.568160;
     private static final int MAX_LEVEL = 1000;
     private static final MathContext REFERENCE_PRECISION = MathContext.DECIMAL128;
+    private static final String WAVELENGTH = "wavelength";
+    private static final String FREQUENCY = "frequency";
+    private static final String PHOTON_ENERGY = "photonEnergy";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -50,14 +53,14 @@ public final class AtomicSpectraModule implements PhysicsModule<AtomicSpectraMod
         double frequency = PhysicalConstants.SPEED_OF_LIGHT / wavelength;
         double photonEnergy = PhysicalConstants.PLANCK * frequency;
         requirePositiveFinite("inverseWavelength", inverseWavelength);
-        requirePositiveFinite("wavelength", wavelength);
-        requirePositiveFinite("frequency", frequency);
-        requirePositiveFinite("photonEnergy", photonEnergy);
+        requirePositiveFinite(WAVELENGTH, wavelength);
+        requirePositiveFinite(FREQUENCY, frequency);
+        requirePositiveFinite(PHOTON_ENERGY, photonEnergy);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("wavelength", repeated(wavelength, time.size()));
-        values.put("frequency", repeated(frequency, time.size()));
-        values.put("photonEnergy", repeated(photonEnergy, time.size()));
+        values.put(WAVELENGTH, repeated(wavelength, time.size()));
+        values.put(FREQUENCY, repeated(frequency, time.size()));
+        values.put(PHOTON_ENERGY, repeated(photonEnergy, time.size()));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -82,10 +85,10 @@ public final class AtomicSpectraModule implements PhysicsModule<AtomicSpectraMod
         double energy = photonEnergy.doubleValue();
         double lambda = wavelength.doubleValue();
         double hz = frequency.doubleValue();
-        requirePositiveFinite("reference photonEnergy", energy);
-        requirePositiveFinite("reference wavelength", lambda);
-        requirePositiveFinite("reference frequency", hz);
-        return new AnalyticalPoint(Map.of("wavelength", lambda, "frequency", hz, "photonEnergy", energy));
+        requirePositiveFinite("reference " + PHOTON_ENERGY, energy);
+        requirePositiveFinite("reference " + WAVELENGTH, lambda);
+        requirePositiveFinite("reference " + FREQUENCY, hz);
+        return new AnalyticalPoint(Map.of(WAVELENGTH, lambda, FREQUENCY, hz, PHOTON_ENERGY, energy));
     }
 
     private static double requireCanonical(CanonicalQuantityBag quantities, String key, String unit) {

@@ -14,7 +14,7 @@ public record AdiabaticGasParameters(double initialPressure, double initialVolum
         double finalVolume = PhysicsValues.require(specification, overrides, "final_volume");
         double temperature = PhysicsValues.require(specification, overrides, "initial_temperature");
         double gamma = PhysicsValues.require(specification, overrides, "heat_capacity_ratio");
-        if (!(pressure > 0) || !(initialVolume > 0) || !(finalVolume > 0) || !(temperature > 0) || !(gamma > 1))
+        if (pressure <= 0 || initialVolume <= 0 || finalVolume <= 0 || temperature <= 0 || gamma <= 1)
             throw new IllegalArgumentException("Adiabatic pressure, volumes, temperature positive and gamma > 1 required");
         return new AdiabaticGasParameters(pressure, initialVolume, finalVolume, temperature, gamma);
     }

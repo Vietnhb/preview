@@ -63,12 +63,11 @@ public class ProblemResponseMapper {
                 endConditionCapabilities(specification),
                 specification.getAmbiguity(),
                 specification.getConfirmationState(),
-                specification.getAmbiguityCases().stream().map(this::toAmbiguity).toList(),
+                specification.getAmbiguityCases().stream().sorted(SpecificationReadinessService.questionOrder(specification)).map(this::toAmbiguity).toList(),
                 specification.getSchemaId(),
                 specification.getValidationStatus(),
                 specification.getValidationResult(),
-                specification.getCreatedAt(),
-                specification.getAssetSelection());
+                specification.getCreatedAt());
     }
 
     private java.util.List<String> endConditionCapabilities(Specification specification) {

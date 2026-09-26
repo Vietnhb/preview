@@ -11,7 +11,6 @@ import com.example.backend.physics.output.PhysicsOutput;
 import com.example.backend.physics.output.PhysicsOutputContract;
 import com.example.backend.physics.validation.OutputSourceBinding;
 
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -154,13 +153,10 @@ public final class SchemaCompiler {
             }
         }
 
-        boolean timeSeriesOutput = "timeseries".equalsIgnoreCase(
-                definition.path("output").path("type").asText("").trim());
         for (String key : declaredOutputs) {
             boolean explicitlyTypedTimeSeries = outputDefinitions.containsKey(key)
                     && outputDefinitions.get(key).kind() == PhysicsOutput.OutputKind.TIME_SERIES;
-            if ((timeSeriesOutput || explicitlyTypedTimeSeries)
-                    && !sources.containsKey(key)) {
+            if (explicitlyTypedTimeSeries && !sources.containsKey(key)) {
                 sources.computeIfAbsent(key, ignored -> new java.util.LinkedHashSet<>())
                         .add(OutputSourceBinding.declared(OutputSourceBinding.Group.VALUES, key));
             }

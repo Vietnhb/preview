@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from "react";
 import api from "../../../api/axios";
-import { parseObject, useAction } from "../../operations/operationsData";
+import { parseObject, useAction, useResource } from "../../operations/operationsData";
 import type { Version } from "./reviewerTypes";
 
 export function VersionEditorModal({ solver, initial, clone, implementations, onClose, onSaved }: Readonly<{ solver: boolean; initial?: Version; clone: boolean; implementations?: { numerical: string[]; reference: string[] }; onClose: () => void; onSaved: () => void }>) {
-  const [definition, setDefinition] = useState(JSON.stringify((solver ? initial?.outputDefinition : initial?.definition) ?? {}, null, 2));
+  const metaSchema = useResource<Record<string, unknown>>("/schemas/meta-schema");
+  const coreTypes = useResource<Record<string, unknown>>("/schemas/core-types");
+  const initialDefinition = solver ? initial?.outputDefinition : prepareTopicPack(initial?.definition);
+  const [definition, setDefinition] = useState(JSON.stringify(initialDefinition ?? {}, null, 2));
   const action = useAction();
   const isEdit = Boolean(initial && !clone);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -19,8 +22,14 @@ export function VersionEditorModal({ solver, initial, clone, implementations, on
   };
   return <dialog open className="modern-modal-overlay" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="modern-modal-content" style={{ maxWidth: "720px" }}><div className="modern-modal-header"><h3>{isEdit ? "Chỉnh sửa bản nháp" : "Tạo phiên bản mới"}</h3><button type="button" className="modern-modal-close" onClick={onClose}>×</button></div><form onSubmit={submit}>
     <div className="form-row"><label className="ops-field"><span>Schema ID *</span><input name="schemaId" required maxLength={80} readOnly={isEdit} defaultValue={initial?.schemaId ?? ""} /></label><label className="ops-field"><span>Phiên bản *</span><input name="version" required maxLength={16} readOnly={isEdit} defaultValue={clone ? "" : initial?.version ?? ""} placeholder="1.0.0" /></label></div>
-    {!solver && <div className="form-row"><label className="ops-field"><span>Tên schema *</span><input name="name" required defaultValue={initial?.name ?? ""} /></label><label className="ops-field"><span>Chủ đề *</span><input name="topic" required defaultValue={initial?.topic ?? "Kinematics"} /></label></div>}
+    {!solver && <div className="form-row"><label className="ops-field"><span>Tên topic pack *</span><input name="name" required defaultValue={initial?.name ?? ""} /></label><label className="ops-field"><span>Topic *</span><input name="topic" required defaultValue={initial?.topic ?? ""} /></label></div>}
     {solver && <div className="form-row"><label className="ops-field"><span>Numerical solver *</span><select name="solverId" required defaultValue={initial?.solverId ?? ""}><option value="">-- Chọn numerical solver --</option>{implementations?.numerical.map((id) => <option key={id} value={id}>{id}</option>)}</select></label><label className="ops-field"><span>Reference solver độc lập *</span><select name="referenceSolverId" required defaultValue={initial?.outputDefinition?.referenceSolverId ?? ""}><option value="">-- Chọn reference solver --</option>{implementations?.reference.map((id) => <option key={id} value={id}>{id}</option>)}</select></label></div>}
-    <label className="ops-field"><span>{solver ? "Output binding JSON" : "Định nghĩa schema JSON"}</span><textarea className="ops-code" rows={14} value={definition} onChange={(event) => setDefinition(event.target.value)} required /></label>{action.feedback}<div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}><button type="button" className="role-switch-pill" onClick={onClose}>Hủy</button><button type="submit" className="prediction-submit-btn" disabled={action.busy}>{action.busy ? "Đang lưu…" : "Lưu phiên bản"}</button></div>
+    {!solver && <details style={{ marginBottom: "12px" }}><summary>Meta-schema topic pack v2.0</summary><p>Pack khai báo từ vựng khái niệm, phạm vi mô phỏng và khả năng trực quan theo cấu trúc dữ liệu. Nội dung phải tuân theo meta-schema bên dưới.</p>{metaSchema.data && <pre className="ops-code" style={{ maxHeight: "220px", overflow: "auto" }}>{JSON.stringify(metaSchema.data, null, 2)}</pre>}<p>Core type library tùy chọn</p>{coreTypes.data && <pre className="ops-code" style={{ maxHeight: "160px", overflow: "auto" }}>{JSON.stringify(coreTypes.data, null, 2)}</pre>}</details>}
+    <label className="ops-field"><span>{solver ? "Output binding JSON" : "Topic pack JSON"}</span><textarea className="ops-code" rows={14} value={definition} onChange={(event) => setDefinition(event.target.value)} required /></label>{action.feedback}<div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}><button type="button" className="role-switch-pill" onClick={onClose}>Hủy</button><button type="submit" className="prediction-submit-btn" disabled={action.busy}>{action.busy ? "Đang lưu…" : "Lưu phiên bản"}</button></div>
   </form></div></dialog>;
+}
+
+function prepareTopicPack(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? structuredClone(value as Record<string, unknown>) : {};
 }

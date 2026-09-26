@@ -18,6 +18,8 @@ public final class DiffractionPolarizationModule
     public static final String MODULE_ID = "diffraction_polarization";
     public static final String NUMERICAL_SOLVER_ID = "diffraction_solver_v2";
     public static final String REFERENCE_SOLVER_ID = "diffraction_reference_v2";
+    private static final String DIFFRACTION_ANGLE = "diffractionAngle";
+    private static final String TRANSMITTED_INTENSITY = "transmittedIntensity";
 
     @Override public String moduleId() { return MODULE_ID; }
     @Override public String numericalSolverId() { return NUMERICAL_SOLVER_ID; }
@@ -46,13 +48,13 @@ public final class DiffractionPolarizationModule
         double diffractionAngle = minimumExists ? Math.asin(sineAngle) : 0.0;
         double analyzerCosine = Math.cos(parameters.analyzerAngle());
         double transmittedIntensity = parameters.inputIntensity() * analyzerCosine * analyzerCosine;
-        requireFinite("diffractionAngle", diffractionAngle);
-        requireFinite("transmittedIntensity", transmittedIntensity);
+        requireFinite(DIFFRACTION_ANGLE, diffractionAngle);
+        requireFinite(TRANSMITTED_INTENSITY, transmittedIntensity);
 
         Map<String, List<Double>> values = new LinkedHashMap<>();
-        values.put("diffractionAngle", Collections.nCopies(time.size(), diffractionAngle));
+        values.put(DIFFRACTION_ANGLE, Collections.nCopies(time.size(), diffractionAngle));
         values.put("minimumExists", Collections.nCopies(time.size(), minimumExists ? 1.0 : 0.0));
-        values.put("transmittedIntensity", Collections.nCopies(time.size(), transmittedIntensity));
+        values.put(TRANSMITTED_INTENSITY, Collections.nCopies(time.size(), transmittedIntensity));
         return new SolverOutput(time, Map.of(), Map.of(), Map.of(), values);
     }
 
@@ -63,8 +65,6 @@ public final class DiffractionPolarizationModule
             throw new IllegalArgumentException("Diffraction reference time must be finite and non-negative");
         }
 
-        // Reorder the grating ratio and use atan2 for the valid angular solution;
-        // this oracle does not call the numerical path's asin helper.
         double sineAngle = parameters.diffractionOrder() == 0.0 ? 0.0
                 : (parameters.wavelength() / parameters.slitWidth()) * parameters.diffractionOrder();
         boolean minimumExists = parameters.diffractionOrder() >= 1.0 && sineAngle <= 1.0;
@@ -75,11 +75,11 @@ public final class DiffractionPolarizationModule
         }
         double analyzerCosine = Math.cos(parameters.analyzerAngle());
         double transmittedIntensity = (parameters.inputIntensity() * analyzerCosine) * analyzerCosine;
-        requireFinite("reference diffractionAngle", diffractionAngle);
-        requireFinite("reference transmittedIntensity", transmittedIntensity);
-        return new AnalyticalPoint(Map.of("diffractionAngle", diffractionAngle,
+        requireFinite("reference " + DIFFRACTION_ANGLE, diffractionAngle);
+        requireFinite("reference " + TRANSMITTED_INTENSITY, transmittedIntensity);
+        return new AnalyticalPoint(Map.of(DIFFRACTION_ANGLE, diffractionAngle,
                 "minimumExists", minimumExists ? 1.0 : 0.0,
-                "transmittedIntensity", transmittedIntensity));
+                TRANSMITTED_INTENSITY, transmittedIntensity));
     }
 
     private static void requireUnit(CanonicalQuantityBag quantities, String key, String unit) {

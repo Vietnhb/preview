@@ -218,10 +218,6 @@ public final class KinematicsProjectileModule implements PhysicsModule<Kinematic
         }
     }
 
-    private static void requireFinite(double... values) {
-        for (double value : values) requireFinite(value, "result");
-    }
-
     private record Samples(List<Double> time, List<Double> x, List<Double> y,
                            List<Double> displacement, List<Double> vx, List<Double> vy,
                            List<Double> ax, List<Double> ay) { }

@@ -13,7 +13,7 @@ public record TransformerParameters(double primaryTurns, double secondaryTurns,
         double ns = PhysicsValues.require(specification, overrides, "secondary_turns");
         double vp = PhysicsValues.require(specification, overrides, "primary_voltage");
         double is = PhysicsValues.require(specification, overrides, "secondary_current");
-        if (!(np > 0) || !(ns > 0) || !Double.isFinite(vp) || !Double.isFinite(is)) throw new IllegalArgumentException("Transformer turns positive and voltage/current finite required");
+        if (np <= 0 || ns <= 0 || !Double.isFinite(vp) || !Double.isFinite(is)) throw new IllegalArgumentException("Transformer turns positive and voltage/current finite required");
         return new TransformerParameters(np, ns, vp, is);
     }
     public double turnsRatio() { return secondaryTurns / primaryTurns; }
