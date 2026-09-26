@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 64" role="img" aria-label="horseshoe magnet">
-  <path d="M18 10v20a32 32 0 0 0 64 0V10" fill="none" stroke="#ef4444" stroke-width="16" stroke-linecap="round"/>
-  <path d="M18 10v20a32 32 0 0 0 64 0V10" fill="none" stroke="#2563eb" stroke-width="8" stroke-linecap="round" stroke-dasharray="1 18"/>
-  <path d="M10 10h16M74 10h16" stroke="#f8fafc" stroke-width="7" stroke-linecap="round"/>
-</svg>

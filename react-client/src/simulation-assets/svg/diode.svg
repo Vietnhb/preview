@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 64" role="img" aria-label="diode">
-  <path d="M2 32h30M68 32h30" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round"/>
-  <path d="M34 14v36l28-18z" fill="#38bdf8" fill-opacity=".35" stroke="#e0f2fe" stroke-width="2"/>
-  <path d="M66 14v36" stroke="#fb7185" stroke-width="4"/>
-</svg>

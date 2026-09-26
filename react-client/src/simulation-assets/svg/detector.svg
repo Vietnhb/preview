@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 90" role="img" aria-label="radiation detector">
-  <rect x="12" y="22" width="76" height="54" rx="8" fill="#334155" stroke="#cbd5e1" stroke-width="2"/>
-  <rect x="26" y="34" width="48" height="18" rx="3" fill="#0f172a" stroke="#38bdf8"/>
-  <path d="M32 45h8m5 0h8m5 0h8" stroke="#34d399" stroke-width="3" stroke-linecap="round"/>
-  <path d="M50 8v14M42 12l8 8 8-8" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
-</svg>

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 96" role="img" aria-label="planetary system">
-  <circle cx="48" cy="48" r="22" fill="#f59e0b" stroke="#fef3c7" stroke-width="2"/>
-  <ellipse cx="48" cy="48" rx="38" ry="16" fill="none" stroke="#fde68a" stroke-opacity=".65" stroke-width="2"/>
-  <circle cx="84" cy="48" r="9" fill="#38bdf8" stroke="#e0f2fe" stroke-width="2"/>
-  <circle cx="108" cy="48" r="4" fill="#cbd5e1"/>
-</svg>
