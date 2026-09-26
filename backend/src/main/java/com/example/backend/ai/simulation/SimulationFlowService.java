@@ -1,4 +1,4 @@
-package com.example.backend.matter;
+package com.example.backend.ai.simulation;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -21,17 +21,16 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.backend.ai.ocr.OcrProvider;
 import com.example.backend.entity.enums.OcrStatus;
 import com.example.backend.exception.ApiException;
-import com.example.backend.matter.MatterFlowResponse.Parameter;
-import com.example.backend.matter.MatterFlowResponse.Validation;
+import com.example.backend.ai.simulation.SimulationFlowResponse.Parameter;
+import com.example.backend.ai.simulation.SimulationFlowResponse.Validation;
 import com.example.backend.service.account.CurrentUserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
-/** Recognition, intent review, and deterministic scene compilation are distinct gates. */
+/** Recognition, semantic understanding, and visual-program generation for one AI flow. */
 @Service
-public class MatterFlowService {
-    private static final Logger log = LoggerFactory.getLogger(MatterFlowService.class);
+public class SimulationFlowService {
+    private static final Logger log = LoggerFactory.getLogger(SimulationFlowService.class);
     private static final Duration SESSION_LIFETIME = Duration.ofMinutes(30);
     private static final int MAX_INPUT_CHARS = 12_000;
     private static final long MAX_IMAGE_BYTES = 8L * 1024L * 1024L;
@@ -42,27 +41,26 @@ public class MatterFlowService {
     private static final String STATUS = "status";
     private static final String REASON = "reason";
     private static final String VISUAL = "VISUAL";
-    private static final String MATTER = "MATTER";
     private static final String UNSUPPORTED = "UNSUPPORTED";
-    private static final String VISUAL_FALLBACK_LOG = "Visual fallback also failed: sessionId={}";
 
     private final Map<UUID, Session> sessions = new ConcurrentHashMap<>();
     private final CurrentUserService currentUser;
     private final OcrProvider ocr;
-    private final MatterAiGateway ai;
-    private final VisualSimulationGateway visualAi;
+    private final SimulationUnderstandingGateway understanding;
+    private final SimulationProgramGateway program;
     private final ObjectMapper mapper;
 
-    public MatterFlowService(CurrentUserService currentUser, OcrProvider ocr,
-            MatterAiGateway ai, VisualSimulationGateway visualAi, ObjectMapper mapper) {
+    public SimulationFlowService(CurrentUserService currentUser, OcrProvider ocr,
+            SimulationUnderstandingGateway understanding, SimulationProgramGateway program,
+            ObjectMapper mapper) {
         this.currentUser = currentUser;
         this.ocr = ocr;
-        this.ai = ai;
-        this.visualAi = visualAi;
+        this.understanding = understanding;
+        this.program = program;
         this.mapper = mapper;
     }
 
-    public MatterFlowResponse normalize(String sourceMode, String text) {
+    public SimulationFlowResponse normalize(String sourceMode, String text) {
         if (!"TEXT".equals(sourceMode) && !"LATEX".equals(sourceMode)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "sourceMode must be TEXT or LATEX");
         }
@@ -71,7 +69,7 @@ public class MatterFlowService {
         return recognitionResponse(session);
     }
 
-    public MatterFlowResponse normalizeImage(MultipartFile file, String suppliedText) {
+    public SimulationFlowResponse normalizeImage(MultipartFile file, String suppliedText) {
         if (file == null || file.isEmpty() || file.getSize() > MAX_IMAGE_BYTES
                 || !IMAGE_TYPES.contains(file.getContentType())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "A PNG, JPEG, or WebP image under 8 MB is required");
@@ -101,7 +99,7 @@ public class MatterFlowService {
         }
     }
 
-    public MatterFlowResponse confirmInput(UUID id, boolean confirmed, String correctedText) {
+    public SimulationFlowResponse confirmInput(UUID id, boolean confirmed, String correctedText) {
         Session session = requireSession(id);
         synchronized (session) {
             if (session.stage != Stage.RECOGNITION && session.stage != Stage.RECOGNITION_FAILED) {
@@ -128,7 +126,7 @@ public class MatterFlowService {
         }
     }
 
-    public MatterFlowResponse revise(UUID id, String text) {
+    public SimulationFlowResponse revise(UUID id, String text) {
         Session session = requireSession(id);
         synchronized (session) {
             if (session.stage != Stage.CLARIFY && session.stage != Stage.EXPLAIN
@@ -161,102 +159,26 @@ public class MatterFlowService {
         }
     }
 
-    public MatterFlowResponse confirmExplanation(UUID id, boolean confirmed, String text) {
+    public SimulationFlowResponse confirmExplanation(UUID id, boolean confirmed, String text) {
         Session session = requireSession(id);
         synchronized (session) {
             if (!confirmed) return revise(id, text);
             if (session.stage != Stage.EXPLAIN || session.specification == null) {
-                throw new ApiException(HttpStatus.CONFLICT, "Confirm the explanation before generating code");
+                throw new ApiException(HttpStatus.CONFLICT, "Confirm the explanation before generating the simulation");
             }
-            if (VISUAL.equals(session.specification.path(RUNTIME_KIND).asText())) {
-                return generateVisual(session);
-            }
-            JsonNode plan;
-            try {
-                plan = ai.plan(combinedDescription(session), session.explanation,
-                        session.specification);
-            } catch (RuntimeException failure) {
-                log.warn("Matter scene planner failed, falling back to visual: sessionId={} runtime={}",
-                        id, session.schemaId, failure);
-                ((com.fasterxml.jackson.databind.node.ObjectNode) session.specification)
-                        .put(RUNTIME_KIND, VISUAL);
-                try {
-                    return generateVisual(session);
-                } catch (RuntimeException visualFailure) {
-                    log.warn(VISUAL_FALLBACK_LOG, id, visualFailure);
-                    throw new ApiException(HttpStatus.BAD_GATEWAY,
-                            "Could not produce a valid scene plan from the confirmed description.",
-                            "SCENE_PLAN_FAILED", "GENERATION");
-                }
-            }
-            if (UNSUPPORTED.equals(plan.path(STATUS).asText())) {
-                session.stage = Stage.UNSUPPORTED;
-                session.explanation = nonblank(plan.path(REASON).asText(null),
-                        "The confirmed phenomenon cannot be represented by this simulation runtime.");
-                return analysisResponse(session);
-            }
-            if (!"READY".equals(plan.path(STATUS).asText())) {
-                String planStatus = plan.path(STATUS).asText();
-                if (log.isWarnEnabled()) {
-                    log.warn("Scene planner returned status={}, falling back to visual", planStatus);
-                }
-                ((com.fasterxml.jackson.databind.node.ObjectNode) session.specification)
-                        .put(RUNTIME_KIND, VISUAL);
-                try {
-                    return generateVisual(session);
-                } catch (RuntimeException visualFailure) {
-                    log.warn(VISUAL_FALLBACK_LOG, id, visualFailure);
-                    throw new ApiException(HttpStatus.BAD_GATEWAY,
-                            "The scene planner returned an invalid status", "INVALID_SCENE_PLAN", "GENERATION");
-                }
-            }
-            String code;
-            try {
-                JsonNode validatedScene = plan.path("scene").deepCopy();
-                List<String> sceneWarnings = new ArrayList<>(removeEmptyLinks(validatedScene));
-                sceneWarnings.addAll(MatterSceneAudit.review(session.specification,
-                        validatedScene));
-                MatterSceneCompiler compiler = new MatterSceneCompiler(mapper);
-                MatterSceneParameterizer.Prepared prepared = MatterSceneParameterizer.prepare(validatedScene);
-                code = compiler.compile(prepared.scene(), prepared.parameters());
-                session.parameters = prepared.parameters().stream()
-                        .filter(parameter -> compiler.usedParameters().contains(parameter.name())).toList();
-                ((com.fasterxml.jackson.databind.node.ObjectNode) session.specification)
-                        .put(DURATION_SECONDS, compiler.durationSeconds());
-                ((com.fasterxml.jackson.databind.node.ObjectNode) session.specification)
-                        .put(RUNTIME_KIND, MATTER);
-                ((com.fasterxml.jackson.databind.node.ObjectNode) session.specification)
-                        .set("expectedContacts", mapper.valueToTree(compiler.expectedContacts()));
-                ((com.fasterxml.jackson.databind.node.ObjectNode) session.specification)
-                        .set("plannedScene", validatedScene.deepCopy());
-                ((com.fasterxml.jackson.databind.node.ObjectNode) session.specification)
-                        .set("sceneWarnings", mapper.valueToTree(sceneWarnings));
-            } catch (MatterSceneCompiler.InvalidSceneException
-                    | MatterCodeSafety.UnsafeCodeException failure) {
-                log.warn("Matter scene validation failed, falling back to visual: sessionId={} runtime={} reason={}",
-                        id, session.schemaId, failure.getMessage());
-                ((com.fasterxml.jackson.databind.node.ObjectNode) session.specification)
-                        .put(RUNTIME_KIND, VISUAL);
-                try {
-                    return generateVisual(session);
-                } catch (RuntimeException visualFailure) {
-                    log.warn(VISUAL_FALLBACK_LOG, id, visualFailure);
-                    throw new ApiException(HttpStatus.BAD_GATEWAY,
-                            "The scene plan failed validation: " + failure.getMessage(),
-                            "INVALID_SCENE_PLAN", "GENERATION");
-                }
-            }
-            session.code = code;
-            session.validation = new Validation("PENDING", List.of());
-            session.stage = Stage.SIMULATION;
-            return simulationResponse(session);
+            return generateVisual(session);
         }
     }
 
-    private MatterFlowResponse generateVisual(Session session) {
+    private SimulationFlowResponse generateVisual(Session session) {
+        if (!program.isAvailable()) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "AI simulation provider is not configured. Set AI_API_KEY and restart the backend.",
+                    "AI_PROVIDER_UNAVAILABLE", "GENERATION");
+        }
         JsonNode plan;
         try {
-            plan = visualAi.plan(combinedDescription(session), session.explanation,
+            plan = program.plan(combinedDescription(session), session.explanation,
                     session.specification);
         } catch (RuntimeException failure) {
             log.warn("Visual simulation generation failed: sessionId={} runtime={}",
@@ -320,20 +242,6 @@ public class MatterFlowService {
         return simulationResponse(session);
     }
 
-    private List<String> removeEmptyLinks(JsonNode scene) {
-        List<String> warnings = new ArrayList<>();
-        if (scene.path("constraints") instanceof ArrayNode links) {
-            for (int index = links.size() - 1; index >= 0; index--) {
-                JsonNode link = links.get(index);
-                if (link.path("bodyA").isNull() && link.path("bodyB").isNull()) {
-                    links.remove(index);
-                    warnings.add("A generated link had no physical endpoint and was ignored. Review the requested interactions.");
-                }
-            }
-        }
-        return warnings;
-    }
-
     public Validation validation(UUID id) {
         Session session = requireSession(id);
         synchronized (session) {
@@ -390,7 +298,7 @@ public class MatterFlowService {
             if ("FLAGGED".equals(status) && log.isWarnEnabled()) {
                     String description = combinedDescription(session);
                     Object code = visual ? session.specification.path("visualProgram") : session.code;
-                    log.warn("Matter validation flag for human review: sessionId={} schemaId={} sourceMode={} "
+                    log.warn("Simulation validation flag for human review: sessionId={} schemaId={} sourceMode={} "
                                     + "description={} code={} parameters={} flags={} metrics={}",
                             id, session.schemaId, session.sourceMode, description, code,
                             checkedParameters, checkedFlags, checkedMetrics);
@@ -399,9 +307,25 @@ public class MatterFlowService {
         }
     }
 
-    private MatterFlowResponse analyze(Session session) {
+    private SimulationFlowResponse analyze(Session session) {
+        if (!understanding.isAvailable()) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "AI simulation provider is not configured. Set AI_API_KEY and restart the backend.",
+                    "AI_PROVIDER_UNAVAILABLE", "ANALYSIS");
+        }
         JsonNode conversation = mapper.valueToTree(session.conversation);
-        JsonNode answer = ai.understand(session.description, conversation);
+        JsonNode answer;
+        try {
+            answer = understanding.understand(session.description, conversation);
+        } catch (ApiException failure) {
+            throw failure;
+        } catch (RuntimeException failure) {
+            log.error("Simulation understanding failed: sessionId={} schemaId={}",
+                    session.id, session.schemaId, failure);
+            throw new ApiException(HttpStatus.BAD_GATEWAY,
+                    "The AI provider could not understand the simulation description. Check the AI provider configuration and try again.",
+                    "AI_UNDERSTANDING_FAILED", "ANALYSIS");
+        }
         String status = answer.path(STATUS).asText("");
         if (UNSUPPORTED.equals(status)) {
             session.stage = Stage.UNSUPPORTED;
@@ -442,23 +366,8 @@ public class MatterFlowService {
                     "The analysis omitted the simulation specification",
                     "INVALID_ANALYSIS", "ANALYSIS");
         }
-        if (!spec.path("externalForces").isBoolean()
-                || !spec.path("friction").isBoolean()
-                || !spec.path("conservativeInteractions").isBoolean()) {
-            throw new ApiException(HttpStatus.BAD_GATEWAY,
-                    "The analysis omitted required physical-system flags",
-                    "INVALID_ANALYSIS", "ANALYSIS");
-        }
         var copy = (com.fasterxml.jackson.databind.node.ObjectNode) spec.deepCopy();
-        String runtime = spec.path(RUNTIME_KIND).asText("");
-        if (!VISUAL.equals(runtime) && !MATTER.equals(runtime)) {
-            throw new ApiException(HttpStatus.BAD_GATEWAY,
-                    "The analysis selected an invalid simulation runtime",
-                    "INVALID_RUNTIME_SELECTION", "ANALYSIS");
-        }
-        copy.put(RUNTIME_KIND, runtime);
-        copy.set("inventoryWarnings", mapper.valueToTree(
-                MatterSceneAudit.reviewInventory(combinedDescription(session), copy)));
+        copy.put(RUNTIME_KIND, VISUAL);
         session.parameters = List.of();
         session.defaults = readDefaults(answer.path("defaults"));
         session.specification = copy;
@@ -484,14 +393,14 @@ public class MatterFlowService {
         return List.copyOf(defaults);
     }
 
-    private MatterFlowResponse recognitionResponse(Session session) {
-        return new MatterFlowResponse(session.id, session.stage.name(), session.recognizedText,
+    private SimulationFlowResponse recognitionResponse(Session session) {
+        return new SimulationFlowResponse(session.id, session.stage.name(), session.recognizedText,
                 session.recognizedText, session.sourceMode, session.confidence, session.message,
                 null, null, null, null, null, null, null, null);
     }
 
-    private MatterFlowResponse analysisResponse(Session session) {
-        return new MatterFlowResponse(session.id, session.stage.name(), null, null,
+    private SimulationFlowResponse analysisResponse(Session session) {
+        return new SimulationFlowResponse(session.id, session.stage.name(), null, null,
                 null, null, session.message, session.question, session.explanation,
                 session.stage == Stage.EXPLAIN ? session.parameters : null,
                 session.stage == Stage.EXPLAIN ? session.defaults : null,
@@ -499,8 +408,8 @@ public class MatterFlowService {
                 session.stage == Stage.EXPLAIN ? session.specification : null, null);
     }
 
-    private MatterFlowResponse simulationResponse(Session session) {
-        return new MatterFlowResponse(session.id, session.stage.name(), null, null,
+    private SimulationFlowResponse simulationResponse(Session session) {
+        return new SimulationFlowResponse(session.id, session.stage.name(), null, null,
                 null, null, null, null, session.explanation, session.parameters,
                 session.defaults, session.schemaId, session.code, session.specification,
                 session.validation);
@@ -518,14 +427,14 @@ public class MatterFlowService {
     private Session requireSession(UUID id) {
         Session session = sessions.get(id);
         if (session == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Matter flow session not found or expired");
+            throw new ApiException(HttpStatus.NOT_FOUND, "Simulation flow session not found or expired");
         }
         if (session.expiresAt.isBefore(Instant.now())) {
             sessions.remove(id, session);
-            throw new ApiException(HttpStatus.NOT_FOUND, "Matter flow session not found or expired");
+            throw new ApiException(HttpStatus.NOT_FOUND, "Simulation flow session not found or expired");
         }
         if (session.ownerId != ownerId()) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Matter flow session not found or expired");
+            throw new ApiException(HttpStatus.NOT_FOUND, "Simulation flow session not found or expired");
         }
         session.expiresAt = Instant.now().plus(SESSION_LIFETIME);
         return session;

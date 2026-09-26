@@ -1,4 +1,4 @@
-package com.example.backend.matter;
+package com.example.backend.ai.simulation;
 
 import java.util.List;
 import java.util.UUID;
@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record MatterFlowResponse(
+public record SimulationFlowResponse(
         UUID sessionId,
         String stage,
         String recognizedText,

@@ -1,0 +1,155 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "CLARIFY",
+        "EXPLAIN",
+        "UNSUPPORTED"
+      ]
+    },
+    "question": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "explanation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "defaults": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "simulationSpec": {
+      "type": ["object", "null"],
+      "description": "Open semantic brief. Keep the known fields when useful and add domain-specific fields when the scene needs them.",
+      "additionalProperties": true,
+      "properties": {
+        "runtimeKind": {
+          "type": ["string", "null"],
+          "description": "Optional transport marker. The server normalizes this to VISUAL and it never restricts the subject, style, or rendering technique."
+        },
+        "externalForces": { "type": ["boolean", "null"] },
+        "friction": { "type": ["boolean", "null"] },
+        "conservativeInteractions": { "type": ["boolean", "null"] },
+        "physicalObjects": {
+          "type": "array",
+          "items": {}
+        },
+        "interactions": {
+          "type": "array",
+          "items": {}
+        },
+        "initialState": { "type": ["string", "array", "object", "null"] },
+        "visualIntent": { "type": ["string", "array", "object", "null"] },
+        "visualHints": {
+          "type": "array",
+          "items": {}
+        },
+        "visualEffects": {
+          "type": "array",
+          "items": {}
+        },
+        "displayPlan": { "type": ["string", "array", "object", "null"] },
+        "requiredObjects": {
+          "type": "array",
+          "description": "Explicitly named or counted participants. Contextual scenery may be represented elsewhere and does not need an artificial inventory entry.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "sourceQuote": { "type": ["string", "null"] },
+              "label": { "type": ["string", "null"] },
+              "count": { "type": ["integer", "null"] },
+              "shape": { "type": ["string", "null"] },
+              "role": { "type": ["string", "null"] },
+              "contextual": { "type": ["boolean", "null"] },
+              "visualDescription": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "requiredConstraints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "sourceQuote": { "type": ["string", "null"] },
+              "label": { "type": ["string", "null"] },
+              "count": { "type": ["integer", "null"] },
+              "kind": { "type": ["string", "null"] },
+              "details": {}
+            }
+          }
+        },
+        "spatialRelations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "sourceQuote": { "type": ["string", "null"] },
+              "subjectObjectIndex": { "type": ["integer", "null"] },
+              "referenceObjectIndex": { "type": ["integer", "null"] },
+              "axis": { "type": ["string", "null"] },
+              "ordering": { "type": ["string", "null"] },
+              "relation": { "type": ["string", "null"] },
+              "subject": { "type": ["string", "null"] },
+              "reference": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "fixedQuantities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "sourceQuote": { "type": ["string", "null"] },
+              "name": { "type": ["string", "null"] },
+              "valueSI": { "type": ["number", "array", "object", "string", "null"] },
+              "unitSI": { "type": ["string", "null"] },
+              "provenance": { "type": ["string", "null"] },
+              "valueStructure": { "type": ["string", "null"] },
+              "sceneField": { "type": ["string", "null"] },
+              "bodyRequirementIndexes": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "constraintRequirementIndexes": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "referenceObjectIndexes": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": []
+    }
+  },
+  "required": [
+    "status",
+    "question",
+    "explanation",
+    "defaults",
+    "simulationSpec"
+  ]
+}

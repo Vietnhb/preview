@@ -33,7 +33,7 @@ const allowedNodes = new Set([
   "BinaryExpression", "LogicalExpression", "UnaryExpression", "ConditionalExpression",
   "AssignmentExpression", "UpdateExpression",
   "FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression", "TemplateLiteral",
-  "TemplateElement", "WhileStatement", "DoWhileStatement", "BreakStatement", "ContinueStatement", "ObjectPattern",
+  "TemplateElement", "WhileStatement", "DoWhileStatement", "ForOfStatement", "BreakStatement", "ContinueStatement", "ObjectPattern",
 ]);
 const allowedBinary = new Set([
   "+", "-", "*", "/", "%", "<", "<=", ">", ">=", "===", "!==", "==", "!=",
@@ -211,6 +211,28 @@ function verifyPhase(code: string, phase: Phase): string | null {
       const binding = lookup(loop, name);
       if (!binding) return;
       binding.loop = true;
+      prepare(statement.body as Node, loop, multiplier);
+    } else if (statement.type === "ForOfStatement") {
+      const loop = scope(env);
+      mark(statement, loop);
+      const left = statement.left as Node;
+      const right = statement.right as Node;
+      const declaration = left?.type === "VariableDeclaration" ? left : null;
+      const declarators = declaration?.declarations as Node[] | undefined;
+      const item = declarators?.length === 1 ? declarators[0] : null;
+      const name = item ? identifier(item.id) : null;
+      if (statement.await || !declaration || !["let", "const"].includes(String(declaration.kind))
+        || !item || !name || !/^[A-Za-z_][A-Za-z0-9_]{0,50}$/.test(name)
+        || roots.has(name) || blockedNames.has(name) || !owned(right, env)) {
+        error = "For-of loops require one safe local binding over owned array data.";
+        return;
+      }
+      // The worker budget instruments each iteration. The binding is marked as
+      // owned because it is an element of an already-owned state/local array.
+      loop.bindings.set(name, {
+        constant: declaration.kind === "const", loop: true, owned: true,
+      });
+      prepareFunctions(right, env);
       prepare(statement.body as Node, loop, multiplier);
     } else if (statement.type === "VariableDeclaration") {
       if (statement.kind !== "let" && statement.kind !== "const") {

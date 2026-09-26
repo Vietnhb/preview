@@ -104,12 +104,6 @@ function createEngine(params) {
 function render() {
   const bodies = finiteState(engine);
   ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-  ctx.fillStyle = '#0b1525';
-  ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-  ctx.strokeStyle = 'rgba(166, 198, 235, 0.08)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < WORLD_WIDTH; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_HEIGHT); ctx.stroke(); }
-  for (let y = 0; y < WORLD_HEIGHT; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD_WIDTH, y); ctx.stroke(); }
   for (const constraint of Matter.Composite.allConstraints(engine.world)) {
     if (!constraint.bodyA && !constraint.pointA || !constraint.bodyB && !constraint.pointB) continue;
     const a = constraint.bodyA
@@ -129,10 +123,8 @@ function render() {
     if (body.render.visible === false) return;
     const vertices = body.vertices;
     if (!vertices || vertices.length === 0) return;
-    const defaultFill = body.isStatic ? '#14151f' : '#f5d259';
-    const color = body.render.fillStyle && body.render.fillStyle !== defaultFill
-      ? body.render.fillStyle
-      : body.isStatic ? '#647995' : ['#63b7ff', '#ffad73', '#85daba', '#d3a0f5'][index % 4];
+    const color = body.render.fillStyle || (body.isStatic
+      ? '#cbd5e1' : ['#2563eb', '#ea580c', '#059669', '#7c3aed'][index % 4]);
     ctx.save();
     ctx.globalAlpha = Math.max(0, Math.min(1, body.render.opacity ?? 1));
     const first = project(vertices[0]);
@@ -152,13 +144,9 @@ function render() {
     }
     ctx.closePath();
 
-    // Universal aesthetic gradient tailored to the object's palette
-    const grad = ctx.createLinearGradient(pos.x - 20, pos.y - 20, pos.x + 20, pos.y + 20);
-    grad.addColorStop(0, color);
-    grad.addColorStop(1, body.isStatic ? '#2d3b4e' : '#1e293b');
-    ctx.fillStyle = grad;
-    ctx.strokeStyle = body.isStatic ? '#7d95b3' : '#dbeafe';
-    ctx.lineWidth = 1.5;
+    ctx.fillStyle = color;
+    ctx.strokeStyle = body.render.strokeStyle || (body.isStatic ? '#64748b' : '#1e3a8a');
+    ctx.lineWidth = Number.isFinite(body.render.lineWidth) ? Math.max(0.5, body.render.lineWidth) : 1.5;
     ctx.fill();
     ctx.stroke();
 
@@ -195,7 +183,7 @@ function render() {
     }
     if (body.label && body.label !== 'Body') {
       const position = project(body.position);
-      ctx.fillStyle = '#eef6ff'; ctx.font = '600 14px system-ui';
+      ctx.fillStyle = '#1f2937'; ctx.font = '600 14px system-ui';
       const identity = body.plugin?.physliveId || String(index + 1);
       const text = labelCounts.get(body.label) > 1
         ? String(body.label).slice(0, 18) + ' · ' + identity : String(body.label).slice(0, 32);
@@ -209,19 +197,19 @@ function render() {
       }
       labels.push({ x: labelX, y: labelY, halfWidth });
       ctx.textAlign = 'center';
-      ctx.shadowColor = '#071324'; ctx.shadowBlur = 5;
+      ctx.shadowColor = 'rgba(15, 23, 42, 0.18)'; ctx.shadowBlur = 5;
       ctx.fillText(text, labelX, labelY);
       ctx.shadowBlur = 0;
     }
   });
   if (camera.zoom > 1.3) {
-    ctx.fillStyle = '#b7cee8'; ctx.font = '12px system-ui'; ctx.textAlign = 'right';
+    ctx.fillStyle = '#475569'; ctx.font = '12px system-ui'; ctx.textAlign = 'right';
     ctx.fillText('View zoom ×' + camera.zoom.toFixed(1), WORLD_WIDTH - 16, 24);
   }
 }
 function startMain(message) {
   canvas = message.canvas;
-  ctx = canvas.getContext('2d', { alpha: false });
+  ctx = canvas.getContext('2d', { alpha: true });
   if (!ctx) throw Error('OffscreenCanvas 2D is unavailable.');
   const requestedSeconds = message.spec?.durationSeconds;
   frameLimit = Number.isFinite(requestedSeconds)
@@ -280,7 +268,7 @@ function sandboxHtml(code: string, params: Record<string, number>, spec: Sandbox
   return `<!doctype html><html><head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' blob:; worker-src blob:; connect-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'">
-    <style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0b1525}canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}canvas:active{cursor:grabbing}</style>
+    <style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}canvas:active{cursor:grabbing}</style>
     </head><body><canvas width="${WIDTH}" height="${HEIGHT}" aria-label="Matter.js simulation"></canvas>
     <script>
       (() => {
@@ -305,7 +293,7 @@ function sandboxHtml(code: string, params: Record<string, number>, spec: Sandbox
             const frozen = document.createElement('canvas');
             frozen.width = ${WIDTH}; frozen.height = ${HEIGHT};
             frozen.setAttribute('aria-label', canvas.getAttribute('aria-label') || 'Completed simulation');
-            const context = frozen.getContext('2d', { alpha: false });
+            const context = frozen.getContext('2d', { alpha: true });
             if (!context) return false;
             context.drawImage(bitmap, 0, 0);
             canvas.replaceWith(frozen);

@@ -1,4 +1,4 @@
-package com.example.backend.matter;
+package com.example.backend.ai.simulation;
 
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -7,12 +7,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /** Accepts equivalent function packaging; the frontend validates executable contents. */
-final class VisualProgramPackaging {
+final class SimulationProgramPackaging {
     private static final Map<String, String> SIGNATURES = Map.of(
             "init", "params,width,height", "step", "state,dt,params,width,height",
             "draw", "state,paint,params,width,height");
 
-    private VisualProgramPackaging() { }
+    private SimulationProgramPackaging() { }
 
     static void normalize(JsonNode program) {
         if (!(program instanceof ObjectNode mutable)) return;

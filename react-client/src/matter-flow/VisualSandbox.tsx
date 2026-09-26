@@ -28,9 +28,9 @@ let frame = 0;
 let frameLimit = 0;
 let commands = [];
 let running = false;
-const hexColor = (value) => typeof value === 'string'
+const hexColor = (value, fallback = '#64748b') => typeof value === 'string'
   && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value)
-  ? value : '#d9e9ff';
+  ? value : fallback;
 const finite = (value) => typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= 1e12;
 function add(kind, values) {
   if (commands.length >= MAX_COMMANDS) throw Error('Drawing command budget exceeded.');
@@ -38,7 +38,7 @@ function add(kind, values) {
   commands.push({ kind, values });
 }
 const paint = Object.freeze({
-  background(color) { add('background', [0, 0]); commands[commands.length - 1].color = hexColor(color); },
+  background(color) { add('background', [0, 0]); commands[commands.length - 1].color = hexColor(color, 'transparent'); },
   circle(x, y, r, color) { add('circle', [x, y, r]); commands[commands.length - 1].color = hexColor(color); },
   rect(x, y, w, h, color) { add('rect', [x, y, w, h]); commands[commands.length - 1].color = hexColor(color); },
   line(x1, y1, x2, y2, color, strokeWidth = 2) {
@@ -128,7 +128,11 @@ function drawFrame() {
   commands = [];
   draw(state, paint, params, WIDTH, HEIGHT);
   const background = commands.find((command) => command.kind === 'background');
-  ctx.fillStyle = background?.color || '#101418'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  if (background) {
+    ctx.fillStyle = background.color;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  }
   let defsXml = '';
   let svgMarkup = '';
   let hasSvg = false;
@@ -258,7 +262,7 @@ self.onmessage = (event) => {
   if (message.type !== 'start') return;
   try {
     canvas = message.canvas;
-    ctx = canvas.getContext('2d', { alpha: false });
+    ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) throw Error('OffscreenCanvas 2D is unavailable.');
     params = Object.freeze(message.params);
     state = init(params, WIDTH, HEIGHT);
@@ -298,7 +302,7 @@ function sandboxHtml(program: VisualProgram, parameters: Record<string, number>,
     + WORKER_RUNTIME;
   return `<!doctype html><html><head><meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' blob:; worker-src blob:; connect-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'">
-    <style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0b1729}.stage-wrap{position:relative;width:100%;height:100%}canvas,svg{position:absolute;top:0;left:0;width:100%;height:100%;display:block}canvas{touch-action:none;cursor:crosshair;z-index:1}svg{pointer-events:none;z-index:2}</style>
+    <style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}.stage-wrap{position:relative;width:100%;height:100%;background:transparent}canvas,svg{position:absolute;top:0;left:0;width:100%;height:100%;display:block}canvas{touch-action:none;cursor:crosshair;z-index:1}svg{pointer-events:none;z-index:2}</style>
     </head><body><div class="stage-wrap"><canvas width="${WIDTH}" height="${HEIGHT}" aria-label="Interactive physics model"></canvas><svg id="svg-layer" viewBox="0 0 ${WIDTH} ${HEIGHT}" width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg"><defs id="svg-defs"></defs><g id="svg-stage"></g></svg></div>
     <script>(() => {
       const nonce = ${safeJson(nonce)};
@@ -327,7 +331,7 @@ function sandboxHtml(program: VisualProgram, parameters: Record<string, number>,
           const frozen = document.createElement('canvas');
           frozen.width = ${WIDTH}; frozen.height = ${HEIGHT};
           frozen.setAttribute('aria-label', canvas.getAttribute('aria-label') || 'Completed simulation');
-          const context = frozen.getContext('2d', { alpha: false });
+          const context = frozen.getContext('2d', { alpha: true });
           if (!context) return false;
           context.drawImage(bitmap, 0, 0);
           canvas.replaceWith(frozen);
@@ -476,7 +480,7 @@ export default function VisualSandbox({ program, parameters, durationSeconds, on
   }, [nonce, safetyError]);
 
   if (safetyError) return <div className="matter-sandbox-error" role="alert">{safetyError}</div>;
-  return <div className="matter-sandbox" aria-busy={status === "starting"}>
+  return <div className="matter-sandbox visual-sandbox" aria-busy={status === "starting"}>
     {status !== "error" && <iframe key={nonce} ref={iframeRef} title="Interactive visual physics model"
       sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={html} />}
     {status === "starting" && <div className="matter-sandbox-overlay" role="status">Starting simulationâ€¦</div>}

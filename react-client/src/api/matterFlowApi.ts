@@ -21,16 +21,21 @@ export type MatterParameter = {
   max?: number;
 };
 
-export type MatterObjectRequirement = { sourceQuote: string; label: string; count: number;
-  shape?: "circle" | "rectangle" | "unspecified" };
-export type MatterConstraintRequirement = { sourceQuote: string; label: string; count: number };
-export type MatterFixedQuantity = { sourceQuote: string; name: string; valueSI: number; unitSI: string;
-  provenance?: "EXPLICIT" | "ASSUMPTION"; valueStructure?: "SCALAR" | "VECTOR_NORM_2D" | "BOOLEAN";
-  sceneField?: string;
+export type MatterObjectRequirement = { sourceQuote?: string | null; label?: string | null; count?: number | null;
+  shape?: string | null; role?: string | null; contextual?: boolean | null; visualDescription?: string | null;
+  [key: string]: unknown };
+export type MatterConstraintRequirement = { sourceQuote?: string | null; label?: string | null; count?: number | null;
+  kind?: string | null; details?: unknown; [key: string]: unknown };
+export type MatterFixedQuantity = { sourceQuote?: string | null; name?: string | null;
+  valueSI?: number | unknown[] | Record<string, unknown> | string | null; unitSI?: string | null;
+  provenance?: string | null; valueStructure?: string | null;
+  sceneField?: string | null;
   bodyRequirementIndexes?: number[]; constraintRequirementIndexes?: number[];
-  referenceObjectIndexes?: number[] };
-export type MatterSpatialRelation = { sourceQuote: string; subjectObjectIndex: number;
-  referenceObjectIndex: number; axis: "x" | "y"; ordering: "LESS_THAN" | "GREATER_THAN" };
+  referenceObjectIndexes?: number[]; [key: string]: unknown };
+export type MatterSpatialRelation = { sourceQuote?: string | null; subjectObjectIndex?: number | null;
+  referenceObjectIndex?: number | null; axis?: string | null; ordering?: string | null;
+  relation?: string | null; subject?: string | null; reference?: string | null;
+  [key: string]: unknown };
 
 export type IntentResult = {
   sessionId: string;
@@ -42,9 +47,9 @@ export type IntentResult = {
   schemaId?: string;
   message?: string;
   simulationSpec?: {
-    physicalObjects?: string[];
-    interactions?: string[];
-    initialState?: string;
+    physicalObjects?: unknown[];
+    interactions?: unknown[];
+    initialState?: string | unknown[] | Record<string, unknown> | null;
     requiredObjects?: MatterObjectRequirement[];
     requiredConstraints?: MatterConstraintRequirement[];
     fixedQuantities?: MatterFixedQuantity[];
@@ -52,6 +57,12 @@ export type IntentResult = {
     inventoryWarnings?: string[];
     sceneWarnings?: string[];
     spatialRelations?: MatterSpatialRelation[];
+    runtimeKind?: "MATTER" | "VISUAL";
+    visualIntent?: string | unknown[] | Record<string, unknown> | null;
+    visualHints?: unknown[];
+    visualEffects?: unknown[];
+    displayPlan?: string | unknown[] | Record<string, unknown> | null;
+    [key: string]: unknown;
   };
 };
 
@@ -71,13 +82,18 @@ export type MatterSimulationResult = {
     visualProgram?: { init: string; step: string; draw: string };
     externalForces?: boolean; friction?: boolean; conservativeInteractions?: boolean;
     durationSeconds?: number; expectedContacts?: Array<[string, string] | { bodyA: string; bodyB: string }>;
-    physicalObjects?: string[]; interactions?: string[]; initialState?: string;
+    physicalObjects?: unknown[]; interactions?: unknown[];
+    initialState?: string | unknown[] | Record<string, unknown> | null;
     requiredObjects?: MatterObjectRequirement[]; requiredConstraints?: MatterConstraintRequirement[];
     fixedQuantities?: MatterFixedQuantity[];
     qualitativeValues?: MatterFixedQuantity[];
     inventoryWarnings?: string[];
     sceneWarnings?: string[];
     spatialRelations?: MatterSpatialRelation[];
+    visualIntent?: string | unknown[] | Record<string, unknown> | null;
+    visualHints?: unknown[]; visualEffects?: unknown[];
+    displayPlan?: string | unknown[] | Record<string, unknown> | null;
+    [key: string]: unknown;
     plannedScene?: {
       durationSeconds: number;
       gravity: { x: number; y: number };

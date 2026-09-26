@@ -972,7 +972,7 @@ export default function MatterPipelineWorkspace() {
 
                   {intent?.simulationSpec?.requiredObjects?.length ? (
                     <div className="matter-requirement-review" style={{ marginTop: 12 }}>
-                      <h4>Vật thể trong mô hình ({intent.simulationSpec.requiredObjects.length})</h4>
+                      <h4>Thành phần AI nhận diện ({intent.simulationSpec.requiredObjects.length})</h4>
                       <ul>
                         {intent.simulationSpec.requiredObjects.map((object, index) => (
                           <li key={index}>
@@ -987,7 +987,7 @@ export default function MatterPipelineWorkspace() {
                   ) : (
                     !simulation?.simulationSpec?.plannedScene && (
                       <p className="matter-muted" style={{ padding: "12px 0" }}>
-                        Chưa có danh sách vật thể mô phỏng.
+                        AI sẽ chọn các thành phần trực quan theo ngữ cảnh mô tả.
                       </p>
                     )
                   )}

@@ -1,4 +1,4 @@
-package com.example.backend.matter;
+package com.example.backend.ai.simulation;
 
 import java.util.List;
 import java.util.Map;
@@ -15,40 +15,40 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.example.backend.matter.MatterFlowResponse.Validation;
+import com.example.backend.ai.simulation.SimulationFlowResponse.Validation;
 
 @RestController
-@RequestMapping("/api/matter-flow")
-public class MatterFlowController {
-    private final MatterFlowService flow;
+@RequestMapping({"/api/simulation-flow", "/api/matter-flow"})
+public class SimulationFlowController {
+    private final SimulationFlowService flow;
 
-    public MatterFlowController(MatterFlowService flow) { this.flow = flow; }
+    public SimulationFlowController(SimulationFlowService flow) { this.flow = flow; }
 
     @PostMapping("/normalize")
-    public MatterFlowResponse normalize(@RequestBody NormalizeRequest request) {
+    public SimulationFlowResponse normalize(@RequestBody NormalizeRequest request) {
         return flow.normalize(request == null ? null : request.sourceMode(),
                 request == null ? null : request.text());
     }
 
     @PostMapping(path = "/normalize-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public MatterFlowResponse normalizeImage(@RequestPart("file") MultipartFile file,
+    public SimulationFlowResponse normalizeImage(@RequestPart("file") MultipartFile file,
             @RequestParam(required = false) String text) {
         return flow.normalizeImage(file, text);
     }
 
     @PostMapping("/{id}/confirm-input")
-    public MatterFlowResponse confirmInput(@PathVariable UUID id, @RequestBody DecisionRequest request) {
+    public SimulationFlowResponse confirmInput(@PathVariable UUID id, @RequestBody DecisionRequest request) {
         return flow.confirmInput(id, request != null && request.confirmed(),
                 request == null ? null : request.correctedText());
     }
 
     @PostMapping("/{id}/revise")
-    public MatterFlowResponse revise(@PathVariable UUID id, @RequestBody RevisionRequest request) {
+    public SimulationFlowResponse revise(@PathVariable UUID id, @RequestBody RevisionRequest request) {
         return flow.revise(id, request == null ? null : request.text());
     }
 
     @PostMapping("/{id}/confirm-explanation")
-    public MatterFlowResponse confirmExplanation(@PathVariable UUID id,
+    public SimulationFlowResponse confirmExplanation(@PathVariable UUID id,
             @RequestBody DecisionRequest request) {
         return flow.confirmExplanation(id, request != null && request.confirmed(),
                 request == null ? null : request.text());

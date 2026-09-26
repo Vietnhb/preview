@@ -101,7 +101,7 @@ public class ProblemController {
 
     private ApiException legacyCreationGone() {
         return new ApiException(HttpStatus.GONE,
-                "Legacy problem creation has been retired. Use /api/matter-flow for new simulations.",
-                "LEGACY_CREATION_RETIRED", "MATTER_FLOW");
+                "Legacy problem creation has been retired. Use /api/simulation-flow for new simulations.",
+                "LEGACY_CREATION_RETIRED", "SIMULATION_FLOW");
     }
 }

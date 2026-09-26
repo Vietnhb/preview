@@ -110,6 +110,23 @@ test("visual code accepts flat declared-data destructuring and numeric local loo
     assert.notEqual(validateVisualProgram({...program,draw},["rate"]),null,draw);
 });
 
+test("visual code accepts bounded for-of over owned state arrays",()=>{
+  const candidate={
+    ...program,
+    init:"return {elapsed:0,markers:[{x:10,y:20},{x:30,y:40}]};",
+    step:"for(const marker of state.markers){marker.x+=dt;marker.y+=params.rate*dt;}state.elapsed+=dt;",
+    draw:"for(const marker of state.markers){paint.circle(marker.x,marker.y,5,'#fff');}",
+  };
+  assert.equal(validateVisualProgram(candidate,["rate"]),null);
+  const state=new Function("params","width","height",candidate.init)({},960,540);
+  new Function("state","dt","params","width","height",candidate.step)(state,0.5,{rate:2},960,540);
+  assert.deepEqual(state.markers.map((marker)=>[marker.x,marker.y]),[[10.5,21],[30.5,41]]);
+  assert.notEqual(validateVisualProgram({...program,
+    step:"for(const item of params.rate){state.elapsed+=item;}"},["rate"]),null);
+  assert.notEqual(validateVisualProgram({...program,
+    step:"for(const item of state.markers){item.constructor=1;}"},["rate"]),null);
+});
+
 test("visual helpers cannot capture or expose host capabilities", () => {
   for(const draw of [
     "function expose(){return paint;}const result=expose();",

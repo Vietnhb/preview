@@ -106,7 +106,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/schools/*/reports/**")
                                                 .hasAnyRole(SCHOOL_MANAGER, ADMIN)
 
-                                                .requestMatchers("/api/problems/**", "/api/matter-flow/**")
+                                                .requestMatchers("/api/problems/**", "/api/simulation-flow/**",
+                                                                "/api/matter-flow/**")
                                                 .hasAnyRole(TEACHER, ADMIN)
 
                                                 // Reviewer evaluation runs are platform-level operations. Keep this

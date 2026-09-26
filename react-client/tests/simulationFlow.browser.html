@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PhysLive simulation flow E2E</title>
+    <style>
+      :root { color-scheme: light; font-family: system-ui, sans-serif; }
+      body { margin: 0; background: #f5f8fc; color: #10213b; }
+      main { max-width: 1180px; margin: 24px auto; padding: 0 18px 48px; }
+      h1 { margin-bottom: 6px; }
+      .hint { color: #52647d; margin-top: 0; }
+      .toolbar { display: flex; gap: 10px; align-items: center; margin: 18px 0; }
+      button { border: 0; border-radius: 8px; padding: 10px 16px; color: white;
+        background: #135ee8; cursor: pointer; font-weight: 700; }
+      button:disabled { cursor: wait; opacity: .6; }
+      .description { background: white; border: 1px solid #d9e3f1; border-radius: 10px;
+        padding: 14px; white-space: pre-wrap; }
+      .trace { width: 100%; border-collapse: collapse; background: white; margin-top: 18px; }
+      .trace th, .trace td { border: 1px solid #d9e3f1; padding: 9px; text-align: left; vertical-align: top; }
+      .trace th { background: #edf3fb; }
+      .ok { color: #08783c; font-weight: 700; }
+      .error { color: #b42318; font-weight: 700; }
+      .pending { color: #8a5a00; font-weight: 700; }
+      pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-size: 12px; }
+      .render { margin-top: 22px; background: white; border: 1px solid #d9e3f1; border-radius: 10px; padding: 14px; }
+      .render iframe { width: 960px; max-width: 100%; min-height: 570px; border: 0; }
+      .notice { padding: 12px; border-radius: 8px; background: #fff4e5; color: #7a4300; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      window.addEventListener("error", (event) => {
+        const root = document.getElementById("root");
+        if (root && !root.childElementCount) root.textContent = `E2E bootstrap error: ${event.message}`;
+      });
+      window.addEventListener("unhandledrejection", (event) => {
+        const root = document.getElementById("root");
+        if (root && !root.childElementCount) root.textContent = `E2E bootstrap rejection: ${event.reason}`;
+      });
+    </script>
+    <script type="module">
+      import React, { useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import axios from "axios";
+      import {
+        normalizeMatterText,
+        confirmMatterInput,
+        confirmMatterExplanation,
+      } from "../src/api/matterFlowApi.ts";
+      import VisualSandbox from "../src/matter-flow/VisualSandbox.tsx";
+      import "../src/styles/matter-pipeline.css";
+
+      const DESCRIPTION = "2 vật chuyển động thẳng với vận tốc đầu 15 m/s và gia tốc 2 m/s². Hãy mô phỏng trong 11,5 giây.";
+
+      function errorDetails(error) {
+        if (axios.isAxiosError(error)) {
+          return {
+            kind: "HTTP",
+            status: error.response?.status ?? null,
+            url: error.config?.url ?? null,
+            message: error.response?.data?.message ?? error.message,
+            code: error.response?.data?.code ?? null,
+            step: error.response?.data?.step ?? null,
+            data: error.response?.data ?? null,
+          };
+        }
+        return { kind: "CLIENT", message: error instanceof Error ? error.message : String(error) };
+      }
+
+      function summary(stage, value) {
+        const spec = value?.simulationSpec;
+        const program = spec?.visualProgram;
+        return {
+          sessionId: value?.sessionId ?? null,
+          stage: value?.stage ?? null,
+          question: value?.question ?? null,
+          explanationLength: value?.explanation?.length ?? 0,
+          runtimeKind: spec?.runtimeKind ?? null,
+          requiredObjects: spec?.requiredObjects?.length ?? null,
+          fixedQuantities: spec?.fixedQuantities?.length ?? null,
+          parameters: value?.parameters?.map((item) => item.name) ?? [],
+          durationSeconds: spec?.durationSeconds ?? null,
+          visualProgram: program ? {
+            init: program.init?.length ?? 0,
+            step: program.step?.length ?? 0,
+            draw: program.draw?.length ?? 0,
+          } : null,
+          stageName: stage,
+        };
+      }
+
+      function App() {
+        const [running, setRunning] = useState(false);
+        const [trace, setTrace] = useState([]);
+        const [simulation, setSimulation] = useState(null);
+        const [parameters, setParameters] = useState({});
+        const [renderValidation, setRenderValidation] = useState(null);
+
+        const record = (name, status, detail) => setTrace((current) => [
+          ...current,
+          { name, status, detail, time: new Date().toLocaleTimeString() },
+        ]);
+
+        const run = async () => {
+          setRunning(true);
+          setTrace([]);
+          setSimulation(null);
+          setParameters({});
+          setRenderValidation(null);
+          let normalized;
+          try {
+            record("normalize", "PENDING", { request: { sourceMode: "TEXT", text: DESCRIPTION } });
+            normalized = await normalizeMatterText("TEXT", DESCRIPTION);
+            record("normalize", "PASS", summary("normalize", normalized));
+          } catch (error) {
+            record("normalize", "FAIL", errorDetails(error));
+            setRunning(false);
+            return;
+          }
+          let intent;
+          try {
+            record("confirm-input", "PENDING", { sessionId: normalized.sessionId });
+            intent = await confirmMatterInput(normalized.sessionId, true);
+            record("confirm-input", intent.stage === "EXPLAIN" ? "PASS" : intent.stage, summary("confirm-input", intent));
+          } catch (error) {
+            record("confirm-input", "FAIL", errorDetails(error));
+            setRunning(false);
+            return;
+          }
+          if (intent.stage !== "EXPLAIN") {
+            record("confirm-explanation", "SKIP", { reason: "Analysis did not reach EXPLAIN", stage: intent.stage });
+            setRunning(false);
+            return;
+          }
+          let generated;
+          try {
+            record("confirm-explanation", "PENDING", { sessionId: intent.sessionId });
+            generated = await confirmMatterExplanation(intent.sessionId);
+            if (generated.stage !== "SIMULATION") {
+              record("confirm-explanation", "FAIL", summary("confirm-explanation", generated));
+              setRunning(false);
+              return;
+            }
+            const values = Object.fromEntries((generated.parameters ?? []).map((item) => [item.name, item.value]));
+            setParameters(values);
+            setSimulation(generated);
+            record("confirm-explanation", "PASS", summary("confirm-explanation", generated));
+            record("visual-safety-and-render", "PENDING", {
+              expected: "UNVERIFIED after iframe boot; FLAGGED with an exact safety/runtime reason on failure",
+            });
+          } catch (error) {
+            record("confirm-explanation", "FAIL", errorDetails(error));
+          } finally {
+            setRunning(false);
+          }
+        };
+
+        const onValidation = (result) => {
+          setRenderValidation(result);
+          const passed = result.status === "UNVERIFIED" || result.status === "PAUSED";
+          setTrace((current) => {
+            const next = current.filter((item) => item.name !== "visual-safety-and-render");
+            return [...next, { name: "visual-safety-and-render", status: passed ? "PASS" : "FAIL", detail: result, time: new Date().toLocaleTimeString() }];
+          });
+        };
+
+        return React.createElement("main", null,
+          React.createElement("h1", null, "PhysLive simulation flow E2E"),
+          React.createElement("p", { className: "hint" }, "Authenticated FE diagnostic. No token is displayed; the existing axios client supplies the current session."),
+          React.createElement("div", { className: "description" }, DESCRIPTION),
+          React.createElement("div", { className: "toolbar" },
+            React.createElement("button", { type: "button", onClick: run, disabled: running }, running ? "Running…" : "Run E2E flow"),
+            React.createElement("span", null, trace.length ? `${trace.length} trace entries` : "No run yet")),
+          trace.length === 0 && React.createElement("div", { className: "notice" }, "Open this page while logged in, then run the test. A 401 means the browser session is not authenticated."),
+          trace.length > 0 && React.createElement("table", { className: "trace" },
+            React.createElement("thead", null, React.createElement("tr", null,
+              React.createElement("th", null, "Step"), React.createElement("th", null, "Result"), React.createElement("th", null, "Evidence"), React.createElement("th", null, "Time"))),
+            React.createElement("tbody", null, trace.map((item, index) => React.createElement("tr", { key: `${item.name}-${index}` },
+              React.createElement("td", null, item.name),
+              React.createElement("td", { className: item.status === "PASS" ? "ok" : item.status === "FAIL" ? "error" : "pending" }, item.status),
+              React.createElement("td", null, React.createElement("pre", null, JSON.stringify(item.detail, null, 2))),
+              React.createElement("td", null, item.time))))),
+          simulation?.simulationSpec?.visualProgram && React.createElement("section", { className: "render" },
+            React.createElement("h2", null, "Rendered visual program"),
+            renderValidation && React.createElement("pre", null, JSON.stringify(renderValidation, null, 2)),
+            React.createElement(VisualSandbox, {
+              program: simulation.simulationSpec.visualProgram,
+              parameters,
+              durationSeconds: simulation.simulationSpec.durationSeconds,
+              onValidation,
+            })),
+        );
+      }
+
+      createRoot(document.getElementById("root")).render(React.createElement(App));
+    </script>
+  </body>
+</html>

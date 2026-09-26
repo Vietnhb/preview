@@ -23,6 +23,12 @@ test('work guards preserve helper functions, template labels and nested numeric 
   assert.equal(state.points[1][0],3);
   assert.equal(state.count,2);
 });
+test('work guards instrument for-of array traversal', () => {
+  const state=execute(`state.points=[{x:1},{x:2}];
+    for(const point of state.points){point.x+=1;}
+    state.total=state.points[0].x+state.points[1].x;`);
+  assert.equal(state.total,5);
+});
 test('infinite loops and recursive helpers stop within the local work and depth budgets', () => {
   assert.throws(()=>execute('while(true){}'),/work budget/);
   assert.throws(()=>execute('function recur(){return recur();}recur();'),/call depth/);

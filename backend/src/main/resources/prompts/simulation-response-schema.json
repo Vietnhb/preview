@@ -1,13 +1,14 @@
 {
   "type": "object",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
     "status": { "type": "string", "enum": ["READY", "UNSUPPORTED"] },
     "reason": { "type": ["string", "null"] },
     "durationSeconds": { "type": ["number", "null"] },
     "program": {
       "type": ["object", "null"],
-      "additionalProperties": false,
+      "description": "Executable phases plus optional scene-specific metadata for the client; metadata must never replace the executable phases.",
+      "additionalProperties": true,
       "properties": {
         "init": { "type": "string" },
         "step": { "type": "string" },
@@ -19,7 +20,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
           "name": { "type": "string" },
           "label": { "type": "string" },

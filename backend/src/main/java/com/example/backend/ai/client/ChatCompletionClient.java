@@ -1,8 +1,10 @@
 package com.example.backend.ai.client;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -86,7 +88,7 @@ public class ChatCompletionClient {
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
-        body.put("messages", messages);
+        body.put("messages", jsonObjectMessages(messages, responseFormat));
         body.put("temperature", providerProperties.temperature());
         body.put("max_completion_tokens", maxCompletionTokens);
         body.put("response_format", responseFormat);
@@ -117,6 +119,25 @@ public class ChatCompletionClient {
             com.example.backend.ai.extraction.validation.ResponseSchemaValidator.validate(parseJson(content), schema);
         }
         return new Completion(response.path("model").asText(model), content, response);
+    }
+
+    /**
+     * Groq's json_object response mode requires the word "json" in at least one
+     * message. Keep that provider protocol detail at the client boundary so a
+     * domain prompt cannot accidentally make an otherwise valid request fail.
+     */
+    private List<Map<String, Object>> jsonObjectMessages(List<Map<String, Object>> messages,
+            Map<String, Object> responseFormat) {
+        if (!"json_object".equals(responseFormat.get("type"))
+                || messages.stream().map(String::valueOf)
+                        .map(value -> value.toLowerCase(Locale.ROOT))
+                        .anyMatch(value -> value.contains("json"))) {
+            return messages;
+        }
+        var guarded = new ArrayList<Map<String, Object>>(messages.size() + 1);
+        guarded.add(textMessage("system", "Return valid json only."));
+        guarded.addAll(messages);
+        return List.copyOf(guarded);
     }
 
     public Map<String, Object> textMessage(String role, String content) {
