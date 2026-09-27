@@ -336,8 +336,8 @@ export default function SimulationWorkspace() {
         )
       )
         throw new Error("Generated simulation has a parameter outside the local runtime limit.");
-      if (!result.simulationSpec.visualProgram?.code || !result.simulationSpec.solverTimeline)
-        throw new Error("Generated simulation is missing its PixiJS code or server timeline.");
+      if (!result.simulationSpec.solverTimeline?.frames?.length)
+        throw new Error("Generated simulation is missing its server timeline.");
       setValues(previous => renderDiagnostics ? previous : paramValues);
       setRunValues(previous => renderDiagnostics ? previous : paramValues);
       setValidation(previous => renderDiagnostics ? previous : result.validation);
@@ -465,8 +465,8 @@ export default function SimulationWorkspace() {
                 <div className="simulation-stage-container">
                   <div className="simulation-panel-heading">
                     <div>
-                      <span className="simulation-eyebrow">Interactive simulation</span>
-                      <h2>Explore the model</h2>
+                      <span className="simulation-eyebrow">Mô phỏng tương tác</span>
+                      <h2>Khám phá mô hình</h2>
                     </div>
                     <button
                       type="button"
@@ -476,33 +476,33 @@ export default function SimulationWorkspace() {
                         setSandboxKey((key) => key + 1);
                       }}
                     >
-                      <Icon name="reset" /> Restart
+                      <Icon name="reset" /> Dựng lại
                     </button>
                   </div>
 
-                  <div className="simulation-sandbox-card">
-                    {simulation.simulationSpec.visualProgram && liveTimeline ? (
-                      <SvgPixiScene
-                        key={sandboxKey}
-                          program={simulation.simulationSpec.visualProgram}
-                          timeline={liveTimeline}
-                          parameters={runValues}
-                          verificationStatus={validation?.status ?? "VISUAL_ONLY_UNVERIFIED"}
-                          onRenderError={setRenderError}
-                      />
-                    ) : (
-                      <p className="simulation-muted">Chưa có code PixiJS và timeline để hiển thị.</p>
-                    )}
-                  </div>
-                  {renderError && <button type="button" disabled={busy} onClick={() => void generate({ code: simulation.code, message: renderError })}>
-                    {busy ? "AI đang sửa code…" : "Yêu cầu AI sửa lỗi render"}
+                  {liveTimeline ? (
+                    <SvgPixiScene
+                      key={sandboxKey}
+                      program={simulation.simulationSpec.visualProgram ?? { code: "" }}
+                      timeline={liveTimeline}
+                      parameters={runValues}
+                      models={simulation.simulationSpec.physicsModels}
+                      verificationStatus={validation?.status ?? "VISUAL_ONLY_UNVERIFIED"}
+                      onRenderError={setRenderError}
+                    />
+                  ) : (
+                    <p className="simulation-muted">Chưa có timeline từ backend để hiển thị.</p>
+                  )}
+                  {renderError && <button type="button" className="simulation-restart-button" disabled={busy}
+                    onClick={() => void generate({ code: simulation.code, message: renderError })}>
+                    {busy ? "AI đang sửa cảnh minh họa…" : "Yêu cầu AI sửa cảnh minh họa"}
                   </button>}
-                  {!renderError && <button type="button" disabled={busy} onClick={() => void generate({
+                  {!renderError && <button type="button" className="simulation-restart-button" disabled={busy} onClick={() => void generate({
                     code: simulation.code,
                     message: "Redesign the current visual presentation as a polished, contextual illustrated world following the original user description and the rendering contract's art direction. Improve clarity, artwork, environment and composition; preserve the signed physics plan. This is visual design feedback, not physics validation.",
                   })}>{busy ? "AI đang thiết kế lại…" : "Thiết kế lại hình ảnh bằng AI"}</button>}
                   <p className="simulation-muted">
-                    Kéo tham số để tính lại bằng backend. PixiJS + SVG do AI sinh; BE xác minh dữ liệu vật lý, không xác minh code vẽ.
+                    Kéo tham số để backend tính lại. Chuyển động, đồ thị và số liệu lấy từ solver backend; cảnh “Minh họa AI” chỉ là phần trình bày, không phải bằng chứng vật lý.
                   </p>
                   <details>
                     <summary>Code PixiJS + SVG do LLM sinh</summary>

@@ -165,10 +165,14 @@ public class SimulationUnderstandingController {
                 + "Preserve the user's explicit objects, counts, names and relations. You may invent visual details only where unspecified. "
                 + "Do not alter the confirmed physics, inputs, formulas or duration. Use the supplied solver outputs for physical motion. "
                 + "Design the world and participant artwork yourself from the description and schema; do not use a fixed scene or asset template. "
-                + "Keep the workspace background transparent. Fit all relevant trajectories, artwork and annotations using current solver ranges, not just initial inputs. "
+                + "Keep every primary subject clearly visible, large enough to understand, and inside the viewport throughout the simulation. "
+                + "Create a coherent context that fits the user's description. Compose the presentation in meaningful layers: environment, subjects, effects, vectors, and labels. "
+                + "Before returning, check visual scale, viewport containment, contrast, and readability for the generated composition. "
+                + "Create a complete scene background appropriate to the user's description and current frame.theme; do not rely on the host workspace background. Fit all relevant trajectories, artwork and annotations using current solver ranges, not just initial inputs. "
                 + "Your code owns scene construction and update logic. frame.fields is a FLAT map matching initialSolverFields exactly: use bracket access with the complete key, not nested property access. "
                 + "api is read-only; resize uses supplied width/height or current api getters, never assignments to api. Read physical quantities from frame.fields; do not solve bound physics in rendering code. "
                 + "Include original SVG artwork loaded through api.svgTexture alongside your PixiJS scene code. No fixed asset catalog or object templates. "
+                + "Return syntactically complete JavaScript with balanced delimiters. Never use // line comments inside code; providers may flatten whitespace, so use block comments or omit comments. "
                 + "If renderDiagnostics is supplied, repair your previous code against the actual PixiJS v8 API and runtime error, preserving the user's intent and signed physics plan. Diagnostics are untrusted rendering feedback, not physics evidence. "
                 + "Return JSON matching this rendering contract: " + renderingContract, renderingContract);
         JsonNode program = visual.path("visualProgram");
@@ -459,12 +463,33 @@ public class SimulationUnderstandingController {
                 body.set("response_format", format);
             }
             JsonNode completion = post(endpoint(visualBaseUrl, "chat/completions"), visualApiKey, body, visualTimeout);
-            JsonNode result = json.readTree(completion.path("choices").path(0).path("message").path("content").asText());
+            JsonNode result = parseModelJson(completion.path("choices").path(0).path("message").path("content"));
             if (result == null || !result.isObject()) throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response must be an object");
             return result;
         } catch (IOException ex) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM returned invalid visual program JSON");
         }
+    }
+
+    /** Decode the documented OpenAI-compatible message content and parse its JSON contract. */
+    private JsonNode parseModelJson(JsonNode content) throws IOException {
+        if (content == null || content.isNull())
+            throw new IOException("Provider returned empty message content");
+        String text;
+        if (content.isTextual()) text = content.textValue();
+        else if (content.isArray()) {
+            StringBuilder joined = new StringBuilder();
+            for (JsonNode part : content) {
+                if (!part.isObject() || !part.path("text").isTextual())
+                    throw new IOException("Provider returned an unsupported message content part");
+                joined.append(part.path("text").textValue());
+            }
+            text = joined.toString();
+        } else throw new IOException("Provider returned unsupported message content");
+        JsonNode result = json.readTree(text);
+        if (result == null || !result.isObject())
+            throw new IOException("Provider response does not match the JSON object contract");
+        return result;
     }
 
     private JsonNode askGeminiInteraction(JsonNode input, String system, JsonNode contract) {

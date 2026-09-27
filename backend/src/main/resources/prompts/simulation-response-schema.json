@@ -7,56 +7,31 @@
     "visualProgram": {
       "type": "object",
       "required": [
-        "description",
-        "designIntent",
         "code"
       ],
       "properties": {
         "description": {
           "type": "string",
-          "description": "Short accessible description in the user's language."
-        },
-        "designIntent": {
-          "type": "object",
-          "description": "The concrete proposedVisualDesign implemented by this code. These are visual choices, not new physical equations.",
-          "required": [
-            "interpretation",
-            "world",
-            "participantArtwork",
-            "composition",
-            "physicalEncoding",
-            "adaptiveBehavior"
-          ],
-          "properties": {
-            "interpretation": {
-              "type": "string"
-            },
-            "world": {
-              "type": "string"
-            },
-            "participantArtwork": {
-              "type": "string"
-            },
-            "composition": {
-              "type": "string"
-            },
-            "physicalEncoding": {
-              "type": "string"
-            },
-            "adaptiveBehavior": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
+          "description": "Brief description of the visual interpretation in the user's language."
         },
         "code": {
           "type": "string",
-          "description": "Complete JavaScript async function expression: async function(PIXI, app, api) { ... return {update,...}; }. No export, invocation or markdown. Use supplied PixiJS v8 directly; create your own Graphics, Containers, Sprites, Text, SVG, composition, contextual scenery, effects and interactions. No object templates or prescribed layout. app is an initialized transparent Pixi Application. api.width/height are viewport. await api.svgTexture(fullSvgMarkup) returns a texture; svg root needs xmlns and viewBox. api.getFrame() reads current frame during setup. Return {update(frame), resize(width,height)?, pointer(event)?, dispose()?}. frame={t,dt,fields,parameters,width,height,theme,verificationStatus}; fields contains authoritative modelId.output quantities. Theme is LIGHT or DARK; keep canvas transparent. Read bound physical motion from fields, never recompute it in JS. For visual-only illustration you may animate from t but cannot claim verification. Parameter changes replace timeline and reset t, without recompiling code. Fit composition dynamically using fields, parameters and solverFieldRanges. pointer events={type,x,y,buttons}, viewport coordinates. Use ordinary JS including loops, helpers, classes, async SVG loading. No imports, networking, external assets, DOM, eval or own ticker/application. Host owns playback/lifecycle. SVG must be self-contained, without scripts, events, foreignObject or external refs. Use actual PixiJS v8 APIs e.g. Graphics.rect(...).fill(...), new Text({text,style}). Preserve explicit user data and infer unspecified visual detail in context. Return JSON, not markdown. api.getFieldRanges() returns current backend timeline min/max by field; use it inside update or resize for responsive mapping after parameter changes, never bake initial range numbers into code. Physical field references must exactly match confirmedBrief.physicsModels ids and supplied solverFieldRanges keys. Use theme from current frame for all readable labels. Use only PixiJS v8 drawing APIs: construct a path with moveTo/lineTo and finish with .stroke({width,color,alpha}); geometry uses .fill(...) or .stroke(...). Do not use legacy lineStyle/beginFill/drawCircle/endFill. Do not assign to const variables or mutate api. Reuse display objects; update existing Text rather than creating labels each frame; remove/destroy only children that actually exist. resize is also invoked after solver timeline changes. Get current dimensions from frame or api; do not capture stale dimensions/ranges in immutable variables. SVG textures are artwork, not a reason to reduce every requested object to the same dot. Mount must return a working complete lifecycle, not an example scaffold."
+          "description": "Complete async function expression async function(PIXI, app, api) { ... return {update, resize?, setData?, pointer?, dispose?}; }. PixiJS v8 API only (Graphics: g.moveTo().lineTo().stroke({color,width}); g.circle(x,y,r).fill({color}); new PIXI.Text({text, style})). frame.fields is a FLAT map whose keys are exactly the keys of initialSolverFields (e.g. frame.fields['car.position']); reading any other key throws. Never solve physics in drawing code: every moving quantity comes from frame.fields. Recommended structure: (1) const base = api.kit.standardScene({bodies: false}) gives a measured coordinate frame fitted to the full solver ranges, axes/ruler with SI units, trajectories, strobe marks, velocity/acceleration/force vectors, labels and a time HUD; (2) add contextual artwork (original SVG through await api.svgTexture(svg) where svg is a complete <svg viewBox=...> document) as sprites; (3) in update(frame) call base.update(frame) then place each sprite at base.screenOf(modelId, frame.fields) (returns {x,y} screen pixels or null). Call base.resize() from resize and base.setData() from setData. Other helpers: api.kit.palette() (theme-aware colours: ink, muted, grid, axis, halo, velocity, acceleration, force, series[]), api.kit.color(i), api.kit.camera(viewRect, worldBounds, equalScale) -> {toScreen(x,y), sx, sy}, api.kit.arrow(g, x1, y1, x2, y2, {color, width}), api.kit.text(str, {size, color, weight}), api.kit.format(value, unit), api.kit.participants() (id, label, dims, fields), api.getFieldRanges() (min/max over the whole run; recompute layout in resize/setData, never hard-code ranges). Use theme-aware colours from api.kit.palette() so text stays readable in light and dark workspaces; keep all content inside api.width x api.height. No imports, networking, DOM, eval, external assets, own ticker or application."
+        },
+        "bindings": {
+          "type": "object",
+          "description": "Optional mapping from visual elements to solver field keys."
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Optional visual control metadata; physics parameters remain in the confirmed spec."
         }
       },
       "additionalProperties": false
     }
   },
-  "description": "You are designing an interactive illustrated world that makes this specific user's physical situation immediately understandable, not merely proving that code can animate. Read the original description for meaning and explicit constraints; the confirmed brief supplies authoritative physics. Earlier visualIntent/shape suggestions are not a mandatory drawing style unless the user explicitly requested them. Decide a coherent visual interpretation, spatial reference, environment, scale, camera, participant identities and educational focus before coding. Invent only unspecified visual detail. Contextual scenery must support comprehension without adding physical forces, constraints or events absent from the brief. Use original layered SVG artwork and PixiJS drawing with depth, material cues, restrained lighting, consistent typography and an intentional palette appropriate to the situation. Keep workspace background transparent, but compose meaningful scenery and reference elements inside it. Avoid an empty panel with indistinguishable default dots unless that abstraction is explicitly requested or scientifically appropriate; even abstract scenes need excellent visual hierarchy and useful context. Every participant must remain visually identifiable by artwork, labels or another meaningful distinction. When physical coordinates coincide, use clearly identified display separation or another non-misleading visualization, not fabricated physical distance. Show units, orientation and reference scale where meaningful. Use vectors, motion history, annotations or other explanatory encodings only when they help this description; there is no compulsory inventory of effects or scene elements. Vector direction/sign must agree with solver outputs and axes; never turn a horizontal acceleration into a decorative vertical physical arrow. Plan the whole viewport including annotations at initial, intermediate and final times, at pause/scrub/restart and after parameter/viewport/theme changes. Important participants and evidence must remain readable, not clipped or crowded. Use current ranges across all relevant models, handle zero ranges, and redraw history correctly when time moves backward. Clearly distinguish decorative animation from physical motion. Before returning, self-review physical bindings, participant visibility, SVG decode validity, PixiJS v8 API calls, lifecycle and composition. Do not return an unfinished minimal prototype or TODOs. No fixed scene template, asset catalog, object family, participant count or universal layout is prescribed.",
   "additionalProperties": false
 }

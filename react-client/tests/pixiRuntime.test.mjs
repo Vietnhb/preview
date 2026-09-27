@@ -13,10 +13,10 @@ function runtime() {
   const messages = []; let tick;
   const app = {screen: {width: 600, height: 400}, stage: {children: [], addChild(item) {this.children.push(item);}},
     init: async () => {}, render() {}, renderer: {resize(width, height) {app.screen = {width, height};}}};
-  const context = vm.createContext({PIXI: {Application: function() {return app;}, Texture: {from: bitmap => bitmap}},
+  const context = vm.createContext({Proxy, PIXI: {Application: function() {return app;}, Texture: {from: bitmap => bitmap}},
     performance: {now: () => 0}, postMessage: message => messages.push(message), close() {},
     setInterval: callback => {tick = callback;}});
-  vm.runInContext(sampleTimeline.toString() + '\n' + vm.runInNewContext('String.raw`' + worker + '`'), context);
+  vm.runInContext(sampleTimeline.toString() + '\nconst createStageKit = () => ({});\n' + vm.runInNewContext('String.raw`' + worker + '`'), context);
   return {app, messages, send: data => context.onmessage({data}), tick: () => tick()};
 }
 test('runs generated PixiJS functions without a predefined object or scene inventory', async () => {
@@ -56,4 +56,24 @@ test('runtime isolates code with an opaque iframe, blocked network and worker wa
   assert.match(source, /connect-src/);
   assert.match(source, /worker\?\.terminate\(\)/);
   assert.match(source, /lastHeartbeat > limits.timeoutMs/);
+});
+test('unknown solver field keys fail loudly instead of silently drawing nothing', async () => {
+  const host = runtime();
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
+    return {update(frame) { app.stage.x = frame.fields['motion1.position']; }};
+  }`});
+  assert.equal(host.messages.at(-1).type, 'error');
+  assert.match(host.messages.at(-1).message, /Unknown solver field "motion1.position".*arbitrary.position/);
+});
+test('playback stops at the end of the backend timeline and restarts on play', async () => {
+  const host = runtime();
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
+    return {update(frame) { app.stage.t = frame.t; }};
+  }`});
+  await host.send({type: 'seek', t: 0.5}); host.tick();
+  assert.equal(host.messages.some(item => item.type === 'ended'), false);
+  await host.send({type: 'seek', t: 1}); host.tick();
+  assert.equal(host.messages.some(item => item.type === 'ended'), true);
+  await host.send({type: 'play', playing: true}); host.tick();
+  assert.equal(host.app.stage.t, 0);
 });
