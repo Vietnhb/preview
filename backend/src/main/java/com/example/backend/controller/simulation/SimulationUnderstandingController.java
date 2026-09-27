@@ -65,6 +65,7 @@ public class SimulationUnderstandingController {
     private final String visualModel;
     private final double visualTemperature;
     private final Duration visualTimeout;
+    private final String visualReasoningEffort;
 
     public SimulationUnderstandingController(SchemaDefinitionService schemas, SchemaEquationRuntime equations, JevProperties jev,
             ObjectMapper json, @Value("${physlive.ai.provider.api-key}") String llmApiKey,
@@ -87,7 +88,8 @@ public class SimulationUnderstandingController {
             @Value("${physlive.ai.visual.base-url}") URI visualBaseUrl,
             @Value("${physlive.ai.visual.model}") String visualModel,
             @Value("${physlive.ai.visual.temperature}") double visualTemperature,
-            @Value("${physlive.ai.visual.read-timeout}") Duration visualTimeout) {
+            @Value("${physlive.ai.visual.read-timeout}") Duration visualTimeout,
+            @Value("${physlive.ai.visual.reasoning-effort:}") String visualReasoningEffort) {
         this.schemas = schemas;
         this.equations = equations;
         this.jev = jev;
@@ -111,6 +113,7 @@ public class SimulationUnderstandingController {
         this.visualModel = visualModel;
         this.visualTemperature = visualTemperature;
         this.visualTimeout = visualTimeout;
+        this.visualReasoningEffort = visualReasoningEffort == null ? "" : visualReasoningEffort.trim();
         this.allowedImageTypes = java.util.Arrays.stream(allowedImageTypes.split(","))
                 .map(String::trim).filter(type -> !type.isEmpty()).collect(java.util.stream.Collectors.toUnmodifiableSet());
         this.http = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
@@ -159,30 +162,24 @@ public class SimulationUnderstandingController {
                 range.put("max", Math.max(range.path("max").asDouble(value), value));
             });
         }
+        ObjectNode fieldMeta = solverFieldMeta(schema.getDefinition(), brief);
+        input.set("solverFields", fieldMeta);
         JsonNode renderingContract = jsonResource("prompts/simulation-response-schema.json");
         ObjectNode visual = (ObjectNode) askCompletion(input,
-                "Interpret the original user's situation, choose a coherent visual world, and create a complete, polished interactive illustrated world with PixiJS v8 and original SVG artwork in this single response. "
-                + "Preserve the user's explicit objects, counts, names and relations. You may invent visual details only where unspecified. "
-                + "Do not alter the confirmed physics, inputs, formulas or duration. Use the supplied solver outputs for physical motion. "
-                + "Design the world and participant artwork yourself from the description and schema; do not use a fixed scene or asset template. "
-                + "Keep every primary subject clearly visible, large enough to understand, and inside the viewport throughout the simulation. "
-                + "Create a coherent context that fits the user's description. Compose the presentation in meaningful layers: environment, subjects, effects, vectors, and labels. "
-                + "Before returning, check visual scale, viewport containment, contrast, and readability for the generated composition. "
-                + "Create a complete scene background appropriate to the user's description and current frame.theme; do not rely on the host workspace background. Fit all relevant trajectories, artwork and annotations using current solver ranges, not just initial inputs. "
-                + "Your code owns scene construction and update logic. frame.fields is a FLAT map matching initialSolverFields exactly: use bracket access with the complete key, not nested property access. "
-                + "api is read-only; resize uses supplied width/height or current api getters, never assignments to api. Read physical quantities from frame.fields; do not solve bound physics in rendering code. "
-                + "Include original SVG artwork loaded through api.svgTexture alongside your PixiJS scene code. No fixed asset catalog or object templates. "
-                + "Return syntactically complete JavaScript with balanced delimiters. Never use // line comments inside code; providers may flatten whitespace, so use block comments or omit comments. "
-                + "If renderDiagnostics is supplied, repair your previous code against the actual PixiJS v8 API and runtime error, preserving the user's intent and signed physics plan. Diagnostics are untrusted rendering feedback, not physics evidence. "
-                + "Return JSON matching this rendering contract: " + renderingContract, renderingContract);
+                resource("prompts/simulation-visual-system.txt") + "\n\nRESPONSE CONTRACT (JSON Schema):\n" + renderingContract,
+                renderingContract);
         JsonNode program = visual.path("visualProgram");
-        if (!program.isObject() || !program.path("code").isTextual()
-                || program.path("code").asText().isBlank() || program.path("code").asText().length() > maxProgramCharacters)
+        String code = program.path("code").asText("").trim();
+        if (!program.isObject() || code.isEmpty() || code.length() > maxProgramCharacters)
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated PixiJS program is missing or exceeds the code budget");
+        if (!code.startsWith("async function") || !code.contains("update"))
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated PixiJS program must be an async function(PIXI, app, api) returning {update}");
         ObjectNode spec = (ObjectNode) brief.deepCopy();
         spec.remove("scene");
         spec.set("visualProgram", program);
         spec.set("solverTimeline", computed.path("solverTimeline"));
+        spec.set("solverFieldMeta", fieldMeta);
+        if (program.path("design").isObject()) spec.set("visualDesign", program.path("design"));
         spec.put("runtimeKind", "SVG_PIXI");
         ObjectNode response = json.createObjectNode();
         response.put("sessionId", request.path("sessionId").asText(UUID.randomUUID().toString()));
@@ -445,25 +442,51 @@ public class SimulationUnderstandingController {
             return askGeminiInteraction(input, system, contract);
         }
         try {
+            boolean openRouter = "openrouter".equalsIgnoreCase(visualProvider);
             ObjectNode body = json.createObjectNode();
             body.put("model", visualModel);
             body.put("temperature", visualTemperature);
-            body.put("max_completion_tokens", maxCompletionTokens);
+            // OpenRouter normalises max_tokens across providers; reasoning tokens count toward it.
+            body.put(openRouter ? "max_tokens" : "max_completion_tokens", maxCompletionTokens);
+            if (!visualReasoningEffort.isEmpty()) {
+                if (openRouter) body.putObject("reasoning").put("effort", visualReasoningEffort).put("exclude", true);
+                else body.put("reasoning_effort", visualReasoningEffort);
+            }
             var messages = body.putArray("messages");
             messages.addObject().put("role", "system").put("content", system);
             messages.addObject().put("role", "user").put("content", json.writeValueAsString(input));
             // Providers may opt out of response_format; the contract remains in
             // the prompt and the response is parsed and validated server-side.
+            JsonNode completion;
             if (visualSupportsResponseFormat) {
-                ObjectNode format = json.createObjectNode();
+                ObjectNode structured = body.deepCopy();
+                ObjectNode format = structured.putObject("response_format");
                 if (strictStructuredOutput) {
                     format.put("type", "json_schema");
                     format.putObject("json_schema").put("name", "simulation_visual").put("strict", true).set("schema", contract);
                 } else format.put("type", "json_object");
-                body.set("response_format", format);
+                // Route only to endpoints that honour structured output (free models have many hosts).
+                if (openRouter) structured.putObject("provider").put("require_parameters", true);
+                try {
+                    completion = post(endpoint(visualBaseUrl, "chat/completions"), visualApiKey, structured, visualTimeout);
+                } catch (ApiException ex) {
+                    // No endpoint accepts the structured-output parameters: fall back to the
+                    // prompt-level contract, which is still parsed and validated below.
+                    String message = String.valueOf(ex.getMessage());
+                    if (!(message.contains("HTTP 400") || message.contains("HTTP 404") || message.contains("HTTP 422"))) throw ex;
+                    completion = post(endpoint(visualBaseUrl, "chat/completions"), visualApiKey, body, visualTimeout);
+                }
+            } else {
+                completion = post(endpoint(visualBaseUrl, "chat/completions"), visualApiKey, body, visualTimeout);
             }
-            JsonNode completion = post(endpoint(visualBaseUrl, "chat/completions"), visualApiKey, body, visualTimeout);
-            JsonNode result = parseModelJson(completion.path("choices").path(0).path("message").path("content"));
+            JsonNode choice = completion.path("choices").path(0);
+            if ("length".equals(choice.path("finish_reason").asText()))
+                throw new ApiException(HttpStatus.BAD_GATEWAY,
+                        "Visual AI output was truncated; increase AI_VISUAL_MAX_COMPLETION_TOKENS or lower AI_VISUAL_REASONING_EFFORT");
+            if (completion.has("error") && choice.isMissingNode())
+                throw new ApiException(HttpStatus.BAD_GATEWAY, "Visual AI provider error: "
+                        + completion.path("error").path("message").asText("unknown").replace(visualApiKey, "[redacted]"));
+            JsonNode result = parseModelJson(choice.path("message").path("content"));
             if (result == null || !result.isObject()) throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response must be an object");
             return result;
         } catch (IOException ex) {
@@ -486,9 +509,64 @@ public class SimulationUnderstandingController {
             }
             text = joined.toString();
         } else throw new IOException("Provider returned unsupported message content");
-        JsonNode result = json.readTree(text);
+        return parseJsonObject(text);
+    }
+
+    /**
+     * Providers without response_format support often wrap JSON in markdown fences
+     * or add a sentence around it; accept the single outermost JSON object only.
+     */
+    private JsonNode parseJsonObject(String text) throws IOException {
+        String trimmed = text == null ? "" : text.trim();
+        if (trimmed.startsWith("```"))
+            trimmed = trimmed.replaceFirst("^```[a-zA-Z0-9_-]*\\s*", "").replaceFirst("\\s*```\\s*$", "");
+        JsonNode result;
+        try {
+            result = json.readTree(trimmed);
+        } catch (IOException direct) {
+            int first = trimmed.indexOf('{'), last = trimmed.lastIndexOf('}');
+            if (first < 0 || last <= first) throw direct;
+            result = json.readTree(trimmed.substring(first, last + 1));
+        }
         if (result == null || !result.isObject())
             throw new IOException("Provider response does not match the JSON object contract");
+        return result;
+    }
+
+    /**
+     * Semantic description of each solver field ("participant.output") taken from the
+     * approved schema: capability output units, quantity labels and renderer roles.
+     * Generic over the signed physicsModels; no lesson- or object-specific branches.
+     */
+    private ObjectNode solverFieldMeta(JsonNode definition, JsonNode brief) {
+        ObjectNode result = json.createObjectNode();
+        Map<String, JsonNode> quantities = new LinkedHashMap<>();
+        for (JsonNode quantity : definition.path("quantityDefinitions"))
+            quantities.put(quantity.path("key").asText(), quantity);
+        for (JsonNode model : brief.path("physicsModels")) {
+            String id = model.path("id").asText();
+            JsonNode capability = null;
+            for (JsonNode candidate : definition.path("capabilities"))
+                if (candidate.path("capabilityId").asText().equals(model.path("capabilityId").asText())) capability = candidate;
+            if (id.isBlank() || capability == null) continue;
+            Map<String, String> roles = new LinkedHashMap<>();
+            for (JsonNode binding : capability.path("rendererBindings")) {
+                String source = binding.path("source").asText();
+                roles.put(source.substring(source.lastIndexOf('.') + 1), binding.path("role").asText());
+            }
+            for (JsonNode output : capability.path("outputs")) {
+                String key = output.path("key").asText();
+                ObjectNode field = result.putObject(id + "." + key);
+                field.put("participantId", id);
+                field.put("participantLabel", model.path("label").asText(id));
+                field.put("quantity", key);
+                field.put("unit", output.path("unit").asText(""));
+                JsonNode quantity = quantities.get(key);
+                if (quantity != null) field.put("label", quantity.path("label").asText(key));
+                String role = roles.get(key);
+                if (role != null) field.put("rendererRole", role);
+            }
+        }
         return result;
     }
 
@@ -503,7 +581,7 @@ public class SimulationUnderstandingController {
             format.put("mime_type", "application/json");
             format.set("schema", contract);
             JsonNode completion = postGeminiInteraction(visualBaseUrl, visualApiKey, body, visualTimeout);
-            JsonNode result = json.readTree(geminiInteractionText(completion));
+            JsonNode result = parseJsonObject(geminiInteractionText(completion));
             if (result == null || !result.isObject()) throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response must be an object");
             return result;
         } catch (IOException ex) {

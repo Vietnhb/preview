@@ -145,6 +145,8 @@ export default function SimulationWorkspace() {
   const [simulation, setSimulation] = useState<GeneratedSimulationResult | null>(null);
   const [liveTimeline, setLiveTimeline] = useState<SolverTimeline | null>(null);
   const [renderError, setRenderError] = useState("");
+  /** One automatic AI repair per user-requested design; later repairs stay manual. */
+  const [autoRepairUsed, setAutoRepairUsed] = useState(false);
   const [values, setValues] = useState<Record<string, number>>({});
   const [runValues, setRunValues] = useState<Record<string, number>>({});
   const [sandboxKey, setSandboxKey] = useState(0);
@@ -313,6 +315,7 @@ export default function SimulationWorkspace() {
     if (!intent || intent.stage !== "EXPLAIN" || busy) return;
     setBusy(true);
     setError("");
+    if (!renderDiagnostics) setAutoRepairUsed(false);
     try {
       const result = await confirmSimulationExplanation(intent, renderDiagnostics);
       const parameters = result.parameters ?? [];
@@ -352,6 +355,13 @@ export default function SimulationWorkspace() {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (!renderError || !simulation || busy || autoRepairUsed) return;
+    setAutoRepairUsed(true);
+    void generate({ code: simulation.code, message: renderError });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- generate is recreated each render
+  }, [renderError, simulation, busy, autoRepairUsed]);
 
   useEffect(() => {
     if (!simulation || !locallyAdjusted) return;
@@ -487,6 +497,7 @@ export default function SimulationWorkspace() {
                       timeline={liveTimeline}
                       parameters={runValues}
                       models={simulation.simulationSpec.physicsModels}
+                      fieldMeta={simulation.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
                       verificationStatus={validation?.status ?? "VISUAL_ONLY_UNVERIFIED"}
                       onRenderError={setRenderError}
                     />

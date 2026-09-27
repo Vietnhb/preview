@@ -16,6 +16,9 @@ export type QuantityKind =
 export type QuantityAxis = "x" | "y" | "along" | "none";
 export type QuantityInfo = { kind: QuantityKind; axis: QuantityAxis; label: string; symbol: string; unit: string };
 export type FieldMeta = QuantityInfo & { key: string; participantId: string; quantity: string; min: number; max: number };
+/** Optional per-field metadata from the backend (units/labels taken from the approved schema). */
+export type BackendFieldMeta = Record<string, { unit?: string; label?: string; quantity?: string }>;
+const prettyUnit = (unit: string) => unit.replace(/\^2/g, "²").replace(/\^3/g, "³").replace(/\*/g, "·");
 export type SimulationModelRef = { id: string; label?: string; capabilityId?: string; inputs?: Record<string, string | number> };
 
 export type SceneParticipant = {
@@ -104,7 +107,8 @@ function pearson(a: number[], b: number[]) {
 }
 
 /** Build a render-ready description of the solver output. Pure and serialisable. */
-export function describeScene(timeline: SolverTimeline, models: readonly SimulationModelRef[] = []): SceneDescriptor {
+export function describeScene(timeline: SolverTimeline, models: readonly SimulationModelRef[] = [],
+  backendMeta: BackendFieldMeta = {}): SceneDescriptor {
   const fields: Record<string, FieldMeta> = {};
   const series: Record<string, number[]> = {};
   for (const frame of timeline.frames) for (const [key, value] of Object.entries(frame.values)) {
@@ -119,7 +123,10 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
     if (!order.includes(participantId)) order.push(participantId);
     let min = Infinity, max = -Infinity;
     for (const value of series[key]) { if (value < min) min = value; if (value > max) max = value; }
-    fields[key] = { ...quantityInfo(quantity), key, participantId, quantity, min, max };
+    const info = quantityInfo(quantity), supplied = backendMeta[key];
+    fields[key] = { ...info, key, participantId, quantity, min, max,
+      unit: supplied?.unit ? prettyUnit(supplied.unit) : info.unit,
+      label: info.kind === "scalar" && supplied?.label ? supplied.label.charAt(0).toUpperCase() + supplied.label.slice(1) : info.label };
   }
   const participants: SceneParticipant[] = [];
   for (const id of order) {

@@ -1,37 +1,79 @@
 {
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "visualProgram"
   ],
   "properties": {
     "visualProgram": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
+        "design",
+        "description",
         "code"
       ],
       "properties": {
+        "design": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "setting",
+            "participants",
+            "props",
+            "palette"
+          ],
+          "properties": {
+            "setting": {
+              "type": "string",
+              "description": "Environment inferred from the user's description (or the most natural real-world setting for these objects) and how it sits on the layout geometry."
+            },
+            "participants": {
+              "type": "array",
+              "description": "One entry per physicsModels id.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "object",
+                  "appearance"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "physicsModels id"
+                  },
+                  "object": {
+                    "type": "string",
+                    "description": "The real object from the description this participant is."
+                  },
+                  "appearance": {
+                    "type": "string",
+                    "description": "Silhouette, proportions, materials, characteristic colours and the recognisable details to draw; facing/rotation/size choice."
+                  }
+                }
+              }
+            },
+            "props": {
+              "type": "string",
+              "description": "Static or state-driven props implied by the situation (supports, surfaces, sources, containers, apparatus parts) and where they go."
+            },
+            "palette": {
+              "type": "string",
+              "description": "Harmonious colours for environment and subjects in LIGHT and DARK themes."
+            }
+          }
+        },
         "description": {
           "type": "string",
-          "description": "Brief description of the visual interpretation in the user's language."
+          "description": "One or two sentences in the user's language describing the illustrated scene."
         },
         "code": {
           "type": "string",
-          "description": "Complete async function expression async function(PIXI, app, api) { ... return {update, resize?, setData?, pointer?, dispose?}; }. PixiJS v8 API only (Graphics: g.moveTo().lineTo().stroke({color,width}); g.circle(x,y,r).fill({color}); new PIXI.Text({text, style})). frame.fields is a FLAT map whose keys are exactly the keys of initialSolverFields (e.g. frame.fields['car.position']); reading any other key throws. Never solve physics in drawing code: every moving quantity comes from frame.fields. Recommended structure: (1) const base = api.kit.standardScene({bodies: false}) gives a measured coordinate frame fitted to the full solver ranges, axes/ruler with SI units, trajectories, strobe marks, velocity/acceleration/force vectors, labels and a time HUD; (2) add contextual artwork (original SVG through await api.svgTexture(svg) where svg is a complete <svg viewBox=...> document) as sprites; (3) in update(frame) call base.update(frame) then place each sprite at base.screenOf(modelId, frame.fields) (returns {x,y} screen pixels or null). Call base.resize() from resize and base.setData() from setData. Other helpers: api.kit.palette() (theme-aware colours: ink, muted, grid, axis, halo, velocity, acceleration, force, series[]), api.kit.color(i), api.kit.camera(viewRect, worldBounds, equalScale) -> {toScreen(x,y), sx, sy}, api.kit.arrow(g, x1, y1, x2, y2, {color, width}), api.kit.text(str, {size, color, weight}), api.kit.format(value, unit), api.kit.participants() (id, label, dims, fields), api.getFieldRanges() (min/max over the whole run; recompute layout in resize/setData, never hard-code ranges). Use theme-aware colours from api.kit.palette() so text stays readable in light and dark workspaces; keep all content inside api.width x api.height. No imports, networking, DOM, eval, external assets, own ticker or application."
-        },
-        "bindings": {
-          "type": "object",
-          "description": "Optional mapping from visual elements to solver field keys."
-        },
-        "controls": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          },
-          "description": "Optional visual control metadata; physics parameters remain in the confirmed spec."
+          "description": "Complete async function(PIXI, app, api) expression following the system CODE CONTRACT: kit.standardScene({bodies:false}), base.backdrop(layout => svg), base.attach(id, sprite, options) for every participant, update/resize/setData delegating to base. PixiJS v8 API, complete SVG documents with literal colours, no // comments, under 40000 characters."
         }
-      },
-      "additionalProperties": false
+      }
     }
-  },
-  "additionalProperties": false
+  }
 }

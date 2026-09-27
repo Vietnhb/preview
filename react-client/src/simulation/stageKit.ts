@@ -19,6 +19,12 @@ export type StageHost = {
   data(): { timeline: { durationSeconds: number; frames: Array<{ t: number; values: Record<string, number> }> };
     scene: SceneDescriptor; theme: "LIGHT" | "DARK"; verificationStatus: string };
   sample(t: number): Record<string, number>;
+  /** Rasterise SVG markup into a texture (bridge-side sanitising); `screen` = viewport-sized art. */
+  svg?(markup: string, options?: { screen?: boolean }): Promise<PixiNS.Texture>;
+  /** Free a texture created by `svg` (returns its pixels to the memory budget). */
+  release?(texture: PixiNS.Texture): void;
+  /** Report an asynchronous rendering failure to the host. */
+  fail?(message: string): void;
 };
 
 export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, host: StageHost) {
@@ -26,6 +32,16 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
   type Bounds = { minX: number; maxX: number; minY: number; maxY: number };
   type Rect = { x: number; y: number; w: number; h: number };
   type Kind = "velocity" | "acceleration" | "force";
+  type SceneLayout = {
+    width: number; height: number; theme: string; palette: Record<string, unknown>; mode: string;
+    view: Rect; ground: number | null;
+    lanes: Array<{ id: string; label: string; y: number; top: number; bottom: number }>;
+    columns: Array<{ id: string; label: string; x: number }>;
+    pivots: Array<{ id: string; x: number; y: number; length: number }>;
+    walls: Array<{ id: string; x: number; y: number }>;
+    participants: Array<{ id: string; label: string; dims: number; start: Pt | null; end: Pt | null; path: Pt[] }>;
+    scale: Pt; toScreen: (x: number, y: number) => Pt;
+  };
   const FONT = 'Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
   const palettes = {
@@ -151,9 +167,22 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     const root = new PIXI.Container();
     root.label = "physlive-standard-scene";
     app.stage.addChild(root);
+    const backdropLayer = new PIXI.Container(), propLayer = new PIXI.Container(), hudPanel = new PIXI.Graphics();
     const staticLayer = new PIXI.Graphics(), dynamicLayer = new PIXI.Graphics(), bodyLayer = new PIXI.Graphics();
-    const staticText = new PIXI.Container(), dynamicText = new PIXI.Container();
-    root.addChild(staticLayer, dynamicLayer, bodyLayer, staticText, dynamicText);
+    const staticText = new PIXI.Container(), dynamicText = new PIXI.Container(), artLayer = new PIXI.Container();
+    root.addChild(backdropLayer, staticLayer, propLayer, dynamicLayer, bodyLayer, artLayer, hudPanel, staticText, dynamicText);
+    type ArtOptions = { size?: number; sizeMeters?: number; autoScale?: boolean; facing?: "right" | "left" | "none";
+      rotate?: "none" | "velocity" | "link"; anchor?: "bottom" | "center" };
+    /** Participant artwork supplied by generated code, positioned by the kit. */
+    const attached = new Map<string, { item: PixiNS.Container; options: ArtOptions; baseW: number; baseH: number; direction: number;
+      bounds: { x: number; y: number; width: number; height: number } }>();
+    let laneHeight = 80;
+    /** Viewport-sized environment artwork (generated SVG) redrawn from the physics layout. */
+    let backdropSource: ((layout: SceneLayout) => string | Promise<string>) | null = null;
+    let backdropSprite: PixiNS.Sprite | null = null, backdropTimer: ReturnType<typeof setTimeout> | null = null, backdropVersion = 0;
+    let groundY: number | null = null;
+    let disposed = false;
+    const illustrated = () => backdropSource !== null;
 
     type Track = { p: SceneParticipant; color: string; lane: number;
       screen: (values: Record<string, number>) => Pt | null; path: Array<Pt & { t: number }>; strobe: Array<Pt & { t: number }>;
@@ -205,7 +234,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       mode = spatial.some(item => item.dims === 2) ? "plane"
         : spatial.length && spatial.every(item => item.vertical) ? "columns" : spatial.length ? "lanes" : "board";
       const legendWidth = show.hud ? Math.min(250, W * 0.34) : 0;
-      const top = show.hud ? 58 : 20, bottom = H - (show.axes ? 46 : 20);
+      const top = show.hud ? 68 : 20, bottom = H - (show.axes ? 46 : 20);
       const left = show.axes ? 58 : 20, right = W - 24;
       const view: Rect = { x: left, y: top, w: Math.max(40, right - left), h: Math.max(40, bottom - top) };
       tracks = scene.participants.map(participant => ({ p: participant, color: color(participant.colorIndex), lane: 0,
@@ -264,7 +293,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         cam = camera(view, bounds, true);
       } else if (mode === "lanes") {
         padBounds(1e-6);
-        const laneHeight = Math.min(104, view.h / Math.max(1, spatialTracks.length));
+        laneHeight = Math.min(104, view.h / Math.max(1, spatialTracks.length));
         const blockTop = view.y + (view.h - laneHeight * spatialTracks.length) / 2 + 10;
         laneY = lane => blockTop + laneHeight * (lane + 0.5);
         cam = camera(view, { ...bounds, minY: 0, maxY: 1 }, false);
@@ -276,6 +305,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         cam = camera(view, { ...bounds, minX: 0, maxX: 1 }, false);
       } else cam = null;
       const c = cam;
+      groundY = c && groundAtZero && mode !== "lanes" ? c.toScreen(0, 0).y : null;
+      const art = illustrated();
 
       for (const track of tracks) {
         const f = track.p.fields;
@@ -337,7 +368,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
             const sy = c.toScreen(0, y).y;
             staticLayer.moveTo(view.x, sy).lineTo(view.x + view.w, sy);
           }
-          staticLayer.stroke({ color: p.grid, width: 1 });
+          if (!art) staticLayer.stroke({ color: p.grid, width: 1 }); else staticLayer.clear();
           const axisY = Math.min(Math.max(0, vis.minY), vis.maxY), axisX = Math.min(Math.max(0, vis.minX), vis.maxX);
           const origin = c.toScreen(axisX, axisY);
           arrow(staticLayer, view.x, origin.y, view.x + view.w + 10, origin.y, { color: p.axis, width: 1.4, head: 8 });
@@ -356,12 +387,12 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           staticText.addChild(Object.assign(text("O", { size: 11, color: p.muted, anchorX: 1, weight: "600" }), { x: origin.x - 5, y: origin.y + 4 }));
           staticText.addChild(Object.assign(text("x (m)", { size: 11.5, color: p.axis, anchorX: 1, anchorY: 1, weight: "600" }), { x: view.x + view.w + 8, y: origin.y - 6 }));
           staticText.addChild(Object.assign(text("y (m)", { size: 11.5, color: p.axis, anchorX: 0, anchorY: 0.5, weight: "600" }), { x: origin.x + 10, y: view.y - 8 }));
-          if (groundAtZero) {
+          if (groundAtZero && !art) {
             const g0 = c.toScreen(0, 0).y;
             staticLayer.rect(view.x, g0, view.w, Math.max(0, view.y + view.h - g0)).fill({ color: p.groundFill, alpha: 0.55 });
             hatch(staticLayer, view.x, view.x + view.w, g0, 1, p.ground);
           }
-          for (const track of spatialTracks) if (track.p.link) {
+          if (!art) for (const track of spatialTracks) if (track.p.link) {
             const pivot = c.toScreen(0, 0);
             staticLayer.rect(pivot.x - 34, pivot.y - 8, 68, 8).fill({ color: p.groundFill });
             hatch(staticLayer, pivot.x - 34, pivot.x + 34, pivot.y - 8, -1, p.ground);
@@ -372,9 +403,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           const rulerY = view.y + view.h;
           for (let x = Math.ceil(vis.minX / step) * step; x <= vis.maxX; x += step) {
             const sx = c.toScreen(x, 0).x;
-            staticLayer.moveTo(sx, view.y + 8).lineTo(sx, rulerY);
+            if (!art) staticLayer.moveTo(sx, view.y + 8).lineTo(sx, rulerY);
           }
-          staticLayer.stroke({ color: p.grid, width: 1 });
+          if (!art) staticLayer.stroke({ color: p.grid, width: 1 });
           for (let x = Math.ceil(vis.minX / (step / 5)) * (step / 5); x <= vis.maxX; x += step / 5) {
             const sx = c.toScreen(x, 0).x;
             staticLayer.moveTo(sx, rulerY).lineTo(sx, rulerY + 4);
@@ -390,8 +421,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           staticText.addChild(Object.assign(text("x (m)", { size: 11.5, color: p.axis, anchorX: 1, anchorY: 1, weight: "600" }), { x: view.x + view.w + 10, y: rulerY - 6 }));
           for (const track of spatialTracks) {
             const y = laneY(track.lane), roadY = y + 15;
-            staticLayer.roundRect(view.x - 4, roadY, view.w + 8, 5, 2.5).fill({ color: p.groundFill, alpha: 0.9 });
-            if (track.wallX !== undefined) {
+            if (!art) staticLayer.roundRect(view.x - 4, roadY, view.w + 8, 5, 2.5).fill({ color: p.groundFill, alpha: 0.9 });
+            if (track.wallX !== undefined && !art) {
               const wx = c.toScreen(track.wallX, 0).x;
               staticLayer.rect(wx - 10, y - 24, 10, 42).fill({ color: p.groundFill });
               staticLayer.moveTo(wx, y - 24).lineTo(wx, y + 18).stroke({ color: p.ground, width: 2 });
@@ -406,9 +437,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           const step = niceStep(vis.maxY - vis.minY, Math.max(3, Math.round(view.h / 70)));
           for (let y = Math.ceil(vis.minY / step) * step; y <= vis.maxY; y += step) {
             const sy = c.toScreen(0, y).y;
-            staticLayer.moveTo(view.x, sy).lineTo(view.x + view.w, sy);
+            if (!art) staticLayer.moveTo(view.x, sy).lineTo(view.x + view.w, sy);
           }
-          staticLayer.stroke({ color: p.grid, width: 1 });
+          if (!art) staticLayer.stroke({ color: p.grid, width: 1 });
           arrow(staticLayer, view.x, view.y + view.h + 8, view.x, view.y - 12, { color: p.axis, width: 1.4, head: 8 });
           for (let y = Math.ceil(vis.minY / step) * step; y <= vis.maxY - step * 0.2; y += step) {
             const sy = c.toScreen(0, y).y;
@@ -418,12 +449,12 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           staticLayer.stroke({ color: p.axis, width: 1.2 });
           const axisName = spatialTracks.some(track => scene.fields[track.p.fields.position!]?.quantity === "height") ? "h (m)" : "y (m)";
           staticText.addChild(Object.assign(text(axisName, { size: 11.5, color: p.axis, anchorX: 0, anchorY: 0.5, weight: "600" }), { x: view.x + 10, y: view.y - 8 }));
-          if (groundAtZero) {
+          if (groundAtZero && !art) {
             const g0 = c.toScreen(0, 0).y;
             staticLayer.rect(view.x, g0, view.w, Math.max(0, H - g0)).fill({ color: p.groundFill, alpha: 0.55 });
             hatch(staticLayer, view.x, view.x + view.w, g0, 1, p.ground);
           }
-          for (const track of spatialTracks) {
+          if (!art) for (const track of spatialTracks) {
             const x = columnX(track.lane);
             dashed(staticLayer, x, view.y, x, view.y + view.h, 3, 6).stroke({ color: p.gridMajor, width: 1 });
           }
@@ -452,6 +483,13 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         }
       }
       // --- HUD: time, legend with live readouts, verification badge
+      hudPanel.clear();
+      if (show.hud && art) {
+        const rows = Math.min(tracks.length, Math.max(1, Math.floor((H * 0.45 - 12) / 36) + 1));
+        const legendW = Math.min(250, W * 0.36);
+        hudPanel.roundRect(8, 8, 262, 46, 10).fill({ color: p.panel, alpha: 0.82 });
+        if (tracks.length) hudPanel.roundRect(W - legendW - 8, 6, legendW, rows * 36 + 6, 10).fill({ color: p.panel, alpha: 0.82 });
+      }
       if (show.hud) {
         hudTime = text("t = 0.00 s", { size: 15, weight: "700", mono: true, color: p.ink });
         hudTime.position.set(16, 14);
@@ -477,8 +515,62 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         hudBadge.position.set(16, 36);
         dynamicText.addChild(hudBadge);
       }
+      scheduleBackdrop();
     }
 
+    /**
+     * Physics-aligned layout for environment artwork, in screen pixels: where the
+     * ground is, where each lane's road surface is, pivots and walls, the start/end
+     * and sampled path of every participant, and a world→screen mapping.
+     */
+    function layout(): SceneLayout {
+      const data = host.data(), W = app.screen.width, H = app.screen.height, c = cam;
+      const every = (n: number) => Math.max(1, Math.ceil(n / 48));
+      return {
+        width: W, height: H, theme: data.theme, palette: palette(), mode,
+        view: c ? { ...c.view } : { x: 0, y: 0, w: W, h: H },
+        /** Screen y of the physical ground (y = 0) when motion rests on/above it; null otherwise. */
+        ground: groundY,
+        lanes: mode === "lanes" ? tracks.filter(track => track.p.dims > 0).map(track => ({
+          id: track.p.id, label: track.p.label, y: laneY(track.lane) + 15,
+          top: laneY(track.lane) + 15 - laneHeight * 0.8, bottom: laneY(track.lane) + 15 + laneHeight * 0.2 })) : [],
+        columns: mode === "columns" ? tracks.filter(track => track.p.dims > 0).map(track => ({
+          id: track.p.id, label: track.p.label, x: columnX(track.lane) })) : [],
+        pivots: c ? tracks.filter(track => track.p.link).map(track => ({ id: track.p.id, ...c.toScreen(0, 0),
+          length: track.p.link!.radius * c.sy })) : [],
+        walls: c ? tracks.filter(track => track.wallX !== undefined).map(track => ({ id: track.p.id,
+          x: c.toScreen(track.wallX!, 0).x, y: laneY(track.lane) + 15 })) : [],
+        participants: tracks.map(track => ({ id: track.p.id, label: track.p.label, dims: track.p.dims,
+          start: track.path[0] ? { x: track.path[0].x, y: track.path[0].y } : null,
+          end: track.path.length ? { x: track.path[track.path.length - 1].x, y: track.path[track.path.length - 1].y } : null,
+          path: track.path.filter((_, i) => i % every(track.path.length) === 0).map(q => ({ x: q.x, y: q.y })) })),
+        /** Pixels per metre (x, y) of the measured frame. */
+        scale: c ? { x: c.sx, y: c.sy } : { x: 1, y: 1 },
+        toScreen: (x: number, y: number) => c ? c.toScreen(x, y) : { x, y },
+      };
+    }
+
+    function scheduleBackdrop() {
+      if (!backdropSource || !host.svg) return;
+      if (backdropTimer) clearTimeout(backdropTimer);
+      const version = ++backdropVersion;
+      backdropTimer = setTimeout(async () => {
+        backdropTimer = null;
+        try {
+          const markup = await backdropSource!(layout());
+          if (typeof markup !== "string" || !markup.trim()) throw Error("backdrop() must return SVG markup.");
+          const texture = await host.svg!(markup, { screen: true });
+          if (disposed || version !== backdropVersion) { host.release?.(texture); return; }
+          const previous = backdropSprite;
+          backdropSprite = new PIXI.Sprite(texture);
+          backdropSprite.width = app.screen.width; backdropSprite.height = app.screen.height;
+          backdropLayer.addChild(backdropSprite);
+          if (previous) { previous.removeFromParent(); host.release?.(previous.texture); previous.destroy(); }
+        } catch (error) {
+          host.fail?.("backdrop(): " + String((error as Error)?.message || error));
+        }
+      }, backdropSprite ? 140 : 0);
+    }
     function screenOf(id: string, values = host.sample(0)) {
       const track = tracks.find(item => item.p.id === id);
       return track ? track.screen(values) : null;
@@ -533,9 +625,17 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         for (const vector of vectorsOf(track, values)) {
           const scale = vectorScale[vector.kind], label = track.vectorLabels[vector.kind];
           if (!show.vectors || !(scale > 0)) continue;
-          const dx = vector.dx * scale, dy = -vector.dy * scale;
+          let dx = vector.dx * scale, dy = -vector.dy * scale;
           const along = mode === "lanes" ? { x: 0, y: offset } : mode === "columns" ? { x: offset, y: 0 } : { x: 0, y: 0 };
           const x0 = point.x + along.x, y0 = point.y + along.y;
+          {
+            /* keep the arrow head on screen; the label still shows the true magnitude */
+            const W = app.screen.width, H = app.screen.height;
+            let k = 1;
+            if (x0 + dx < 8) k = Math.min(k, (x0 - 8) / -dx); else if (x0 + dx > W - 8) k = Math.min(k, (W - 8 - x0) / dx);
+            if (y0 + dy < 8) k = Math.min(k, (y0 - 8) / -dy); else if (y0 + dy > H - 8) k = Math.min(k, (H - 8 - y0) / dy);
+            if (k < 1) { k = Math.max(0, k); dx *= k; dy *= k; }
+          }
           const drawn = Math.hypot(dx, dy) > radius + 2 && arrow(dynamicLayer, x0, y0, x0 + dx, y0 + dy, { color: p[vector.kind], width: 2.6 });
           if (label) {
             label.visible = drawn;
@@ -561,8 +661,48 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           }
           offset += 14;
         }
-        if (show.bodies) body(bodyLayer, point.x, point.y, radius, track.color);
-        if (track.label) track.label.position.set(point.x, point.y - radius - (mode === "lanes" ? 18 : 6));
+        const art = attached.get(track.p.id);
+        if (art) {
+          const o = art.options, view = cam.view;
+          const bottom = (o.anchor ?? (mode === "lanes" ? "bottom" : "center")) === "bottom";
+          let target = o.size ?? (mode === "lanes" ? Math.max(40, Math.min(84, laneHeight * 0.72))
+            : mode === "plane" ? Math.max(28, Math.min(64, Math.min(view.w, view.h) * 0.1)) : 52);
+          if (o.sizeMeters && o.sizeMeters > 0) {
+            const perMetre = mode === "columns" ? cam.sy : mode === "lanes" ? cam.sx : Math.min(cam.sx, cam.sy);
+            target = Math.max(22, Math.min(Math.min(view.w, view.h) * 0.45, o.sizeMeters * perMetre));
+          }
+          const k = o.autoScale === false || !(art.baseW > 0 && art.baseH > 0) ? 1 : target / Math.max(art.baseW, art.baseH);
+          /* direction of motion on screen (keeps the last heading while at rest) */
+          const f = track.p.fields;
+          let hx = NaN, hy = NaN;
+          if (track.p.dims === 2) { hx = values[f.vx ?? ""]; hy = -values[f.vy ?? ""]; }
+          else if (track.p.dims === 1) { const v = values[f.velocity ?? ""]; if (track.p.vertical) { hx = 0; hy = -v; } else { hx = v; hy = 0; } }
+          if (!Number.isFinite(hx) || !Number.isFinite(hy)) {
+            const ahead = track.screen(host.sample(Math.min(host.data().timeline.durationSeconds, frame.t + 0.02)));
+            hx = ahead ? ahead.x - point.x : 0; hy = ahead ? ahead.y - point.y : 0;
+          }
+          if (Math.abs(hx) > 1e-6) art.direction = Math.sign(hx);
+          const rotate = o.rotate ?? (track.p.link ? "link" : "none");
+          let rotation = 0, flip = 1;
+          if (rotate === "velocity" && Math.hypot(hx, hy) > 1e-6) rotation = Math.atan2(hy, hx) + (o.facing === "left" ? Math.PI : 0);
+          else if (rotate === "link" && track.p.link) {
+            const pivot = cam.toScreen(0, 0);
+            rotation = -Math.atan2(point.x - pivot.x, point.y - pivot.y);
+          }
+          if (rotate !== "velocity" && o.facing !== "none") flip = art.direction * (o.facing === "left" ? -1 : 1);
+          art.item.scale.set(k * flip, k);
+          art.item.rotation = rotation;
+          const h = art.baseH * k;
+          /* 1-D horizontal lanes: artwork stands on its road; otherwise centred on the body */
+          const baseY = mode === "lanes" ? point.y + 15 : point.y;
+          art.item.position.set(point.x, bottom && mode !== "lanes" ? point.y + h / 2 : baseY);
+          art.item.pivot.y = bottom ? art.bounds.y + art.bounds.height : art.bounds.y + art.bounds.height / 2;
+          art.item.visible = true;
+          if (track.label) track.label.position.set(point.x, (mode === "lanes" ? baseY - h : point.y - h / 2) - 6);
+        } else {
+          if (show.bodies) body(bodyLayer, point.x, point.y, radius, track.color);
+          if (track.label) track.label.position.set(point.x, point.y - radius - (mode === "lanes" ? 18 : 6));
+        }
       }
       // keep lane labels from colliding with velocity labels in 1-D lanes
       if (hudTime) hudTime.text = "t = " + frame.t.toFixed(2) + " s";
@@ -583,20 +723,75 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       }
     }
     build();
+    /**
+     * Attach contextual artwork (Sprite/Graphics/Container) to a participant. The kit
+     * normalises its size, anchors it (bottom-centre on 1-D lanes, centre elsewhere),
+     * moves it with the solver data every frame and hides the default body marker.
+     */
+    function attach(id: string, item: PixiNS.Container, options: ArtOptions = {}) {
+      if (!tracks.some(track => track.p.id === id))
+        throw Error('attach(): unknown participant "' + id + '". Participants: ' + tracks.map(track => track.p.id).join(", "));
+      if (!item || typeof (item as PixiNS.Container).getLocalBounds !== "function")
+        throw Error("attach(): pass a PIXI display object (e.g. new PIXI.Sprite(await api.svgTexture(svg))).");
+      item.scale.set(1);
+      const b = item.getLocalBounds();
+      item.pivot.set(b.x + b.width / 2, b.y + b.height / 2);
+      item.visible = false;
+      artLayer.addChild(item);
+      attached.set(id, { item, options, baseW: b.width, baseH: b.height, direction: 1,
+        bounds: { x: b.x, y: b.y, width: b.width, height: b.height } });
+      return item;
+    }
+    /** Register viewport-sized environment artwork: (layout) => SVG markup (width/height = layout.width/height). */
+    function backdrop(source: (layout: SceneLayout) => string | Promise<string>) {
+      if (typeof source !== "function") throw Error("backdrop() expects a function (layout) => svgMarkup.");
+      backdropSource = source;
+      build();
+    }
+    function dispose() {
+      disposed = true;
+      if (backdropTimer) clearTimeout(backdropTimer);
+      if (backdropSprite) host.release?.(backdropSprite.texture);
+      attached.clear(); root.destroy({ children: true });
+    }
     return {
       container: root,
       update,
       resize() { build(); },
       setData() { build(); },
       screenOf,
+      attach,
+      backdrop,
+      layout,
+      /** Container drawn above the environment and measurement frame, below participants: static props. */
+      props: propLayer,
+      detach(id: string) { const art = attached.get(id); if (art) { art.item.removeFromParent(); attached.delete(id); } },
       camera: () => cam,
       mode: () => mode,
-      dispose() { root.destroy({ children: true }); },
+      dispose,
+      destroy: dispose,
     };
   }
 
+  /** Point (and heading) at arc-length `distance` along a polyline; wraps around closed loops. */
+  function pointAlong(points: Pt[], distance: number, closed = false) {
+    const pts = closed && points.length > 1 ? [...points, points[0]] : points;
+    let total = 0;
+    const lengths = pts.slice(1).map((q, i) => { const d = Math.hypot(q.x - pts[i].x, q.y - pts[i].y); total += d; return d; });
+    if (!(total > 0)) return { x: pts[0]?.x ?? 0, y: pts[0]?.y ?? 0, angle: 0, total: 0 };
+    let s = closed ? ((distance % total) + total) % total : Math.max(0, Math.min(total, distance));
+    for (let i = 0; i < lengths.length; i++) {
+      if (s <= lengths[i] || i === lengths.length - 1) {
+        const a = pts[i], b = pts[i + 1], u = lengths[i] > 0 ? s / lengths[i] : 0;
+        return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, angle: Math.atan2(b.y - a.y, b.x - a.x), total };
+      }
+      s -= lengths[i];
+    }
+    return { x: pts[pts.length - 1].x, y: pts[pts.length - 1].y, angle: 0, total };
+  }
+
   return Object.freeze({
-    FONT, palette, color, niceStep, format, text, camera, arrow, dashed, hatch, spring, body, fieldRanges,
+    FONT, palette, color, pointAlong, niceStep, format, text, camera, arrow, dashed, hatch, spring, body, fieldRanges,
     scene: () => host.data().scene,
     participants: () => host.data().scene.participants,
     standardScene,

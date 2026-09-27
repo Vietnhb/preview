@@ -3,7 +3,7 @@ import pixiBundle from "../../node_modules/pixi.js/dist/webworker.min.js?raw";
 import purifierBundle from "../../node_modules/dompurify/dist/purify.min.js?raw";
 import Icon from "../components/common/LearningIcon";
 import { sampleTimeline, type SolverTimeline, type PixiVisualProgram } from "./svgScene";
-import { describeScene, type SimulationModelRef } from "./sceneModel";
+import { describeScene, type BackendFieldMeta, type SimulationModelRef } from "./sceneModel";
 import { createStageKit } from "./stageKit";
 import SimulationCharts from "./SimulationCharts";
 import { useWorkspaceTheme } from "./useWorkspaceTheme";
@@ -19,7 +19,7 @@ export const STANDARD_SCENE_CODE = "async function(PIXI, app, api) { return api.
 const WORKER = String.raw`
 let app, lifecycle, data, kit, playing = true, loop = false, speed = 1, t = 0, last = performance.now(), nextAsset = 0;
 let frames = 0, lastSent = -1;
-const assets = new Map();
+const assets = new Map(), textureIds = new WeakMap();
 const QUIET_KEYS = new Set(['toJSON', 'then', 'asymmetricMatch', 'nodeType', '$$typeof']);
 function ranges(timeline) {
   const result = {};
@@ -65,17 +65,29 @@ async function start(message) {
   app = new PIXI.Application();
   await app.init({canvas: message.canvas, width: message.width, height: message.height, resolution: message.dpr || 1,
     backgroundAlpha: 0, antialias: true, preference: 'webgl', autoStart: false});
-  kit = createStageKit(PIXI, app, {data: () => data, sample: time => sampleTimeline(data.timeline, time)});
+  const svgTexture = (svg, options = {}) => {
+    const id = ++nextAsset;
+    return new Promise((resolve, reject) => {
+      assets.set(id, {resolve: texture => { textureIds.set(texture, id); resolve(texture); }, reject});
+      send('svg', {id, svg, screen: Boolean(options && options.screen)});
+    });
+  };
+  const releaseTexture = texture => {
+    const id = texture && textureIds.get(texture);
+    if (id) { textureIds.delete(texture); send('release', {id}); }
+    try { texture?.destroy(true); } catch {}
+  };
+  kit = createStageKit(PIXI, app, {data: () => data, sample: time => sampleTimeline(data.timeline, time),
+    svg: svgTexture, release: releaseTexture,
+    fail: message => { send('error', {message: String(message)}); close(); }});
   const api = Object.freeze({
     get width() { return app.screen.width; }, get height() { return app.screen.height; },
     get scene() { return data.scene; },
     kit,
     getFrame: () => frame(),
     getFieldRanges: () => data.ranges,
-    svgTexture(svg) {
-      const id = ++nextAsset;
-      return new Promise((resolve, reject) => { assets.set(id, {resolve, reject}); send('svg', {id, svg}); });
-    }
+    svgTexture,
+    releaseTexture
   });
   const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
   const mount = await new AsyncFunction('"use strict"; return (' + message.code + '\n);')();
@@ -133,12 +145,17 @@ const BRIDGE = String.raw`
 const canvas = document.querySelector('canvas');
 const SVG_NS = 'http://www.w3.org/2000/svg';
 let worker, lastHeartbeat = Date.now(), stopped = false, limits, texturePixels = 0;
+const assetPixels = new Map();
 const send = (type, extra = {}) => parent.postMessage({channel: 'pixi-runtime', type, ...extra}, '*');
 function stop(message) { stopped = true; worker?.terminate(); send('error', {message}); }
 // Accept complete <svg> documents and bare fragments (<circle/>, <g>…</g>):
 // fragments are wrapped and sized from their measured bounding box.
 function svgRoot(source) {
   let markup = source.trim().replace(/^<\?xml[^>]*>\s*/i, '').replace(/^<!doctype[^>]*>\s*/i, '');
+  // Models often URL-encode colours as if writing a data: URI (fill='%23ff0000').
+  markup = markup.replace(/=(["'])([^"']*%[0-9A-Fa-f]{2}[^"']*)\1/g, (whole, quote, value) => {
+    try { return '=' + quote + decodeURIComponent(value) + quote; } catch { return whole; }
+  });
   if (!/^<svg[\s>]/i.test(markup)) markup = '<svg xmlns="' + SVG_NS + '">' + markup + '</svg>';
   const cleaned = DOMPurify.sanitize(markup, {USE_PROFILES: {svg: true, svgFilters: true},
     FORBID_TAGS: ['script','foreignObject','image','a','style','animate','animateTransform','set'],
@@ -147,6 +164,12 @@ function svgRoot(source) {
   if (!root || root.localName !== 'svg') throw Error('SVG asset must contain drawable SVG elements.');
   for (const node of [root, ...root.querySelectorAll('*')]) for (const attr of [...node.attributes])
     if (/url\s*\(/i.test(attr.value) && !/^url\(#[\w.-]+\)$/.test(attr.value)) throw Error('External SVG resources forbidden.');
+  // An unparseable paint silently renders black; use a neutral tone that reads on both themes.
+  for (const node of [root, ...root.querySelectorAll('*')]) for (const name of ['fill', 'stroke', 'stop-color', 'flood-color']) {
+    const value = (node.getAttribute(name) || '').trim();
+    if (value && !/^(none|currentColor|transparent|inherit)$/i.test(value) && !/^url\(#[\w.-]+\)$/.test(value)
+      && !CSS.supports('color', value)) node.setAttribute(name, '#64748b');
+  }
   const box = (root.getAttribute('viewBox') || '').trim().split(/[ ,]+/).map(Number);
   const hasBox = box.length === 4 && box.every(Number.isFinite) && box[2] > 0 && box[3] > 0;
   const numeric = name => /^[\d.]+(?:px)?$/.test(root.getAttribute(name) || '') ? parseFloat(root.getAttribute(name)) : NaN;
@@ -164,7 +187,7 @@ function svgRoot(source) {
   if (!root.getAttribute('xmlns')) root.setAttribute('xmlns', SVG_NS);
   return root;
 }
-async function svgBitmap(source) {
+async function svgBitmap(source, screen) {
   if (typeof source !== 'string' || source.length > limits.maxCode) throw Error('SVG resource budget exceeded.');
   const root = svgRoot(source);
   const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(root)], {type: 'image/svg+xml'}));
@@ -180,13 +203,17 @@ async function svgBitmap(source) {
     if (!(width > 0 && height > 0 && width <= limits.maxTextureSide && height <= limits.maxTextureSide))
       throw Error('SVG texture exceeds the resource budget.');
     // Rasterise above the display density so sprites stay crisp when scaled.
-    const resolution = Math.max(1, Math.min(3, Math.max(2, devicePixelRatio * 1.5), limits.maxTextureSide / Math.max(width, height)));
+    // Sprites: at least ~640 px on the long side so small viewBoxes stay sharp when enlarged.
+    // Viewport art (backdrop): exactly the display density.
+    const longest = Math.max(width, height), cap = limits.maxTextureSide / longest;
+    const resolution = screen ? Math.max(0.5, Math.min(devicePixelRatio || 1, 2, cap))
+      : Math.max(1, Math.min(Math.max(devicePixelRatio * 1.5, 2, 640 / longest), 8, cap));
     const surface = document.createElement('canvas');
     surface.width = Math.ceil(width * resolution); surface.height = Math.ceil(height * resolution);
     texturePixels += surface.width * surface.height;
     if (texturePixels > limits.maxTexturePixels) throw Error('SVG texture memory budget exceeded.');
     surface.getContext('2d').drawImage(image, 0, 0, surface.width, surface.height);
-    return {bitmap: await createImageBitmap(surface), resolution: surface.width / width};
+    return {bitmap: await createImageBitmap(surface), resolution: surface.width / width, pixels: surface.width * surface.height};
   } finally { URL.revokeObjectURL(url); }
 }
 addEventListener('message', ({source, data}) => {
@@ -200,10 +227,13 @@ addEventListener('message', ({source, data}) => {
       if (stopped) return;
       if (result.type === 'svg') {
         try {
-          const {bitmap, resolution} = await svgBitmap(result.svg);
+          const {bitmap, resolution, pixels} = await svgBitmap(result.svg, result.screen);
+          assetPixels.set(result.id, pixels);
           if (stopped) { bitmap.close(); return; }
           worker.postMessage({type: 'asset', id: result.id, bitmap, resolution}, [bitmap]);
         } catch (error) { worker.postMessage({type: 'asset', id: result.id, error: String(error.message)}); }
+      } else if (result.type === 'release') {
+        texturePixels = Math.max(0, texturePixels - (assetPixels.get(result.id) || 0)); assetPixels.delete(result.id);
       } else if (['tick','ready','ended'].includes(result.type)) {
         lastHeartbeat = Date.now(); send(result.type, {t: result.t});
       } else if (result.type === 'error') stop(String(result.message).slice(0,1000));
@@ -232,9 +262,9 @@ const SPEEDS = [0.25, 0.5, 1, 2];
 
 type ViewMode = "ai" | "standard";
 
-export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, onRenderError }: Readonly<{
+export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, onRenderError }: Readonly<{
   program: PixiVisualProgram; timeline: SolverTimeline; parameters: Record<string, number>; verificationStatus: string;
-  models?: readonly SimulationModelRef[]; onRenderError?: (message: string) => void;
+  models?: readonly SimulationModelRef[]; fieldMeta?: BackendFieldMeta; onRenderError?: (message: string) => void;
 }>) {
   const theme = useWorkspaceTheme();
   const hasAiCode = Boolean(program.code?.trim());
@@ -248,7 +278,7 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
   const [loop, setLoop] = useState(false);
   const [run, setRun] = useState(0);
   const iframe = useRef<HTMLIFrameElement>(null);
-  const scene = useMemo(() => describeScene(timeline, models ?? []), [timeline, models]);
+  const scene = useMemo(() => describeScene(timeline, models ?? [], fieldMeta ?? {}), [timeline, models, fieldMeta]);
   const dataRef = useRef({ timeline, parameters, verificationStatus, scene });
   const callbackRef = useRef(onRenderError);
   const modeRef = useRef(mode);
