@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://physlive.local/schemas/topic-pack/2.0",
   "title": "PhysLive high-school physics topic template",
-  "description": "Open conceptual domain vocabulary and reviewer-managed physical/visual capabilities. Capabilities declare metadata, display equations and pinned solver IDs; executable physics remains in backend modules.",
+  "description": "Open physical vocabulary and reviewer-managed capabilities. Executable equations use a bounded arithmetic AST interpreted by the generic backend engine; JavaScript and eval are forbidden.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,7 +21,7 @@
   ],
   "properties": {
     "metaSchemaVersion": { "const": "2.0" },
-    "model": { "const": "matter_js" },
+    "model": { "enum": ["matter_js", "generated_visual"] },
     "description": { "type": "string" },
     "objectTypes": { "type": "array", "items": { "$ref": "#/$defs/objectType" } },
     "relationTypes": { "type": "array", "items": { "$ref": "#/$defs/relationType" } },
@@ -191,6 +191,7 @@
           "required": ["primary", "numerical", "closedForm"],
           "properties": {
             "primary": { "enum": ["numerical", "closed_form", "visual_only"] },
+            "math": { "$ref": "#/$defs/equationProgram" },
             "numerical": { "$ref": "#/$defs/solverBinding" },
             "closedForm": {
               "anyOf": [
@@ -212,7 +213,9 @@
         "key": { "type": "string" },
         "unit": { "type": "string" },
         "description": { "type": "string" },
-        "defaultValue": { "type": "number" }
+        "defaultValue": { "type": "number" },
+        "min": { "type": "number" },
+        "max": { "type": "number" }
       }
     },
     "solverBinding": {
@@ -235,6 +238,27 @@
         "relativeTolerance": { "type": "number" },
         "invariants": { "type": "array", "items": { "type": "string" } },
         "benchmarks": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+      }
+    },
+    "arithmeticExpression": {
+      "anyOf": [
+        { "type": "number" },
+        { "type": "string", "description": "Canonical quantity reference; never executable source code." },
+        {
+          "type": "array", "minItems": 2, "maxItems": 3,
+          "prefixItems": [{ "enum": ["add", "sub", "mul", "div", "pow", "neg", "sin", "cos", "sqrt", "exp", "abs"] }],
+          "items": { "$ref": "#/$defs/arithmeticExpression" }
+        }
+      ]
+    },
+    "equationMap": { "type": "object", "additionalProperties": { "$ref": "#/$defs/arithmeticExpression" } },
+    "equationProgram": {
+      "type": "object", "additionalProperties": false,
+      "required": ["initial", "rates", "outputs"],
+      "properties": {
+        "initial": { "$ref": "#/$defs/equationMap" }, "rates": { "$ref": "#/$defs/equationMap" },
+        "outputs": { "$ref": "#/$defs/equationMap" }, "closedForm": { "$ref": "#/$defs/equationMap" },
+        "invariants": { "$ref": "#/$defs/equationMap" }
       }
     },
     "equationDependency": {

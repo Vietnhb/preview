@@ -1,61 +1,683 @@
 [
-  {"canonical":"m","factor":1,"aliases":["m"]},
-  {"canonical":"m","factor":0.01,"aliases":["cm"]},
-  {"canonical":"m","factor":0.001,"aliases":["mm"]},
-  {"canonical":"m","factor":1000,"aliases":["km"]},
-  {"canonical":"s","factor":1,"aliases":["s"]},
-  {"canonical":"s","factor":0.001,"aliases":["ms"]},
-  {"canonical":"s","factor":60,"aliases":["min"]},
-  {"canonical":"s","factor":3600,"aliases":["h"]},
-  {"canonical":"kg","factor":1,"aliases":["kg"]},
-  {"canonical":"kg","factor":0.001,"aliases":["g"]},
-  {"canonical":"kg/s","factor":1,"aliases":["kg/s"]},
-  {"canonical":"kg/J","factor":1,"aliases":["kg/J"]},
-  {"canonical":"J/kg","factor":1,"aliases":["J/kg"]},
-  {"canonical":"kg*m/s","factor":1,"aliases":["kg*m/s","N*s"]},
-  {"canonical":"1/m","factor":1,"aliases":["1/m"]},
-  {"canonical":"rad/s","factor":1,"aliases":["rad/s"]},
-  {"canonical":"dB/m","factor":1,"aliases":["dB/m"]},
-  {"canonical":"mol","factor":1,"aliases":["mol"]},
-  {"canonical":"K","factor":1,"aliases":["K","kelvin"]},
-  {"canonical":"degC","factor":1,"aliases":["degC","°C","celsius"]},
-  {"canonical":"degF","factor":1,"aliases":["degF","°F","fahrenheit"]},
-  {"canonical":"N","factor":1,"aliases":["N"]},
-  {"canonical":"V","factor":1,"aliases":["V"]},
-  {"canonical":"A","factor":1,"aliases":["A"]},
-  {"canonical":"ohm","factor":1,"aliases":["ohm","\u03a9"]},
-  {"canonical":"F","factor":1,"aliases":["F"]},
-  {"canonical":"N/m","factor":1,"aliases":["N/m"]},
-  {"canonical":"Hz","factor":1,"aliases":["Hz"]},
-  {"canonical":"J","factor":1,"aliases":["J"]},
-  {"canonical":"W","factor":1,"aliases":["W"]},
-  {"canonical":"Pa","factor":1,"aliases":["Pa"]},
-  {"canonical":"Pa","factor":1000,"aliases":["kPa"]},
-  {"canonical":"1","factor":1,"aliases":["1","dimensionless"]},
-  {"canonical":"1/s","factor":1,"aliases":["1/s","s^-1"]},
-  {"canonical":"Bq","factor":1,"aliases":["Bq"]},
-  {"canonical":"m/s","factor":1,"aliases":["m/s","mps"]},
-  {"canonical":"m/s","factor":0.2777777778,"aliases":["km/h","kmph"]},
-  {"canonical":"m3","factor":1,"aliases":["m3","m^3","m³"]},
-  {"canonical":"m3/s","factor":1,"aliases":["m3/s","m^3/s","m³/s"]},
-  {"canonical":"m/s2","factor":1,"aliases":["m/s2","m/s^2","m/s\u00b2"]},
-  {"canonical":"m2","factor":1,"aliases":["m2","m^2","m\u00b2"]},
-  {"canonical":"T/s","factor":1,"aliases":["T/s"]},
-  {"canonical":"N/C","factor":1,"aliases":["N/C","N/Coulomb"]},
-  {"canonical":"rad","factor":1,"aliases":["rad"]},
-  {"canonical":"J/(mol*K)","factor":1,"aliases":["J/(mol*K)","J/mol/K"]},
-  {"canonical":"rad","factor":0.017453292519943295,"aliases":["deg","degree","degrees","\u00b0","\u0111\u1ed9"]},
-  {"canonical":"C","factor":1,"aliases":["C","coulomb"]},
-  {"canonical":"T","factor":1,"aliases":["T","tesla"]},
-  {"canonical":"Wb","factor":1,"aliases":["Wb","weber"]},
-  {"canonical":"H","factor":1,"aliases":["H","henry"]},
-  {"canonical":"J/(kg*K)","factor":1,"aliases":["J/(kg*K)","J/kg/K"]},
-  {"canonical":"eV","factor":1.602176634e-19,"aliases":["eV","electronvolt"]},
-  {"canonical":"1/K","factor":1,"aliases":["1/K","K^-1"]},
-  {"canonical":"W/m2","factor":1,"aliases":["W/m2","W/m^2"]},
-  {"canonical":"Gy/s","factor":1,"aliases":["Gy/s"]},
-  {"canonical":"kg/m3","factor":1,"aliases":["kg/m3","kg/m^3","kg/m³"]},
-  {"canonical":"N*m","factor":1,"aliases":["N*m","Nm"]},
-  {"canonical":"Pa/s","factor":1,"aliases":["Pa/s"]},
-  {"canonical":"Pa/s2","factor":1,"aliases":["Pa/s2","Pa/s^2"]}
+  {
+    "canonical": "m",
+    "factor": 1,
+    "aliases": [
+      "m"
+    ],
+    "dimensions": {
+      "L": 1
+    }
+  },
+  {
+    "canonical": "m",
+    "factor": 0.01,
+    "aliases": [
+      "cm"
+    ],
+    "dimensions": {
+      "L": 1
+    }
+  },
+  {
+    "canonical": "m",
+    "factor": 0.001,
+    "aliases": [
+      "mm"
+    ],
+    "dimensions": {
+      "L": 1
+    }
+  },
+  {
+    "canonical": "m",
+    "factor": 1000,
+    "aliases": [
+      "km"
+    ],
+    "dimensions": {
+      "L": 1
+    }
+  },
+  {
+    "canonical": "s",
+    "factor": 1,
+    "aliases": [
+      "s"
+    ],
+    "dimensions": {
+      "T": 1
+    }
+  },
+  {
+    "canonical": "s",
+    "factor": 0.001,
+    "aliases": [
+      "ms"
+    ],
+    "dimensions": {
+      "T": 1
+    }
+  },
+  {
+    "canonical": "s",
+    "factor": 60,
+    "aliases": [
+      "min"
+    ],
+    "dimensions": {
+      "T": 1
+    }
+  },
+  {
+    "canonical": "s",
+    "factor": 3600,
+    "aliases": [
+      "h"
+    ],
+    "dimensions": {
+      "T": 1
+    }
+  },
+  {
+    "canonical": "kg",
+    "factor": 1,
+    "aliases": [
+      "kg"
+    ],
+    "dimensions": {
+      "M": 1
+    }
+  },
+  {
+    "canonical": "kg",
+    "factor": 0.001,
+    "aliases": [
+      "g"
+    ],
+    "dimensions": {
+      "M": 1
+    }
+  },
+  {
+    "canonical": "kg/s",
+    "factor": 1,
+    "aliases": [
+      "kg/s"
+    ],
+    "dimensions": {
+      "M": 1,
+      "T": -1
+    }
+  },
+  {
+    "canonical": "kg/J",
+    "factor": 1,
+    "aliases": [
+      "kg/J"
+    ],
+    "dimensions": {
+      "L": -2,
+      "T": 2
+    }
+  },
+  {
+    "canonical": "J/kg",
+    "factor": 1,
+    "aliases": [
+      "J/kg"
+    ],
+    "dimensions": {
+      "L": 2,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "kg*m/s",
+    "factor": 1,
+    "aliases": [
+      "kg*m/s",
+      "N*s"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 1,
+      "T": -1
+    }
+  },
+  {
+    "canonical": "1/m",
+    "factor": 1,
+    "aliases": [
+      "1/m"
+    ],
+    "dimensions": {
+      "L": -1
+    }
+  },
+  {
+    "canonical": "rad/s",
+    "factor": 1,
+    "aliases": [
+      "rad/s"
+    ],
+    "dimensions": {
+      "T": -1
+    }
+  },
+  {
+    "canonical": "dB/m",
+    "factor": 1,
+    "aliases": [
+      "dB/m"
+    ],
+    "dimensions": {
+      "L": -1
+    }
+  },
+  {
+    "canonical": "mol",
+    "factor": 1,
+    "aliases": [
+      "mol"
+    ],
+    "dimensions": {
+      "N": 1
+    }
+  },
+  {
+    "canonical": "K",
+    "factor": 1,
+    "aliases": [
+      "K",
+      "kelvin"
+    ],
+    "dimensions": {
+      "K": 1
+    }
+  },
+  {
+    "canonical": "degC",
+    "factor": 1,
+    "aliases": [
+      "degC",
+      "°C",
+      "celsius"
+    ],
+    "dimensions": {
+      "K": 1
+    }
+  },
+  {
+    "canonical": "degF",
+    "factor": 1,
+    "aliases": [
+      "degF",
+      "°F",
+      "fahrenheit"
+    ],
+    "dimensions": {
+      "K": 1
+    }
+  },
+  {
+    "canonical": "N",
+    "factor": 1,
+    "aliases": [
+      "N"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 1,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "V",
+    "factor": 1,
+    "aliases": [
+      "V"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -3,
+      "I": -1
+    }
+  },
+  {
+    "canonical": "A",
+    "factor": 1,
+    "aliases": [
+      "A"
+    ],
+    "dimensions": {
+      "I": 1
+    }
+  },
+  {
+    "canonical": "ohm",
+    "factor": 1,
+    "aliases": [
+      "ohm",
+      "Ω"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -3,
+      "I": -2
+    }
+  },
+  {
+    "canonical": "F",
+    "factor": 1,
+    "aliases": [
+      "F"
+    ],
+    "dimensions": {
+      "M": -1,
+      "L": -2,
+      "T": 4,
+      "I": 2
+    }
+  },
+  {
+    "canonical": "N/m",
+    "factor": 1,
+    "aliases": [
+      "N/m"
+    ],
+    "dimensions": {
+      "M": 1,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "Hz",
+    "factor": 1,
+    "aliases": [
+      "Hz"
+    ],
+    "dimensions": {
+      "T": -1
+    }
+  },
+  {
+    "canonical": "J",
+    "factor": 1,
+    "aliases": [
+      "J"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "W",
+    "factor": 1,
+    "aliases": [
+      "W"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -3
+    }
+  },
+  {
+    "canonical": "Pa",
+    "factor": 1,
+    "aliases": [
+      "Pa"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": -1,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "Pa",
+    "factor": 1000,
+    "aliases": [
+      "kPa"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": -1,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "1",
+    "factor": 1,
+    "aliases": [
+      "1",
+      "dimensionless"
+    ],
+    "dimensions": {}
+  },
+  {
+    "canonical": "1/s",
+    "factor": 1,
+    "aliases": [
+      "1/s",
+      "s^-1"
+    ],
+    "dimensions": {
+      "T": -1
+    }
+  },
+  {
+    "canonical": "Bq",
+    "factor": 1,
+    "aliases": [
+      "Bq"
+    ],
+    "dimensions": {
+      "T": -1
+    }
+  },
+  {
+    "canonical": "m/s",
+    "factor": 1,
+    "aliases": [
+      "m/s",
+      "mps"
+    ],
+    "dimensions": {
+      "L": 1,
+      "T": -1
+    }
+  },
+  {
+    "canonical": "m/s",
+    "factor": 0.2777777778,
+    "aliases": [
+      "km/h",
+      "kmph"
+    ],
+    "dimensions": {
+      "L": 1,
+      "T": -1
+    }
+  },
+  {
+    "canonical": "m3",
+    "factor": 1,
+    "aliases": [
+      "m3",
+      "m^3",
+      "m³"
+    ],
+    "dimensions": {
+      "L": 3
+    }
+  },
+  {
+    "canonical": "m3/s",
+    "factor": 1,
+    "aliases": [
+      "m3/s",
+      "m^3/s",
+      "m³/s"
+    ],
+    "dimensions": {
+      "L": 3,
+      "T": -1
+    }
+  },
+  {
+    "canonical": "m/s2",
+    "factor": 1,
+    "aliases": [
+      "m/s2",
+      "m/s^2",
+      "m/s²"
+    ],
+    "dimensions": {
+      "L": 1,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "m2",
+    "factor": 1,
+    "aliases": [
+      "m2",
+      "m^2",
+      "m²"
+    ],
+    "dimensions": {
+      "L": 2
+    }
+  },
+  {
+    "canonical": "T/s",
+    "factor": 1,
+    "aliases": [
+      "T/s"
+    ],
+    "dimensions": {
+      "M": 1,
+      "T": -3,
+      "I": -1
+    }
+  },
+  {
+    "canonical": "N/C",
+    "factor": 1,
+    "aliases": [
+      "N/C",
+      "N/Coulomb"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 1,
+      "T": -3,
+      "I": -1
+    }
+  },
+  {
+    "canonical": "rad",
+    "factor": 1,
+    "aliases": [
+      "rad"
+    ],
+    "dimensions": {}
+  },
+  {
+    "canonical": "J/(mol*K)",
+    "factor": 1,
+    "aliases": [
+      "J/(mol*K)",
+      "J/mol/K"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -2,
+      "N": -1,
+      "K": -1
+    }
+  },
+  {
+    "canonical": "rad",
+    "factor": 0.017453292519943295,
+    "aliases": [
+      "deg",
+      "degree",
+      "degrees",
+      "°",
+      "độ"
+    ],
+    "dimensions": {}
+  },
+  {
+    "canonical": "C",
+    "factor": 1,
+    "aliases": [
+      "C",
+      "coulomb"
+    ],
+    "dimensions": {
+      "I": 1,
+      "T": 1
+    }
+  },
+  {
+    "canonical": "T",
+    "factor": 1,
+    "aliases": [
+      "T",
+      "tesla"
+    ],
+    "dimensions": {
+      "M": 1,
+      "T": -2,
+      "I": -1
+    }
+  },
+  {
+    "canonical": "Wb",
+    "factor": 1,
+    "aliases": [
+      "Wb",
+      "weber"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -2,
+      "I": -1
+    }
+  },
+  {
+    "canonical": "H",
+    "factor": 1,
+    "aliases": [
+      "H",
+      "henry"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -2,
+      "I": -2
+    }
+  },
+  {
+    "canonical": "J/(kg*K)",
+    "factor": 1,
+    "aliases": [
+      "J/(kg*K)",
+      "J/kg/K"
+    ],
+    "dimensions": {
+      "L": 2,
+      "T": -2,
+      "K": -1
+    }
+  },
+  {
+    "canonical": "eV",
+    "factor": 1.602176634e-19,
+    "aliases": [
+      "eV",
+      "electronvolt"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "1/K",
+    "factor": 1,
+    "aliases": [
+      "1/K",
+      "K^-1"
+    ],
+    "dimensions": {
+      "K": -1
+    }
+  },
+  {
+    "canonical": "W/m2",
+    "factor": 1,
+    "aliases": [
+      "W/m2",
+      "W/m^2"
+    ],
+    "dimensions": {
+      "M": 1,
+      "T": -3
+    }
+  },
+  {
+    "canonical": "Gy/s",
+    "factor": 1,
+    "aliases": [
+      "Gy/s"
+    ],
+    "dimensions": {
+      "L": 2,
+      "T": -3
+    }
+  },
+  {
+    "canonical": "kg/m3",
+    "factor": 1,
+    "aliases": [
+      "kg/m3",
+      "kg/m^3",
+      "kg/m³"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": -3
+    }
+  },
+  {
+    "canonical": "N*m",
+    "factor": 1,
+    "aliases": [
+      "N*m",
+      "Nm"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "Pa/s",
+    "factor": 1,
+    "aliases": [
+      "Pa/s"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": -1,
+      "T": -3
+    }
+  },
+  {
+    "canonical": "Pa/s2",
+    "factor": 1,
+    "aliases": [
+      "Pa/s2",
+      "Pa/s^2"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": -1,
+      "T": -4
+    }
+  }
 ]

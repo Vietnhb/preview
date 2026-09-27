@@ -1,0 +1,108 @@
+async function(PIXI, app, api) {
+  // ----- Configuration ----------------------------------------------------
+  const maxPos = 304.74999999999727; // from solverFieldRanges
+  const minPos = 0;
+  let scale = (api.width * 0.9) / (maxPos - minPos);
+  let offsetX = api.width * 0.05 - minPos * scale;
+  const baseY = api.height / 2;
+
+  // ----- Helper to draw an arrow ------------------------------------------
+  function drawArrow(g, sx, sy, ex, ey, color) {
+    g.clear();
+    g.lineStyle(2, color);
+    g.moveTo(sx, sy);
+    g.lineTo(ex, ey);
+    const angle = Math.atan2(ey - sy, ex - sx);
+    const headLen = 10;
+    const leftX = ex - headLen * Math.cos(angle - Math.PI / 6);
+    const leftY = ey - headLen * Math.sin(angle - Math.PI / 6);
+    const rightX = ex - headLen * Math.cos(angle + Math.PI / 6);
+    const rightY = ey - headLen * Math.sin(angle + Math.PI / 6);
+    g.moveTo(ex, ey);
+    g.lineTo(leftX, leftY);
+    g.moveTo(ex, ey);
+    g.lineTo(rightX, rightY);
+  }
+
+  // ----- Create simple SVG textures for the two bodies --------------------
+  const svgMarkup = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="8" fill="white"/>
+    </svg>`;
+  const texture = await api.svgTexture(svgMarkup);
+
+  const body1 = new PIXI.Sprite(texture);
+  const body2 = new PIXI.Sprite(texture);
+  body1.anchor.set(0.5);
+  body2.anchor.set(0.5);
+  body1.tint = 0xff5722; // reddish
+  body2.tint = 0x2196f3; // blueish
+  app.stage.addChild(body1);
+  app.stage.addChild(body2);
+
+  // ----- Labels -----------------------------------------------------------
+  const labelStyle = new PIXI.TextStyle({ fontSize: 14, fill: 0xffffff });
+  const label1 = new PIXI.Text({ text: "Vật 1", style: labelStyle });
+  const label2 = new PIXI.Text({ text: "Vật 2", style: labelStyle });
+  label1.anchor.set(0.5, 1);
+  label2.anchor.set(0.5, 1);
+  app.stage.addChild(label1);
+  app.stage.addChild(label2);
+
+  // ----- Velocity vectors -------------------------------------------------
+  const arrowContainer = new PIXI.Container();
+  app.stage.addChild(arrowContainer);
+  const arrowG1 = new PIXI.Graphics();
+  const arrowG2 = new PIXI.Graphics();
+  arrowContainer.addChild(arrowG1);
+  arrowContainer.addChild(arrowG2);
+
+  // ----- Update function ---------------------------------------------------
+  function update(frame) {
+    const pos1 = frame.fields["motion1.position"];
+    const pos2 = frame.fields["motion2.position"];
+    const vel1 = frame.fields["motion1.velocity"];
+    const vel2 = frame.fields["motion2.velocity"];
+
+    const x1 = offsetX + pos1 * scale;
+    const x2 = offsetX + pos2 * scale;
+    const y1 = baseY - 30; // separate the two tracks vertically
+    const y2 = baseY + 30;
+
+    body1.position.set(x1, y1);
+    body2.position.set(x2, y2);
+    label1.position.set(x1, y1 - 12);
+    label2.position.set(x2, y2 - 12);
+
+    // Velocity arrow length – choose a visual scaling factor
+    const velVisualScale = scale * 0.2;
+    drawArrow(arrowG1, x1, y1, x1 + vel1 * velVisualScale, y1, 0xff5722);
+    drawArrow(arrowG2, x2, y2, x2 + vel2 * velVisualScale, y2, 0x2196f3);
+  }
+
+  // ----- Resize handling ---------------------------------------------------
+  function resize(width, height) {
+    // recompute scaling based on new viewport size
+    scale = (width * 0.9) / (maxPos - minPos);
+    offsetX = width * 0.05 - minPos * scale;
+    // keep vertical centre
+    const current = api.getFrame();
+    update(current);
+  }
+
+  // ----- Dispose -----------------------------------------------------------
+  function dispose() {
+    texture.destroy(true);
+    body1.destroy();
+    body2.destroy();
+    arrowG1.destroy();
+    arrowG2.destroy();
+    label1.destroy();
+    label2.destroy();
+  }
+
+  // Initial render
+  update(api.getFrame());
+
+  return { update, resize, dispose };
+}

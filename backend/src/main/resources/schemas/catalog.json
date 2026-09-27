@@ -1,10 +1,10 @@
 [
   {
     "schemaId": "adaptive_circuits",
-    "model": "matter_js",
+    "model": "generated_visual",
     "name": "Circuits Concept Capability",
     "topic": "CIRCUITS",
-    "version": "2.0",
+    "version": "2.1",
     "definition": {
       "metaSchemaVersion": "2.0",
       "description": "Conceptual vocabulary for circuits. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
@@ -413,16 +413,16 @@
       ],
       "simulationCapability": {
         "mode": "generated_visual",
-        "scope": "AI-authored interactive visual models of high-school electrical networks and component behavior.",
+        "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
         "limitations": [
-          "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+          "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
         ],
         "runtimes": [
           "generated_visual"
         ]
       },
       "limitations": [
-        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
       ],
       "conceptVocabulary": {
         "openWorld": true,
@@ -433,19 +433,19 @@
         "mode": "generated_scene",
         "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
         "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
-        "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+        "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
       }
     }
   },
   {
     "schemaId": "adaptive_dynamics",
-    "model": "matter_js",
+    "model": "generated_visual",
     "name": "Dynamics Concept Capability",
     "topic": "DYNAMICS",
-    "version": "2.0",
+    "version": "2.2",
     "definition": {
       "metaSchemaVersion": "2.0",
-      "description": "Conceptual vocabulary for dynamics. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+      "description": "Động lực học là phần cơ học nghiên cứu mối liên hệ giữa chuyển động và nguyên nhân gây ra chuyển động. Nội dung cốt lõi là sự tương tác, lực và các định luật mô tả tác dụng của lực lên chuyển động, bao gồm các định luật Newton cùng những định luật lực được khai báo trong topic. Động học mô tả chuyển động mà không xét nguyên nhân gây ra chuyển động. Áp dụng định nghĩa và các định luật phù hợp với nội dung bài toán cùng giả định đã xác nhận.",
       "objectTypes": [
         {
           "type": "body",
@@ -922,7 +922,7 @@
       "capabilities": [
         {
           "capabilityId": "fixed_length_gravity_oscillation",
-          "version": "1.0",
+          "version": "2.0",
           "applicability": {
             "objectTypes": [
               "body"
@@ -937,7 +937,8 @@
           "canonicalInputs": [
             {
               "key": "length",
-              "unit": "m"
+              "unit": "m",
+              "min": 0.000001
             },
             {
               "key": "initial_angle",
@@ -951,7 +952,8 @@
             {
               "key": "gravitational_acceleration",
               "unit": "m/s^2",
-              "defaultValue": 9.80665
+              "defaultValue": 9.80665,
+              "min": 0.000001
             }
           ],
           "outputs": [
@@ -1002,11 +1004,119 @@
           "execution": {
             "primary": "numerical",
             "numerical": {
-              "solverId": "pendulum_dynamics_rk4_v1",
-              "method": "rk4_with_bounded_substeps",
-              "stepSeconds": 0.02
+              "solverId": "schema_ast_rk4",
+              "method": "rk4"
             },
-            "closedForm": null
+            "closedForm": null,
+            "math": {
+              "initial": {
+                "angle": "initial_angle",
+                "angular_velocity": "initial_angular_velocity"
+              },
+              "rates": {
+                "angle": "angular_velocity",
+                "angular_velocity": [
+                  "neg",
+                  [
+                    "mul",
+                    [
+                      "div",
+                      "gravitational_acceleration",
+                      "length"
+                    ],
+                    [
+                      "sin",
+                      "angle"
+                    ]
+                  ]
+                ]
+              },
+              "outputs": {
+                "angle": "angle",
+                "angular_velocity": "angular_velocity",
+                "x": [
+                  "mul",
+                  "length",
+                  [
+                    "sin",
+                    "angle"
+                  ]
+                ],
+                "y": [
+                  "neg",
+                  [
+                    "mul",
+                    "length",
+                    [
+                      "cos",
+                      "angle"
+                    ]
+                  ]
+                ],
+                "vx": [
+                  "mul",
+                  [
+                    "mul",
+                    "length",
+                    [
+                      "cos",
+                      "angle"
+                    ]
+                  ],
+                  "angular_velocity"
+                ],
+                "vy": [
+                  "mul",
+                  [
+                    "mul",
+                    "length",
+                    [
+                      "sin",
+                      "angle"
+                    ]
+                  ],
+                  "angular_velocity"
+                ]
+              },
+              "invariants": {
+                "specific_energy": [
+                  "add",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      0.5,
+                      [
+                        "pow",
+                        "length",
+                        2
+                      ]
+                    ],
+                    [
+                      "pow",
+                      "angular_velocity",
+                      2
+                    ]
+                  ],
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      "gravitational_acceleration",
+                      "length"
+                    ],
+                    [
+                      "sub",
+                      1,
+                      [
+                        "cos",
+                        "angle"
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            }
           },
           "validation": {
             "strategy": "residual_invariants",
@@ -1019,9 +1129,20 @@
             "benchmarks": [
               {
                 "name": "stationary_equilibrium",
+                "durationSeconds": 1,
                 "inputs": {
+                  "length": 1,
                   "initial_angle": 0,
-                  "initial_angular_velocity": 0
+                  "initial_angular_velocity": 0,
+                  "gravitational_acceleration": 9.8
+                },
+                "expectedOutputs": {
+                  "angle": 0,
+                  "angular_velocity": 0,
+                  "x": 0,
+                  "y": -1,
+                  "vx": 0,
+                  "vy": 0
                 }
               }
             ]
@@ -1042,6 +1163,287 @@
             {
               "source": "values.angle",
               "role": "angle_annotation"
+            }
+          ]
+        },
+        {
+          "capabilityId": "linear_restoring_force",
+          "version": "1.0",
+          "applicability": {
+            "quantities": [
+              "mass",
+              "stiffness",
+              "initial_displacement",
+              "initial_velocity"
+            ]
+          },
+          "canonicalInputs": [
+            {
+              "key": "mass",
+              "unit": "kg",
+              "min": 0.000001
+            },
+            {
+              "key": "stiffness",
+              "unit": "N/m",
+              "min": 0.000001
+            },
+            {
+              "key": "initial_displacement",
+              "unit": "m"
+            },
+            {
+              "key": "initial_velocity",
+              "unit": "m/s",
+              "defaultValue": 0
+            }
+          ],
+          "outputs": [
+            {
+              "key": "displacement",
+              "unit": "m"
+            },
+            {
+              "key": "velocity",
+              "unit": "m/s"
+            },
+            {
+              "key": "force",
+              "unit": "N"
+            }
+          ],
+          "assumptions": [
+            "Restoring force is linear within the declared domain.",
+            "Damping and driving are absent."
+          ],
+          "equationSet": {
+            "canonical": [
+              "F=-k*x",
+              "m*d2x/dt2=-k*x"
+            ],
+            "derived": [
+              "omega=sqrt(k/m)"
+            ]
+          },
+          "execution": {
+            "primary": "numerical",
+            "numerical": {
+              "solverId": "schema_ast_rk4",
+              "method": "rk4"
+            },
+            "closedForm": {
+              "solverId": "schema_ast_reference",
+              "method": "approved_ast"
+            },
+            "math": {
+              "initial": {
+                "displacement": "initial_displacement",
+                "velocity": "initial_velocity"
+              },
+              "rates": {
+                "displacement": "velocity",
+                "velocity": [
+                  "neg",
+                  [
+                    "mul",
+                    [
+                      "div",
+                      "stiffness",
+                      "mass"
+                    ],
+                    "displacement"
+                  ]
+                ]
+              },
+              "outputs": {
+                "displacement": "displacement",
+                "velocity": "velocity",
+                "force": [
+                  "neg",
+                  [
+                    "mul",
+                    "stiffness",
+                    "displacement"
+                  ]
+                ]
+              },
+              "closedForm": {
+                "displacement": [
+                  "add",
+                  [
+                    "mul",
+                    "initial_displacement",
+                    [
+                      "cos",
+                      [
+                        "mul",
+                        [
+                          "sqrt",
+                          [
+                            "div",
+                            "stiffness",
+                            "mass"
+                          ]
+                        ],
+                        "t"
+                      ]
+                    ]
+                  ],
+                  [
+                    "mul",
+                    [
+                      "div",
+                      "initial_velocity",
+                      [
+                        "sqrt",
+                        [
+                          "div",
+                          "stiffness",
+                          "mass"
+                        ]
+                      ]
+                    ],
+                    [
+                      "sin",
+                      [
+                        "mul",
+                        [
+                          "sqrt",
+                          [
+                            "div",
+                            "stiffness",
+                            "mass"
+                          ]
+                        ],
+                        "t"
+                      ]
+                    ]
+                  ]
+                ],
+                "velocity": [
+                  "add",
+                  [
+                    "neg",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        "initial_displacement",
+                        [
+                          "sqrt",
+                          [
+                            "div",
+                            "stiffness",
+                            "mass"
+                          ]
+                        ]
+                      ],
+                      [
+                        "sin",
+                        [
+                          "mul",
+                          [
+                            "sqrt",
+                            [
+                              "div",
+                              "stiffness",
+                              "mass"
+                            ]
+                          ],
+                          "t"
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "mul",
+                    "initial_velocity",
+                    [
+                      "cos",
+                      [
+                        "mul",
+                        [
+                          "sqrt",
+                          [
+                            "div",
+                            "stiffness",
+                            "mass"
+                          ]
+                        ],
+                        "t"
+                      ]
+                    ]
+                  ]
+                ],
+                "force": [
+                  "neg",
+                  [
+                    "mul",
+                    "stiffness",
+                    "displacement"
+                  ]
+                ]
+              },
+              "invariants": {
+                "energy": [
+                  "add",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      0.5,
+                      "mass"
+                    ],
+                    [
+                      "pow",
+                      "velocity",
+                      2
+                    ]
+                  ],
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      0.5,
+                      "stiffness"
+                    ],
+                    [
+                      "pow",
+                      "displacement",
+                      2
+                    ]
+                  ]
+                ]
+              }
+            }
+          },
+          "validation": {
+            "absoluteTolerance": 0.0001,
+            "relativeTolerance": 0.0001,
+            "strategy": "closed_form_checkpoints",
+            "invariants": [
+              "finite_output",
+              "mechanical_energy_conservation"
+            ],
+            "benchmarks": []
+          },
+          "validityDomain": {
+            "massPositive": true,
+            "stiffnessPositive": true,
+            "durationPositive": true
+          },
+          "rendererBindings": [
+            {
+              "source": "displacement",
+              "role": "displacement"
+            },
+            {
+              "source": "velocity",
+              "role": "velocity"
+            },
+            {
+              "source": "force",
+              "role": "force"
             }
           ]
         }
@@ -1092,18 +1494,17 @@
         "typed_relation"
       ],
       "simulationCapability": {
-        "mode": "matter_js",
-        "scope": "Two-dimensional rigid bodies with initial positions and velocities, gravity, collisions, static obstacles, and Matter.js constraints or springs. Other grounded high-school behavior may use the AI-authored visual runtime.",
+        "mode": "generated_visual",
+        "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
         "limitations": [
-          "Matter.js is limited to its rigid-body primitives. The AI-authored visual runtime can express other grounded high-school models, but its physics is not independently verified."
+          "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
         ],
         "runtimes": [
-          "matter_js",
           "generated_visual"
         ]
       },
       "limitations": [
-        "Matter.js is limited to its rigid-body primitives. The AI-authored visual runtime can express other grounded high-school models, but its physics is not independently verified."
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
       ],
       "conceptVocabulary": {
         "openWorld": true,
@@ -1114,16 +1515,16 @@
         "mode": "generated_scene",
         "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
         "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
-        "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+        "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
       }
     }
   },
   {
     "schemaId": "adaptive_electromagnetism",
-    "model": "matter_js",
+    "model": "generated_visual",
     "name": "Electromagnetism Concept Capability",
     "topic": "ELECTROMAGNETISM",
-    "version": "2.0",
+    "version": "2.1",
     "definition": {
       "metaSchemaVersion": "2.0",
       "description": "Conceptual vocabulary for electromagnetism. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
@@ -1533,16 +1934,16 @@
       ],
       "simulationCapability": {
         "mode": "generated_visual",
-        "scope": "AI-authored interactive visual models of high-school electromagnetic fields, charges, and induction.",
+        "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
         "limitations": [
-          "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+          "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
         ],
         "runtimes": [
           "generated_visual"
         ]
       },
       "limitations": [
-        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
       ],
       "conceptVocabulary": {
         "openWorld": true,
@@ -1553,16 +1954,16 @@
         "mode": "generated_scene",
         "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
         "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
-        "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+        "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
       }
     }
   },
   {
     "schemaId": "adaptive_kinematics",
-    "model": "matter_js",
+    "model": "generated_visual",
     "name": "Kinematics Concept Capability",
     "topic": "KINEMATICS",
-    "version": "2.0",
+    "version": "2.2",
     "definition": {
       "metaSchemaVersion": "2.0",
       "description": "Conceptual vocabulary for kinematics. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
@@ -1952,7 +2353,7 @@
       "capabilities": [
         {
           "capabilityId": "uniform_motion",
-          "version": "1.0",
+          "version": "2.0",
           "applicability": {
             "objectTypes": [
               "moving_body"
@@ -2023,12 +2424,62 @@
           "execution": {
             "primary": "closed_form",
             "numerical": {
-              "solverId": "uniform_acceleration_solver_v2",
-              "method": "typed_timeline"
+              "solverId": "schema_ast_rk4",
+              "method": "rk4"
             },
             "closedForm": {
-              "solverId": "uniform_acceleration_reference_v2",
-              "method": "independent_reference"
+              "solverId": "schema_ast_reference",
+              "method": "approved_ast"
+            },
+            "math": {
+              "initial": {
+                "position": "initial_position",
+                "velocity": "initial_velocity"
+              },
+              "rates": {
+                "position": "velocity",
+                "velocity": 0
+              },
+              "outputs": {
+                "position": "position",
+                "velocity": "velocity"
+              },
+              "closedForm": {
+                "position": [
+                  "add",
+                  [
+                    "add",
+                    "initial_position",
+                    [
+                      "mul",
+                      "initial_velocity",
+                      "t"
+                    ]
+                  ],
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      0.5,
+                      0
+                    ],
+                    [
+                      "pow",
+                      "t",
+                      2
+                    ]
+                  ]
+                ],
+                "velocity": [
+                  "add",
+                  "initial_velocity",
+                  [
+                    "mul",
+                    0,
+                    "t"
+                  ]
+                ]
+              }
             }
           },
           "validation": {
@@ -2053,7 +2504,7 @@
         },
         {
           "capabilityId": "uniform_acceleration",
-          "version": "1.0",
+          "version": "2.0",
           "applicability": {
             "objectTypes": [
               "moving_body"
@@ -2134,12 +2585,64 @@
           "execution": {
             "primary": "numerical",
             "numerical": {
-              "solverId": "uniform_acceleration_solver_v2",
-              "method": "typed_timeline"
+              "solverId": "schema_ast_rk4",
+              "method": "rk4"
             },
             "closedForm": {
-              "solverId": "uniform_acceleration_reference_v2",
-              "method": "independent_reference"
+              "solverId": "schema_ast_reference",
+              "method": "approved_ast"
+            },
+            "math": {
+              "initial": {
+                "position": "initial_position",
+                "velocity": "initial_velocity"
+              },
+              "rates": {
+                "position": "velocity",
+                "velocity": "acceleration"
+              },
+              "outputs": {
+                "position": "position",
+                "velocity": "velocity",
+                "acceleration": "acceleration"
+              },
+              "closedForm": {
+                "position": [
+                  "add",
+                  [
+                    "add",
+                    "initial_position",
+                    [
+                      "mul",
+                      "initial_velocity",
+                      "t"
+                    ]
+                  ],
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      0.5,
+                      "acceleration"
+                    ],
+                    [
+                      "pow",
+                      "t",
+                      2
+                    ]
+                  ]
+                ],
+                "velocity": [
+                  "add",
+                  "initial_velocity",
+                  [
+                    "mul",
+                    "acceleration",
+                    "t"
+                  ]
+                ],
+                "acceleration": "acceleration"
+              }
             }
           },
           "validation": {
@@ -2176,7 +2679,7 @@
         },
         {
           "capabilityId": "free_fall",
-          "version": "1.0",
+          "version": "2.0",
           "applicability": {
             "objectTypes": [
               "moving_body"
@@ -2199,12 +2702,9 @@
               "unit": "m/s"
             },
             {
-              "key": "acceleration",
-              "unit": "m/s^2"
-            },
-            {
               "key": "gravitational_acceleration",
-              "unit": "m/s^2"
+              "unit": "m/s^2",
+              "min": 5e-324
             }
           ],
           "outputs": [
@@ -2236,12 +2736,71 @@
           "execution": {
             "primary": "numerical",
             "numerical": {
-              "solverId": "uniform_acceleration_solver_v2",
-              "method": "typed_timeline"
+              "solverId": "schema_ast_rk4",
+              "method": "rk4"
             },
             "closedForm": {
-              "solverId": "uniform_acceleration_reference_v2",
-              "method": "independent_reference"
+              "solverId": "schema_ast_reference",
+              "method": "approved_ast"
+            },
+            "math": {
+              "initial": {
+                "position": "initial_position",
+                "velocity": "initial_velocity"
+              },
+              "rates": {
+                "position": "velocity",
+                "velocity": [
+                  "neg",
+                  "gravitational_acceleration"
+                ]
+              },
+              "outputs": {
+                "position": "position",
+                "velocity": "velocity"
+              },
+              "closedForm": {
+                "position": [
+                  "add",
+                  [
+                    "add",
+                    "initial_position",
+                    [
+                      "mul",
+                      "initial_velocity",
+                      "t"
+                    ]
+                  ],
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      0.5,
+                      [
+                        "neg",
+                        "gravitational_acceleration"
+                      ]
+                    ],
+                    [
+                      "pow",
+                      "t",
+                      2
+                    ]
+                  ]
+                ],
+                "velocity": [
+                  "add",
+                  "initial_velocity",
+                  [
+                    "mul",
+                    [
+                      "neg",
+                      "gravitational_acceleration"
+                    ],
+                    "t"
+                  ]
+                ]
+              }
             }
           },
           "validation": {
@@ -2262,7 +2821,7 @@
         },
         {
           "capabilityId": "projectile",
-          "version": "1.0",
+          "version": "2.0",
           "applicability": {
             "objectTypes": [
               "moving_body"
@@ -2296,7 +2855,8 @@
             },
             {
               "key": "gravitational_acceleration",
-              "unit": "m/s^2"
+              "unit": "m/s^2",
+              "min": 5e-324
             }
           ],
           "outputs": [
@@ -2338,12 +2898,126 @@
           "execution": {
             "primary": "numerical",
             "numerical": {
-              "solverId": "kinematics_projectile_solver_v2",
-              "method": "typed_timeline"
+              "solverId": "schema_ast_rk4",
+              "method": "rk4"
             },
             "closedForm": {
-              "solverId": "kinematics_projectile_reference_v2",
-              "method": "independent_reference"
+              "solverId": "schema_ast_reference",
+              "method": "approved_ast"
+            },
+            "math": {
+              "initial": {
+                "x": "initial_position",
+                "y": "initial_height",
+                "vx": [
+                  "mul",
+                  "initial_velocity",
+                  [
+                    "cos",
+                    "launch_angle"
+                  ]
+                ],
+                "vy": [
+                  "mul",
+                  "initial_velocity",
+                  [
+                    "sin",
+                    "launch_angle"
+                  ]
+                ]
+              },
+              "rates": {
+                "x": "vx",
+                "y": "vy",
+                "vx": 0,
+                "vy": [
+                  "neg",
+                  "gravitational_acceleration"
+                ]
+              },
+              "outputs": {
+                "x": "x",
+                "y": "y",
+                "vx": "vx",
+                "vy": "vy"
+              },
+              "closedForm": {
+                "x": [
+                  "add",
+                  "initial_position",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      "initial_velocity",
+                      [
+                        "cos",
+                        "launch_angle"
+                      ]
+                    ],
+                    "t"
+                  ]
+                ],
+                "y": [
+                  "add",
+                  [
+                    "add",
+                    "initial_height",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        "initial_velocity",
+                        [
+                          "sin",
+                          "launch_angle"
+                        ]
+                      ],
+                      "t"
+                    ]
+                  ],
+                  [
+                    "neg",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        0.5,
+                        "gravitational_acceleration"
+                      ],
+                      [
+                        "pow",
+                        "t",
+                        2
+                      ]
+                    ]
+                  ]
+                ],
+                "vx": [
+                  "mul",
+                  "initial_velocity",
+                  [
+                    "cos",
+                    "launch_angle"
+                  ]
+                ],
+                "vy": [
+                  "sub",
+                  [
+                    "mul",
+                    "initial_velocity",
+                    [
+                      "sin",
+                      "launch_angle"
+                    ]
+                  ],
+                  [
+                    "mul",
+                    "gravitational_acceleration",
+                    "t"
+                  ]
+                ]
+              }
             }
           },
           "validation": {
@@ -2411,18 +3085,17 @@
         "typed_relation"
       ],
       "simulationCapability": {
-        "mode": "matter_js",
-        "scope": "Two-dimensional motion of finite rigid bodies with initial positions and velocities, gravity, collisions, static obstacles, and Matter.js constraints or springs. Other grounded high-school behavior may use the AI-authored visual runtime.",
+        "mode": "generated_visual",
+        "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
         "limitations": [
-          "Matter.js is limited to its rigid-body primitives. The AI-authored visual runtime can express other grounded high-school models, but its physics is not independently verified."
+          "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
         ],
         "runtimes": [
-          "matter_js",
           "generated_visual"
         ]
       },
       "limitations": [
-        "Matter.js is limited to its rigid-body primitives. The AI-authored visual runtime can express other grounded high-school models, but its physics is not independently verified."
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
       ],
       "conceptVocabulary": {
         "openWorld": true,
@@ -2433,16 +3106,16 @@
         "mode": "generated_scene",
         "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
         "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
-        "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+        "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
       }
     }
   },
   {
     "schemaId": "adaptive_modern_physics",
-    "model": "matter_js",
+    "model": "generated_visual",
     "name": "Modern Physics Concept Capability",
     "topic": "MODERN_PHYSICS",
-    "version": "2.0",
+    "version": "2.1",
     "definition": {
       "metaSchemaVersion": "2.0",
       "description": "Conceptual vocabulary for modern physics. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
@@ -2799,16 +3472,16 @@
       ],
       "simulationCapability": {
         "mode": "generated_visual",
-        "scope": "AI-authored interactive visual models of high-school modern physics, including quantum, nuclear, and radiation processes.",
+        "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
         "limitations": [
-          "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+          "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
         ],
         "runtimes": [
           "generated_visual"
         ]
       },
       "limitations": [
-        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
       ],
       "conceptVocabulary": {
         "openWorld": true,
@@ -2819,16 +3492,16 @@
         "mode": "generated_scene",
         "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
         "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
-        "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+        "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
       }
     }
   },
   {
     "schemaId": "adaptive_practical_and_data",
-    "model": "matter_js",
+    "model": "generated_visual",
     "name": "Practical And Data Concept Capability",
     "topic": "PRACTICAL_AND_DATA",
-    "version": "2.0",
+    "version": "2.1",
     "definition": {
       "metaSchemaVersion": "2.0",
       "description": "Conceptual vocabulary for practical and data. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
@@ -3103,16 +3776,16 @@
       ],
       "simulationCapability": {
         "mode": "generated_visual",
-        "scope": "AI-authored interactive visual models of high-school measurements, instruments, data, and uncertainty.",
+        "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
         "limitations": [
-          "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+          "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
         ],
         "runtimes": [
           "generated_visual"
         ]
       },
       "limitations": [
-        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
       ],
       "conceptVocabulary": {
         "openWorld": true,
@@ -3123,16 +3796,16 @@
         "mode": "generated_scene",
         "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
         "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
-        "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+        "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
       }
     }
   },
   {
     "schemaId": "adaptive_thermal",
-    "model": "matter_js",
+    "model": "generated_visual",
     "name": "Thermal Concept Capability",
     "topic": "THERMAL",
-    "version": "2.0",
+    "version": "2.1",
     "definition": {
       "metaSchemaVersion": "2.0",
       "description": "Conceptual vocabulary for thermal. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
@@ -3572,16 +4245,16 @@
       ],
       "simulationCapability": {
         "mode": "generated_visual",
-        "scope": "AI-authored interactive visual models of high-school heat, gases, and thermal state changes.",
+        "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
         "limitations": [
-          "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+          "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
         ],
         "runtimes": [
           "generated_visual"
         ]
       },
       "limitations": [
-        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
       ],
       "conceptVocabulary": {
         "openWorld": true,
@@ -3592,16 +4265,16 @@
         "mode": "generated_scene",
         "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
         "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
-        "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+        "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
       }
     }
   },
   {
     "schemaId": "adaptive_waves",
-    "model": "matter_js",
+    "model": "generated_visual",
     "name": "Waves Concept Capability",
     "topic": "WAVES",
-    "version": "2.0",
+    "version": "2.1",
     "definition": {
       "metaSchemaVersion": "2.0",
       "description": "Conceptual vocabulary for waves. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
@@ -3967,16 +4640,16 @@
       ],
       "simulationCapability": {
         "mode": "generated_visual",
-        "scope": "AI-authored interactive visual models of high-school waves, sources, and media.",
+        "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
         "limitations": [
-          "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+          "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
         ],
         "runtimes": [
           "generated_visual"
         ]
       },
       "limitations": [
-        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
       ],
       "conceptVocabulary": {
         "openWorld": true,
@@ -3987,7 +4660,7 @@
         "mode": "generated_scene",
         "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
         "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
-        "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+        "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
       }
     }
   }

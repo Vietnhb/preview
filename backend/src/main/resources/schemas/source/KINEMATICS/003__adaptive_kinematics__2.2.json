@@ -1,0 +1,1152 @@
+{
+  "schemaId": "adaptive_kinematics",
+  "model": "generated_visual",
+  "name": "Kinematics Concept Capability",
+  "topic": "KINEMATICS",
+  "version": "2.2",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for kinematics. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "moving_body",
+        "label": "vật chuyển động",
+        "description": "Body with position or velocity over time."
+      },
+      {
+        "type": "reference_frame",
+        "label": "hệ quy chiếu",
+        "description": "Origin and positive direction for motion."
+      },
+      {
+        "type": "path",
+        "label": "quỹ đạo",
+        "description": "Described route or trajectory of a moving body."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "measured_in",
+        "label": "đo trong hệ quy chiếu",
+        "description": "Motion is measured in this frame.",
+        "subjectTypes": [
+          "moving_body"
+        ],
+        "objectTypes": [
+          "reference_frame"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body",
+            "reference_frame"
+          ]
+        }
+      },
+      {
+        "type": "moves_along",
+        "label": "chuyển động dọc",
+        "description": "Body follows the stated path.",
+        "subjectTypes": [
+          "moving_body"
+        ],
+        "objectTypes": [
+          "path"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body",
+            "path"
+          ]
+        }
+      },
+      {
+        "type": "relative_to",
+        "label": "chuyển động tương đối",
+        "description": "Motion compared with another body.",
+        "subjectTypes": [
+          "moving_body"
+        ],
+        "objectTypes": [
+          "moving_body"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "position",
+        "label": "tọa độ",
+        "description": "Signed coordinate in a stated frame.",
+        "aliases": [
+          "x",
+          "vị trí"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "initial_position",
+        "label": "tọa độ ban đầu",
+        "description": "Coordinate at the start.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "displacement",
+        "label": "độ dời",
+        "description": "Signed change in position.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "distance",
+        "label": "quãng đường",
+        "description": "Nonnegative path length.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "velocity",
+        "label": "vận tốc",
+        "description": "Signed rate of position change.",
+        "aliases": [
+          "v"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "initial_velocity",
+        "label": "vận tốc ban đầu",
+        "description": "Velocity at the start.",
+        "aliases": [
+          "v0"
+        ],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "speed",
+        "label": "tốc độ",
+        "description": "Magnitude of velocity.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "acceleration",
+        "label": "gia tốc",
+        "description": "Rate of velocity change.",
+        "aliases": [
+          "a"
+        ],
+        "allowedUnits": [
+          "m/s^2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "elapsed_time",
+        "label": "thời gian trôi qua",
+        "description": "Time since the stated start.",
+        "aliases": [],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "launch_angle",
+        "label": "góc phóng",
+        "description": "Angle from a stated reference direction.",
+        "aliases": [],
+        "allowedUnits": [
+          "rad"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "gravitational_acceleration",
+        "label": "gia tốc trọng trường",
+        "description": "Gravity value from user or explicit acceptance.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s^2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      },
+      {
+        "key": "mass",
+        "label": "khối lượng",
+        "description": "Body mass if it is relevant to the user request.",
+        "aliases": [
+          "m"
+        ],
+        "allowedUnits": [
+          "kg"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "m",
+        "dimension": "length"
+      },
+      {
+        "symbol": "m/s",
+        "dimension": "velocity"
+      },
+      {
+        "symbol": "m/s^2",
+        "dimension": "acceleration"
+      },
+      {
+        "symbol": "s",
+        "dimension": "time"
+      },
+      {
+        "symbol": "rad",
+        "dimension": "angle"
+      },
+      {
+        "symbol": "kg",
+        "dimension": "mass"
+      }
+    ],
+    "laws": [
+      {
+        "id": "velocity_definition",
+        "name": "Định nghĩa vận tốc",
+        "inputs": [
+          "velocity"
+        ],
+        "outputs": [
+          "position"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "velocity",
+            "position"
+          ]
+        },
+        "assumptions": [
+          "Frame and positive axis known when direction matters."
+        ],
+        "description": "Velocity is the rate of position change."
+      },
+      {
+        "id": "acceleration_definition",
+        "name": "Định nghĩa gia tốc",
+        "inputs": [
+          "acceleration"
+        ],
+        "outputs": [
+          "velocity"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "acceleration",
+            "velocity"
+          ]
+        },
+        "assumptions": [
+          "Velocity and acceleration share an axis."
+        ],
+        "description": "Acceleration is the rate of velocity change."
+      },
+      {
+        "id": "constant_acceleration",
+        "name": "Gia tốc không đổi",
+        "inputs": [
+          "initial_position",
+          "initial_velocity",
+          "acceleration",
+          "elapsed_time"
+        ],
+        "outputs": [
+          "position"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "initial_position",
+            "initial_velocity",
+            "acceleration",
+            "elapsed_time",
+            "position"
+          ]
+        },
+        "assumptions": [
+          "Acceleration is constant during the interval."
+        ],
+        "description": "One-dimensional constant-acceleration motion."
+      },
+      {
+        "id": "projectile_components",
+        "name": "Ném trong trọng trường đều",
+        "inputs": [
+          "initial_velocity",
+          "launch_angle",
+          "gravitational_acceleration"
+        ],
+        "outputs": [
+          "position",
+          "velocity"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "initial_velocity",
+            "launch_angle",
+            "gravitational_acceleration",
+            "position",
+            "velocity"
+          ]
+        },
+        "assumptions": [
+          "Air resistance is neglected only if stated or accepted.",
+          "Initial state and vertical direction are clear."
+        ],
+        "description": "Horizontal and vertical components under uniform gravity."
+      }
+    ],
+    "capabilities": [
+      {
+        "capabilityId": "uniform_motion",
+        "version": "2.0",
+        "applicability": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "initial_position",
+            "initial_velocity",
+            "elapsed_time"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "initial_position",
+            "unit": "m",
+            "defaultValue": 0
+          },
+          {
+            "key": "initial_velocity",
+            "unit": "m/s"
+          },
+          {
+            "key": "acceleration",
+            "unit": "m/s^2",
+            "defaultValue": 0
+          }
+        ],
+        "outputs": [
+          {
+            "key": "position",
+            "unit": "m"
+          },
+          {
+            "key": "velocity",
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [
+          "Acceleration is zero during the interval.",
+          "The selected axis is inertial."
+        ],
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "equationSet": {
+          "canonical": [
+            "x(t)=x0+v0*t",
+            "v(t)=v0"
+          ],
+          "derived": [
+            "displacement=x(t)-x0"
+          ],
+          "dependencies": [
+            {
+              "id": "position",
+              "dependsOn": [
+                "initial_position",
+                "initial_velocity"
+              ]
+            },
+            {
+              "id": "velocity",
+              "dependsOn": [
+                "initial_velocity"
+              ]
+            }
+          ]
+        },
+        "execution": {
+          "primary": "closed_form",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "position": "initial_position",
+              "velocity": "initial_velocity"
+            },
+            "rates": {
+              "position": "velocity",
+              "velocity": 0
+            },
+            "outputs": {
+              "position": "position",
+              "velocity": "velocity"
+            },
+            "closedForm": {
+              "position": [
+                "add",
+                [
+                  "add",
+                  "initial_position",
+                  [
+                    "mul",
+                    "initial_velocity",
+                    "t"
+                  ]
+                ],
+                [
+                  "mul",
+                  [
+                    "mul",
+                    0.5,
+                    0
+                  ],
+                  [
+                    "pow",
+                    "t",
+                    2
+                  ]
+                ]
+              ],
+              "velocity": [
+                "add",
+                "initial_velocity",
+                [
+                  "mul",
+                  0,
+                  "t"
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "strategy": "closed_form_checkpoints",
+          "absoluteTolerance": 1e-8,
+          "relativeTolerance": 1e-8,
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "rendererBindings": [
+          {
+            "source": "positions.x",
+            "role": "trajectory"
+          },
+          {
+            "source": "velocities.x",
+            "role": "velocity_vector"
+          }
+        ]
+      },
+      {
+        "capabilityId": "uniform_acceleration",
+        "version": "2.0",
+        "applicability": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "initial_position",
+            "initial_velocity",
+            "acceleration",
+            "elapsed_time"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "initial_position",
+            "unit": "m",
+            "defaultValue": 0
+          },
+          {
+            "key": "initial_velocity",
+            "unit": "m/s"
+          },
+          {
+            "key": "acceleration",
+            "unit": "m/s^2"
+          }
+        ],
+        "outputs": [
+          {
+            "key": "position",
+            "unit": "m"
+          },
+          {
+            "key": "velocity",
+            "unit": "m/s"
+          },
+          {
+            "key": "acceleration",
+            "unit": "m/s^2"
+          }
+        ],
+        "assumptions": [
+          "Acceleration is constant during the interval.",
+          "All participants use the same axis convention."
+        ],
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "equationSet": {
+          "canonical": [
+            "x(t)=x0+v0*t+0.5*a*t^2",
+            "v(t)=v0+a*t"
+          ],
+          "derived": [
+            "displacement=x(t)-x0"
+          ],
+          "dependencies": [
+            {
+              "id": "position",
+              "dependsOn": [
+                "initial_position",
+                "initial_velocity",
+                "acceleration"
+              ]
+            },
+            {
+              "id": "velocity",
+              "dependsOn": [
+                "initial_velocity",
+                "acceleration"
+              ]
+            },
+            {
+              "id": "acceleration",
+              "dependsOn": []
+            }
+          ]
+        },
+        "execution": {
+          "primary": "numerical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "position": "initial_position",
+              "velocity": "initial_velocity"
+            },
+            "rates": {
+              "position": "velocity",
+              "velocity": "acceleration"
+            },
+            "outputs": {
+              "position": "position",
+              "velocity": "velocity",
+              "acceleration": "acceleration"
+            },
+            "closedForm": {
+              "position": [
+                "add",
+                [
+                  "add",
+                  "initial_position",
+                  [
+                    "mul",
+                    "initial_velocity",
+                    "t"
+                  ]
+                ],
+                [
+                  "mul",
+                  [
+                    "mul",
+                    0.5,
+                    "acceleration"
+                  ],
+                  [
+                    "pow",
+                    "t",
+                    2
+                  ]
+                ]
+              ],
+              "velocity": [
+                "add",
+                "initial_velocity",
+                [
+                  "mul",
+                  "acceleration",
+                  "t"
+                ]
+              ],
+              "acceleration": "acceleration"
+            }
+          }
+        },
+        "validation": {
+          "strategy": "closed_form_checkpoints",
+          "absoluteTolerance": 1e-8,
+          "relativeTolerance": 1e-8,
+          "invariants": [
+            "finite_output",
+            "v_equals_v0_plus_a_times_t"
+          ],
+          "benchmarks": [
+            {
+              "name": "zero_acceleration",
+              "inputs": {
+                "acceleration": 0
+              }
+            }
+          ]
+        },
+        "rendererBindings": [
+          {
+            "source": "positions.x",
+            "role": "trajectory"
+          },
+          {
+            "source": "velocities.x",
+            "role": "velocity_vector"
+          },
+          {
+            "source": "accelerations.x",
+            "role": "acceleration_vector"
+          }
+        ]
+      },
+      {
+        "capabilityId": "free_fall",
+        "version": "2.0",
+        "applicability": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "initial_position",
+            "initial_velocity",
+            "gravitational_acceleration",
+            "elapsed_time"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "initial_position",
+            "unit": "m",
+            "defaultValue": 0
+          },
+          {
+            "key": "initial_velocity",
+            "unit": "m/s"
+          },
+          {
+            "key": "gravitational_acceleration",
+            "unit": "m/s^2",
+            "min": 5e-324
+          }
+        ],
+        "outputs": [
+          {
+            "key": "position",
+            "unit": "m"
+          },
+          {
+            "key": "velocity",
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [
+          "Air resistance is neglected.",
+          "Gravity is uniform and points along the selected axis."
+        ],
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "equationSet": {
+          "canonical": [
+            "a=-g",
+            "x(t)=x0+v0*t-0.5*g*t^2",
+            "v(t)=v0-g*t"
+          ],
+          "derived": [],
+          "dependencies": []
+        },
+        "execution": {
+          "primary": "numerical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "position": "initial_position",
+              "velocity": "initial_velocity"
+            },
+            "rates": {
+              "position": "velocity",
+              "velocity": [
+                "neg",
+                "gravitational_acceleration"
+              ]
+            },
+            "outputs": {
+              "position": "position",
+              "velocity": "velocity"
+            },
+            "closedForm": {
+              "position": [
+                "add",
+                [
+                  "add",
+                  "initial_position",
+                  [
+                    "mul",
+                    "initial_velocity",
+                    "t"
+                  ]
+                ],
+                [
+                  "mul",
+                  [
+                    "mul",
+                    0.5,
+                    [
+                      "neg",
+                      "gravitational_acceleration"
+                    ]
+                  ],
+                  [
+                    "pow",
+                    "t",
+                    2
+                  ]
+                ]
+              ],
+              "velocity": [
+                "add",
+                "initial_velocity",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "gravitational_acceleration"
+                  ],
+                  "t"
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "strategy": "closed_form_checkpoints",
+          "absoluteTolerance": 1e-8,
+          "relativeTolerance": 1e-8,
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "rendererBindings": [
+          {
+            "source": "positions.x",
+            "role": "trajectory"
+          }
+        ]
+      },
+      {
+        "capabilityId": "projectile",
+        "version": "2.0",
+        "applicability": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "quantities": [
+            "initial_position",
+            "initial_velocity",
+            "launch_angle",
+            "gravitational_acceleration",
+            "elapsed_time"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "initial_position",
+            "unit": "m",
+            "defaultValue": 0
+          },
+          {
+            "key": "initial_height",
+            "unit": "m",
+            "defaultValue": 0
+          },
+          {
+            "key": "initial_velocity",
+            "unit": "m/s"
+          },
+          {
+            "key": "launch_angle",
+            "unit": "rad"
+          },
+          {
+            "key": "gravitational_acceleration",
+            "unit": "m/s^2",
+            "min": 5e-324
+          }
+        ],
+        "outputs": [
+          {
+            "key": "x",
+            "unit": "m"
+          },
+          {
+            "key": "y",
+            "unit": "m"
+          },
+          {
+            "key": "vx",
+            "unit": "m/s"
+          },
+          {
+            "key": "vy",
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [
+          "Air resistance is neglected.",
+          "Gravity is uniform."
+        ],
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "equationSet": {
+          "canonical": [
+            "x=x0+v0*cos(theta)*t",
+            "y=y0+v0*sin(theta)*t-0.5*g*t^2"
+          ],
+          "derived": [
+            "vx=v0*cos(theta)",
+            "vy=v0*sin(theta)-g*t"
+          ],
+          "dependencies": []
+        },
+        "execution": {
+          "primary": "numerical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "x": "initial_position",
+              "y": "initial_height",
+              "vx": [
+                "mul",
+                "initial_velocity",
+                [
+                  "cos",
+                  "launch_angle"
+                ]
+              ],
+              "vy": [
+                "mul",
+                "initial_velocity",
+                [
+                  "sin",
+                  "launch_angle"
+                ]
+              ]
+            },
+            "rates": {
+              "x": "vx",
+              "y": "vy",
+              "vx": 0,
+              "vy": [
+                "neg",
+                "gravitational_acceleration"
+              ]
+            },
+            "outputs": {
+              "x": "x",
+              "y": "y",
+              "vx": "vx",
+              "vy": "vy"
+            },
+            "closedForm": {
+              "x": [
+                "add",
+                "initial_position",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "initial_velocity",
+                    [
+                      "cos",
+                      "launch_angle"
+                    ]
+                  ],
+                  "t"
+                ]
+              ],
+              "y": [
+                "add",
+                [
+                  "add",
+                  "initial_height",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      "initial_velocity",
+                      [
+                        "sin",
+                        "launch_angle"
+                      ]
+                    ],
+                    "t"
+                  ]
+                ],
+                [
+                  "neg",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      0.5,
+                      "gravitational_acceleration"
+                    ],
+                    [
+                      "pow",
+                      "t",
+                      2
+                    ]
+                  ]
+                ]
+              ],
+              "vx": [
+                "mul",
+                "initial_velocity",
+                [
+                  "cos",
+                  "launch_angle"
+                ]
+              ],
+              "vy": [
+                "sub",
+                [
+                  "mul",
+                  "initial_velocity",
+                  [
+                    "sin",
+                    "launch_angle"
+                  ]
+                ],
+                [
+                  "mul",
+                  "gravitational_acceleration",
+                  "t"
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "strategy": "closed_form_checkpoints",
+          "absoluteTolerance": 1e-7,
+          "relativeTolerance": 1e-7,
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "rendererBindings": [
+          {
+            "source": "positions.x",
+            "role": "trajectory_x"
+          },
+          {
+            "source": "positions.y",
+            "role": "trajectory_y"
+          }
+        ]
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "reference_axis",
+        "description": "Clarify frame and positive axis when direction affects the result.",
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body",
+            "reference_frame"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "initial_state",
+        "description": "Dynamic states need user-supplied or accepted initial values.",
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "constant_acceleration_condition",
+        "description": "Use constant-acceleration formulas only with that assumption.",
+        "appliesTo": {
+          "objectTypes": [
+            "moving_body"
+          ],
+          "relationTypes": [],
+          "quantities": [
+            "acceleration"
+          ]
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
+      "limitations": [
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
+    }
+  }
+}

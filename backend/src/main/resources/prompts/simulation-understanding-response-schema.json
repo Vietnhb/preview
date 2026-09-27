@@ -33,6 +33,33 @@
       "description": "Open semantic brief. Keep the known fields when useful and add domain-specific fields when the scene needs them.",
       "additionalProperties": true,
       "properties": {
+        "durationSeconds": { "type": "number", "exclusiveMinimum": 0 },
+        "durationParameter": { "type": "string", "description": "Optional name of a seconds-valued duration control; initial value equals durationSeconds." },
+        "physicsCoverage": { "enum": ["COMPLETE", "PARTIAL", "NONE"] },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" }, "label": { "type": "string" },
+              "value": { "type": "number" }, "unit": { "type": "string" },
+              "min": { "type": "number" }, "max": { "type": "number" }, "step": { "type": "number" }
+            },
+            "required": ["name", "label", "value", "unit", "min", "max"]
+          }
+        },
+        "physicsModels": {
+          "type": "array",
+          "description": "Bindings to approved capability equations. Every model has a unique id, capabilityId and inputs mapping canonical input keys to parameter names or SI numeric constants. Do not put executable formulas here.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" }, "label": { "type": "string" }, "capabilityId": { "type": "string" },
+              "inputs": { "type": "object", "additionalProperties": { "type": ["string", "number"] } }
+            },
+            "required": ["id", "capabilityId", "inputs"]
+          }
+        },
         "runtimeKind": {
           "type": ["string", "null"],
           "description": "Optional transport marker. The server normalizes this to VISUAL and it never restricts the subject, style, or rendering technique."

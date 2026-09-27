@@ -5,14 +5,14 @@ import "katex/dist/katex.min.css";
 import LearningHeader from "../../components/common/LearningHeader";
 import Icon from "../../components/common/LearningIcon";
 import TeacherLibraryPane from "../../components/workspace/TeacherLibraryPane";
-import VisualSandbox from "../../simulation/VisualSandbox";
-import { validateVisualProgram } from "../../simulation/visualCodeSafety";
+import SvgPixiScene from "../../simulation/SvgPixiScene";
+import type { SolverTimeline } from "../../simulation/svgScene";
 import {
   confirmSimulationExplanation,
   confirmSimulationInput,
   recognizeSimulationImage,
   understandSimulationText,
-  reportSimulationValidation,
+  recomputeSimulation,
   reviseSimulationIntent,
   type IntentResult,
   type SimulationParameter,
@@ -61,12 +61,11 @@ function parameterValue(parameter: SimulationParameter) {
   return parameter.value;
 }
 
-function parameterBounds(parameter: SimulationParameter, visual = false): [number, number] {
+function parameterBounds(parameter: SimulationParameter): [number, number] {
   const center = parameterValue(parameter);
   const span = Math.max(1, Math.abs(center) * 2);
-  const limit = visual ? 1e30 : 1_000_000;
-  const min = Math.max(-limit, Number.isFinite(parameter.min) ? parameter.min! : center - span);
-  const max = Math.min(limit, Number.isFinite(parameter.max) ? parameter.max! : center + span);
+  const min = Number.isFinite(parameter.min) ? parameter.min! : center - span;
+  const max = Number.isFinite(parameter.max) ? parameter.max! : center + span;
   return min <= max ? [min, max] : [center, center];
 }
 
@@ -87,13 +86,12 @@ function RecognitionDisplay({ recognition }: Readonly<{ recognition: Recognition
   </div>;
 }
 
-function SimulationParameterControl({ parameter, value, visual, onChange }: Readonly<{
+function SimulationParameterControl({ parameter, value, onChange }: Readonly<{
   parameter: SimulationParameter;
   value: number;
-  visual: boolean;
   onChange: (value: number) => void;
 }>) {
-  const [min, max] = parameterBounds(parameter, visual);
+  const [min, max] = parameterBounds(parameter);
   const [draft, setDraft] = useState<string | null>(null);
   const commit = () => {
     const numeric = draft?.trim() ? Number(draft) : NaN;
@@ -102,7 +100,7 @@ function SimulationParameterControl({ parameter, value, visual, onChange }: Read
   };
   return <label className="simulation-control"><span>{parameter.label || parameter.name}</span>
     <strong>{Number(value.toPrecision(5))} {parameter.unit}</strong>
-    {min < max && <><input type="range" min={min} max={max} step="any" value={value}
+    {min < max && <><input type="range" min={min} max={max} step={parameter.step ?? "any"} value={value}
       onChange={(event) => onChange(Number(event.target.value))} />
       <input type="number" min={min} max={max} step="any" value={draft ?? String(value)}
         onFocus={() => setDraft(String(value))} onChange={(event) => setDraft(event.target.value)}
@@ -110,24 +108,16 @@ function SimulationParameterControl({ parameter, value, visual, onChange }: Read
   </label>;
 }
 
-type PlannedScene = NonNullable<NonNullable<GeneratedSimulationResult["simulationSpec"]>["plannedScene"]>;
-
-function SimulationSceneInventory({ scene }: Readonly<{ scene: PlannedScene }>) {
-  const value = (number: number) => Number(number.toPrecision(6));
-  return <details className="simulation-scene-inventory">
-    <summary>Planned objects and fixed values · {scene.bodies.length} objects</summary>
-    <p>Initial values compiled from the confirmed description. Compare every object before relying on the motion.</p>
-    <p>Duration {value(scene.durationSeconds)} s · gravity ({value(scene.gravity.x)}, {value(scene.gravity.y)}) m/s²
-      {scene.constraints.length > 0 && ` · ${scene.constraints.length} links`}</p>
-    <ol>{scene.bodies.map((body) => <li key={body.id}>
-      <strong>{body.label}</strong> <span>({body.shape}{body.isStatic ? ", fixed" : ""})</span>
-      <span>Position ({value(body.x)}, {value(body.y)}) m</span>
-      <span>{body.shape === "circle" ? `Radius ${value(body.radius)} m`
-        : `Size ${value(body.width)} × ${value(body.height)} m`}</span>
-      {!body.isStatic && <><span>Mass {value(body.mass)} kg</span>
-        <span>Velocity ({value(body.vx)}, {value(body.vy)}) m/s</span></>}
-    </li>)}</ol>
-  </details>;
+function FormulaReview({ intent }: Readonly<{ intent: IntentResult }>) {
+  return <div className="simulation-formulas">
+    <h3>Công thức áp dụng</h3>
+    {intent.formulas?.length ? intent.formulas.map(formula => <div key={formula.modelId}>
+      <strong>{formula.modelId} · {formula.capabilityId}</strong>
+      {formula.canonical.map((equation, index) => <p key={index}><code>{equation}</code></p>)}
+      {!!formula.derived?.length && <p>Biểu thức suy ra: {formula.derived.join("; ")}</p>}
+    </div>) : <p>Chưa có phương trình thực thi phù hợp trong schema; chỉ có thể tạo minh họa chưa xác minh.</p>}
+    <p className="simulation-muted">Schema {intent.schemaId} · phiên bản {intent.schemaVersion}</p>
+  </div>;
 }
 
 export default function SimulationWorkspace() {
@@ -153,6 +143,8 @@ export default function SimulationWorkspace() {
   const [intent, setIntent] = useState<IntentResult | null>(null);
   const [revision, setRevision] = useState("");
   const [simulation, setSimulation] = useState<GeneratedSimulationResult | null>(null);
+  const [liveTimeline, setLiveTimeline] = useState<SolverTimeline | null>(null);
+  const [renderError, setRenderError] = useState("");
   const [values, setValues] = useState<Record<string, number>>({});
   const [runValues, setRunValues] = useState<Record<string, number>>({});
   const [sandboxKey, setSandboxKey] = useState(0);
@@ -215,6 +207,7 @@ export default function SimulationWorkspace() {
     setIntent(null);
     setRevision("");
     setSimulation(null);
+    setLiveTimeline(null);
     setValues({});
     setRunValues({});
     setValidation(null);
@@ -304,8 +297,10 @@ export default function SimulationWorkspace() {
     setBusy(true);
     setError("");
     try {
-      const result = await reviseSimulationIntent(intent.sessionId, revision.trim());
+      const result = await reviseSimulationIntent(intent, revision.trim());
       setIntent(result);
+      setSimulation(null);
+      setValidation(result.validation ?? null);
       setRevision("");
     } catch (cause) {
       setError(getError(cause));
@@ -314,21 +309,13 @@ export default function SimulationWorkspace() {
     }
   };
 
-  const generate = async () => {
+  const generate = async (renderDiagnostics?: { code: string; message: string }) => {
     if (!intent || intent.stage !== "EXPLAIN" || busy) return;
     setBusy(true);
     setError("");
     try {
-      const result = await confirmSimulationExplanation(intent.sessionId);
-      if (result.stage !== "SIMULATION") {
-        setIntent(result);
-        setSimulation(null);
-        setValidation(null);
-        return;
-      }
+      const result = await confirmSimulationExplanation(intent, renderDiagnostics);
       const parameters = result.parameters ?? [];
-      if (parameters.some((item) => !/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(item.name)))
-        throw new Error("Generated simulation contains an invalid parameter name.");
       if (new Set(parameters.map((item) => item.name)).size !== parameters.length)
         throw new Error("Generated simulation contains duplicate parameter names.");
       if (
@@ -343,22 +330,21 @@ export default function SimulationWorkspace() {
       const paramValues = Object.fromEntries(
         parameters.map((item) => [item.name, parameterValue(item)]),
       );
-      const parameterLimit = 1e30;
       if (
         Object.values(paramValues).some(
-          (value) => !Number.isFinite(value) || Math.abs(value) > parameterLimit,
+          (value) => !Number.isFinite(value),
         )
       )
         throw new Error("Generated simulation has a parameter outside the local runtime limit.");
-      const unsafe = result.simulationSpec?.visualProgram
-        ? validateVisualProgram(result.simulationSpec.visualProgram, Object.keys(paramValues))
-        : "Solver-bound visual simulation program is missing.";
-      if (unsafe) throw new Error(`Generated simulation failed the safety check: ${unsafe}`);
-      setValues(paramValues);
-      setRunValues(paramValues);
-      setValidation(result.validation);
+      if (!result.simulationSpec.visualProgram?.code || !result.simulationSpec.solverTimeline)
+        throw new Error("Generated simulation is missing its PixiJS code or server timeline.");
+      setValues(previous => renderDiagnostics ? previous : paramValues);
+      setRunValues(previous => renderDiagnostics ? previous : paramValues);
+      setValidation(previous => renderDiagnostics ? previous : result.validation);
       setSimulation(result);
-      setLocallyAdjusted(false);
+      setRenderError("");
+      setLiveTimeline(previous => renderDiagnostics ? previous : result.simulationSpec.solverTimeline!);
+      setLocallyAdjusted(Boolean(renderDiagnostics));
       setSandboxKey((key) => key + 1);
     } catch (cause) {
       setError(getError(cause));
@@ -367,45 +353,27 @@ export default function SimulationWorkspace() {
     }
   };
 
-  const onLocalValidation = (result: SimulationValidation) => {
-    if (!simulation) return;
-    if (result.status === "PAUSED") return;
-    const authoritative = new Set([
-      "VERIFIED_ANALYTICAL", "VERIFIED_NUMERICAL", "VISUAL_ONLY_UNVERIFIED",
-      "UNSUPPORTED", "ASSUMPTION_REVIEW", "FLAGGED",
-    ]);
-    setValidation((current) => current && authoritative.has(current.status) ? current : result);
-    void reportSimulationValidation(simulation.sessionId, result, runValues)
-      .then((serverValidation) => setValidation(serverValidation))
-      .catch(() => {
-        setValidation((current) =>
-          current?.status === "FLAGGED"
-            ? {
-                ...current,
-                flags: [
-                  ...current.flags,
-                  "Could not send the validation flag to the reviewer log.",
-                ],
-              }
-            : current,
-        );
-      });
-  };
-
   useEffect(() => {
     if (!simulation || !locallyAdjusted) return;
+    const controller = new AbortController();
     const timeout = window.setTimeout(() => {
-      setRunValues(values);
-      setSandboxKey((key) => key + 1);
+      void recomputeSimulation(simulation, values, controller.signal).then(result => {
+        if (controller.signal.aborted) return;
+        setLiveTimeline(result.solverTimeline);
+        setRunValues(values);
+        setValidation(result.validation);
+        setError(null);
+      }).catch((cause: unknown) => {
+        if (controller.signal.aborted) return;
+        setError(getError(cause));
+        setValidation({ status: "FLAGGED", flags: [getError(cause)] });
+      });
     }, 180);
-    return () => window.clearTimeout(timeout);
+    return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [values, simulation, locallyAdjusted]);
 
   const updateParameter = (parameter: SimulationParameter, numeric: number) => {
-    const [min, max] = parameterBounds(
-      parameter,
-      simulation?.simulationSpec?.runtimeKind === "VISUAL",
-    );
+    const [min, max] = parameterBounds(parameter);
     if (!Number.isFinite(numeric)) return;
     setValues((current) => ({
       ...current,
@@ -413,7 +381,7 @@ export default function SimulationWorkspace() {
     }));
     setLocallyAdjusted(true);
     setValidation({
-      status: simulation?.simulationSpec?.runtimeKind === "VISUAL" ? "UNVERIFIED" : "PENDING",
+      status: "PENDING",
       flags: [],
     });
   };
@@ -424,7 +392,7 @@ export default function SimulationWorkspace() {
       simulation.parameters.map((p) => [p.name, parameterValue(p)]),
     );
     setValues(initial);
-    setRunValues(initial);
+    setLocallyAdjusted(true);
   };
 
   const recognitionLowConfidence =
@@ -506,7 +474,6 @@ export default function SimulationWorkspace() {
                       onClick={() => {
                         setRunValues(values);
                         setSandboxKey((key) => key + 1);
-                        setValidation(simulation.validation);
                       }}
                     >
                       <Icon name="reset" /> Restart
@@ -514,22 +481,34 @@ export default function SimulationWorkspace() {
                   </div>
 
                   <div className="simulation-sandbox-card">
-                    {simulation.simulationSpec?.visualProgram ? (
-                      <VisualSandbox
+                    {simulation.simulationSpec.visualProgram && liveTimeline ? (
+                      <SvgPixiScene
                         key={sandboxKey}
                           program={simulation.simulationSpec.visualProgram}
+                          timeline={liveTimeline}
                           parameters={runValues}
-                          durationSeconds={simulation.simulationSpec.durationSeconds ?? 0}
-                          solverTimeline={simulation.simulationSpec.solverTimeline}
-                          onValidation={onLocalValidation}
+                          verificationStatus={validation?.status ?? "VISUAL_ONLY_UNVERIFIED"}
+                          onRenderError={setRenderError}
                       />
                     ) : (
-                      <p className="simulation-muted">Simulation has no solver-bound visual program and cannot be executed safely.</p>
+                      <p className="simulation-muted">Chưa có code PixiJS và timeline để hiển thị.</p>
                     )}
                   </div>
+                  {renderError && <button type="button" disabled={busy} onClick={() => void generate({ code: simulation.code, message: renderError })}>
+                    {busy ? "AI đang sửa code…" : "Yêu cầu AI sửa lỗi render"}
+                  </button>}
+                  {!renderError && <button type="button" disabled={busy} onClick={() => void generate({
+                    code: simulation.code,
+                    message: "Redesign the current visual presentation as a polished, contextual illustrated world following the original user description and the rendering contract's art direction. Improve clarity, artwork, environment and composition; preserve the signed physics plan. This is visual design feedback, not physics validation.",
+                  })}>{busy ? "AI đang thiết kế lại…" : "Thiết kế lại hình ảnh bằng AI"}</button>}
                   <p className="simulation-muted">
-                    Parameter changes rerun the visual renderer locally; physics remains server-solver-bound.
+                    Kéo tham số để tính lại bằng backend. PixiJS + SVG do AI sinh; BE xác minh dữ liệu vật lý, không xác minh code vẽ.
                   </p>
+                  <details>
+                    <summary>Code PixiJS + SVG do LLM sinh</summary>
+                    <pre style={{ overflow: "auto", maxHeight: "28rem", whiteSpace: "pre-wrap" }}>{simulation.code}</pre>
+                  </details>
+                  {error && <p className="simulation-error" role="alert">{error}</p>}
                 </div>
               ) : (
                 /* Layout giữa khi chưa có mô phỏng: Nhập đề, nhận diện, giải thích */
@@ -737,6 +716,7 @@ export default function SimulationWorkspace() {
                         <>
                           <h2>Review the intended simulation</h2>
                           <p className="simulation-explanation">{intent.explanation}</p>
+                          <FormulaReview intent={intent} />
                           <p className="simulation-muted">
                             Any predicted outcome here is provisional until the simulation and background check run.
                           </p>
@@ -827,7 +807,6 @@ export default function SimulationWorkspace() {
                         <SimulationParameterControl
                           key={parameter.name}
                           parameter={parameter}
-                          visual={simulation.simulationSpec?.runtimeKind === "VISUAL"}
                           value={values[parameter.name] ?? parameterValue(parameter)}
                           onChange={(next) => updateParameter(parameter, next)}
                         />
@@ -890,6 +869,8 @@ export default function SimulationWorkspace() {
                         ? "Chỉ minh họa — chưa xác minh vật lý"
                         : validation?.status === "UNSUPPORTED"
                         ? "Chưa hỗ trợ trung thực"
+                        : validation?.status === "PENDING"
+                        ? "Đang tính lại và kiểm tra…"
                         : validation?.status === "PAUSED"
                         ? "Đã dừng"
                         : validation?.status === "UNVERIFIED"
@@ -903,6 +884,7 @@ export default function SimulationWorkspace() {
                         {validation.referenceSolverVersion ? ` · Reference: ${validation.referenceSolverVersion}` : ""}
                       </p>
                     )}
+                    {validation?.verificationScope && <p>Phạm vi xác minh: {validation.verificationScope}</p>}
                     {validation?.verificationMethod && (
                       <p>Phương pháp xác minh: {validation.verificationMethod}</p>
                     )}
@@ -926,6 +908,7 @@ export default function SimulationWorkspace() {
                   {intent?.explanation ? (
                     <div style={{ marginTop: 10 }}>
                       <p className="simulation-explanation">{intent.explanation}</p>
+                      <FormulaReview intent={intent} />
                     </div>
                   ) : (
                     <p className="simulation-muted" style={{ padding: "12px 0" }}>
@@ -964,22 +947,6 @@ export default function SimulationWorkspace() {
               {inspectorTab === "details" && (
                 <div>
                   <h3>Chi tiết mô hình</h3>
-                  {simulation?.simulationSpec?.sceneWarnings?.length ? (
-                    <div className="simulation-warning" role="status" style={{ marginTop: 10 }}>
-                      <strong>Cảnh báo khung cảnh</strong>
-                      <ul>
-                        {simulation.simulationSpec.sceneWarnings.map((w, index) => (
-                          <li key={index}>{w}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  {simulation?.simulationSpec?.plannedScene && (
-                    <div style={{ marginTop: 10 }}>
-                      <SimulationSceneInventory scene={simulation.simulationSpec.plannedScene} />
-                    </div>
-                  )}
 
                   {intent?.simulationSpec?.requiredObjects?.length ? (
                     <div className="simulation-requirement-review" style={{ marginTop: 12 }}>
@@ -996,7 +963,7 @@ export default function SimulationWorkspace() {
                       </ul>
                     </div>
                   ) : (
-                    !simulation?.simulationSpec?.plannedScene && (
+                    !simulation && (
                       <p className="simulation-muted" style={{ padding: "12px 0" }}>
                         AI sẽ chọn các thành phần trực quan theo ngữ cảnh mô tả.
                       </p>

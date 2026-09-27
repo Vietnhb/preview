@@ -1,9 +1,9 @@
 {
   "schemaId": "adaptive_electromagnetism",
-  "model": "matter_js",
+  "model": "generated_visual",
   "name": "Electromagnetism Concept Capability",
   "topic": "ELECTROMAGNETISM",
-  "version": "2.0",
+  "version": "2.1",
   "definition": {
     "metaSchemaVersion": "2.0",
     "description": "Conceptual vocabulary for electromagnetism. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
@@ -413,16 +413,16 @@
     ],
     "simulationCapability": {
       "mode": "generated_visual",
-      "scope": "AI-authored interactive visual models of high-school electromagnetic fields, charges, and induction.",
+      "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
       "limitations": [
-        "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
       ],
       "runtimes": [
         "generated_visual"
       ]
     },
     "limitations": [
-      "The AI-authored model and displayed values need review; this runtime has no independent physics solver."
+      "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
     ],
     "conceptVocabulary": {
       "openWorld": true,
@@ -433,7 +433,7 @@
       "mode": "generated_scene",
       "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
       "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
-      "interaction": "Parameter changes run locally only when a validated local model exists; otherwise the visual remains explanatory."
+      "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
     }
   }
 }

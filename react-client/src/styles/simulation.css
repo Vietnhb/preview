@@ -578,3 +578,10 @@
 :root[data-theme-effective="dark"] .simulation-stage-container .simulation-restart-button:hover {
   background: #27374b;
 }
+.simulation-svg-stage { width: 100%; min-height: 200px; overflow: hidden; }
+.simulation-svg-stage canvas { display: block; max-width: 100%; }
+.simulation-playback { display: flex; align-items: center; gap: 12px; padding: 12px; flex-wrap: wrap; }
+.simulation-playback input { flex: 1; min-width: 100px; }
+.simulation-playback output { font-variant-numeric: tabular-nums; }
+.simulation-formulas { margin: 16px 0; padding: 16px; border: 1px solid var(--border-color, #cbd5e1); border-radius: 12px; }
+.simulation-formulas code { font-size: 0.95em; overflow-wrap: anywhere; }

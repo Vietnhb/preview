@@ -4,6 +4,7 @@ import com.example.backend.config.properties.JevProperties;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.exception.ApiException;
 import com.example.backend.service.problem.SchemaDefinitionService;
+import com.example.backend.service.simulation.SchemaEquationRuntime;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -40,6 +41,7 @@ import java.util.UUID;
 public class SimulationUnderstandingController {
     private static final String NO_MATCH = "NO_MATCH";
     private final SchemaDefinitionService schemas;
+    private final SchemaEquationRuntime equations;
     private final JevProperties jev;
     private final ObjectMapper json;
     private final HttpClient http;
@@ -52,8 +54,19 @@ public class SimulationUnderstandingController {
     private final Duration llmTimeout;
     private final long maxImageBytes;
     private final Set<String> allowedImageTypes;
+    private final byte[] signingKey;
+    private final int maxProgramCharacters;
+    private final boolean strictStructuredOutput;
+    private final int maxCompletionTokens;
+    private final boolean visualSupportsResponseFormat;
+    private final String visualApiKey;
+    private final String visualProvider;
+    private final URI visualBaseUrl;
+    private final String visualModel;
+    private final double visualTemperature;
+    private final Duration visualTimeout;
 
-    public SimulationUnderstandingController(SchemaDefinitionService schemas, JevProperties jev,
+    public SimulationUnderstandingController(SchemaDefinitionService schemas, SchemaEquationRuntime equations, JevProperties jev,
             ObjectMapper json, @Value("${physlive.ai.provider.api-key}") String llmApiKey,
             @Value("${physlive.ai.provider.base-url}") URI llmBaseUrl,
             @Value("${physlive.ai.provider.text-model}") String llmModel,
@@ -63,8 +76,20 @@ public class SimulationUnderstandingController {
             @Value("${physlive.ai.provider.read-timeout}") Duration llmTimeout,
             @Value("${physlive.ai.provider.understanding-temperature}") double llmTemperature,
             @Value("${physlive.upload.max-image-bytes}") long maxImageBytes,
-            @Value("${physlive.upload.allowed-image-types}") String allowedImageTypes) {
+            @Value("${physlive.upload.allowed-image-types}") String allowedImageTypes,
+            @Value("${jwt.secret}") String signingKey,
+            @Value("${physlive.simulation.runtime.max-program-part-characters}") int maxProgramCharacters,
+            @Value("${physlive.ai.visual.strict-structured-output}") boolean strictStructuredOutput,
+            @Value("${physlive.ai.visual.supports-response-format}") boolean visualSupportsResponseFormat,
+            @Value("${physlive.ai.visual.max-completion-tokens}") int maxCompletionTokens,
+            @Value("${physlive.ai.visual.api-key}") String visualApiKey,
+            @Value("${physlive.ai.visual.provider}") String visualProvider,
+            @Value("${physlive.ai.visual.base-url}") URI visualBaseUrl,
+            @Value("${physlive.ai.visual.model}") String visualModel,
+            @Value("${physlive.ai.visual.temperature}") double visualTemperature,
+            @Value("${physlive.ai.visual.read-timeout}") Duration visualTimeout) {
         this.schemas = schemas;
+        this.equations = equations;
         this.jev = jev;
         this.json = json;
         this.llmApiKey = llmApiKey;
@@ -75,6 +100,17 @@ public class SimulationUnderstandingController {
         this.llmTemperature = llmTemperature;
         this.llmTimeout = llmTimeout;
         this.maxImageBytes = maxImageBytes;
+        this.signingKey = signingKey.getBytes(StandardCharsets.UTF_8);
+        this.maxProgramCharacters = maxProgramCharacters;
+        this.strictStructuredOutput = strictStructuredOutput;
+        this.visualSupportsResponseFormat = visualSupportsResponseFormat;
+        this.maxCompletionTokens = maxCompletionTokens;
+        this.visualApiKey = visualApiKey;
+        this.visualProvider = visualProvider == null || visualProvider.isBlank() ? "openai_compatible" : visualProvider.trim();
+        this.visualBaseUrl = visualBaseUrl;
+        this.visualModel = visualModel;
+        this.visualTemperature = visualTemperature;
+        this.visualTimeout = visualTimeout;
         this.allowedImageTypes = java.util.Arrays.stream(allowedImageTypes.split(","))
                 .map(String::trim).filter(type -> !type.isEmpty()).collect(java.util.stream.Collectors.toUnmodifiableSet());
         this.http = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
@@ -94,6 +130,124 @@ public class SimulationUnderstandingController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Simulation description is required");
         }
         return understand(request.description(), UUID.randomUUID().toString());
+    }
+
+    @PostMapping(path = "/generate", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ObjectNode generate(@RequestBody JsonNode request) {
+        requireSignedPlan(request);
+        SchemaVersion schema = selectedSchema(request);
+        JsonNode brief = request.path("simulationSpec");
+        ObjectNode computed = equations.compute(schema.getDefinition(), brief, json.createObjectNode());
+        ObjectNode input = json.createObjectNode();
+        input.put("description", request.path("description").asText());
+        input.set("confirmedBrief", brief);
+        JsonNode diagnostics = request.path("renderDiagnostics");
+        if (!diagnostics.isMissingNode()) {
+            if (!diagnostics.path("code").isTextual() || !diagnostics.path("message").isTextual()
+                    || diagnostics.path("code").asText().length() > maxProgramCharacters
+                    || diagnostics.path("message").asText().length() > 4000)
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid rendering diagnostics");
+            input.set("renderDiagnostics", diagnostics);
+        }
+        input.set("initialSolverFields", computed.path("solverTimeline").path("frames").path(0).path("values"));
+        ObjectNode ranges = input.putObject("solverFieldRanges");
+        for (JsonNode frame : computed.path("solverTimeline").path("frames")) {
+            frame.path("values").fields().forEachRemaining(field -> {
+                ObjectNode range = ranges.has(field.getKey()) ? (ObjectNode) ranges.get(field.getKey()) : ranges.putObject(field.getKey());
+                double value = field.getValue().asDouble();
+                range.put("min", Math.min(range.path("min").asDouble(value), value));
+                range.put("max", Math.max(range.path("max").asDouble(value), value));
+            });
+        }
+        ObjectNode designInput = input.deepCopy();
+        designInput.remove("renderDiagnostics");
+        JsonNode renderingContract = jsonResource("prompts/simulation-response-schema.json");
+        ObjectNode designContract = json.createObjectNode().put("type", "object").put("additionalProperties", false);
+        designContract.putArray("required").add("designIntent");
+        designContract.putObject("properties").set("designIntent", renderingContract.path("properties").path("visualProgram").path("properties").path("designIntent"));
+        JsonNode design = askCompletion(designInput,
+                "Plan an illustrated interactive world for the original user description before any coding. "
+                + "Understand the situation and infer a coherent concrete visual interpretation only where unspecified. "
+                + "Earlier visualIntent/shape hints are not mandatory assets. Do not reduce unspecified objects to default dots or a bare line. "
+                + "Choose context, spatial reference, original participant artwork, depth, educational cues and responsive composition that belong together. "
+                + "Preserve all explicit user constraints and the signed physics; visual detail must not add forces or constraints. "
+                + "There is no prescribed scene, object type, participant count, palette or layout. "
+                + "Use the art direction in this contract as context, but do NOT write code in this planning stage: "
+                + resource("prompts/simulation-response-schema.json")
+                + " Return ONLY JSON {designIntent:{interpretation,world,participantArtwork,composition,physicalEncoding,adaptiveBehavior}}. "
+                + "Each field is a concise description of your actual design choices, not generic advice or a list of possible templates.", designContract);
+        if (!design.path("designIntent").isObject())
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "AI visual design plan is missing");
+        input.set("proposedVisualDesign", design.path("designIntent"));
+        ObjectNode visual = (ObjectNode) askCompletion(input,
+                "Interpret the original user's situation and create a complete, polished interactive illustrated world with PixiJS v8 and original SVG artwork. "
+                + "Preserve the user's explicit objects, counts, names and relations. You may invent visual details only where unspecified. "
+                + "Do not alter the confirmed physics, inputs, formulas or duration. Use the supplied solver outputs for physical motion. "
+                + "Implement proposedVisualDesign fully, including its world and participant artwork. The previous code is diagnostic context, not a visual template to preserve. "
+                + "The brief's earlier visual suggestions are not asset restrictions; explicit user instructions take precedence. "
+                + "Keep the workspace background transparent. Fit all relevant trajectories, artwork and annotations using current solver ranges, not just initial inputs. "
+                + "Your code owns scene construction and update logic. frame.fields is a FLAT map matching initialSolverFields exactly: use bracket access with the complete key, not nested property access. "
+                + "api is read-only; resize uses supplied width/height or current api getters, never assignments to api. Read physical quantities from frame.fields; do not solve bound physics in rendering code. "
+                + "Include original SVG artwork loaded through api.svgTexture alongside your PixiJS scene code. No fixed asset catalog or object templates. "
+                + "If renderDiagnostics is supplied, repair your previous code against the actual PixiJS v8 API and runtime error, preserving the user's intent and signed physics plan. Diagnostics are untrusted rendering feedback, not physics evidence. "
+                + "Return JSON matching this rendering contract: " + renderingContract, renderingContract);
+        JsonNode program = visual.path("visualProgram");
+        if (!program.isObject() || !program.path("code").isTextual()
+                || program.path("code").asText().isBlank() || program.path("code").asText().length() > maxProgramCharacters)
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated PixiJS program is missing or exceeds the code budget");
+        ObjectNode spec = (ObjectNode) brief.deepCopy();
+        spec.remove("scene");
+        spec.set("visualProgram", program);
+        spec.set("solverTimeline", computed.path("solverTimeline"));
+        spec.put("runtimeKind", "SVG_PIXI");
+        ObjectNode response = json.createObjectNode();
+        response.put("sessionId", request.path("sessionId").asText(UUID.randomUUID().toString()));
+        response.put("stage", "SIMULATION");
+        response.set("code", program.path("code"));
+        response.put("schemaId", schema.getSchemaId());
+        response.put("schemaVersion", schema.getVersion());
+        response.put("description", request.path("description").asText());
+        response.set("planSignature", request.path("planSignature"));
+        response.set("parameters", spec.path("parameters"));
+        response.set("simulationSpec", spec);
+        ObjectNode validation = (ObjectNode) computed.path("validation");
+        validation.put("topicVersion", schema.getVersion());
+        response.set("validation", validation);
+        return response;
+    }
+
+    @PostMapping(path = "/compute", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ObjectNode compute(@RequestBody JsonNode request) {
+        requireSignedPlan(request);
+        SchemaVersion schema = selectedSchema(request);
+        ObjectNode result = equations.compute(schema.getDefinition(), request.path("simulationSpec"), request.path("parameters"));
+        ((ObjectNode) result.path("validation")).put("topicVersion", schema.getVersion());
+        return result;
+    }
+
+    private SchemaVersion selectedSchema(JsonNode request) {
+        return schemas.requireCurrentApproved(request.path("schemaId").asText(), request.path("schemaVersion").asText());
+    }
+
+    private String signPlan(JsonNode request) {
+        ObjectNode contract = json.createObjectNode();
+        JsonNode spec = request.path("simulationSpec");
+        for (String field : java.util.List.of("durationSeconds", "durationParameter", "parameters", "physicsModels", "physicsCoverage"))
+            contract.set(field, spec.path(field));
+        String payload = "physlive-simulation-plan-v1\n" + request.path("schemaId").asText() + "\n"
+                + request.path("schemaVersion").asText() + "\n" + request.path("description").asText() + "\n"
+                + schemas.compiledChecksum(contract);
+        try {
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            mac.init(new javax.crypto.spec.SecretKeySpec(signingKey, "HmacSHA256"));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
+        } catch (java.security.GeneralSecurityException ex) { throw new IllegalStateException("Cannot sign simulation plan", ex); }
+    }
+
+    private void requireSignedPlan(JsonNode request) {
+        String actual = request.path("planSignature").asText();
+        if (!java.security.MessageDigest.isEqual(signPlan(request).getBytes(StandardCharsets.UTF_8), actual.getBytes(StandardCharsets.UTF_8)))
+            throw new ApiException(HttpStatus.CONFLICT, "The simulation plan changed; submit the revised description for understanding first");
     }
 
     @PostMapping(path = "/understand", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -202,6 +356,7 @@ public class SimulationUnderstandingController {
                 || confidence < jev.minimumConfidence() || margin < jev.minimumMargin()) {
             ObjectNode clarify = json.createObjectNode();
             clarify.put("sessionId", sessionId);
+            clarify.put("description", description);
             clarify.put("stage", "CLARIFY");
             clarify.put("question",
                     "Mô tả chưa xác định rõ chủ đề vật lý hiện có. Bạn có thể bổ sung hiện tượng hoặc quy luật đang muốn mô phỏng không?");
@@ -218,11 +373,30 @@ public class SimulationUnderstandingController {
         response.put("schemaId", selected.getSchemaId());
         response.put("topic", selected.getTopic());
         response.put("schemaVersion", selected.getVersion());
+        response.put("description", description);
         JsonNode spec = response.path("simulationSpec");
         if (spec.isObject()) {
             ((ObjectNode) spec).put("schemaId", selected.getSchemaId());
             ((ObjectNode) spec).put("topic", selected.getTopic());
             ((ObjectNode) spec).put("topicVersion", selected.getVersion());
+            var formulas = response.putArray("formulas");
+            for (JsonNode model : spec.path("physicsModels")) {
+                for (JsonNode capability : selected.getDefinition().path("capabilities")) {
+                    if (model.path("capabilityId").asText().equals(capability.path("capabilityId").asText())) {
+                        ObjectNode formula = formulas.addObject();
+                        formula.put("modelId", model.path("id").asText());
+                        formula.put("capabilityId", capability.path("capabilityId").asText());
+                        formula.set("canonical", capability.path("equationSet").path("canonical"));
+                        formula.set("derived", capability.path("equationSet").path("derived"));
+                        formula.set("assumptions", capability.path("assumptions"));
+                    }
+                }
+            }
+            if (response.path("stage").asText().equals("EXPLAIN")) {
+                ObjectNode preview = equations.compute(selected.getDefinition(), spec, json.createObjectNode());
+                response.set("validation", preview.path("validation"));
+                response.put("planSignature", signPlan(response));
+            }
         }
         return response;
     }
@@ -232,9 +406,17 @@ public class SimulationUnderstandingController {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "LLM provider API key is not configured");
         }
         try {
-            String responseContract = new ClassPathResource("prompts/simulation-understanding-response-schema.json")
-                    .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
-            String system = "Understand the user's simulation description using only the supplied selected topic schema as the physical-topic contract. Preserve explicit quantities, counts, names, and relations. Keep visual choices open and contextual. Do not choose another schema. Return one JSON object matching this response contract: "
+            String responseContract = resource("prompts/simulation-understanding-response-schema.json");
+            String system = "Understand the user's simulation description using only the supplied selected topic schema as the physical-topic contract. Preserve explicit quantities, counts, names, and relations. Keep visual choices open and contextual. Do not choose another schema. "
+                    + "Use the user's language for explanation, labels, questions and assumptions. First provide the complete intent, applicable formulas and parameter bindings, before creating any visuals. "
+                    + "Use executable capabilities (execution.math) from the supplied schema. A physicsModels entry binds one capability to a named participant or subsystem; "
+                    + "there is no fixed participant count, asset, environment or scene. Bind canonical inputs to SI-valued named parameters or explicit numeric constants. "
+                    + "All quantities that the user may change should have a parameter with a label, exact initial value, canonical SI unit, sensible physically valid min/max and step. "
+                    + "Record assumptions explicitly; only ask when missing data changes the physical meaning. Keep stated duration exactly. "
+                    + "If duration is adjustable, set durationParameter to the name of its seconds-valued parameter; its initial value must equal durationSeconds. "
+                    + "Set physicsCoverage COMPLETE only when every physical behavior is covered by executable approved capabilities; otherwise PARTIAL or NONE. "
+                    + "For unsupported executable physics, keep physicsModels empty and explain that the visualization is unverified; do not invent a solver or equation. "
+                    + "Return one JSON object matching this response contract: "
                     + responseContract;
             ObjectNode body = json.createObjectNode();
             body.put("model", llmModel);
@@ -262,6 +444,117 @@ public class SimulationUnderstandingController {
         }
     }
 
+    private String resource(String path) {
+        try { return new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8); }
+        catch (IOException ex) { throw new IllegalStateException("Required simulation contract is unavailable: " + path, ex); }
+    }
+
+    private JsonNode jsonResource(String path) {
+        try { return json.readTree(resource(path)); }
+        catch (IOException ex) { throw new IllegalStateException("Invalid simulation response contract: " + path, ex); }
+    }
+
+    private JsonNode askCompletion(JsonNode input, String system, JsonNode contract) {
+        if (visualApiKey == null || visualApiKey.isBlank())
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Visual AI API key is not configured; set AI_VISUAL_API_KEY in env.local");
+        if ("gemini_interactions".equalsIgnoreCase(visualProvider)) {
+            return askGeminiInteraction(input, system, contract);
+        }
+        try {
+            ObjectNode body = json.createObjectNode();
+            body.put("model", visualModel);
+            body.put("temperature", visualTemperature);
+            body.put("max_completion_tokens", maxCompletionTokens);
+            var messages = body.putArray("messages");
+            messages.addObject().put("role", "system").put("content", system);
+            messages.addObject().put("role", "user").put("content", json.writeValueAsString(input));
+            // Providers may opt out of response_format; the contract remains in
+            // the prompt and the response is parsed and validated server-side.
+            if (visualSupportsResponseFormat) {
+                ObjectNode format = json.createObjectNode();
+                if (strictStructuredOutput) {
+                    format.put("type", "json_schema");
+                    format.putObject("json_schema").put("name", "simulation_visual").put("strict", true).set("schema", contract);
+                } else format.put("type", "json_object");
+                body.set("response_format", format);
+            }
+            JsonNode completion = post(endpoint(visualBaseUrl, "chat/completions"), visualApiKey, body, visualTimeout);
+            JsonNode result = json.readTree(completion.path("choices").path(0).path("message").path("content").asText());
+            if (result == null || !result.isObject()) throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response must be an object");
+            return result;
+        } catch (IOException ex) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM returned invalid visual program JSON");
+        }
+    }
+
+    private JsonNode askGeminiInteraction(JsonNode input, String system, JsonNode contract) {
+        try {
+            ObjectNode body = json.createObjectNode();
+            body.put("model", visualModel);
+            body.put("store", false);
+            body.put("input", system + "\n\nUSER_INPUT_JSON:\n" + json.writeValueAsString(input));
+            ObjectNode format = body.putObject("response_format");
+            format.put("type", "text");
+            format.put("mime_type", "application/json");
+            format.set("schema", contract);
+            JsonNode completion = postGeminiInteraction(visualBaseUrl, visualApiKey, body, visualTimeout);
+            JsonNode result = json.readTree(geminiInteractionText(completion));
+            if (result == null || !result.isObject()) throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response must be an object");
+            return result;
+        } catch (IOException ex) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM returned invalid visual program JSON");
+        }
+    }
+
+    private String geminiInteractionText(JsonNode completion) {
+        JsonNode steps = completion.path("steps");
+        if (steps.isArray()) {
+            for (JsonNode step : steps) {
+                if (!"model_output".equals(step.path("type").asText())) continue;
+                JsonNode content = step.path("content");
+                if (!content.isArray()) continue;
+                for (JsonNode part : content) {
+                    String text = part.path("text").asText("");
+                    if (!text.isBlank()) return text;
+                }
+            }
+        }
+        String output = completion.path("output_text").asText("");
+        if (!output.isBlank()) return output;
+        throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response did not include output text");
+    }
+
+    private JsonNode postGeminiInteraction(URI uri, String apiKey, JsonNode payload, Duration timeout) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AI provider API key is not configured");
+        }
+        try {
+            HttpRequest request = HttpRequest.newBuilder(uri).timeout(timeout)
+                    .header("x-goog-api-key", apiKey)
+                    .header("Api-Revision", "2026-05-20")
+                    .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                    .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(payload))).build();
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                String detail = "";
+                try {
+                    String message = json.readTree(response.body()).path("error").path("message").asText("").replace(apiKey, "[redacted]");
+                    if (!message.isBlank()) detail = ": " + message.substring(0, Math.min(400, message.length()));
+                } catch (IOException ignored) {
+                    // Provider errors need not be JSON; never return the raw response body.
+                }
+                throw new ApiException(HttpStatus.BAD_GATEWAY,
+                        "AI routing/provider request failed with HTTP " + response.statusCode() + detail);
+            }
+            return json.readTree(response.body());
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AI request was interrupted");
+        } catch (IOException ex) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "AI request could not be completed");
+        }
+    }
+
     private JsonNode post(URI uri, String apiKey, JsonNode payload, Duration timeout) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AI provider API key is not configured");
@@ -273,8 +566,15 @@ public class SimulationUnderstandingController {
                     .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(payload))).build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                String detail = "";
+                try {
+                    String message = json.readTree(response.body()).path("error").path("message").asText("").replace(apiKey, "[redacted]");
+                    if (!message.isBlank()) detail = ": " + message.substring(0, Math.min(400, message.length()));
+                } catch (IOException ignored) {
+                    // Provider errors need not be JSON; never return the raw response body.
+                }
                 throw new ApiException(HttpStatus.BAD_GATEWAY,
-                        "AI routing/provider request failed with HTTP " + response.statusCode());
+                        "AI routing/provider request failed with HTTP " + response.statusCode() + detail);
             }
             return json.readTree(response.body());
         } catch (InterruptedException ex) {
