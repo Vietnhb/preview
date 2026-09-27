@@ -159,32 +159,12 @@ public class SimulationUnderstandingController {
                 range.put("max", Math.max(range.path("max").asDouble(value), value));
             });
         }
-        ObjectNode designInput = input.deepCopy();
-        designInput.remove("renderDiagnostics");
         JsonNode renderingContract = jsonResource("prompts/simulation-response-schema.json");
-        ObjectNode designContract = json.createObjectNode().put("type", "object").put("additionalProperties", false);
-        designContract.putArray("required").add("designIntent");
-        designContract.putObject("properties").set("designIntent", renderingContract.path("properties").path("visualProgram").path("properties").path("designIntent"));
-        JsonNode design = askCompletion(designInput,
-                "Plan an illustrated interactive world for the original user description before any coding. "
-                + "Understand the situation and infer a coherent concrete visual interpretation only where unspecified. "
-                + "Earlier visualIntent/shape hints are not mandatory assets. Do not reduce unspecified objects to default dots or a bare line. "
-                + "Choose context, spatial reference, original participant artwork, depth, educational cues and responsive composition that belong together. "
-                + "Preserve all explicit user constraints and the signed physics; visual detail must not add forces or constraints. "
-                + "There is no prescribed scene, object type, participant count, palette or layout. "
-                + "Use the art direction in this contract as context, but do NOT write code in this planning stage: "
-                + resource("prompts/simulation-response-schema.json")
-                + " Return ONLY JSON {designIntent:{interpretation,world,participantArtwork,composition,physicalEncoding,adaptiveBehavior}}. "
-                + "Each field is a concise description of your actual design choices, not generic advice or a list of possible templates.", designContract);
-        if (!design.path("designIntent").isObject())
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "AI visual design plan is missing");
-        input.set("proposedVisualDesign", design.path("designIntent"));
         ObjectNode visual = (ObjectNode) askCompletion(input,
-                "Interpret the original user's situation and create a complete, polished interactive illustrated world with PixiJS v8 and original SVG artwork. "
+                "Interpret the original user's situation, choose a coherent visual world, and create a complete, polished interactive illustrated world with PixiJS v8 and original SVG artwork in this single response. "
                 + "Preserve the user's explicit objects, counts, names and relations. You may invent visual details only where unspecified. "
                 + "Do not alter the confirmed physics, inputs, formulas or duration. Use the supplied solver outputs for physical motion. "
-                + "Implement proposedVisualDesign fully, including its world and participant artwork. The previous code is diagnostic context, not a visual template to preserve. "
-                + "The brief's earlier visual suggestions are not asset restrictions; explicit user instructions take precedence. "
+                + "Design the world and participant artwork yourself from the description and schema; do not use a fixed scene or asset template. "
                 + "Keep the workspace background transparent. Fit all relevant trajectories, artwork and annotations using current solver ranges, not just initial inputs. "
                 + "Your code owns scene construction and update logic. frame.fields is a FLAT map matching initialSolverFields exactly: use bracket access with the complete key, not nested property access. "
                 + "api is read-only; resize uses supplied width/height or current api getters, never assignments to api. Read physical quantities from frame.fields; do not solve bound physics in rendering code. "
