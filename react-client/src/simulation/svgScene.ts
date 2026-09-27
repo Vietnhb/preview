@@ -1,4 +1,5 @@
-export type PixiVisualProgram = { code: string; description?: string };
+/** AI visual: optional declarative SVG scene (roles) and/or custom PixiJS code extending it. */
+export type PixiVisualProgram = { code: string; description?: string; scene?: Record<string, unknown> | null };
 export type SolverTimeline = { durationSeconds: number; frames: Array<{ t: number; values: Record<string, number> }> };
 
 export function sampleTimeline(timeline: SolverTimeline, time: number): Record<string, number> {

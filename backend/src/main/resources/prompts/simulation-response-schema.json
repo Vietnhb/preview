@@ -11,6 +11,7 @@
       "required": [
         "design",
         "description",
+        "scene",
         "code"
       ],
       "properties": {
@@ -26,11 +27,10 @@
           "properties": {
             "setting": {
               "type": "string",
-              "description": "Environment inferred from the user's description (or the most natural real-world setting for these objects) and how it sits on the layout geometry."
+              "description": "Environment inferred from the user's description (or the most natural real-world setting for these objects), composition and mood."
             },
             "participants": {
               "type": "array",
-              "description": "One entry per physicsModels id.",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -50,14 +50,14 @@
                   },
                   "appearance": {
                     "type": "string",
-                    "description": "Silhouette, proportions, materials, characteristic colours and the recognisable details to draw; facing/rotation/size choice."
+                    "description": "Silhouette, proportions, materials, characteristic colours, 4-10 recognisable details, facing/rotation/size."
                   }
                 }
               }
             },
             "props": {
               "type": "string",
-              "description": "Static or state-driven props implied by the situation (supports, surfaces, sources, containers, apparatus parts) and where they go."
+              "description": "What the surface, support and connector roles are in this situation (or why a role is unused)."
             },
             "palette": {
               "type": "string",
@@ -69,9 +69,138 @@
           "type": "string",
           "description": "One or two sentences in the user's language describing the illustrated scene."
         },
+        "scene": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "environment",
+            "environmentAnchorY",
+            "surface",
+            "support",
+            "connector",
+            "bodies",
+            "overlay"
+          ],
+          "properties": {
+            "environment": {
+              "type": "string",
+              "description": "Full-scene SVG document (the world behind everything, drawn for a ~16:9 frame, scaled to cover the stage). Empty string if none."
+            },
+            "environmentAnchorY": {
+              "type": "number",
+              "description": "y coordinate (in the environment viewBox) of the horizontal line in your environment that must sit on the physical reference line: the support line if bodies hang from supports, otherwise the ground / lowest track surface. -1 if nothing in the environment needs alignment."
+            },
+            "surface": {
+              "type": "string",
+              "description": "Seamless horizontally tileable SVG strip of what bodies move or rest on; its top edge is the contact line. Empty string if no surface applies."
+            },
+            "support": {
+              "type": "string",
+              "description": "SVG of the fixed fixture a connector is attached to; its bottom-centre is the attachment point and the kit turns that edge towards the body. Empty string if unused."
+            },
+            "connector": {
+              "type": "string",
+              "description": "SVG of the connector (string, rod, cord, spring, chain...) drawn along +x; the kit stretches its length between support and body; its viewBox height is the thickness in pixels (1.5-30). Empty string if unused."
+            },
+            "bodies": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "svg",
+                  "facing",
+                  "rotate",
+                  "anchor",
+                  "sizeMeters"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "physicsModels id of the participant this body is."
+                  },
+                  "svg": {
+                    "type": "string",
+                    "description": "Complete standalone SVG document of the body only (no connectors, supports, labels or vectors), drawn facing +x, tightly framed, rich but compact."
+                  },
+                  "facing": {
+                    "type": "string",
+                    "enum": [
+                      "right",
+                      "left",
+                      "none"
+                    ],
+                    "description": "Which way the drawing faces; the kit mirrors it when the body moves the other way. none = symmetric."
+                  },
+                  "rotate": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "velocity",
+                      "link"
+                    ],
+                    "description": "velocity: nose follows the direction of motion; link: hangs along its connector; none: stays upright."
+                  },
+                  "anchor": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "bottom",
+                      "center"
+                    ],
+                    "description": "bottom = rests on its surface; center = the solver point is the body's centre; auto = kit default."
+                  },
+                  "sizeMeters": {
+                    "type": "number",
+                    "description": "Real-world size of the body's largest dimension in metres (0 = let the kit choose a readable size)."
+                  }
+                }
+              }
+            },
+            "overlay": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "links",
+                "axes",
+                "trails",
+                "vectors",
+                "labels",
+                "angles"
+              ],
+              "properties": {
+                "links": {
+                  "type": "boolean",
+                  "description": "Draw a plain line for a declared connector when no connector artwork is given."
+                },
+                "axes": {
+                  "type": "boolean",
+                  "description": "Measured axes/ruler with SI units."
+                },
+                "trails": {
+                  "type": "boolean",
+                  "description": "Path already travelled."
+                },
+                "vectors": {
+                  "type": "boolean",
+                  "description": "Velocity/acceleration/force arrows with magnitudes."
+                },
+                "labels": {
+                  "type": "boolean",
+                  "description": "Participant names."
+                },
+                "angles": {
+                  "type": "boolean",
+                  "description": "Angle marks for bodies on connectors."
+                }
+              }
+            }
+          }
+        },
         "code": {
           "type": "string",
-          "description": "Complete async function(PIXI, app, api) expression following the system CODE CONTRACT: kit.standardScene({bodies:false}), base.backdrop(layout => svg), base.attach(id, sprite, options) for every participant, update/resize/setData delegating to base. PixiJS v8 API, complete SVG documents with literal colours, no // comments, under 40000 characters."
+          "description": "Usually empty string. Only when the declarative scene cannot express something (state-driven apparatus without spatial motion, extra effects): a complete async function(PIXI, app, api) that starts with const base = await api.kit.illustratedScene(api.sceneSpec) and returns {update(frame){ base.update(frame); ... }, resize(){ base.resize(); }, setData(){ base.setData(); }}."
         }
       }
     }

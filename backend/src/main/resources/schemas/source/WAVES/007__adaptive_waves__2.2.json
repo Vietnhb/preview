@@ -1,0 +1,2327 @@
+{
+  "schemaId": "adaptive_waves",
+  "model": "generated_visual",
+  "name": "Waves Concept Capability",
+  "topic": "WAVES",
+  "version": "2.2",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for waves. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "oscillator",
+        "label": "bộ dao động",
+        "description": "Source with a repeated physical motion."
+      },
+      {
+        "type": "wave_source",
+        "label": "nguồn sóng",
+        "description": "Source of a wave signal."
+      },
+      {
+        "type": "medium",
+        "label": "môi trường truyền",
+        "description": "Medium with a stated propagation law."
+      },
+      {
+        "type": "receiver",
+        "label": "bộ thu",
+        "description": "Observer at a point."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "emits_into",
+        "label": "phát vào môi trường",
+        "description": "Source emits signal into medium.",
+        "subjectTypes": [
+          "wave_source",
+          "oscillator"
+        ],
+        "objectTypes": [
+          "medium"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "wave_source",
+            "oscillator",
+            "medium"
+          ]
+        }
+      },
+      {
+        "type": "propagates_to",
+        "label": "truyền tới",
+        "description": "Signal reaches a receiver under a stated delay law.",
+        "subjectTypes": [
+          "wave_source"
+        ],
+        "objectTypes": [
+          "receiver"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "type": "coupled_to",
+        "label": "ghép dao động",
+        "description": "Oscillators interact under a stated coupling law.",
+        "subjectTypes": [
+          "oscillator"
+        ],
+        "objectTypes": [
+          "oscillator"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "amplitude",
+        "label": "biên độ",
+        "description": "Amplitude of the specified displacement.",
+        "aliases": [
+          "A"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "frequency",
+        "label": "tần số",
+        "description": "Cycles per second.",
+        "aliases": [
+          "f"
+        ],
+        "allowedUnits": [
+          "Hz"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "period",
+        "label": "chu kỳ",
+        "description": "Duration of one cycle.",
+        "aliases": [
+          "T"
+        ],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "angular_frequency",
+        "label": "tần số góc",
+        "description": "Rate of phase change.",
+        "aliases": [
+          "omega"
+        ],
+        "allowedUnits": [
+          "rad/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source"
+          ]
+        }
+      },
+      {
+        "key": "phase",
+        "label": "pha",
+        "description": "Phase at a stated reference.",
+        "aliases": [],
+        "allowedUnits": [
+          "rad"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "wave_speed",
+        "label": "tốc độ truyền sóng",
+        "description": "Propagation speed in medium.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium"
+          ]
+        }
+      },
+      {
+        "key": "wavelength",
+        "label": "bước sóng",
+        "description": "Distance between equal-phase points.",
+        "aliases": [
+          "lambda"
+        ],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source"
+          ]
+        }
+      },
+      {
+        "key": "distance",
+        "label": "khoảng cách",
+        "description": "Source-to-receiver distance.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "position_along_medium",
+        "label": "vị trí phần tử",
+        "description": "vị trí phần tử",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "initial_phase",
+        "label": "pha ban đầu",
+        "description": "pha ban đầu",
+        "aliases": [],
+        "allowedUnits": [
+          "rad"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "x",
+        "label": "tọa độ x",
+        "description": "tọa độ x",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "y",
+        "label": "tọa độ y",
+        "description": "tọa độ y",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "vx",
+        "label": "vận tốc theo x",
+        "description": "vận tốc theo x",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "vy",
+        "label": "vận tốc theo y",
+        "description": "vận tốc theo y",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "distance_to_source_1",
+        "label": "khoảng cách tới nguồn 1",
+        "description": "khoảng cách tới nguồn 1",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "distance_to_source_2",
+        "label": "khoảng cách tới nguồn 2",
+        "description": "khoảng cách tới nguồn 2",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "pressure_amplitude",
+        "label": "biên độ áp suất",
+        "description": "biên độ áp suất",
+        "aliases": [],
+        "allowedUnits": [
+          "Pa"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "sound_speed",
+        "label": "tốc độ âm",
+        "description": "tốc độ âm",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "position",
+        "label": "tọa độ",
+        "description": "tọa độ",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "pressure",
+        "label": "áp suất",
+        "description": "áp suất",
+        "aliases": [],
+        "allowedUnits": [
+          "Pa"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "pressure_rate",
+        "label": "tốc độ biến thiên áp suất",
+        "description": "tốc độ biến thiên áp suất",
+        "aliases": [],
+        "allowedUnits": [
+          "Pa/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "reflector_distance",
+        "label": "khoảng cách tới mặt phản xạ",
+        "description": "khoảng cách tới mặt phản xạ",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "wave_source",
+            "medium",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "elapsed_time",
+        "label": "thời gian",
+        "description": "thời gian",
+        "aliases": [],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "wave_source",
+            "medium",
+            "receiver"
+          ]
+        }
+      },
+      {
+        "key": "echo_delay",
+        "label": "thời gian trễ tiếng vọng",
+        "description": "thời gian trễ tiếng vọng",
+        "aliases": [],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "wave_source",
+            "medium",
+            "receiver"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "m",
+        "dimension": "length"
+      },
+      {
+        "symbol": "Hz",
+        "dimension": "frequency"
+      },
+      {
+        "symbol": "s",
+        "dimension": "time"
+      },
+      {
+        "symbol": "rad/s",
+        "dimension": "angular velocity"
+      },
+      {
+        "symbol": "rad",
+        "dimension": "angle"
+      },
+      {
+        "symbol": "m/s",
+        "dimension": "velocity"
+      },
+      {
+        "symbol": "Pa",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "Pa/s",
+        "dimension": "derived"
+      }
+    ],
+    "laws": [
+      {
+        "id": "frequency_period",
+        "name": "Tần số và chu kỳ",
+        "inputs": [
+          "period"
+        ],
+        "outputs": [
+          "frequency"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source"
+          ],
+          "quantities": [
+            "period",
+            "frequency"
+          ]
+        },
+        "assumptions": [
+          "T > 0."
+        ],
+        "description": "Period-frequency relation."
+      },
+      {
+        "id": "wave_speed",
+        "name": "Quan hệ bước sóng",
+        "inputs": [
+          "frequency",
+          "wavelength"
+        ],
+        "outputs": [
+          "wave_speed"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "medium",
+            "wave_source"
+          ],
+          "quantities": [
+            "frequency",
+            "wavelength",
+            "wave_speed"
+          ]
+        },
+        "assumptions": [
+          "Medium and frequency stable over interval."
+        ],
+        "description": "Wave speed from wavelength and frequency."
+      },
+      {
+        "id": "harmonic_signal",
+        "name": "Dao động điều hòa tại điểm",
+        "inputs": [
+          "amplitude",
+          "angular_frequency",
+          "phase"
+        ],
+        "outputs": [
+          "amplitude"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "receiver"
+          ],
+          "quantities": [
+            "amplitude",
+            "angular_frequency",
+            "phase"
+          ]
+        },
+        "assumptions": [
+          "Value is evaluated at finitely many points, not a continuous spatial wave."
+        ],
+        "description": "Pointwise harmonic signal."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "observation_location",
+        "description": "Clarify observed quantity and position when phase or delay depends on it.",
+        "appliesTo": {
+          "objectTypes": [
+            "receiver",
+            "wave_source"
+          ],
+          "relationTypes": [
+            "propagates_to"
+          ],
+          "quantities": []
+        }
+      },
+      {
+        "id": "spatial_wave_limit",
+        "description": "A propagating wave requires a model of its spatially distributed medium.",
+        "appliesTo": {
+          "objectTypes": [
+            "medium"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "initial_phase",
+        "description": "Phase or initial state must be supplied or accepted when it affects the output.",
+        "appliesTo": {
+          "objectTypes": [
+            "oscillator",
+            "wave_source"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
+      "limitations": [
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
+    },
+    "capabilities": [
+      {
+        "capabilityId": "travelling_wave_point",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ],
+          "quantities": [
+            "amplitude",
+            "frequency",
+            "wave_speed",
+            "position_along_medium",
+            "initial_phase"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "amplitude",
+            "unit": "m",
+            "min": 0
+          },
+          {
+            "key": "frequency",
+            "unit": "Hz",
+            "min": 1e-09
+          },
+          {
+            "key": "wave_speed",
+            "unit": "m/s",
+            "min": 1e-09
+          },
+          {
+            "key": "position_along_medium",
+            "unit": "m"
+          },
+          {
+            "key": "initial_phase",
+            "unit": "rad",
+            "defaultValue": 0
+          }
+        ],
+        "outputs": [
+          {
+            "key": "x",
+            "unit": "m"
+          },
+          {
+            "key": "y",
+            "unit": "m"
+          },
+          {
+            "key": "vx",
+            "unit": "m/s"
+          },
+          {
+            "key": "vy",
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [
+          "Sóng hình sin đã lan truyền ổn định trong môi trường đồng tính, không tắt dần; mỗi đối tượng là một phần tử môi trường tại vị trí x của nó."
+        ],
+        "equationSet": {
+          "canonical": [
+            "u(x,t) = A*cos(omega*t - 2*pi*x/lambda + phi)"
+          ],
+          "derived": [
+            "lambda = v/f",
+            "omega = 2*pi*f"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "x": "position_along_medium",
+              "y": [
+                "mul",
+                "amplitude",
+                [
+                  "cos",
+                  [
+                    "sub",
+                    "initial_phase",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "wave_speed"
+                    ]
+                  ]
+                ]
+              ],
+              "vy": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "neg",
+                        2
+                      ],
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "amplitude"
+                ],
+                [
+                  "sin",
+                  [
+                    "sub",
+                    "initial_phase",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "wave_speed"
+                    ]
+                  ]
+                ]
+              ]
+            },
+            "rates": {
+              "x": 0,
+              "y": "vy",
+              "vy": [
+                "mul",
+                [
+                  "neg",
+                  [
+                    "pow",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    2
+                  ]
+                ],
+                "y"
+              ]
+            },
+            "outputs": {
+              "x": "x",
+              "y": "y",
+              "vx": 0,
+              "vy": "vy"
+            },
+            "closedForm": {
+              "x": "position_along_medium",
+              "y": [
+                "mul",
+                "amplitude",
+                [
+                  "cos",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          2,
+                          3.141592653589793
+                        ],
+                        "frequency"
+                      ],
+                      "t"
+                    ],
+                    [
+                      "sub",
+                      "initial_phase",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "position_along_medium"
+                        ],
+                        "wave_speed"
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              "vx": 0,
+              "vy": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "neg",
+                        2
+                      ],
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "amplitude"
+                ],
+                [
+                  "sin",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          2,
+                          3.141592653589793
+                        ],
+                        "frequency"
+                      ],
+                      "t"
+                    ],
+                    [
+                      "sub",
+                      "initial_phase",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "position_along_medium"
+                        ],
+                        "wave_speed"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "x",
+            "role": "horizontal_position"
+          },
+          {
+            "source": "y",
+            "role": "vertical_position"
+          }
+        ]
+      },
+      {
+        "capabilityId": "standing_wave_point",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ],
+          "quantities": [
+            "amplitude",
+            "frequency",
+            "wave_speed",
+            "position_along_medium",
+            "initial_phase"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "amplitude",
+            "unit": "m",
+            "min": 0
+          },
+          {
+            "key": "frequency",
+            "unit": "Hz",
+            "min": 1e-09
+          },
+          {
+            "key": "wave_speed",
+            "unit": "m/s",
+            "min": 1e-09
+          },
+          {
+            "key": "position_along_medium",
+            "unit": "m"
+          },
+          {
+            "key": "initial_phase",
+            "unit": "rad",
+            "defaultValue": 0
+          }
+        ],
+        "outputs": [
+          {
+            "key": "x",
+            "unit": "m"
+          },
+          {
+            "key": "y",
+            "unit": "m"
+          },
+          {
+            "key": "vx",
+            "unit": "m/s"
+          },
+          {
+            "key": "vy",
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [
+          "Sóng dừng trên dây có một đầu cố định tại x = 0 (nút sóng), là chồng chất của sóng tới và sóng phản xạ cùng biên độ."
+        ],
+        "equationSet": {
+          "canonical": [
+            "u(x,t) = 2*A*sin(2*pi*x/lambda)*cos(omega*t + phi)"
+          ],
+          "derived": [
+            "nut: x = k*lambda/2",
+            "bung: x = (2k+1)*lambda/4"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "x": "position_along_medium",
+              "y": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    "amplitude"
+                  ],
+                  [
+                    "sin",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "wave_speed"
+                    ]
+                  ]
+                ],
+                [
+                  "cos",
+                  "initial_phase"
+                ]
+              ],
+              "vy": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "neg",
+                          4
+                        ],
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    "amplitude"
+                  ],
+                  [
+                    "sin",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "wave_speed"
+                    ]
+                  ]
+                ],
+                [
+                  "sin",
+                  "initial_phase"
+                ]
+              ]
+            },
+            "rates": {
+              "x": 0,
+              "y": "vy",
+              "vy": [
+                "mul",
+                [
+                  "neg",
+                  [
+                    "pow",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    2
+                  ]
+                ],
+                "y"
+              ]
+            },
+            "outputs": {
+              "x": "x",
+              "y": "y",
+              "vx": 0,
+              "vy": "vy"
+            },
+            "closedForm": {
+              "x": "position_along_medium",
+              "y": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    "amplitude"
+                  ],
+                  [
+                    "sin",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "wave_speed"
+                    ]
+                  ]
+                ],
+                [
+                  "cos",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          2,
+                          3.141592653589793
+                        ],
+                        "frequency"
+                      ],
+                      "t"
+                    ],
+                    "initial_phase"
+                  ]
+                ]
+              ],
+              "vx": 0,
+              "vy": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "neg",
+                          4
+                        ],
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    "amplitude"
+                  ],
+                  [
+                    "sin",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "wave_speed"
+                    ]
+                  ]
+                ],
+                [
+                  "sin",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          2,
+                          3.141592653589793
+                        ],
+                        "frequency"
+                      ],
+                      "t"
+                    ],
+                    "initial_phase"
+                  ]
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "x",
+            "role": "horizontal_position"
+          },
+          {
+            "source": "y",
+            "role": "vertical_position"
+          }
+        ]
+      },
+      {
+        "capabilityId": "two_source_interference_point",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ],
+          "quantities": [
+            "amplitude",
+            "frequency",
+            "wave_speed",
+            "distance_to_source_1",
+            "distance_to_source_2",
+            "position_along_medium",
+            "initial_phase"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "amplitude",
+            "unit": "m",
+            "min": 0
+          },
+          {
+            "key": "frequency",
+            "unit": "Hz",
+            "min": 1e-09
+          },
+          {
+            "key": "wave_speed",
+            "unit": "m/s",
+            "min": 1e-09
+          },
+          {
+            "key": "distance_to_source_1",
+            "unit": "m",
+            "min": 0
+          },
+          {
+            "key": "distance_to_source_2",
+            "unit": "m",
+            "min": 0
+          },
+          {
+            "key": "position_along_medium",
+            "unit": "m",
+            "defaultValue": 0
+          },
+          {
+            "key": "initial_phase",
+            "unit": "rad",
+            "defaultValue": 0
+          }
+        ],
+        "outputs": [
+          {
+            "key": "x",
+            "unit": "m"
+          },
+          {
+            "key": "y",
+            "unit": "m"
+          },
+          {
+            "key": "vx",
+            "unit": "m/s"
+          },
+          {
+            "key": "vy",
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [
+          "Hai nguồn kết hợp cùng biên độ, cùng pha; điểm khảo sát cách hai nguồn d1, d2; x chỉ là vị trí đặt điểm trên hình."
+        ],
+        "equationSet": {
+          "canonical": [
+            "u = A*cos(omega*t - 2*pi*d1/lambda) + A*cos(omega*t - 2*pi*d2/lambda)"
+          ],
+          "derived": [
+            "cuc dai: d2 - d1 = k*lambda",
+            "cuc tieu: d2 - d1 = (k + 1/2)*lambda"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "x": "position_along_medium",
+              "y": [
+                "add",
+                [
+                  "mul",
+                  "amplitude",
+                  [
+                    "cos",
+                    [
+                      "sub",
+                      "initial_phase",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "distance_to_source_1"
+                        ],
+                        "wave_speed"
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "mul",
+                  "amplitude",
+                  [
+                    "cos",
+                    [
+                      "sub",
+                      "initial_phase",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "distance_to_source_2"
+                        ],
+                        "wave_speed"
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              "vy": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "neg",
+                        2
+                      ],
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "amplitude"
+                ],
+                [
+                  "add",
+                  [
+                    "sin",
+                    [
+                      "sub",
+                      "initial_phase",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "distance_to_source_1"
+                        ],
+                        "wave_speed"
+                      ]
+                    ]
+                  ],
+                  [
+                    "sin",
+                    [
+                      "sub",
+                      "initial_phase",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "distance_to_source_2"
+                        ],
+                        "wave_speed"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            },
+            "rates": {
+              "x": 0,
+              "y": "vy",
+              "vy": [
+                "mul",
+                [
+                  "neg",
+                  [
+                    "pow",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    2
+                  ]
+                ],
+                "y"
+              ]
+            },
+            "outputs": {
+              "x": "x",
+              "y": "y",
+              "vx": 0,
+              "vy": "vy"
+            },
+            "closedForm": {
+              "x": "position_along_medium",
+              "y": [
+                "add",
+                [
+                  "mul",
+                  "amplitude",
+                  [
+                    "cos",
+                    [
+                      "add",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "t"
+                      ],
+                      [
+                        "sub",
+                        "initial_phase",
+                        [
+                          "div",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "distance_to_source_1"
+                          ],
+                          "wave_speed"
+                        ]
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "mul",
+                  "amplitude",
+                  [
+                    "cos",
+                    [
+                      "add",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "t"
+                      ],
+                      [
+                        "sub",
+                        "initial_phase",
+                        [
+                          "div",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "distance_to_source_2"
+                          ],
+                          "wave_speed"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              "vx": 0,
+              "vy": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "neg",
+                        2
+                      ],
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "amplitude"
+                ],
+                [
+                  "add",
+                  [
+                    "sin",
+                    [
+                      "add",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "t"
+                      ],
+                      [
+                        "sub",
+                        "initial_phase",
+                        [
+                          "div",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "distance_to_source_1"
+                          ],
+                          "wave_speed"
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "sin",
+                    [
+                      "add",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "t"
+                      ],
+                      [
+                        "sub",
+                        "initial_phase",
+                        [
+                          "div",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "distance_to_source_2"
+                          ],
+                          "wave_speed"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "x",
+            "role": "horizontal_position"
+          },
+          {
+            "source": "y",
+            "role": "vertical_position"
+          }
+        ]
+      },
+      {
+        "capabilityId": "acoustic_pressure_point",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "medium",
+            "wave_source",
+            "receiver"
+          ],
+          "quantities": [
+            "pressure_amplitude",
+            "frequency",
+            "sound_speed",
+            "position_along_medium",
+            "initial_phase"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "pressure_amplitude",
+            "unit": "Pa",
+            "min": 0
+          },
+          {
+            "key": "frequency",
+            "unit": "Hz",
+            "min": 1e-09
+          },
+          {
+            "key": "sound_speed",
+            "unit": "m/s",
+            "min": 1e-09,
+            "defaultValue": 343
+          },
+          {
+            "key": "position_along_medium",
+            "unit": "m"
+          },
+          {
+            "key": "initial_phase",
+            "unit": "rad",
+            "defaultValue": 0
+          }
+        ],
+        "outputs": [
+          {
+            "key": "position",
+            "unit": "m"
+          },
+          {
+            "key": "pressure",
+            "unit": "Pa"
+          },
+          {
+            "key": "pressure_rate",
+            "unit": "Pa/s"
+          }
+        ],
+        "assumptions": [
+          "Sóng âm là sóng dọc; đại lượng hiển thị là độ biến thiên áp suất tại điểm cách nguồn x."
+        ],
+        "equationSet": {
+          "canonical": [
+            "p(x,t) = p0*cos(omega*t - 2*pi*x/lambda)"
+          ],
+          "derived": [
+            "lambda = v/f"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "position": "position_along_medium",
+              "pressure": [
+                "mul",
+                "pressure_amplitude",
+                [
+                  "cos",
+                  [
+                    "sub",
+                    "initial_phase",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "sound_speed"
+                    ]
+                  ]
+                ]
+              ],
+              "pressure_rate": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "neg",
+                        2
+                      ],
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "pressure_amplitude"
+                ],
+                [
+                  "sin",
+                  [
+                    "sub",
+                    "initial_phase",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "sound_speed"
+                    ]
+                  ]
+                ]
+              ]
+            },
+            "rates": {
+              "position": 0,
+              "pressure": "pressure_rate",
+              "pressure_rate": [
+                "mul",
+                [
+                  "neg",
+                  [
+                    "pow",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    2
+                  ]
+                ],
+                "pressure"
+              ]
+            },
+            "outputs": {
+              "position": "position",
+              "pressure": "pressure",
+              "pressure_rate": "pressure_rate"
+            },
+            "closedForm": {
+              "position": "position_along_medium",
+              "pressure": [
+                "mul",
+                "pressure_amplitude",
+                [
+                  "cos",
+                  [
+                    "sub",
+                    [
+                      "add",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "t"
+                      ],
+                      "initial_phase"
+                    ],
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "sound_speed"
+                    ]
+                  ]
+                ]
+              ],
+              "pressure_rate": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "neg",
+                        2
+                      ],
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "pressure_amplitude"
+                ],
+                [
+                  "sin",
+                  [
+                    "sub",
+                    [
+                      "add",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "t"
+                      ],
+                      "initial_phase"
+                    ],
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "position_along_medium"
+                      ],
+                      "sound_speed"
+                    ]
+                  ]
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "pressure",
+            "role": "state_value"
+          }
+        ]
+      },
+      {
+        "capabilityId": "pulse_echo",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "wave_source",
+            "medium",
+            "receiver"
+          ],
+          "quantities": [
+            "wave_speed",
+            "reflector_distance"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "wave_speed",
+            "unit": "m/s",
+            "min": 1e-09
+          },
+          {
+            "key": "reflector_distance",
+            "unit": "m",
+            "min": 1e-09
+          }
+        ],
+        "outputs": [
+          {
+            "key": "elapsed_time",
+            "unit": "s"
+          },
+          {
+            "key": "position",
+            "unit": "m"
+          },
+          {
+            "key": "echo_delay",
+            "unit": "s"
+          }
+        ],
+        "assumptions": [
+          "Xung truyền thẳng tới mặt phản xạ rồi quay về nguồn với cùng tốc độ; vị trí là khoảng cách của xung tới nguồn."
+        ],
+        "equationSet": {
+          "canonical": [
+            "t_vong = 2*d/v"
+          ],
+          "derived": [
+            "d = v*t/2"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "elapsed_time": 0
+            },
+            "rates": {
+              "elapsed_time": 1
+            },
+            "outputs": {
+              "elapsed_time": "elapsed_time",
+              "position": [
+                "sub",
+                "reflector_distance",
+                [
+                  "abs",
+                  [
+                    "sub",
+                    "reflector_distance",
+                    [
+                      "mul",
+                      "wave_speed",
+                      [
+                        "mul",
+                        0.5,
+                        [
+                          "sub",
+                          [
+                            "add",
+                            "elapsed_time",
+                            [
+                              "div",
+                              [
+                                "mul",
+                                2,
+                                "reflector_distance"
+                              ],
+                              "wave_speed"
+                            ]
+                          ],
+                          [
+                            "abs",
+                            [
+                              "sub",
+                              "elapsed_time",
+                              [
+                                "div",
+                                [
+                                  "mul",
+                                  2,
+                                  "reflector_distance"
+                                ],
+                                "wave_speed"
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              "echo_delay": [
+                "div",
+                [
+                  "mul",
+                  2,
+                  "reflector_distance"
+                ],
+                "wave_speed"
+              ]
+            },
+            "closedForm": {
+              "elapsed_time": "t",
+              "position": [
+                "sub",
+                "reflector_distance",
+                [
+                  "abs",
+                  [
+                    "sub",
+                    "reflector_distance",
+                    [
+                      "mul",
+                      "wave_speed",
+                      [
+                        "mul",
+                        0.5,
+                        [
+                          "sub",
+                          [
+                            "add",
+                            "t",
+                            [
+                              "div",
+                              [
+                                "mul",
+                                2,
+                                "reflector_distance"
+                              ],
+                              "wave_speed"
+                            ]
+                          ],
+                          [
+                            "abs",
+                            [
+                              "sub",
+                              "t",
+                              [
+                                "div",
+                                [
+                                  "mul",
+                                  2,
+                                  "reflector_distance"
+                                ],
+                                "wave_speed"
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              "echo_delay": [
+                "div",
+                [
+                  "mul",
+                  2,
+                  "reflector_distance"
+                ],
+                "wave_speed"
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "position",
+            "role": "position"
+          }
+        ]
+      }
+    ]
+  }
+}

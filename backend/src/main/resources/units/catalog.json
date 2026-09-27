@@ -679,5 +679,86 @@
       "L": -1,
       "T": -4
     }
+  },
+  {
+    "canonical": "N*m2/kg2",
+    "factor": 1,
+    "aliases": [
+      "N*m2/kg2",
+      "N*m^2/kg^2",
+      "N·m²/kg²"
+    ],
+    "dimensions": {
+      "M": -1,
+      "L": 3,
+      "T": -2
+    }
+  },
+  {
+    "canonical": "N*m2/C2",
+    "factor": 1,
+    "aliases": [
+      "N*m2/C2",
+      "N*m^2/C^2",
+      "N·m²/C²"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 3,
+      "T": -4,
+      "I": -2
+    }
+  },
+  {
+    "canonical": "K/s",
+    "factor": 1,
+    "aliases": [
+      "K/s",
+      "degC/s",
+      "°C/s"
+    ],
+    "dimensions": {
+      "K": 1,
+      "T": -1
+    }
+  },
+  {
+    "canonical": "W/K",
+    "factor": 1,
+    "aliases": [
+      "W/K"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -3,
+      "K": -1
+    }
+  },
+  {
+    "canonical": "V/s",
+    "factor": 1,
+    "aliases": [
+      "V/s"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -4,
+      "I": -1
+    }
+  },
+  {
+    "canonical": "J*s",
+    "factor": 1,
+    "aliases": [
+      "J*s",
+      "J·s"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -1
+    }
   }
 ]

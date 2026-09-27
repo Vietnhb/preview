@@ -1,0 +1,3689 @@
+{
+  "schemaId": "adaptive_electromagnetism",
+  "model": "generated_visual",
+  "name": "Electromagnetism Concept Capability",
+  "topic": "ELECTROMAGNETISM",
+  "version": "2.2",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for electromagnetism. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "charged_particle",
+        "label": "hạt mang điện",
+        "description": "Particle with charge and possible motion."
+      },
+      {
+        "type": "charge_source",
+        "label": "nguồn điện tích",
+        "description": "Charge producing an electric field."
+      },
+      {
+        "type": "field_region",
+        "label": "vùng trường",
+        "description": "Region with specified electric or magnetic field."
+      },
+      {
+        "type": "coil",
+        "label": "cuộn dây",
+        "description": "Winding with magnetic flux."
+      },
+      {
+        "type": "conductor",
+        "label": "dây dẫn",
+        "description": "Conductor subject to field or induction."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "in_field",
+        "label": "ở trong trường",
+        "description": "Object located in a declared field region.",
+        "subjectTypes": [
+          "charged_particle",
+          "conductor",
+          "coil"
+        ],
+        "objectTypes": [
+          "field_region"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "conductor",
+            "coil",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "type": "field_from",
+        "label": "trường do nguồn",
+        "description": "Field produced by a charge source.",
+        "subjectTypes": [
+          "field_region"
+        ],
+        "objectTypes": [
+          "charge_source"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "field_region",
+            "charge_source"
+          ]
+        }
+      },
+      {
+        "type": "induces_in",
+        "label": "cảm ứng trong",
+        "description": "Changing flux induces voltage.",
+        "subjectTypes": [
+          "field_region"
+        ],
+        "objectTypes": [
+          "coil",
+          "conductor"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "electric_charge",
+        "label": "điện tích",
+        "description": "Signed electric charge.",
+        "aliases": [
+          "q"
+        ],
+        "allowedUnits": [
+          "C"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source"
+          ]
+        }
+      },
+      {
+        "key": "electric_field",
+        "label": "điện trường",
+        "description": "Electric field component or magnitude with direction.",
+        "aliases": [
+          "E"
+        ],
+        "allowedUnits": [
+          "N/C"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "magnetic_field",
+        "label": "cảm ứng từ",
+        "description": "Magnetic flux density component or magnitude.",
+        "aliases": [
+          "B"
+        ],
+        "allowedUnits": [
+          "T"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "force",
+        "label": "lực",
+        "description": "Electromagnetic force.",
+        "aliases": [],
+        "allowedUnits": [
+          "N"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "velocity",
+        "label": "vận tốc",
+        "description": "Particle velocity.",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle"
+          ]
+        }
+      },
+      {
+        "key": "mass",
+        "label": "khối lượng",
+        "description": "Particle inertial mass.",
+        "aliases": [],
+        "allowedUnits": [
+          "kg"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle"
+          ]
+        }
+      },
+      {
+        "key": "magnetic_flux",
+        "label": "từ thông",
+        "description": "Flux through the winding.",
+        "aliases": [],
+        "allowedUnits": [
+          "Wb"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil"
+          ]
+        }
+      },
+      {
+        "key": "turns",
+        "label": "số vòng",
+        "description": "Number of turns.",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil"
+          ]
+        }
+      },
+      {
+        "key": "induced_voltage",
+        "label": "suất điện động cảm ứng",
+        "description": "Induced voltage with polarity.",
+        "aliases": [],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "distance",
+        "label": "khoảng cách",
+        "description": "Specified geometric separation.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source"
+          ]
+        }
+      },
+      {
+        "key": "charge",
+        "label": "điện tích",
+        "description": "điện tích",
+        "aliases": [],
+        "allowedUnits": [
+          "C"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "field_strength",
+        "label": "cường độ điện trường",
+        "description": "cường độ điện trường",
+        "aliases": [],
+        "allowedUnits": [
+          "N/C"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "initial_velocity",
+        "label": "vận tốc ban đầu",
+        "description": "vận tốc ban đầu",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "initial_position",
+        "label": "tọa độ ban đầu",
+        "description": "tọa độ ban đầu",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "initial_height",
+        "label": "độ cao ban đầu",
+        "description": "độ cao ban đầu",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "x",
+        "label": "tọa độ x",
+        "description": "tọa độ x",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "y",
+        "label": "tọa độ y",
+        "description": "tọa độ y",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "vx",
+        "label": "vận tốc theo x",
+        "description": "vận tốc theo x",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "vy",
+        "label": "vận tốc theo y",
+        "description": "vận tốc theo y",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "ax",
+        "label": "gia tốc theo x",
+        "description": "gia tốc theo x",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s^2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "ay",
+        "label": "gia tốc theo y",
+        "description": "gia tốc theo y",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s^2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "flux_density",
+        "label": "cảm ứng từ",
+        "description": "cảm ứng từ",
+        "aliases": [],
+        "allowedUnits": [
+          "T"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "fixed_charge",
+        "label": "điện tích cố định",
+        "description": "điện tích cố định",
+        "aliases": [],
+        "allowedUnits": [
+          "C"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "coulomb_constant",
+        "label": "hằng số Coulomb",
+        "description": "hằng số Coulomb",
+        "aliases": [],
+        "allowedUnits": [
+          "N*m2/C2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "position",
+        "label": "tọa độ",
+        "description": "tọa độ",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "kinetic_energy",
+        "label": "động năng",
+        "description": "động năng",
+        "aliases": [],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "potential_energy",
+        "label": "thế năng",
+        "description": "thế năng",
+        "aliases": [],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "coil_area",
+        "label": "diện tích khung dây",
+        "description": "diện tích khung dây",
+        "aliases": [],
+        "allowedUnits": [
+          "m2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "angular_velocity",
+        "label": "tốc độ góc",
+        "description": "tốc độ góc",
+        "aliases": [],
+        "allowedUnits": [
+          "rad/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "initial_angle",
+        "label": "góc ban đầu",
+        "description": "góc ban đầu",
+        "aliases": [],
+        "allowedUnits": [
+          "rad"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "angle",
+        "label": "góc",
+        "description": "góc",
+        "aliases": [],
+        "allowedUnits": [
+          "rad"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "flux",
+        "label": "từ thông",
+        "description": "từ thông",
+        "aliases": [],
+        "allowedUnits": [
+          "Wb"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "emf",
+        "label": "suất điện động",
+        "description": "suất điện động",
+        "aliases": [],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "primary_voltage_amplitude",
+        "label": "biên độ điện áp sơ cấp",
+        "description": "biên độ điện áp sơ cấp",
+        "aliases": [],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "frequency",
+        "label": "tần số",
+        "description": "tần số",
+        "aliases": [],
+        "allowedUnits": [
+          "Hz"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "primary_turns",
+        "label": "số vòng sơ cấp",
+        "description": "số vòng sơ cấp",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "secondary_turns",
+        "label": "số vòng thứ cấp",
+        "description": "số vòng thứ cấp",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "phase",
+        "label": "pha",
+        "description": "pha",
+        "aliases": [],
+        "allowedUnits": [
+          "rad"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "primary_voltage",
+        "label": "điện áp sơ cấp",
+        "description": "điện áp sơ cấp",
+        "aliases": [],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "secondary_voltage",
+        "label": "điện áp thứ cấp",
+        "description": "điện áp thứ cấp",
+        "aliases": [],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "current",
+        "label": "cường độ dòng điện",
+        "description": "cường độ dòng điện",
+        "aliases": [],
+        "allowedUnits": [
+          "A"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "rod_length",
+        "label": "chiều dài thanh",
+        "description": "chiều dài thanh",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "acceleration",
+        "label": "gia tốc",
+        "description": "gia tốc",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s^2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ]
+        }
+      },
+      {
+        "key": "voltage_amplitude",
+        "label": "biên độ điện áp",
+        "description": "biên độ điện áp",
+        "aliases": [],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source",
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "resistance",
+        "label": "điện trở",
+        "description": "điện trở",
+        "aliases": [],
+        "allowedUnits": [
+          "ohm"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source",
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "inductance",
+        "label": "độ tự cảm",
+        "description": "độ tự cảm",
+        "aliases": [],
+        "allowedUnits": [
+          "H"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source",
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "capacitance",
+        "label": "điện dung",
+        "description": "điện dung",
+        "aliases": [],
+        "allowedUnits": [
+          "F"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source",
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "voltage",
+        "label": "hiệu điện thế",
+        "description": "hiệu điện thế",
+        "aliases": [],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source",
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "power",
+        "label": "công suất",
+        "description": "công suất",
+        "aliases": [],
+        "allowedUnits": [
+          "W"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source",
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "impedance",
+        "label": "tổng trở",
+        "description": "tổng trở",
+        "aliases": [],
+        "allowedUnits": [
+          "ohm"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source",
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "power_factor",
+        "label": "hệ số công suất",
+        "description": "hệ số công suất",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source",
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      },
+      {
+        "key": "current_amplitude",
+        "label": "biên độ dòng điện",
+        "description": "biên độ dòng điện",
+        "aliases": [],
+        "allowedUnits": [
+          "A"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "charge_source",
+            "field_region",
+            "coil",
+            "conductor"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "C",
+        "dimension": "electric charge"
+      },
+      {
+        "symbol": "N/C",
+        "dimension": "electric field"
+      },
+      {
+        "symbol": "T",
+        "dimension": "magnetic field"
+      },
+      {
+        "symbol": "N",
+        "dimension": "force"
+      },
+      {
+        "symbol": "m/s",
+        "dimension": "velocity"
+      },
+      {
+        "symbol": "kg",
+        "dimension": "mass"
+      },
+      {
+        "symbol": "Wb",
+        "dimension": "magnetic flux"
+      },
+      {
+        "symbol": "1",
+        "dimension": "dimensionless"
+      },
+      {
+        "symbol": "V",
+        "dimension": "voltage"
+      },
+      {
+        "symbol": "m",
+        "dimension": "length"
+      },
+      {
+        "symbol": "m/s^2",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "N*m2/C2",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "J",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "m2",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "rad/s",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "rad",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "Hz",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "A",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "ohm",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "H",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "F",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "W",
+        "dimension": "derived"
+      }
+    ],
+    "laws": [
+      {
+        "id": "electric_force",
+        "name": "Lực điện trường",
+        "inputs": [
+          "electric_charge",
+          "electric_field"
+        ],
+        "outputs": [
+          "force"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ],
+          "quantities": [
+            "electric_charge",
+            "electric_field",
+            "force"
+          ]
+        },
+        "assumptions": [
+          "Field at particle location is known."
+        ],
+        "description": "Electric force on a charge."
+      },
+      {
+        "id": "magnetic_force",
+        "name": "Lực từ",
+        "inputs": [
+          "electric_charge",
+          "velocity",
+          "magnetic_field"
+        ],
+        "outputs": [
+          "force"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ],
+          "quantities": [
+            "electric_charge",
+            "velocity",
+            "magnetic_field",
+            "force"
+          ]
+        },
+        "assumptions": [
+          "Relative direction or angle is known.",
+          "Field geometry and direction must be specified or inferred from the described arrangement."
+        ],
+        "description": "Magnetic force on moving charge."
+      },
+      {
+        "id": "faraday",
+        "name": "Định luật Faraday",
+        "inputs": [
+          "turns",
+          "magnetic_flux"
+        ],
+        "outputs": [
+          "induced_voltage"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "coil",
+            "field_region"
+          ],
+          "quantities": [
+            "turns",
+            "magnetic_flux",
+            "induced_voltage"
+          ]
+        },
+        "assumptions": [
+          "Flux over time or its derivative is known."
+        ],
+        "description": "Induced voltage from changing flux."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "field_geometry",
+        "description": "Clarify field direction and geometry when they affect the requested result.",
+        "appliesTo": {
+          "objectTypes": [
+            "field_region"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "spatial_field_limit",
+        "description": "Field evolution requires a spatial electromagnetic model.",
+        "appliesTo": {
+          "objectTypes": [
+            "field_region"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "source_values",
+        "description": "Field strength or source law must be supported by supplied facts and applicable laws.",
+        "appliesTo": {
+          "objectTypes": [
+            "charge_source",
+            "field_region"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
+      "limitations": [
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
+    },
+    "capabilities": [
+      {
+        "capabilityId": "charge_in_uniform_electric_field",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ],
+          "quantities": [
+            "charge",
+            "mass",
+            "field_strength",
+            "initial_velocity",
+            "initial_position",
+            "initial_height"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "charge",
+            "unit": "C"
+          },
+          {
+            "key": "mass",
+            "unit": "kg",
+            "min": 1e-35
+          },
+          {
+            "key": "field_strength",
+            "unit": "N/C"
+          },
+          {
+            "key": "initial_velocity",
+            "unit": "m/s",
+            "defaultValue": 0
+          },
+          {
+            "key": "initial_position",
+            "unit": "m",
+            "defaultValue": 0
+          },
+          {
+            "key": "initial_height",
+            "unit": "m",
+            "defaultValue": 0
+          }
+        ],
+        "outputs": [
+          {
+            "key": "x",
+            "unit": "m"
+          },
+          {
+            "key": "y",
+            "unit": "m"
+          },
+          {
+            "key": "vx",
+            "unit": "m/s"
+          },
+          {
+            "key": "vy",
+            "unit": "m/s"
+          },
+          {
+            "key": "ax",
+            "unit": "m/s^2"
+          },
+          {
+            "key": "ay",
+            "unit": "m/s^2"
+          },
+          {
+            "key": "force",
+            "unit": "N"
+          }
+        ],
+        "assumptions": [
+          "Điện trường đều hướng theo trục y (E > 0 hướng lên); hạt bay vào song song trục x; bỏ qua trọng lực."
+        ],
+        "equationSet": {
+          "canonical": [
+            "F = q*E",
+            "a = q*E/m"
+          ],
+          "derived": [
+            "x = v0*t",
+            "y = a*t^2/2"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "x": "initial_position",
+              "y": "initial_height",
+              "vx": "initial_velocity",
+              "vy": 0
+            },
+            "rates": {
+              "x": "vx",
+              "y": "vy",
+              "vx": 0,
+              "vy": [
+                "div",
+                [
+                  "mul",
+                  "charge",
+                  "field_strength"
+                ],
+                "mass"
+              ]
+            },
+            "outputs": {
+              "x": "x",
+              "y": "y",
+              "vx": "vx",
+              "vy": "vy",
+              "ax": 0,
+              "ay": [
+                "div",
+                [
+                  "mul",
+                  "charge",
+                  "field_strength"
+                ],
+                "mass"
+              ],
+              "force": [
+                "mul",
+                "charge",
+                "field_strength"
+              ]
+            },
+            "closedForm": {
+              "x": [
+                "add",
+                "initial_position",
+                [
+                  "mul",
+                  "initial_velocity",
+                  "t"
+                ]
+              ],
+              "y": [
+                "add",
+                "initial_height",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        0.5,
+                        "charge"
+                      ],
+                      "field_strength"
+                    ],
+                    "mass"
+                  ],
+                  [
+                    "pow",
+                    "t",
+                    2
+                  ]
+                ]
+              ],
+              "vx": "initial_velocity",
+              "vy": [
+                "mul",
+                [
+                  "div",
+                  [
+                    "mul",
+                    "charge",
+                    "field_strength"
+                  ],
+                  "mass"
+                ],
+                "t"
+              ],
+              "ax": 0,
+              "ay": [
+                "div",
+                [
+                  "mul",
+                  "charge",
+                  "field_strength"
+                ],
+                "mass"
+              ],
+              "force": [
+                "mul",
+                "charge",
+                "field_strength"
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "x",
+            "role": "horizontal_position"
+          },
+          {
+            "source": "y",
+            "role": "vertical_position"
+          }
+        ]
+      },
+      {
+        "capabilityId": "charge_in_uniform_magnetic_field",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ],
+          "quantities": [
+            "charge",
+            "mass",
+            "flux_density",
+            "initial_velocity"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "charge",
+            "unit": "C"
+          },
+          {
+            "key": "mass",
+            "unit": "kg",
+            "min": 1e-35
+          },
+          {
+            "key": "flux_density",
+            "unit": "T"
+          },
+          {
+            "key": "initial_velocity",
+            "unit": "m/s"
+          }
+        ],
+        "outputs": [
+          {
+            "key": "x",
+            "unit": "m"
+          },
+          {
+            "key": "y",
+            "unit": "m"
+          },
+          {
+            "key": "vx",
+            "unit": "m/s"
+          },
+          {
+            "key": "vy",
+            "unit": "m/s"
+          },
+          {
+            "key": "force",
+            "unit": "N"
+          }
+        ],
+        "assumptions": [
+          "Từ trường đều vuông góc mặt phẳng hình (B > 0 hướng ra ngoài mặt hình); hạt bay vào vuông góc với B từ gốc O theo trục x; bỏ qua trọng lực."
+        ],
+        "equationSet": {
+          "canonical": [
+            "F = |q|*v*B (lực Lorentz)",
+            "m*dv/dt = q*v x B"
+          ],
+          "derived": [
+            "r = m*v/(|q|*B)",
+            "T = 2*pi*m/(|q|*B)"
+          ]
+        },
+        "execution": {
+          "primary": "numerical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": null,
+          "math": {
+            "initial": {
+              "x": 0,
+              "y": 0,
+              "vx": "initial_velocity",
+              "vy": 0
+            },
+            "rates": {
+              "x": "vx",
+              "y": "vy",
+              "vx": [
+                "mul",
+                [
+                  "div",
+                  [
+                    "mul",
+                    "charge",
+                    "flux_density"
+                  ],
+                  "mass"
+                ],
+                "vy"
+              ],
+              "vy": [
+                "mul",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "neg",
+                      "charge"
+                    ],
+                    "flux_density"
+                  ],
+                  "mass"
+                ],
+                "vx"
+              ]
+            },
+            "outputs": {
+              "x": "x",
+              "y": "y",
+              "vx": "vx",
+              "vy": "vy",
+              "force": [
+                "mul",
+                [
+                  "abs",
+                  [
+                    "mul",
+                    "charge",
+                    "flux_density"
+                  ]
+                ],
+                [
+                  "sqrt",
+                  [
+                    "add",
+                    [
+                      "pow",
+                      "vx",
+                      2
+                    ],
+                    [
+                      "pow",
+                      "vy",
+                      2
+                    ]
+                  ]
+                ]
+              ]
+            },
+            "invariants": {
+              "speed_squared": [
+                "add",
+                [
+                  "pow",
+                  "vx",
+                  2
+                ],
+                [
+                  "pow",
+                  "vy",
+                  2
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "residual_invariants",
+          "invariants": [
+            "finite_output",
+            "declared_invariants"
+          ],
+          "benchmarks": [
+            {
+              "name": "no_field_straight_line",
+              "durationSeconds": 1,
+              "inputs": {
+                "charge": 1e-06,
+                "mass": 0.001,
+                "flux_density": 0,
+                "initial_velocity": 2
+              },
+              "expectedOutputs": {
+                "x": 2,
+                "y": 0,
+                "vx": 2,
+                "vy": 0,
+                "force": 0
+              }
+            }
+          ]
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "x",
+            "role": "horizontal_position"
+          },
+          {
+            "source": "y",
+            "role": "vertical_position"
+          }
+        ]
+      },
+      {
+        "capabilityId": "coulomb_repulsion_from_fixed_charge",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "charged_particle",
+            "field_region"
+          ],
+          "quantities": [
+            "fixed_charge",
+            "charge",
+            "mass",
+            "initial_position",
+            "initial_velocity",
+            "coulomb_constant"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "fixed_charge",
+            "unit": "C"
+          },
+          {
+            "key": "charge",
+            "unit": "C"
+          },
+          {
+            "key": "mass",
+            "unit": "kg",
+            "min": 1e-35
+          },
+          {
+            "key": "initial_position",
+            "unit": "m",
+            "min": 1e-12
+          },
+          {
+            "key": "initial_velocity",
+            "unit": "m/s",
+            "defaultValue": 0
+          },
+          {
+            "key": "coulomb_constant",
+            "unit": "N*m2/C2",
+            "min": 1,
+            "defaultValue": 8987551792.3
+          }
+        ],
+        "outputs": [
+          {
+            "key": "position",
+            "unit": "m"
+          },
+          {
+            "key": "velocity",
+            "unit": "m/s"
+          },
+          {
+            "key": "force",
+            "unit": "N"
+          },
+          {
+            "key": "kinetic_energy",
+            "unit": "J"
+          },
+          {
+            "key": "potential_energy",
+            "unit": "J"
+          }
+        ],
+        "assumptions": [
+          "Điện tích Q đứng yên tại gốc O; điện tích q chuyển động trên trục Ox (x > 0) chỉ dưới tác dụng lực Coulomb; q không đi tới gốc O."
+        ],
+        "equationSet": {
+          "canonical": [
+            "F = k*q1*q2/r^2"
+          ],
+          "derived": [
+            "W_t = k*q1*q2/r",
+            "E = k*|Q|/r^2"
+          ]
+        },
+        "execution": {
+          "primary": "numerical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": null,
+          "math": {
+            "initial": {
+              "position": "initial_position",
+              "velocity": "initial_velocity"
+            },
+            "rates": {
+              "position": "velocity",
+              "velocity": [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "coulomb_constant",
+                    "fixed_charge"
+                  ],
+                  "charge"
+                ],
+                [
+                  "mul",
+                  "mass",
+                  [
+                    "pow",
+                    "position",
+                    2
+                  ]
+                ]
+              ]
+            },
+            "outputs": {
+              "position": "position",
+              "velocity": "velocity",
+              "force": [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "coulomb_constant",
+                    "fixed_charge"
+                  ],
+                  "charge"
+                ],
+                [
+                  "pow",
+                  "position",
+                  2
+                ]
+              ],
+              "kinetic_energy": [
+                "mul",
+                [
+                  "mul",
+                  0.5,
+                  "mass"
+                ],
+                [
+                  "pow",
+                  "velocity",
+                  2
+                ]
+              ],
+              "potential_energy": [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "coulomb_constant",
+                    "fixed_charge"
+                  ],
+                  "charge"
+                ],
+                "position"
+              ]
+            },
+            "invariants": {
+              "energy": [
+                "add",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    0.5,
+                    "mass"
+                  ],
+                  [
+                    "pow",
+                    "velocity",
+                    2
+                  ]
+                ],
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      "coulomb_constant",
+                      "fixed_charge"
+                    ],
+                    "charge"
+                  ],
+                  "position"
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "residual_invariants",
+          "invariants": [
+            "finite_output",
+            "declared_invariants"
+          ],
+          "benchmarks": [
+            {
+              "name": "neutral_uniform_motion",
+              "durationSeconds": 1,
+              "inputs": {
+                "fixed_charge": 0,
+                "charge": 1e-06,
+                "mass": 0.001,
+                "initial_position": 0.1,
+                "initial_velocity": 0.5,
+                "coulomb_constant": 8987551792.3
+              },
+              "expectedOutputs": {
+                "position": 0.6,
+                "velocity": 0.5,
+                "force": 0,
+                "kinetic_energy": 0.000125,
+                "potential_energy": 0
+              }
+            }
+          ]
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "position",
+            "role": "position"
+          },
+          {
+            "source": "force",
+            "role": "force"
+          }
+        ]
+      },
+      {
+        "capabilityId": "rotating_coil_induction",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ],
+          "quantities": [
+            "turns",
+            "coil_area",
+            "flux_density",
+            "angular_velocity",
+            "initial_angle"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "turns",
+            "unit": "1",
+            "min": 1
+          },
+          {
+            "key": "coil_area",
+            "unit": "m2",
+            "min": 0
+          },
+          {
+            "key": "flux_density",
+            "unit": "T"
+          },
+          {
+            "key": "angular_velocity",
+            "unit": "rad/s"
+          },
+          {
+            "key": "initial_angle",
+            "unit": "rad",
+            "defaultValue": 0
+          }
+        ],
+        "outputs": [
+          {
+            "key": "angle",
+            "unit": "rad"
+          },
+          {
+            "key": "flux",
+            "unit": "Wb"
+          },
+          {
+            "key": "emf",
+            "unit": "V"
+          }
+        ],
+        "assumptions": [
+          "Khung dây phẳng quay đều trong từ trường đều quanh trục vuông góc với B."
+        ],
+        "equationSet": {
+          "canonical": [
+            "Phi = N*B*S*cos(omega*t + phi0)",
+            "e = -dPhi/dt"
+          ],
+          "derived": [
+            "E0 = N*B*S*omega"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "angle": "initial_angle"
+            },
+            "rates": {
+              "angle": "angular_velocity"
+            },
+            "outputs": {
+              "angle": "angle",
+              "flux": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "turns",
+                    "flux_density"
+                  ],
+                  "coil_area"
+                ],
+                [
+                  "cos",
+                  "angle"
+                ]
+              ],
+              "emf": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      "turns",
+                      "flux_density"
+                    ],
+                    "coil_area"
+                  ],
+                  "angular_velocity"
+                ],
+                [
+                  "sin",
+                  "angle"
+                ]
+              ]
+            },
+            "closedForm": {
+              "angle": [
+                "add",
+                "initial_angle",
+                [
+                  "mul",
+                  "angular_velocity",
+                  "t"
+                ]
+              ],
+              "flux": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "turns",
+                    "flux_density"
+                  ],
+                  "coil_area"
+                ],
+                [
+                  "cos",
+                  [
+                    "add",
+                    "initial_angle",
+                    [
+                      "mul",
+                      "angular_velocity",
+                      "t"
+                    ]
+                  ]
+                ]
+              ],
+              "emf": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      "turns",
+                      "flux_density"
+                    ],
+                    "coil_area"
+                  ],
+                  "angular_velocity"
+                ],
+                [
+                  "sin",
+                  [
+                    "add",
+                    "initial_angle",
+                    [
+                      "mul",
+                      "angular_velocity",
+                      "t"
+                    ]
+                  ]
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "emf",
+            "role": "state_value"
+          },
+          {
+            "source": "angle",
+            "role": "angle_annotation"
+          }
+        ]
+      },
+      {
+        "capabilityId": "ideal_transformer",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ],
+          "quantities": [
+            "primary_voltage_amplitude",
+            "frequency",
+            "primary_turns",
+            "secondary_turns"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "primary_voltage_amplitude",
+            "unit": "V"
+          },
+          {
+            "key": "frequency",
+            "unit": "Hz",
+            "min": 1e-09
+          },
+          {
+            "key": "primary_turns",
+            "unit": "1",
+            "min": 1
+          },
+          {
+            "key": "secondary_turns",
+            "unit": "1",
+            "min": 1
+          }
+        ],
+        "outputs": [
+          {
+            "key": "phase",
+            "unit": "rad"
+          },
+          {
+            "key": "primary_voltage",
+            "unit": "V"
+          },
+          {
+            "key": "secondary_voltage",
+            "unit": "V"
+          }
+        ],
+        "assumptions": [
+          "Máy biến áp lí tưởng, không hao phí; điện áp sơ cấp xoay chiều hình sin."
+        ],
+        "equationSet": {
+          "canonical": [
+            "U2/U1 = N2/N1"
+          ],
+          "derived": [
+            "I1/I2 = N2/N1 (máy biến áp lí tưởng)"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "phase": 0
+            },
+            "rates": {
+              "phase": [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "frequency"
+              ]
+            },
+            "outputs": {
+              "phase": "phase",
+              "primary_voltage": [
+                "mul",
+                "primary_voltage_amplitude",
+                [
+                  "cos",
+                  "phase"
+                ]
+              ],
+              "secondary_voltage": [
+                "mul",
+                [
+                  "div",
+                  [
+                    "mul",
+                    "primary_voltage_amplitude",
+                    "secondary_turns"
+                  ],
+                  "primary_turns"
+                ],
+                [
+                  "cos",
+                  "phase"
+                ]
+              ]
+            },
+            "closedForm": {
+              "phase": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "frequency"
+                ],
+                "t"
+              ],
+              "primary_voltage": [
+                "mul",
+                "primary_voltage_amplitude",
+                [
+                  "cos",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    "t"
+                  ]
+                ]
+              ],
+              "secondary_voltage": [
+                "mul",
+                [
+                  "div",
+                  [
+                    "mul",
+                    "primary_voltage_amplitude",
+                    "secondary_turns"
+                  ],
+                  "primary_turns"
+                ],
+                [
+                  "cos",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    "t"
+                  ]
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "secondary_voltage",
+            "role": "state_value"
+          }
+        ]
+      },
+      {
+        "capabilityId": "current_carrying_rod_on_rails",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "coil",
+            "conductor",
+            "field_region"
+          ],
+          "quantities": [
+            "flux_density",
+            "current",
+            "rod_length",
+            "mass",
+            "initial_position",
+            "initial_velocity"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "flux_density",
+            "unit": "T"
+          },
+          {
+            "key": "current",
+            "unit": "A"
+          },
+          {
+            "key": "rod_length",
+            "unit": "m",
+            "min": 1e-09
+          },
+          {
+            "key": "mass",
+            "unit": "kg",
+            "min": 1e-09
+          },
+          {
+            "key": "initial_position",
+            "unit": "m",
+            "defaultValue": 0
+          },
+          {
+            "key": "initial_velocity",
+            "unit": "m/s",
+            "defaultValue": 0
+          }
+        ],
+        "outputs": [
+          {
+            "key": "position",
+            "unit": "m"
+          },
+          {
+            "key": "velocity",
+            "unit": "m/s"
+          },
+          {
+            "key": "acceleration",
+            "unit": "m/s^2"
+          },
+          {
+            "key": "force",
+            "unit": "N"
+          }
+        ],
+        "assumptions": [
+          "Thanh dẫn trượt không ma sát trên hai ray song song nằm ngang, dòng điện không đổi, từ trường đều vuông góc mặt phẳng ray."
+        ],
+        "equationSet": {
+          "canonical": [
+            "F = B*I*l (dây vuông góc B)"
+          ],
+          "derived": [
+            "a = B*I*l/m"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "position": "initial_position",
+              "velocity": "initial_velocity"
+            },
+            "rates": {
+              "position": "velocity",
+              "velocity": [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "flux_density",
+                    "current"
+                  ],
+                  "rod_length"
+                ],
+                "mass"
+              ]
+            },
+            "outputs": {
+              "position": "position",
+              "velocity": "velocity",
+              "acceleration": [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "flux_density",
+                    "current"
+                  ],
+                  "rod_length"
+                ],
+                "mass"
+              ],
+              "force": [
+                "mul",
+                [
+                  "mul",
+                  "flux_density",
+                  "current"
+                ],
+                "rod_length"
+              ]
+            },
+            "closedForm": {
+              "position": [
+                "add",
+                [
+                  "add",
+                  "initial_position",
+                  [
+                    "mul",
+                    "initial_velocity",
+                    "t"
+                  ]
+                ],
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          0.5,
+                          "flux_density"
+                        ],
+                        "current"
+                      ],
+                      "rod_length"
+                    ],
+                    "mass"
+                  ],
+                  [
+                    "pow",
+                    "t",
+                    2
+                  ]
+                ]
+              ],
+              "velocity": [
+                "add",
+                "initial_velocity",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        "flux_density",
+                        "current"
+                      ],
+                      "rod_length"
+                    ],
+                    "mass"
+                  ],
+                  "t"
+                ]
+              ],
+              "acceleration": [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "flux_density",
+                    "current"
+                  ],
+                  "rod_length"
+                ],
+                "mass"
+              ],
+              "force": [
+                "mul",
+                [
+                  "mul",
+                  "flux_density",
+                  "current"
+                ],
+                "rod_length"
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "position",
+            "role": "position"
+          },
+          {
+            "source": "force",
+            "role": "force"
+          }
+        ]
+      },
+      {
+        "capabilityId": "ac_series_rlc",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "resistor",
+            "capacitor",
+            "inductor",
+            "voltage_source"
+          ],
+          "quantities": [
+            "voltage_amplitude",
+            "frequency",
+            "resistance",
+            "inductance",
+            "capacitance"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "voltage_amplitude",
+            "unit": "V",
+            "min": 0
+          },
+          {
+            "key": "frequency",
+            "unit": "Hz",
+            "min": 1e-09
+          },
+          {
+            "key": "resistance",
+            "unit": "ohm",
+            "min": 1e-09
+          },
+          {
+            "key": "inductance",
+            "unit": "H",
+            "min": 0,
+            "defaultValue": 0
+          },
+          {
+            "key": "capacitance",
+            "unit": "F",
+            "min": 1e-15,
+            "defaultValue": 1
+          }
+        ],
+        "outputs": [
+          {
+            "key": "phase",
+            "unit": "rad"
+          },
+          {
+            "key": "voltage",
+            "unit": "V"
+          },
+          {
+            "key": "current",
+            "unit": "A"
+          },
+          {
+            "key": "power",
+            "unit": "W"
+          },
+          {
+            "key": "impedance",
+            "unit": "ohm"
+          },
+          {
+            "key": "power_factor",
+            "unit": "1"
+          },
+          {
+            "key": "current_amplitude",
+            "unit": "A"
+          }
+        ],
+        "assumptions": [
+          "Mạch R, L, C nối tiếp ở trạng thái xoay chiều ổn định; linh kiện lí tưởng (không có tụ: đặt C rất lớn; không có cuộn cảm: L = 0)."
+        ],
+        "equationSet": {
+          "canonical": [
+            "u = U0*cos(omega*t)",
+            "i = I0*cos(omega*t - phi)",
+            "Z = sqrt(R^2 + (ZL - ZC)^2)"
+          ],
+          "derived": [
+            "ZL = omega*L",
+            "ZC = 1/(omega*C)",
+            "I0 = U0/Z",
+            "cos(phi) = R/Z",
+            "P = U*I*cos(phi)"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "phase": 0
+            },
+            "rates": {
+              "phase": [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "frequency"
+              ]
+            },
+            "outputs": {
+              "phase": "phase",
+              "voltage": [
+                "mul",
+                "voltage_amplitude",
+                [
+                  "cos",
+                  "phase"
+                ]
+              ],
+              "current": [
+                "mul",
+                [
+                  "div",
+                  "voltage_amplitude",
+                  [
+                    "sqrt",
+                    [
+                      "add",
+                      [
+                        "pow",
+                        "resistance",
+                        2
+                      ],
+                      [
+                        "pow",
+                        [
+                          "sub",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "inductance"
+                          ],
+                          [
+                            "div",
+                            1,
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "frequency"
+                              ],
+                              "capacitance"
+                            ]
+                          ]
+                        ],
+                        2
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "add",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "cos",
+                        "phase"
+                      ],
+                      "resistance"
+                    ],
+                    [
+                      "sqrt",
+                      [
+                        "add",
+                        [
+                          "pow",
+                          "resistance",
+                          2
+                        ],
+                        [
+                          "pow",
+                          [
+                            "sub",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "frequency"
+                              ],
+                              "inductance"
+                            ],
+                            [
+                              "div",
+                              1,
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  [
+                                    "mul",
+                                    2,
+                                    3.141592653589793
+                                  ],
+                                  "frequency"
+                                ],
+                                "capacitance"
+                              ]
+                            ]
+                          ],
+                          2
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "sin",
+                        "phase"
+                      ],
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "inductance"
+                        ],
+                        [
+                          "div",
+                          1,
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "capacitance"
+                          ]
+                        ]
+                      ]
+                    ],
+                    [
+                      "sqrt",
+                      [
+                        "add",
+                        [
+                          "pow",
+                          "resistance",
+                          2
+                        ],
+                        [
+                          "pow",
+                          [
+                            "sub",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "frequency"
+                              ],
+                              "inductance"
+                            ],
+                            [
+                              "div",
+                              1,
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  [
+                                    "mul",
+                                    2,
+                                    3.141592653589793
+                                  ],
+                                  "frequency"
+                                ],
+                                "capacitance"
+                              ]
+                            ]
+                          ],
+                          2
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              "power": [
+                "mul",
+                "voltage",
+                "current"
+              ],
+              "impedance": [
+                "sqrt",
+                [
+                  "add",
+                  [
+                    "pow",
+                    "resistance",
+                    2
+                  ],
+                  [
+                    "pow",
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "inductance"
+                      ],
+                      [
+                        "div",
+                        1,
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "capacitance"
+                        ]
+                      ]
+                    ],
+                    2
+                  ]
+                ]
+              ],
+              "power_factor": [
+                "div",
+                "resistance",
+                [
+                  "sqrt",
+                  [
+                    "add",
+                    [
+                      "pow",
+                      "resistance",
+                      2
+                    ],
+                    [
+                      "pow",
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "inductance"
+                        ],
+                        [
+                          "div",
+                          1,
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "capacitance"
+                          ]
+                        ]
+                      ],
+                      2
+                    ]
+                  ]
+                ]
+              ],
+              "current_amplitude": [
+                "div",
+                "voltage_amplitude",
+                [
+                  "sqrt",
+                  [
+                    "add",
+                    [
+                      "pow",
+                      "resistance",
+                      2
+                    ],
+                    [
+                      "pow",
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "inductance"
+                        ],
+                        [
+                          "div",
+                          1,
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "capacitance"
+                          ]
+                        ]
+                      ],
+                      2
+                    ]
+                  ]
+                ]
+              ]
+            },
+            "closedForm": {
+              "phase": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "frequency"
+                ],
+                "t"
+              ],
+              "voltage": [
+                "mul",
+                "voltage_amplitude",
+                [
+                  "cos",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    "t"
+                  ]
+                ]
+              ],
+              "current": [
+                "mul",
+                [
+                  "div",
+                  "voltage_amplitude",
+                  [
+                    "sqrt",
+                    [
+                      "add",
+                      [
+                        "pow",
+                        "resistance",
+                        2
+                      ],
+                      [
+                        "pow",
+                        [
+                          "sub",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "inductance"
+                          ],
+                          [
+                            "div",
+                            1,
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "frequency"
+                              ],
+                              "capacitance"
+                            ]
+                          ]
+                        ],
+                        2
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "add",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "cos",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "t"
+                        ]
+                      ],
+                      "resistance"
+                    ],
+                    [
+                      "sqrt",
+                      [
+                        "add",
+                        [
+                          "pow",
+                          "resistance",
+                          2
+                        ],
+                        [
+                          "pow",
+                          [
+                            "sub",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "frequency"
+                              ],
+                              "inductance"
+                            ],
+                            [
+                              "div",
+                              1,
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  [
+                                    "mul",
+                                    2,
+                                    3.141592653589793
+                                  ],
+                                  "frequency"
+                                ],
+                                "capacitance"
+                              ]
+                            ]
+                          ],
+                          2
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "sin",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "t"
+                        ]
+                      ],
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "inductance"
+                        ],
+                        [
+                          "div",
+                          1,
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "capacitance"
+                          ]
+                        ]
+                      ]
+                    ],
+                    [
+                      "sqrt",
+                      [
+                        "add",
+                        [
+                          "pow",
+                          "resistance",
+                          2
+                        ],
+                        [
+                          "pow",
+                          [
+                            "sub",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "frequency"
+                              ],
+                              "inductance"
+                            ],
+                            [
+                              "div",
+                              1,
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  [
+                                    "mul",
+                                    2,
+                                    3.141592653589793
+                                  ],
+                                  "frequency"
+                                ],
+                                "capacitance"
+                              ]
+                            ]
+                          ],
+                          2
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              "power": [
+                "mul",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      "voltage_amplitude",
+                      [
+                        "cos",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "t"
+                        ]
+                      ]
+                    ],
+                    "voltage_amplitude"
+                  ],
+                  [
+                    "sqrt",
+                    [
+                      "add",
+                      [
+                        "pow",
+                        "resistance",
+                        2
+                      ],
+                      [
+                        "pow",
+                        [
+                          "sub",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "inductance"
+                          ],
+                          [
+                            "div",
+                            1,
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "frequency"
+                              ],
+                              "capacitance"
+                            ]
+                          ]
+                        ],
+                        2
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "add",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "cos",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "t"
+                        ]
+                      ],
+                      "resistance"
+                    ],
+                    [
+                      "sqrt",
+                      [
+                        "add",
+                        [
+                          "pow",
+                          "resistance",
+                          2
+                        ],
+                        [
+                          "pow",
+                          [
+                            "sub",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "frequency"
+                              ],
+                              "inductance"
+                            ],
+                            [
+                              "div",
+                              1,
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  [
+                                    "mul",
+                                    2,
+                                    3.141592653589793
+                                  ],
+                                  "frequency"
+                                ],
+                                "capacitance"
+                              ]
+                            ]
+                          ],
+                          2
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "sin",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "t"
+                        ]
+                      ],
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "inductance"
+                        ],
+                        [
+                          "div",
+                          1,
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "capacitance"
+                          ]
+                        ]
+                      ]
+                    ],
+                    [
+                      "sqrt",
+                      [
+                        "add",
+                        [
+                          "pow",
+                          "resistance",
+                          2
+                        ],
+                        [
+                          "pow",
+                          [
+                            "sub",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "frequency"
+                              ],
+                              "inductance"
+                            ],
+                            [
+                              "div",
+                              1,
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  [
+                                    "mul",
+                                    2,
+                                    3.141592653589793
+                                  ],
+                                  "frequency"
+                                ],
+                                "capacitance"
+                              ]
+                            ]
+                          ],
+                          2
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              "impedance": [
+                "sqrt",
+                [
+                  "add",
+                  [
+                    "pow",
+                    "resistance",
+                    2
+                  ],
+                  [
+                    "pow",
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            2,
+                            3.141592653589793
+                          ],
+                          "frequency"
+                        ],
+                        "inductance"
+                      ],
+                      [
+                        "div",
+                        1,
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "capacitance"
+                        ]
+                      ]
+                    ],
+                    2
+                  ]
+                ]
+              ],
+              "power_factor": [
+                "div",
+                "resistance",
+                [
+                  "sqrt",
+                  [
+                    "add",
+                    [
+                      "pow",
+                      "resistance",
+                      2
+                    ],
+                    [
+                      "pow",
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "inductance"
+                        ],
+                        [
+                          "div",
+                          1,
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "capacitance"
+                          ]
+                        ]
+                      ],
+                      2
+                    ]
+                  ]
+                ]
+              ],
+              "current_amplitude": [
+                "div",
+                "voltage_amplitude",
+                [
+                  "sqrt",
+                  [
+                    "add",
+                    [
+                      "pow",
+                      "resistance",
+                      2
+                    ],
+                    [
+                      "pow",
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "frequency"
+                          ],
+                          "inductance"
+                        ],
+                        [
+                          "div",
+                          1,
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "frequency"
+                            ],
+                            "capacitance"
+                          ]
+                        ]
+                      ],
+                      2
+                    ]
+                  ]
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "voltage",
+            "role": "state_value"
+          },
+          {
+            "source": "current",
+            "role": "state_value"
+          }
+        ]
+      }
+    ]
+  }
+}

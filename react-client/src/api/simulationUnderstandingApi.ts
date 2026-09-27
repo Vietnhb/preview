@@ -11,7 +11,7 @@ export type SimulationParameter = {
   name: string; label?: string; value: number; unit?: string; min?: number; max?: number; step?: number;
 };
 export type SimulationFormula = {
-  modelId: string; capabilityId: string; canonical: string[]; derived?: string[]; assumptions?: string[];
+  modelId: string; label?: string; capabilityId: string; canonical: string[]; derived?: string[]; assumptions?: string[];
 };
 export type SimulationSpec = {
   durationSeconds: number; durationParameter?: string; parameters: SimulationParameter[];
@@ -57,7 +57,9 @@ export const confirmSimulationInput = (sessionId: string, recognizedText: string
   }).then(response => response.data);
 
 export const reviseSimulationIntent = (intent: IntentResult, text: string) =>
-  understandSimulationText(`${intent.description}\n\nYêu cầu bổ sung/chỉnh sửa của người dùng: ${text}`);
+  understandSimulationText(intent.stage === "CLARIFY" && intent.question
+    ? `${intent.description}\n\nCâu hỏi đã hỏi người dùng: ${intent.question}\nNgười dùng trả lời: ${text}`
+    : `${intent.description}\n\nYêu cầu bổ sung/chỉnh sửa của người dùng: ${text}`);
 
 export const confirmSimulationExplanation = (intent: IntentResult, renderDiagnostics?: { code: string; message: string }) =>
   axiosClient.post<GeneratedSimulationResult>("/simulation/generate", {

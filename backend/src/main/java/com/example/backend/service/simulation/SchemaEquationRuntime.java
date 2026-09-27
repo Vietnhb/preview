@@ -51,6 +51,9 @@ public class SchemaEquationRuntime {
         } catch (java.io.IOException ex) { throw new IllegalStateException("Unit dimensions are unavailable", ex); }
     }
 
+    private static final int MIN_STEPS = 200;
+    private static final int MAX_BASE_STEPS = 1000;
+
     private record Bound(String id, JsonNode capability, Map<String, Double> inputs) { }
 
     public ObjectNode compute(JsonNode definition, JsonNode spec, JsonNode overrides) {
@@ -108,9 +111,23 @@ public class SchemaEquationRuntime {
             }
             bindings.add(new Bound(id, capability, inputs));
         }
-        int steps = (int) Math.ceil(duration / defaultStep);
+        // Physical time scales range from milliseconds (AC, RC) to years (decay, orbits).
+        // Start from a presentation-friendly resolution and refine (h -> h/2) only while
+        // the reference / refinement checks fail, within the configured sample budget.
+        int budgetSteps = (int) Math.max(0, (maxSamples / Math.max(1, bindings.size()) - 1) / 2);
+        int steps = (int) Math.max(Math.min(MIN_STEPS, budgetSteps),
+                Math.min(Math.min((double) budgetSteps, MAX_BASE_STEPS), Math.ceil(duration / defaultStep)));
         require(steps > 0 && (long) (steps * 2 + 1) * Math.max(1, bindings.size()) <= maxSamples,
                 "Timeline exceeds configured sample budget; shorten duration or increase runtime budget");
+        ObjectNode result = run(spec, bindings, duration, steps);
+        while ("FLAGGED".equals(result.path("validation").path("status").asText()) && steps * 2L <= budgetSteps) {
+            steps *= 2;
+            result = run(spec, bindings, duration, steps);
+        }
+        return result;
+    }
+
+    private ObjectNode run(JsonNode spec, List<Bound> bindings, double duration, int steps) {
         ObjectNode result = json.createObjectNode();
         ObjectNode validation = result.putObject("validation");
         var flags = validation.putArray("flags");

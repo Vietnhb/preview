@@ -37,3 +37,16 @@ test("nice ticks and number formatting", () => {
   assert.equal(formatNumber(-2.5), "−2.5");
   assert.equal(formatNumber(0.0001012), "1.01×10⁻⁴");
 });
+test("elapsed-time states are hidden and connectors follow the capability's declared role", () => {
+  const orbit = run(6, t => ({ "s.elapsed_time": t, "s.angle": t, "s.x": 3 * Math.cos(t), "s.y": 3 * Math.sin(t) }));
+  const plain = describeScene(orbit, [], { "s.angle": { unit: "rad" }, "s.elapsed_time": { unit: "s" } });
+  assert.equal(plain.fields["s.elapsed_time"], undefined);
+  assert.equal(plain.participants[0].link, null);
+  const tethered = describeScene(orbit, [], { "s.angle": { unit: "rad", rendererRole: "connector_angle" } });
+  assert.ok(Math.abs(tethered.participants[0].link.radius - 3) < 1e-9);
+});
+test("the gravitational constant does not make motion vertical; uniform gravity does", () => {
+  const line = run(2, t => ({ "p.position": 2 * t }));
+  assert.equal(describeScene(line, [{ id: "p", inputs: { gravitational_constant: 6.67e-11 } }]).participants[0].vertical, false);
+  assert.equal(describeScene(line, [{ id: "p", inputs: { gravitational_acceleration: "g" } }]).participants[0].vertical, true);
+});

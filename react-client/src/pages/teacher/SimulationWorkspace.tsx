@@ -1,3 +1,4 @@
+import { prettyUnit } from "../../simulation/sceneModel";
 import { useEffect, useState, type ClipboardEvent, type DragEvent, type FormEvent } from "react";
 import axios from "axios";
 import katex from "katex";
@@ -99,7 +100,7 @@ function SimulationParameterControl({ parameter, value, onChange }: Readonly<{
     setDraft(null);
   };
   return <label className="simulation-control"><span>{parameter.label || parameter.name}</span>
-    <strong>{Number(value.toPrecision(5))} {parameter.unit}</strong>
+    <strong>{Number(value.toPrecision(5))} {prettyUnit(parameter.unit ?? "")}</strong>
     {min < max && <><input type="range" min={min} max={max} step={parameter.step ?? "any"} value={value}
       onChange={(event) => onChange(Number(event.target.value))} />
       <input type="number" min={min} max={max} step="any" value={draft ?? String(value)}
@@ -108,16 +109,37 @@ function SimulationParameterControl({ parameter, value, onChange }: Readonly<{
   </label>;
 }
 
+/** Textbook-style rendering of approved ASCII equations (symbols only, no topic knowledge). */
+function prettyEquation(equation: string) {
+  const greek: Record<string, string> = { theta: "θ", omega: "ω", alpha: "α", beta: "β", gamma: "γ", lambda: "λ", phi: "φ",
+    rho: "ρ", mu: "μ", tau: "τ", sigma: "σ", Delta: "Δ", delta: "δ", epsilon: "ε", pi: "π" };
+  return equation
+    .replace(/d2([A-Za-z_]\w*)\/dt2/g, "$1″")
+    .replace(/d([A-Za-z_]\w*)\/dt/g, "$1′")
+    .replace(/\b([A-Za-z]+)\b/g, word => greek[word] ?? word)
+    .replace(/sqrt\(/g, "√(")
+    .replace(/\^2\b/g, "²").replace(/\^3\b/g, "³")
+    .replace(/\*/g, "·")
+    .replace(/([=+])/g, " $1 ").replace(/\s+/g, " ").trim();
+}
+
 function FormulaReview({ intent }: Readonly<{ intent: IntentResult }>) {
+  const labels = new Map((intent.simulationSpec?.physicsModels ?? []).map(model => [model.id, model.label]));
   return <div className="simulation-formulas">
     <h3>Công thức áp dụng</h3>
     {intent.formulas?.length ? intent.formulas.map(formula => <div key={formula.modelId}>
-      <strong>{formula.modelId} · {formula.capabilityId}</strong>
-      {formula.canonical.map((equation, index) => <p key={index}><code>{equation}</code></p>)}
-      {!!formula.derived?.length && <p>Biểu thức suy ra: {formula.derived.join("; ")}</p>}
-    </div>) : <p>Chưa có phương trình thực thi phù hợp trong schema; chỉ có thể tạo minh họa chưa xác minh.</p>}
-    <p className="simulation-muted">Schema {intent.schemaId} · phiên bản {intent.schemaVersion}</p>
+      <strong>{formula.label || labels.get(formula.modelId) || "Đối tượng"}</strong>
+      {formula.canonical.map((equation, index) => <p key={index}><code>{prettyEquation(equation)}</code></p>)}
+      {!!formula.derived?.length && <p>Suy ra: {formula.derived.map(prettyEquation).join("; ")}</p>}
+    </div>) : <p>Hiện chưa có công thức tính toán đã kiểm duyệt cho tình huống này; hình sẽ chỉ mang tính minh họa.</p>}
   </div>;
+}
+
+/** What the AI produced for the visual: custom code, otherwise its declarative SVG scene. */
+function visualSource(simulation: GeneratedSimulationResult) {
+  const program = simulation.simulationSpec.visualProgram;
+  if (simulation.code?.trim()) return simulation.code;
+  return program?.scene ? JSON.stringify(program.scene, null, 1) : "";
 }
 
 export default function SimulationWorkspace() {
@@ -359,7 +381,7 @@ export default function SimulationWorkspace() {
   useEffect(() => {
     if (!renderError || !simulation || busy || autoRepairUsed) return;
     setAutoRepairUsed(true);
-    void generate({ code: simulation.code, message: renderError });
+    void generate({ code: visualSource(simulation), message: renderError });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- generate is recreated each render
   }, [renderError, simulation, busy, autoRepairUsed]);
 
@@ -505,11 +527,11 @@ export default function SimulationWorkspace() {
                     <p className="simulation-muted">Chưa có timeline từ backend để hiển thị.</p>
                   )}
                   {renderError && <button type="button" className="simulation-restart-button" disabled={busy}
-                    onClick={() => void generate({ code: simulation.code, message: renderError })}>
+                    onClick={() => void generate({ code: visualSource(simulation), message: renderError })}>
                     {busy ? "AI đang sửa cảnh minh họa…" : "Yêu cầu AI sửa cảnh minh họa"}
                   </button>}
                   {!renderError && <button type="button" className="simulation-restart-button" disabled={busy} onClick={() => void generate({
-                    code: simulation.code,
+                    code: visualSource(simulation),
                     message: "Redesign the current visual presentation as a polished, contextual illustrated world following the original user description and the rendering contract's art direction. Improve clarity, artwork, environment and composition; preserve the signed physics plan. This is visual design feedback, not physics validation.",
                   })}>{busy ? "AI đang thiết kế lại…" : "Thiết kế lại hình ảnh bằng AI"}</button>}
                   <p className="simulation-muted">
@@ -517,7 +539,7 @@ export default function SimulationWorkspace() {
                   </p>
                   <details>
                     <summary>Code PixiJS + SVG do LLM sinh</summary>
-                    <pre style={{ overflow: "auto", maxHeight: "28rem", whiteSpace: "pre-wrap" }}>{simulation.code}</pre>
+                    <pre style={{ overflow: "auto", maxHeight: "28rem", whiteSpace: "pre-wrap" }}>{visualSource(simulation)}</pre>
                   </details>
                   {error && <p className="simulation-error" role="alert">{error}</p>}
                 </div>
@@ -665,7 +687,7 @@ export default function SimulationWorkspace() {
                             Correct it
                           </button>
                           <button type="button" onClick={reset} disabled={busy}>
-                            Start over
+                            Làm lại từ đầu
                           </button>
                         </div>
                       )}
@@ -674,13 +696,13 @@ export default function SimulationWorkspace() {
 
                   {intent && !simulation && (
                     <section className="simulation-card">
-                      <span className="simulation-eyebrow">Physics understanding</span>
+                      <span className="simulation-eyebrow">Hiểu tình huống vật lý</span>
                       {intent.stage === "CLARIFY" && (
                         <>
-                          <h2>One detail is needed</h2>
+                          <h2>Cần làm rõ một chút</h2>
                           <p className="simulation-explanation">{intent.question || intent.message}</p>
                           <form onSubmit={handleRevision}>
-                            <label htmlFor="simulation-answer">Your answer</label>
+                            <label htmlFor="simulation-answer">Câu trả lời của bạn</label>
                             <textarea
                               id="simulation-answer"
                               rows={3}
@@ -692,7 +714,7 @@ export default function SimulationWorkspace() {
                                 className="simulation-primary-button"
                                 disabled={busy || !revision.trim()}
                               >
-                                {busy ? "Checking…" : "Answer"}
+                                {busy ? "Đang xử lý…" : "Trả lời"}
                               </button>
                             </div>
                           </form>
@@ -700,12 +722,12 @@ export default function SimulationWorkspace() {
                       )}
                       {intent.stage === "UNSUPPORTED" && (
                         <>
-                          <h2>This setup is outside the available simulation templates</h2>
+                          <h2>Nội dung này chưa phải một tình huống vật lý</h2>
                           <p className="simulation-explanation">
                             {intent.message || intent.explanation}
                           </p>
                           <form onSubmit={handleRevision}>
-                            <label htmlFor="simulation-revision">Describe a different setup</label>
+                            <label htmlFor="simulation-revision">Mô tả lại tình huống</label>
                             <textarea
                               id="simulation-revision"
                               rows={3}
@@ -717,7 +739,7 @@ export default function SimulationWorkspace() {
                                 className="simulation-primary-button"
                                 disabled={busy || !revision.trim()}
                               >
-                                Try another description
+                                Gửi mô tả mới
                               </button>
                             </div>
                           </form>
@@ -725,11 +747,11 @@ export default function SimulationWorkspace() {
                       )}
                       {intent.stage === "EXPLAIN" && (
                         <>
-                          <h2>Review the intended simulation</h2>
+                          <h2>Xem lại mô phỏng sẽ dựng</h2>
                           <p className="simulation-explanation">{intent.explanation}</p>
                           <FormulaReview intent={intent} />
                           <p className="simulation-muted">
-                            Any predicted outcome here is provisional until the simulation and background check run.
+                            Kết quả dự đoán ở đây chỉ là tạm thời cho tới khi mô phỏng được tính và kiểm tra.
                           </p>
                           <div className="simulation-actions">
                             <button
@@ -738,21 +760,21 @@ export default function SimulationWorkspace() {
                               disabled={busy}
                               onClick={() => void generate()}
                             >
-                              {busy ? "Generating…" : "Yes, build simulation"}
+                              {busy ? "Đang dựng mô phỏng… (có thể mất 1–3 phút)" : "Dựng mô phỏng"}
                             </button>
                             <button type="button" onClick={reset} disabled={busy}>
-                              Start over
+                              Làm lại từ đầu
                             </button>
                           </div>
                           <form className="simulation-revision-form" onSubmit={handleRevision}>
-                            <label htmlFor="simulation-change">Something needs to change?</label>
+                            <label htmlFor="simulation-change">Cần chỉnh gì?</label>
                             <textarea
                               id="simulation-change"
                               rows={2}
                               value={revision}
                               onChange={(event) => setRevision(event.target.value)}
                             />
-                            <button disabled={busy || !revision.trim()}>Update explanation</button>
+                            <button disabled={busy || !revision.trim()}>Cập nhật</button>
                           </form>
                         </>
                       )}
@@ -888,13 +910,7 @@ export default function SimulationWorkspace() {
                         ? "Chưa kiểm chứng độc lập"
                         : "Đang sẵn sàng"}
                     </strong>
-                    {validation?.capabilityId && (
-                      <p>
-                        Capability: {validation.capabilityId}
-                        {validation.solverMethod ? ` · Solver: ${validation.solverMethod}` : ""}
-                        {validation.referenceSolverVersion ? ` · Reference: ${validation.referenceSolverVersion}` : ""}
-                      </p>
-                    )}
+
                     {validation?.verificationScope && <p>Phạm vi xác minh: {validation.verificationScope}</p>}
                     {validation?.verificationMethod && (
                       <p>Phương pháp xác minh: {validation.verificationMethod}</p>

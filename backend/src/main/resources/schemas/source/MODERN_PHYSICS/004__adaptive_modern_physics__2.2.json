@@ -1,0 +1,1527 @@
+{
+  "schemaId": "adaptive_modern_physics",
+  "model": "generated_visual",
+  "name": "Modern Physics Concept Capability",
+  "topic": "MODERN_PHYSICS",
+  "version": "2.2",
+  "definition": {
+    "metaSchemaVersion": "2.0",
+    "description": "Conceptual vocabulary for modern physics. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "objectTypes": [
+      {
+        "type": "photon",
+        "label": "photon",
+        "description": "Quantum of light with frequency-dependent energy."
+      },
+      {
+        "type": "electron",
+        "label": "electron",
+        "description": "Particle absorbing or receiving energy."
+      },
+      {
+        "type": "material",
+        "label": "vật liệu",
+        "description": "Material with a stated work function."
+      },
+      {
+        "type": "nucleus",
+        "label": "hạt nhân",
+        "description": "Population under a mean decay model."
+      },
+      {
+        "type": "detector",
+        "label": "bộ dò",
+        "description": "Device observing a declared signal."
+      }
+    ],
+    "relationTypes": [
+      {
+        "type": "absorbed_by",
+        "label": "được hấp thụ bởi",
+        "description": "Photon absorbed by material or particle.",
+        "subjectTypes": [
+          "photon"
+        ],
+        "objectTypes": [
+          "material",
+          "electron"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material",
+            "electron"
+          ]
+        }
+      },
+      {
+        "type": "emitted_from",
+        "label": "phát ra từ",
+        "description": "Particle or photon emitted from source.",
+        "subjectTypes": [
+          "photon",
+          "electron"
+        ],
+        "objectTypes": [
+          "material",
+          "nucleus"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material",
+            "nucleus"
+          ]
+        }
+      },
+      {
+        "type": "detected_by",
+        "label": "được dò bởi",
+        "description": "Object detected by a detector.",
+        "subjectTypes": [
+          "photon",
+          "electron"
+        ],
+        "objectTypes": [
+          "detector"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "detector"
+          ]
+        }
+      }
+    ],
+    "quantityDefinitions": [
+      {
+        "key": "frequency",
+        "label": "tần số",
+        "description": "Photon frequency.",
+        "aliases": [
+          "f"
+        ],
+        "allowedUnits": [
+          "Hz"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon"
+          ]
+        }
+      },
+      {
+        "key": "wavelength",
+        "label": "bước sóng",
+        "description": "Wavelength in a stated medium.",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon"
+          ]
+        }
+      },
+      {
+        "key": "photon_energy",
+        "label": "năng lượng photon",
+        "description": "Energy per photon.",
+        "aliases": [],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon"
+          ]
+        }
+      },
+      {
+        "key": "work_function",
+        "label": "công thoát",
+        "description": "Minimum release energy.",
+        "aliases": [],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "material"
+          ]
+        }
+      },
+      {
+        "key": "kinetic_energy",
+        "label": "động năng",
+        "description": "Electron kinetic energy.",
+        "aliases": [],
+        "allowedUnits": [
+          "J"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "electron"
+          ]
+        }
+      },
+      {
+        "key": "population",
+        "label": "số hạt trung bình",
+        "description": "Continuous expected population, not individual random decays.",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ]
+        }
+      },
+      {
+        "key": "decay_constant",
+        "label": "hằng số phân rã",
+        "description": "Mean decay rate.",
+        "aliases": [],
+        "allowedUnits": [
+          "1/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ]
+        }
+      },
+      {
+        "key": "half_life",
+        "label": "chu kỳ bán rã",
+        "description": "Time for mean population to halve.",
+        "aliases": [],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ]
+        }
+      },
+      {
+        "key": "initial_nuclei",
+        "label": "số hạt nhân ban đầu",
+        "description": "số hạt nhân ban đầu",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "nuclei_remaining",
+        "label": "số hạt nhân còn lại",
+        "description": "số hạt nhân còn lại",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "nuclei_decayed",
+        "label": "số hạt nhân đã phân rã",
+        "description": "số hạt nhân đã phân rã",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "activity",
+        "label": "độ phóng xạ",
+        "description": "độ phóng xạ",
+        "aliases": [],
+        "allowedUnits": [
+          "Bq"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "light_frequency",
+        "label": "tần số ánh sáng",
+        "description": "tần số ánh sáng",
+        "aliases": [],
+        "allowedUnits": [
+          "Hz"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ]
+        }
+      },
+      {
+        "key": "planck_constant",
+        "label": "hằng số Planck",
+        "description": "hằng số Planck",
+        "aliases": [],
+        "allowedUnits": [
+          "J*s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ]
+        }
+      },
+      {
+        "key": "electron_mass",
+        "label": "khối lượng electron",
+        "description": "khối lượng electron",
+        "aliases": [],
+        "allowedUnits": [
+          "kg"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ]
+        }
+      },
+      {
+        "key": "elementary_charge",
+        "label": "điện tích nguyên tố",
+        "description": "điện tích nguyên tố",
+        "aliases": [],
+        "allowedUnits": [
+          "C"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ]
+        }
+      },
+      {
+        "key": "position",
+        "label": "tọa độ",
+        "description": "tọa độ",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ]
+        }
+      },
+      {
+        "key": "speed",
+        "label": "tốc độ",
+        "description": "tốc độ",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ]
+        }
+      },
+      {
+        "key": "stopping_voltage",
+        "label": "hiệu điện thế hãm",
+        "description": "hiệu điện thế hãm",
+        "aliases": [],
+        "allowedUnits": [
+          "V"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ]
+        }
+      },
+      {
+        "key": "initial_intensity",
+        "label": "cường độ chùm tia ban đầu",
+        "description": "cường độ chùm tia ban đầu",
+        "aliases": [],
+        "allowedUnits": [
+          "W/m2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "attenuation_coefficient",
+        "label": "hệ số suy giảm",
+        "description": "hệ số suy giảm",
+        "aliases": [],
+        "allowedUnits": [
+          "1/m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "thickness_rate",
+        "label": "tốc độ tăng bề dày",
+        "description": "tốc độ tăng bề dày",
+        "aliases": [],
+        "allowedUnits": [
+          "m/s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "thickness",
+        "label": "bề dày",
+        "description": "bề dày",
+        "aliases": [],
+        "allowedUnits": [
+          "m"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "intensity",
+        "label": "cường độ chùm tia",
+        "description": "cường độ chùm tia",
+        "aliases": [],
+        "allowedUnits": [
+          "W/m2"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "transmitted_fraction",
+        "label": "tỉ lệ truyền qua",
+        "description": "tỉ lệ truyền qua",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "equilibrium_magnetization",
+        "label": "từ hóa cân bằng",
+        "description": "từ hóa cân bằng",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "longitudinal_relaxation_time",
+        "label": "thời gian hồi phục T1",
+        "description": "thời gian hồi phục T1",
+        "aliases": [],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "transverse_relaxation_time",
+        "label": "thời gian hồi phục T2",
+        "description": "thời gian hồi phục T2",
+        "aliases": [],
+        "allowedUnits": [
+          "s"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "longitudinal_magnetization",
+        "label": "từ hóa dọc",
+        "description": "từ hóa dọc",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ]
+        }
+      },
+      {
+        "key": "transverse_magnetization",
+        "label": "từ hóa ngang",
+        "description": "từ hóa ngang",
+        "aliases": [],
+        "allowedUnits": [
+          "1"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ]
+        }
+      }
+    ],
+    "unitCatalog": [
+      {
+        "symbol": "Hz",
+        "dimension": "frequency"
+      },
+      {
+        "symbol": "m",
+        "dimension": "length"
+      },
+      {
+        "symbol": "J",
+        "dimension": "energy"
+      },
+      {
+        "symbol": "1",
+        "dimension": "dimensionless"
+      },
+      {
+        "symbol": "1/s",
+        "dimension": "rate"
+      },
+      {
+        "symbol": "s",
+        "dimension": "time"
+      },
+      {
+        "symbol": "Bq",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "J*s",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "kg",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "C",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "m/s",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "V",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "W/m2",
+        "dimension": "derived"
+      },
+      {
+        "symbol": "1/m",
+        "dimension": "derived"
+      }
+    ],
+    "laws": [
+      {
+        "id": "planck_energy",
+        "name": "Năng lượng photon",
+        "inputs": [
+          "frequency"
+        ],
+        "outputs": [
+          "photon_energy"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon"
+          ],
+          "quantities": [
+            "frequency",
+            "photon_energy"
+          ]
+        },
+        "assumptions": [
+          "Planck constant has an accepted source or value."
+        ],
+        "description": "Photon energy from frequency."
+      },
+      {
+        "id": "photoelectric",
+        "name": "Hiệu ứng quang điện",
+        "inputs": [
+          "frequency",
+          "work_function"
+        ],
+        "outputs": [
+          "kinetic_energy"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ],
+          "quantities": [
+            "frequency",
+            "work_function",
+            "kinetic_energy"
+          ]
+        },
+        "assumptions": [
+          "Photon energy reaches emission threshold.",
+          "Other losses are neglected only when accepted."
+        ],
+        "description": "Basic photoelectric energy balance."
+      },
+      {
+        "id": "mean_decay",
+        "name": "Phân rã trung bình",
+        "inputs": [
+          "decay_constant",
+          "population"
+        ],
+        "outputs": [
+          "population"
+        ],
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ],
+          "quantities": [
+            "decay_constant",
+            "population"
+          ]
+        },
+        "assumptions": [
+          "Continuous mean model, not single stochastic event."
+        ],
+        "description": "Exponential mean population decay."
+      }
+    ],
+    "applicationRequirements": [
+      {
+        "id": "physical_constants",
+        "description": "Physical constants need a trusted source or explicit user acceptance; instance measurements are never seeded.",
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "stochastic_limit",
+        "description": "Distinguish individual random decay events from population averages.",
+        "appliesTo": {
+          "objectTypes": [
+            "nucleus"
+          ],
+          "relationTypes": [],
+          "quantities": []
+        }
+      },
+      {
+        "id": "emission_threshold",
+        "description": "If photon energy is below threshold, state the limit rather than fabricate emitted electrons.",
+        "appliesTo": {
+          "objectTypes": [
+            "photon",
+            "material"
+          ],
+          "relationTypes": [
+            "absorbed_by"
+          ],
+          "quantities": []
+        }
+      }
+    ],
+    "coreTypeRefs": [
+      "object_identity",
+      "scalar_quantity",
+      "typed_relation"
+    ],
+    "simulationCapability": {
+      "mode": "generated_visual",
+      "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
+      "limitations": [
+        "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+      ],
+      "runtimes": [
+        "generated_visual"
+      ]
+    },
+    "limitations": [
+      "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+    ],
+    "conceptVocabulary": {
+      "openWorld": true,
+      "scope": "high_school_physics",
+      "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+    },
+    "visualCapability": {
+      "mode": "generated_scene",
+      "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+      "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+      "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
+    },
+    "capabilities": [
+      {
+        "capabilityId": "radioactive_decay",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ],
+          "quantities": [
+            "initial_nuclei",
+            "half_life"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "initial_nuclei",
+            "unit": "1",
+            "min": 0
+          },
+          {
+            "key": "half_life",
+            "unit": "s",
+            "min": 1e-12
+          }
+        ],
+        "outputs": [
+          {
+            "key": "nuclei_remaining",
+            "unit": "1"
+          },
+          {
+            "key": "nuclei_decayed",
+            "unit": "1"
+          },
+          {
+            "key": "activity",
+            "unit": "Bq"
+          }
+        ],
+        "assumptions": [
+          "Mẫu một loại hạt nhân phóng xạ, số hạt đủ lớn để dùng quy luật thống kê."
+        ],
+        "equationSet": {
+          "canonical": [
+            "N = N0*2^(-t/T)",
+            "H = lambda*N"
+          ],
+          "derived": [
+            "lambda = ln2/T"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "nuclei_remaining": "initial_nuclei"
+            },
+            "rates": {
+              "nuclei_remaining": [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    0.6931471805599453
+                  ],
+                  "half_life"
+                ],
+                "nuclei_remaining"
+              ]
+            },
+            "outputs": {
+              "nuclei_remaining": "nuclei_remaining",
+              "nuclei_decayed": [
+                "sub",
+                "initial_nuclei",
+                "nuclei_remaining"
+              ],
+              "activity": [
+                "mul",
+                [
+                  "div",
+                  0.6931471805599453,
+                  "half_life"
+                ],
+                "nuclei_remaining"
+              ]
+            },
+            "closedForm": {
+              "nuclei_remaining": [
+                "mul",
+                "initial_nuclei",
+                [
+                  "exp",
+                  [
+                    "mul",
+                    [
+                      "div",
+                      [
+                        "neg",
+                        0.6931471805599453
+                      ],
+                      "half_life"
+                    ],
+                    "t"
+                  ]
+                ]
+              ],
+              "nuclei_decayed": [
+                "mul",
+                "initial_nuclei",
+                [
+                  "sub",
+                  1,
+                  [
+                    "exp",
+                    [
+                      "mul",
+                      [
+                        "div",
+                        [
+                          "neg",
+                          0.6931471805599453
+                        ],
+                        "half_life"
+                      ],
+                      "t"
+                    ]
+                  ]
+                ]
+              ],
+              "activity": [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "div",
+                    0.6931471805599453,
+                    "half_life"
+                  ],
+                  "initial_nuclei"
+                ],
+                [
+                  "exp",
+                  [
+                    "mul",
+                    [
+                      "div",
+                      [
+                        "neg",
+                        0.6931471805599453
+                      ],
+                      "half_life"
+                    ],
+                    "t"
+                  ]
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "nuclei_remaining",
+            "role": "state_value"
+          }
+        ]
+      },
+      {
+        "capabilityId": "photoelectric_emission",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "photon",
+            "electron",
+            "material"
+          ],
+          "quantities": [
+            "light_frequency",
+            "work_function",
+            "planck_constant",
+            "electron_mass",
+            "elementary_charge"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "light_frequency",
+            "unit": "Hz",
+            "min": 1e-09
+          },
+          {
+            "key": "work_function",
+            "unit": "J",
+            "min": 0
+          },
+          {
+            "key": "planck_constant",
+            "unit": "J*s",
+            "min": 1e-40,
+            "defaultValue": 6.62607015e-34
+          },
+          {
+            "key": "electron_mass",
+            "unit": "kg",
+            "min": 1e-35,
+            "defaultValue": 9.1093837e-31
+          },
+          {
+            "key": "elementary_charge",
+            "unit": "C",
+            "min": 1e-25,
+            "defaultValue": 1.602176634e-19
+          }
+        ],
+        "outputs": [
+          {
+            "key": "position",
+            "unit": "m"
+          },
+          {
+            "key": "photon_energy",
+            "unit": "J"
+          },
+          {
+            "key": "kinetic_energy",
+            "unit": "J"
+          },
+          {
+            "key": "speed",
+            "unit": "m/s"
+          },
+          {
+            "key": "stopping_voltage",
+            "unit": "V"
+          }
+        ],
+        "assumptions": [
+          "Ánh sáng có tần số lớn hơn giới hạn quang điện (h*f > A); vị trí là quãng đường electron có động năng cực đại bay ra khỏi bề mặt trong chân không, không có điện trường."
+        ],
+        "equationSet": {
+          "canonical": [
+            "h*f = A + Wd_max"
+          ],
+          "derived": [
+            "v_max = sqrt(2*(h*f - A)/m)",
+            "e*U_h = Wd_max",
+            "f0 = A/h"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "position": 0
+            },
+            "rates": {
+              "position": [
+                "sqrt",
+                [
+                  "div",
+                  [
+                    "mul",
+                    2,
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        "planck_constant",
+                        "light_frequency"
+                      ],
+                      "work_function"
+                    ]
+                  ],
+                  "electron_mass"
+                ]
+              ]
+            },
+            "outputs": {
+              "position": "position",
+              "photon_energy": [
+                "mul",
+                "planck_constant",
+                "light_frequency"
+              ],
+              "kinetic_energy": [
+                "sub",
+                [
+                  "mul",
+                  "planck_constant",
+                  "light_frequency"
+                ],
+                "work_function"
+              ],
+              "speed": [
+                "sqrt",
+                [
+                  "div",
+                  [
+                    "mul",
+                    2,
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        "planck_constant",
+                        "light_frequency"
+                      ],
+                      "work_function"
+                    ]
+                  ],
+                  "electron_mass"
+                ]
+              ],
+              "stopping_voltage": [
+                "div",
+                [
+                  "sub",
+                  [
+                    "mul",
+                    "planck_constant",
+                    "light_frequency"
+                  ],
+                  "work_function"
+                ],
+                "elementary_charge"
+              ]
+            },
+            "closedForm": {
+              "position": [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      2,
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          "planck_constant",
+                          "light_frequency"
+                        ],
+                        "work_function"
+                      ]
+                    ],
+                    "electron_mass"
+                  ]
+                ],
+                "t"
+              ],
+              "photon_energy": [
+                "mul",
+                "planck_constant",
+                "light_frequency"
+              ],
+              "kinetic_energy": [
+                "sub",
+                [
+                  "mul",
+                  "planck_constant",
+                  "light_frequency"
+                ],
+                "work_function"
+              ],
+              "speed": [
+                "sqrt",
+                [
+                  "div",
+                  [
+                    "mul",
+                    2,
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        "planck_constant",
+                        "light_frequency"
+                      ],
+                      "work_function"
+                    ]
+                  ],
+                  "electron_mass"
+                ]
+              ],
+              "stopping_voltage": [
+                "div",
+                [
+                  "sub",
+                  [
+                    "mul",
+                    "planck_constant",
+                    "light_frequency"
+                  ],
+                  "work_function"
+                ],
+                "elementary_charge"
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "position",
+            "role": "position"
+          }
+        ]
+      },
+      {
+        "capabilityId": "radiation_attenuation",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "photon",
+            "material",
+            "detector"
+          ],
+          "quantities": [
+            "initial_intensity",
+            "attenuation_coefficient",
+            "thickness_rate"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "initial_intensity",
+            "unit": "W/m2",
+            "min": 0
+          },
+          {
+            "key": "attenuation_coefficient",
+            "unit": "1/m",
+            "min": 0
+          },
+          {
+            "key": "thickness_rate",
+            "unit": "m/s",
+            "min": 0
+          }
+        ],
+        "outputs": [
+          {
+            "key": "thickness",
+            "unit": "m"
+          },
+          {
+            "key": "intensity",
+            "unit": "W/m2"
+          },
+          {
+            "key": "transmitted_fraction",
+            "unit": "1"
+          }
+        ],
+        "assumptions": [
+          "Chùm tia hẹp đơn sắc đi qua vật liệu đồng chất; độ dày lớp vật liệu tăng đều theo thời gian để khảo sát."
+        ],
+        "equationSet": {
+          "canonical": [
+            "I = I0*exp(-mu*x)"
+          ],
+          "derived": [
+            "lop_hap_thu_mot_nua: x_1/2 = ln2/mu"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "thickness": 0
+            },
+            "rates": {
+              "thickness": "thickness_rate"
+            },
+            "outputs": {
+              "thickness": "thickness",
+              "intensity": [
+                "mul",
+                "initial_intensity",
+                [
+                  "exp",
+                  [
+                    "mul",
+                    [
+                      "neg",
+                      "attenuation_coefficient"
+                    ],
+                    "thickness"
+                  ]
+                ]
+              ],
+              "transmitted_fraction": [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "attenuation_coefficient"
+                  ],
+                  "thickness"
+                ]
+              ]
+            },
+            "closedForm": {
+              "thickness": [
+                "mul",
+                "thickness_rate",
+                "t"
+              ],
+              "intensity": [
+                "mul",
+                "initial_intensity",
+                [
+                  "exp",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "neg",
+                        "attenuation_coefficient"
+                      ],
+                      "thickness_rate"
+                    ],
+                    "t"
+                  ]
+                ]
+              ],
+              "transmitted_fraction": [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "neg",
+                      "attenuation_coefficient"
+                    ],
+                    "thickness_rate"
+                  ],
+                  "t"
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "intensity",
+            "role": "state_value"
+          }
+        ]
+      },
+      {
+        "capabilityId": "magnetization_relaxation",
+        "version": "1.0",
+        "applicability": {
+          "objectTypes": [
+            "nucleus",
+            "detector"
+          ],
+          "quantities": [
+            "equilibrium_magnetization",
+            "longitudinal_relaxation_time",
+            "transverse_relaxation_time"
+          ]
+        },
+        "canonicalInputs": [
+          {
+            "key": "equilibrium_magnetization",
+            "unit": "1",
+            "min": 0,
+            "defaultValue": 1
+          },
+          {
+            "key": "longitudinal_relaxation_time",
+            "unit": "s",
+            "min": 1e-09
+          },
+          {
+            "key": "transverse_relaxation_time",
+            "unit": "s",
+            "min": 1e-09
+          }
+        ],
+        "outputs": [
+          {
+            "key": "longitudinal_magnetization",
+            "unit": "1"
+          },
+          {
+            "key": "transverse_magnetization",
+            "unit": "1"
+          }
+        ],
+        "assumptions": [
+          "Sau xung 90 độ; từ hóa được chuẩn hóa theo giá trị cân bằng M0."
+        ],
+        "equationSet": {
+          "canonical": [
+            "Mz = M0*(1 - exp(-t/T1))",
+            "Mxy = M0*exp(-t/T2)"
+          ],
+          "derived": [
+            "T2 <= T1"
+          ]
+        },
+        "execution": {
+          "primary": "analytical",
+          "numerical": {
+            "solverId": "schema_ast_rk4",
+            "method": "rk4"
+          },
+          "closedForm": {
+            "solverId": "schema_ast_reference",
+            "method": "approved_ast"
+          },
+          "math": {
+            "initial": {
+              "longitudinal_magnetization": 0,
+              "transverse_magnetization": "equilibrium_magnetization"
+            },
+            "rates": {
+              "longitudinal_magnetization": [
+                "div",
+                [
+                  "sub",
+                  "equilibrium_magnetization",
+                  "longitudinal_magnetization"
+                ],
+                "longitudinal_relaxation_time"
+              ],
+              "transverse_magnetization": [
+                "div",
+                [
+                  "neg",
+                  "transverse_magnetization"
+                ],
+                "transverse_relaxation_time"
+              ]
+            },
+            "outputs": {
+              "longitudinal_magnetization": "longitudinal_magnetization",
+              "transverse_magnetization": "transverse_magnetization"
+            },
+            "closedForm": {
+              "longitudinal_magnetization": [
+                "mul",
+                "equilibrium_magnetization",
+                [
+                  "sub",
+                  1,
+                  [
+                    "exp",
+                    [
+                      "div",
+                      [
+                        "neg",
+                        "t"
+                      ],
+                      "longitudinal_relaxation_time"
+                    ]
+                  ]
+                ]
+              ],
+              "transverse_magnetization": [
+                "mul",
+                "equilibrium_magnetization",
+                [
+                  "exp",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      "t"
+                    ],
+                    "transverse_relaxation_time"
+                  ]
+                ]
+              ]
+            }
+          }
+        },
+        "validation": {
+          "absoluteTolerance": 0.0001,
+          "relativeTolerance": 0.0001,
+          "strategy": "closed_form_checkpoints",
+          "invariants": [
+            "finite_output"
+          ],
+          "benchmarks": []
+        },
+        "validityDomain": {
+          "durationPositive": true
+        },
+        "rendererBindings": [
+          {
+            "source": "longitudinal_magnetization",
+            "role": "state_value"
+          }
+        ]
+      }
+    ]
+  }
+}

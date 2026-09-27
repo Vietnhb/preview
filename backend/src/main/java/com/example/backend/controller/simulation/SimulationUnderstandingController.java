@@ -147,7 +147,7 @@ public class SimulationUnderstandingController {
         JsonNode diagnostics = request.path("renderDiagnostics");
         if (!diagnostics.isMissingNode()) {
             if (!diagnostics.path("code").isTextual() || !diagnostics.path("message").isTextual()
-                    || diagnostics.path("code").asText().length() > maxProgramCharacters
+                    || diagnostics.path("code").asText().length() > 3 * maxProgramCharacters
                     || diagnostics.path("message").asText().length() > 4000)
                 throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid rendering diagnostics");
             input.set("renderDiagnostics", diagnostics);
@@ -170,9 +170,14 @@ public class SimulationUnderstandingController {
                 renderingContract);
         JsonNode program = visual.path("visualProgram");
         String code = program.path("code").asText("").trim();
-        if (!program.isObject() || code.isEmpty() || code.length() > maxProgramCharacters)
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated PixiJS program is missing or exceeds the code budget");
-        if (!code.startsWith("async function") || !code.contains("update"))
+        JsonNode scene = program.path("scene");
+        boolean hasScene = scene.isObject() && (scene.path("bodies").size() > 0
+                || !scene.path("environment").asText("").isBlank());
+        if (!program.isObject() || (!hasScene && code.isEmpty()))
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated visual has neither SVG scene artwork nor PixiJS code");
+        if (code.length() > maxProgramCharacters || (hasScene && scene.toString().length() > 2L * maxProgramCharacters))
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated visual exceeds the code/artwork budget");
+        if (!code.isEmpty() && (!code.startsWith("async function") || !code.contains("update")))
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated PixiJS program must be an async function(PIXI, app, api) returning {update}");
         ObjectNode spec = (ObjectNode) brief.deepCopy();
         spec.remove("scene");
@@ -360,12 +365,18 @@ public class SimulationUnderstandingController {
             ((ObjectNode) spec).put("schemaId", selected.getSchemaId());
             ((ObjectNode) spec).put("topic", selected.getTopic());
             ((ObjectNode) spec).put("topicVersion", selected.getVersion());
+            if (response.path("stage").asText().equals("EXPLAIN")) {
+                ObjectNode preview = previewWithRepair(description, selected, response);
+                response.set("validation", preview.path("validation"));
+                response.put("planSignature", signPlan(response));
+            }
             var formulas = response.putArray("formulas");
-            for (JsonNode model : spec.path("physicsModels")) {
+            for (JsonNode model : response.path("simulationSpec").path("physicsModels")) {
                 for (JsonNode capability : selected.getDefinition().path("capabilities")) {
                     if (model.path("capabilityId").asText().equals(capability.path("capabilityId").asText())) {
                         ObjectNode formula = formulas.addObject();
                         formula.put("modelId", model.path("id").asText());
+                        formula.put("label", model.path("label").asText(model.path("id").asText()));
                         formula.put("capabilityId", capability.path("capabilityId").asText());
                         formula.set("canonical", capability.path("equationSet").path("canonical"));
                         formula.set("derived", capability.path("equationSet").path("derived"));
@@ -373,32 +384,113 @@ public class SimulationUnderstandingController {
                     }
                 }
             }
-            if (response.path("stage").asText().equals("EXPLAIN")) {
-                ObjectNode preview = equations.compute(selected.getDefinition(), spec, json.createObjectNode());
-                response.set("validation", preview.path("validation"));
-                response.put("planSignature", signPlan(response));
-            }
+
         }
         return response;
     }
 
+    /**
+     * Compute the preview; when the model's plan is internally inconsistent, first
+     * apply mechanical normalisations, then give the model one chance to correct
+     * the plan using the solver's own error message.
+     */
+    private ObjectNode previewWithRepair(String description, SchemaVersion selected, ObjectNode response) {
+        normalizePlan((ObjectNode) response.path("simulationSpec"));
+        try {
+            return equations.compute(selected.getDefinition(), response.path("simulationSpec"), json.createObjectNode());
+        } catch (ApiException first) {
+            ObjectNode feedback = json.createObjectNode();
+            feedback.put("error", String.valueOf(first.getMessage()));
+            feedback.set("previousPlan", response.path("simulationSpec"));
+            JsonNode retry = askLlm(description, selected, feedback);
+            JsonNode spec = retry.path("simulationSpec");
+            if (!spec.isObject() || !"EXPLAIN".equals(retry.path("status").asText(retry.path("stage").asText())))
+                throw planFailure(first);
+            ObjectNode fixed = (ObjectNode) spec.deepCopy();
+            fixed.put("schemaId", selected.getSchemaId());
+            fixed.put("topic", selected.getTopic());
+            fixed.put("topicVersion", selected.getVersion());
+            normalizePlan(fixed);
+            ObjectNode preview;
+            try {
+                preview = equations.compute(selected.getDefinition(), fixed, json.createObjectNode());
+            } catch (ApiException second) { throw planFailure(second); }
+            response.set("simulationSpec", fixed);
+            for (String field : java.util.List.of("explanation", "defaults"))
+                if (retry.has(field)) response.set(field, retry.get(field));
+            return preview;
+        }
+    }
+
+    private ApiException planFailure(ApiException cause) {
+        return new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Chưa dựng được mô hình tính toán từ mô tả này. Hãy mô tả rõ hơn tình huống hoặc thử lại. (Chi tiết: "
+                        + cause.getMessage() + ")");
+    }
+
+    /** Intent-preserving fixes for common plan inconsistencies (no topic knowledge involved). */
+    private void normalizePlan(ObjectNode spec) {
+        if (spec == null || spec.isMissingNode()) return;
+        Map<String, ObjectNode> parameters = new LinkedHashMap<>();
+        for (JsonNode parameter : spec.path("parameters")) {
+            if (!(parameter instanceof ObjectNode p)) continue;
+            parameters.put(p.path("name").asText(), p);
+            double value = p.path("value").asDouble(Double.NaN);
+            if (Double.isFinite(value)) {
+                if (p.has("min") && p.path("min").asDouble() > value) p.put("min", value);
+                if (p.has("max") && p.path("max").asDouble() < value) p.put("max", value);
+            }
+        }
+        double duration = spec.path("durationSeconds").asDouble(Double.NaN);
+        String key = spec.path("durationParameter").asText("");
+        if (spec.has("durationParameter") && (spec.path("durationParameter").isNull() || key.isBlank())) spec.remove("durationParameter");
+        else if (!key.isBlank()) {
+            ObjectNode named = parameters.get(key);
+            if (named == null || !"s".equals(named.path("unit").asText())) {
+                ObjectNode match = null;
+                for (ObjectNode p : parameters.values())
+                    if ("s".equals(p.path("unit").asText()) && p.path("value").asDouble(Double.NaN) == duration) match = p;
+                if (match != null) spec.put("durationParameter", match.path("name").asText());
+                else spec.remove("durationParameter");
+            } else if (!Double.isFinite(duration) || duration <= 0) {
+                spec.put("durationSeconds", named.path("value").asDouble());
+            } else if (named.path("value").asDouble() != duration) {
+                named.put("value", duration);
+                if (named.path("max").asDouble(Double.MAX_VALUE) < duration) named.put("max", duration);
+                if (named.path("min").asDouble(0) > duration) named.put("min", duration);
+            }
+        }
+    }
+
     private JsonNode askLlm(String description, SchemaVersion selected) {
+        return askLlm(description, selected, null);
+    }
+
+    /**
+     * What the planner needs from a schema: vocabulary, laws and each capability's
+     * inputs/outputs/equations/assumptions. Executable ASTs and verification data stay
+     * server-side (they are executed, never interpreted by the model), which keeps the
+     * prompt small for rate-limited providers.
+     */
+    private JsonNode planningView(JsonNode definition) {
+        ObjectNode view = (ObjectNode) definition.deepCopy();
+        for (String field : java.util.List.of("coreTypeRefs", "simulationCapability", "visualCapability", "limitations"))
+            view.remove(field);
+        for (JsonNode capability : view.path("capabilities")) {
+            if (capability instanceof ObjectNode c)
+                for (String field : java.util.List.of("execution", "validation", "rendererBindings", "validityDomain", "applicability"))
+                    c.remove(field);
+        }
+        return view;
+    }
+
+    private JsonNode askLlm(String description, SchemaVersion selected, JsonNode planFeedback) {
         if (llmApiKey == null || llmApiKey.isBlank()) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "LLM provider API key is not configured");
         }
         try {
             String responseContract = resource("prompts/simulation-understanding-response-schema.json");
-            String system = "Understand the user's simulation description using only the supplied selected topic schema as the physical-topic contract. Preserve explicit quantities, counts, names, and relations. Keep visual choices open and contextual. Do not choose another schema. "
-                    + "Use the user's language for explanation, labels, questions and assumptions. First provide the complete intent, applicable formulas and parameter bindings, before creating any visuals. "
-                    + "Use executable capabilities (execution.math) from the supplied schema. A physicsModels entry binds one capability to a named participant or subsystem; "
-                    + "there is no fixed participant count, asset, environment or scene. Bind canonical inputs to SI-valued named parameters or explicit numeric constants. "
-                    + "All quantities that the user may change should have a parameter with a label, exact initial value, canonical SI unit, sensible physically valid min/max and step. "
-                    + "Record assumptions explicitly; only ask when missing data changes the physical meaning. Keep stated duration exactly. "
-                    + "If duration is adjustable, set durationParameter to the name of its seconds-valued parameter; its initial value must equal durationSeconds. "
-                    + "Set physicsCoverage COMPLETE only when every physical behavior is covered by executable approved capabilities; otherwise PARTIAL or NONE. "
-                    + "For unsupported executable physics, keep physicsModels empty and explain that the visualization is unverified; do not invent a solver or equation. "
-                    + "Return one JSON object matching this response contract: "
-                    + responseContract;
+            String system = resource("prompts/simulation-understanding-system.txt") + responseContract;
             ObjectNode body = json.createObjectNode();
             body.put("model", llmModel);
             body.put("temperature", llmTemperature);
@@ -408,7 +500,8 @@ public class SimulationUnderstandingController {
             user.put("role", "user");
             ObjectNode input = json.createObjectNode();
             input.put("description", description);
-            input.set("selectedSchema", selected.getDefinition().deepCopy());
+            input.set("selectedSchema", planningView(selected.getDefinition()));
+            if (planFeedback != null) input.set("planFeedback", planFeedback);
             user.put("content", json.writeValueAsString(input));
             body.set("response_format", json.createObjectNode().put("type", "json_object"));
             JsonNode completion = post(endpoint(llmBaseUrl, "chat/completions"), llmApiKey, body, llmTimeout);

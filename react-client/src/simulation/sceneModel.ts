@@ -17,8 +17,14 @@ export type QuantityAxis = "x" | "y" | "along" | "none";
 export type QuantityInfo = { kind: QuantityKind; axis: QuantityAxis; label: string; symbol: string; unit: string };
 export type FieldMeta = QuantityInfo & { key: string; participantId: string; quantity: string; min: number; max: number };
 /** Optional per-field metadata from the backend (units/labels taken from the approved schema). */
-export type BackendFieldMeta = Record<string, { unit?: string; label?: string; quantity?: string }>;
-const prettyUnit = (unit: string) => unit.replace(/\^2/g, "²").replace(/\^3/g, "³").replace(/\*/g, "·");
+export type BackendFieldMeta = Record<string, { unit?: string; label?: string; quantity?: string; rendererRole?: string }>;
+/** Input names that mean "uniform gravitational field" (not the gravitational constant). */
+const GRAVITY_INPUT = /gravitational_acceleration|(^|_)gravity(_|$)/i;
+/** Display form of SI unit strings used in schemas (m/s^2 → m/s², degC → °C, ohm → Ω, m3 → m³). */
+export const prettyUnit = (unit: string) => unit
+  .replace(/\bdegC\b/g, "°C").replace(/\bdegF\b/g, "°F").replace(/\bohm\b/g, "Ω")
+  .replace(/\^2|(?<=[a-zA-Z])2(?![0-9])/g, "²").replace(/\^3|(?<=[a-zA-Z])3(?![0-9])/g, "³")
+  .replace(/\*/g, "·");
 export type SimulationModelRef = { id: string; label?: string; capabilityId?: string; inputs?: Record<string, string | number> };
 
 export type SceneParticipant = {
@@ -115,6 +121,13 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
     if (key === "t" || !Number.isFinite(value)) continue;
     (series[key] ??= []).push(value);
   }
+  // A time-valued solver field that merely repeats the clock (an elapsed-time state) adds nothing.
+  for (const key of Object.keys(series)) {
+    const values = series[key];
+    const timeValued = backendMeta[key]?.unit === "s" || /(^|[._])(elapsed_)?time$/i.test(key);
+    if (timeValued && values.length === timeline.frames.length && values.length > 2
+      && timeline.frames.every((frame, i) => Math.abs(values[i] - frame.t) <= 1e-9 * Math.max(1, Math.abs(frame.t)))) delete series[key];
+  }
   const order: string[] = models.map(model => model.id);
   for (const key of Object.keys(series)) {
     const parts = splitKey(key);
@@ -150,13 +163,16 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
     const dims: 0 | 1 | 2 = f.x && f.y ? 2 : f.position ? 1 : 0;
     const inputs = Object.keys(model?.inputs ?? {});
     const positionMeta = f.position ? fields[f.position] : undefined;
-    const vertical = dims === 1 && (positionMeta?.axis === "y" || inputs.some(name => /gravit/i.test(name)));
+    const vertical = dims === 1 && (positionMeta?.axis === "y" || inputs.some(name => GRAVITY_INPUT.test(name)));
     let link: SceneParticipant["link"] = null;
     if (dims === 2 && f.angle) {
       const radii = series[f.x!].map((x, i) => Math.hypot(x, series[f.y!][i]));
       const mean = radii.reduce((sum, value) => sum + value, 0) / radii.length;
       const spread = Math.max(...radii) - Math.min(...radii);
-      if (mean > 0 && spread <= 1e-3 * mean) link = { radius: mean };
+      /* a connector is drawn only when the approved capability declares one (role
+         connector_angle); without backend metadata fall back to the data pattern */
+      const declared = Object.keys(backendMeta).length === 0 || backendMeta[f.angle]?.rendererRole === "connector_angle";
+      if (mean > 0 && spread <= 1e-3 * mean && declared) link = { radius: mean };
     }
     let spring: SceneParticipant["spring"] = null;
     if (dims === 1 && f.force && f.position && series[f.force].length === series[f.position].length) {
@@ -209,4 +225,24 @@ export function displayValue(meta: Pick<FieldMeta, "kind" | "unit">, value: numb
   if (meta.kind === "angle" && meta.unit === "rad") return { value: value * 180 / Math.PI, unit: "°" };
   if (meta.kind === "angular_velocity" && meta.unit === "rad/s") return { value, unit: "rad/s" };
   return { value, unit: meta.unit };
+}
+
+/**
+ * Physical runs last from nanoseconds to years; playback maps the whole run onto a
+ * watchable 4–30 s. Returns simulated seconds per real second at 1× speed.
+ */
+export function presentationRate(durationSeconds: number) {
+  if (!(durationSeconds > 0)) return 1;
+  return durationSeconds / Math.min(30, Math.max(4, durationSeconds));
+}
+
+const TIME_UNITS: Array<[number, string]> = [[31557600, "năm"], [86400, "ngày"], [3600, "h"], [60, "min"], [1, "s"],
+  [1e-3, "ms"], [1e-6, "µs"], [1e-9, "ns"]];
+/** Unit that suits a whole run (e.g. 6000 s → h, 1.3e-7 s → ns). */
+export function timeUnitFor(durationSeconds: number): [number, string] {
+  return TIME_UNITS.find(([size]) => durationSeconds / size >= 1.5) ?? TIME_UNITS[TIME_UNITS.length - 1];
+}
+export function formatTime(seconds: number, durationSeconds: number, digits = 2) {
+  const [size, unit] = timeUnitFor(durationSeconds);
+  return (seconds / size).toFixed(digits) + " " + unit;
 }
