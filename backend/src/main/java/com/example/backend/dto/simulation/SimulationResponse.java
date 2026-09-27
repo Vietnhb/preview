@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import com.example.backend.physics.model.ScalarField;
 
 public record SimulationResponse(
         UUID simulationId,
@@ -20,7 +19,7 @@ public record SimulationResponse(
         Map<String, List<Double>> accelerations,
         Map<String, List<Double>> values,
         Map<String, Double> scalarOutputs,
-        Map<String, ScalarField> scalarFields,
+        Map<String, JsonNode> scalarFields,
         Map<String, Double> adjustableParams,
         JsonNode visualization,
         ValidationResponse validation,
@@ -34,7 +33,7 @@ public record SimulationResponse(
             boolean success, boolean validationPassed, List<Double> time,
             Map<String, List<Double>> positions, Map<String, List<Double>> velocities,
             Map<String, List<Double>> accelerations, Map<String, List<Double>> values,
-            Map<String, ScalarField> scalarFields, Map<String, Double> adjustableParams,
+            Map<String, JsonNode> scalarFields, Map<String, Double> adjustableParams,
             JsonNode visualization, ValidationResponse validation, JsonNode rawResult,
             ResolvedEnd resolvedEnd, double computationTimeMs, String message) {
         this(simulationId, simulationRunId, specificationId, schemaId, success, validationPassed, time,

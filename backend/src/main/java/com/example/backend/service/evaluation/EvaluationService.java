@@ -9,8 +9,6 @@ import com.example.backend.dto.evaluation.EvaluationResponse;
 import com.example.backend.entity.evaluation.Adjudication;
 import com.example.backend.entity.evaluation.BenchmarkProblem;
 import com.example.backend.entity.evaluation.EvaluationRun;
-import com.example.backend.ai.extraction.ExtractionCoordinator;
-import com.example.backend.ai.extraction.model.ExtractionResult;
 import com.example.backend.exception.ApiException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,7 +55,6 @@ public class EvaluationService {
 
     private final com.example.backend.repository.evaluation.BenchmarkProblemRepository benchmarkRepository;
     private final com.example.backend.repository.evaluation.EvaluationRunRepository evaluationRepository;
-    private final ExtractionCoordinator extractionCoordinator;
     private final ObjectMapper objectMapper;
     private final SchemaDefinitionService schemaDefinitions;
     private final CurrentUserService currentUser;
@@ -87,61 +84,9 @@ public class EvaluationService {
                                List<EvaluationCase> cases) { }
 
     public EvaluationResponse run() {
-        PreparedRun prepared = prepareRun();
-        List<CaseMetrics> confirmFlow = new ArrayList<>();
-        List<CaseMetrics> silentDefault = new ArrayList<>();
-        Map<String, String> schemaVersions = new LinkedHashMap<>();
-        Map<String, JsonNode> schemaDefinitionsUsed = new LinkedHashMap<>();
-        Map<String, String> modelVersions = new LinkedHashMap<>();
-        try {
-            for (EvaluationCase benchmark : prepared.cases()) {
-                ExtractionResult extraction = extractionCoordinator.extract(benchmark.problemText());
-                JsonNode predicted = objectMapper.valueToTree(extraction.document());
-                SchemaDefinitionService.DefinitionSnapshot schema = schemaDefinitions
-                        .approvedDefinitionSnapshot(extraction.document().schemaId());
-                JsonNode definition = schema.definition();
-                double tolerance = definition.path("validation").path("tolerance").asDouble(0.0);
-                confirmFlow.add(compare(benchmark, predicted, benchmark.goldSpecification(), definition, tolerance,
-                        extraction.modelVersion()));
-                silentDefault.add(compare(benchmark, addSilentDefaults(predicted, definition),
-                        benchmark.goldSpecification(), definition, tolerance, extraction.modelVersion()));
-                schemaVersions.put(schema.schemaId(), schema.version());
-                schemaDefinitionsUsed.put(schema.schemaId(), schema.definition());
-                modelVersions.put(benchmark.id().toString(), extraction.modelVersion());
-            }
-
-            Summary total = summarize(confirmFlow);
-            ObjectNode metrics = objectMapper.createObjectNode();
-            metrics.set(CONFIRM_FLOW, report(confirmFlow, "CONFIRM_FLOW"));
-            metrics.set("silentDefaultBaseline", report(silentDefault, "SILENT_DEFAULT_BASELINE"));
-            metrics.set("byTopic", groupedReport(confirmFlow, CaseMetrics::topic));
-            metrics.set("byQuantityType", groupedQuantityReport(confirmFlow));
-            metrics.put(NUMERIC_AGREEMENT, total.numericAgreement());
-            metrics.put(INCORRECT_SIMULATION_RATE, total.incorrectRate());
-            metrics.put("extractionModel", providerVersion(confirmFlow));
-            metrics.put("evaluationDesign", "Fixed benchmark corpus; same extraction and schema versions in both conditions.");
-
-            ObjectNode configuration = configurationSnapshot(prepared.cases());
-            ObjectNode bindings = objectMapper.createObjectNode();
-            schemaVersions.forEach(bindings::put);
-            configuration.set("schemaVersionsUsed", bindings);
-            ObjectNode definitions = objectMapper.createObjectNode();
-            schemaDefinitionsUsed.forEach(definitions::set);
-            configuration.set("schemaDefinitionsUsed", definitions);
-            ObjectNode models = objectMapper.createObjectNode();
-            modelVersions.forEach(models::put);
-            configuration.set("modelVersionsUsed", models);
-            completeRun(prepared, metrics, configuration, total, cohenKappa(prepared.cases()));
-            return new EvaluationResponse(EVALUATION_TYPE, prepared.cases().size(), total.precision(),
-                    total.recall(), total.f1(), cohenKappa(prepared.cases()), total.incorrectRate(), metrics);
-        } catch (ApiException exception) {
-            markRunFailed(prepared, exception.getClass().getSimpleName(), safeFailureMessage(exception));
-            throw exception;
-        } catch (RuntimeException exception) {
-            markRunFailed(prepared, "EVALUATION_FAILED", safeFailureMessage(exception));
-            throw new com.example.backend.exception.ApiException(HttpStatus.BAD_GATEWAY,
-                    "Evaluation failed. Cause: " + safeFailureMessage(exception));
-        }
+        throw new ApiException(HttpStatus.GONE,
+                "Legacy extraction evaluation is retired; evaluation must target the schema-routed simulation understanding flow.",
+                "LEGACY_EVALUATION_RETIRED", "SIMULATION");
     }
 
     private PreparedRun prepareRun() {

@@ -1,147 +1,43 @@
 package com.example.backend.service.problem;
 
-import com.example.backend.service.account.CurrentUserService;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
-import java.util.UUID;
-import java.time.Instant;
-import java.util.Map;
-import java.util.List;
-
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-import com.example.backend.dto.problem.CreateProblemRequest;
 import com.example.backend.dto.problem.PageResponse;
 import com.example.backend.dto.problem.ProblemResponse;
 import com.example.backend.dto.problem.ProblemSummaryResponse;
-import com.example.backend.dto.problem.UpdateSpecificationRequest;
-import com.example.backend.config.properties.UploadProperties;
-import com.example.backend.entity.problem.AmbiguityCase;
-import com.example.backend.entity.enums.AmbiguityStatus;
-import com.example.backend.entity.enums.AssetType;
-import com.example.backend.entity.enums.ConfirmationState;
-import com.example.backend.entity.enums.ExtractionOutcome;
-import com.example.backend.entity.problem.ExtractionRun;
-import com.example.backend.entity.enums.ExtractionRunStatus;
-import com.example.backend.entity.curriculum.Lesson;
-import com.example.backend.entity.enums.OcrStatus;
+import com.example.backend.entity.account.User;
 import com.example.backend.entity.problem.ProblemSubmission;
 import com.example.backend.entity.problem.SourceAsset;
-import com.example.backend.entity.enums.SourceMode;
-import com.example.backend.entity.problem.Specification;
-import com.example.backend.entity.enums.SubmissionStatus;
-import com.example.backend.entity.account.User;
 import com.example.backend.exception.ApiException;
-import com.example.backend.ai.extraction.ExtractionCoordinator;
-import com.example.backend.ai.extraction.AiStepException;
-import com.example.backend.ai.extraction.model.AmbiguityItem;
-import com.example.backend.ai.extraction.model.ExtractionResult;
-import com.example.backend.ai.extraction.model.SpecificationDocument;
-import com.example.backend.ai.extraction.model.ConversationTurn;
-import com.example.backend.ai.ocr.OcrProvider;
-import com.example.backend.ai.ocr.OcrResult;
-import com.example.backend.repository.problem.ExtractionRunRepository;
-import com.example.backend.repository.curriculum.LessonRepository;
 import com.example.backend.repository.problem.ProblemSubmissionRepository;
 import com.example.backend.repository.problem.SourceAssetRepository;
-import com.example.backend.repository.problem.SpecificationRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.backend.service.account.CurrentUserService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
+import java.util.UUID;
 
+/** Read-only access to records created by the retired extraction workflow. */
 @Service
-@RequiredArgsConstructor
 public class ProblemService {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProblemService.class);
-
-    private final ProblemSubmissionRepository problemRepository;
-    private final SourceAssetRepository sourceAssetRepository;
-    private final ExtractionRunRepository extractionRunRepository;
-    private final SpecificationRepository specificationRepository;
-    private final LessonRepository lessonRepository;
-    private final CurrentUserService currentUserService;
+    private final ProblemSubmissionRepository problems;
+    private final SourceAssetRepository assets;
     private final ProblemResponseMapper mapper;
-    private final ExtractionCoordinator extractionCoordinator;
-    private final OcrProvider ocrProvider;
-    private final ObjectMapper objectMapper;
-    private final AmbiguityResolutionApplier ambiguityResolutionApplier;
-    private final SpecificationReadinessService readinessService;
-    private final SchemaDefinitionService schemaDefinitions;
-    private final UploadProperties uploadProperties;
-    private final PlatformTransactionManager transactionManager;
+    private final CurrentUserService currentUser;
 
-    private record ExtractionInput(UUID problemId, UUID runId, Integer ownerId, String text) { }
-
-    @Transactional
-    public ProblemResponse create(CreateProblemRequest request) {
-        if (request == null || !StringUtils.hasText(request.text())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Problem text is required");
-        }
-        SourceMode mode = request.sourceMode() == null ? SourceMode.TEXT : request.sourceMode();
-        if (mode != SourceMode.TEXT && mode != SourceMode.PASTE) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Use the image endpoint for IMAGE or MIXED input");
-        }
-
-        ProblemSubmission problem = new ProblemSubmission();
-        problem.setOwner(currentUserService.requireCurrentUser());
-        problem.setLesson(resolveLesson(request.lessonId()));
-        problem.setSourceMode(mode);
-        problem.setOriginalText(request.text().trim());
-        problem.setEditableText(request.text().trim());
-        problem.setStatus(SubmissionStatus.DRAFT);
-        return mapper.toResponse(problemRepository.save(problem));
-    }
-
-    @Transactional
-    public ProblemResponse createFromImage(MultipartFile file, String suppliedText, UUID lessonId) {
-        validateImage(file);
-        User owner = currentUserService.requireCurrentUser();
-        byte[] content = readContent(file);
-        OcrResult ocr = ocrProvider.recognize(file.getContentType(), content);
-
-        ProblemSubmission problem = new ProblemSubmission();
-        problem.setOwner(owner);
-        problem.setLesson(resolveLesson(lessonId));
-        problem.setSourceMode(StringUtils.hasText(suppliedText) ? SourceMode.MIXED : SourceMode.IMAGE);
-        problem.setOriginalText(trimToNull(suppliedText));
-        String ocrText = ocr.status() == OcrStatus.SUCCEEDED ? trimToNull(ocr.text()) : null;
-        String supplied = trimToNull(suppliedText);
-        problem.setEditableText(joinSourceText(supplied, ocrText));
-        problem.setStatus(ocr.status() == OcrStatus.SUCCEEDED
-                ? SubmissionStatus.OCR_PREVIEW_READY
-                : SubmissionStatus.DRAFT);
-
-        SourceAsset asset = new SourceAsset();
-        asset.setAssetType(AssetType.IMAGE);
-        asset.setOriginalFilename(safeFilename(file.getOriginalFilename()));
-        asset.setContentType(file.getContentType());
-        asset.setContentLength(content.length);
-        asset.setChecksum(sha256(content));
-        asset.setContent(content);
-        asset.setOcrStatus(ocr.status());
-        asset.setOcrText(ocr.text());
-        asset.setOcrError(ocr.errorMessage());
-        problem.addSourceAsset(asset);
-
-        return mapper.toResponse(problemRepository.save(problem));
+    public ProblemService(ProblemSubmissionRepository problems, SourceAssetRepository assets,
+            ProblemResponseMapper mapper, CurrentUserService currentUser) {
+        this.problems = problems;
+        this.assets = assets;
+        this.mapper = mapper;
+        this.currentUser = currentUser;
     }
 
     @Transactional(readOnly = true)
     public PageResponse<ProblemSummaryResponse> history(int page, int size) {
-        User owner = currentUserService.requireCurrentUser();
-        int safePage = Math.max(page, 0);
-        int safeSize = Math.clamp(size, 1, 100);
-        return PageResponse.from(problemRepository.findByOwnerOrderByCreatedAtDesc(
-                owner, PageRequest.of(safePage, safeSize)).map(mapper::toSummary));
+        User owner = currentUser.requireCurrentUser();
+        return PageResponse.from(problems.findByOwnerOrderByCreatedAtDesc(owner,
+                PageRequest.of(Math.max(0, page), Math.clamp(size, 1, 100))).map(mapper::toSummary));
     }
 
     @Transactional(readOnly = true)
@@ -149,333 +45,14 @@ public class ProblemService {
         return mapper.toResponse(requireOwnedProblem(id));
     }
 
-    @Transactional
-    public ProblemResponse updateText(UUID id, String text) {
-        if (!StringUtils.hasText(text)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Problem text is required");
-        }
-        ProblemSubmission problem = requireOwnedProblem(id);
-        problem.setEditableText(text.trim());
-        problem.setStatus(SubmissionStatus.DRAFT);
-        return mapper.toResponse(problem);
-    }
-
-    public ProblemResponse extract(UUID id) {
-        ExtractionInput input = beginExtraction(id);
-        try {
-            ExtractionResult result = extractionCoordinator.extract(input.text());
-            return completeExtraction(input, result);
-        } catch (ApiException exception) {
-            markExtractionFailed(input);
-            throw exception;
-        } catch (AiStepException exception) {
-            markExtractionFailed(input);
-            Throwable root = exception.getCause() == null ? exception : exception.getCause();
-            log.error("AI pipeline failure: problemId={} step={} code={} reason={} rootCause={}",
-                    input.problemId(), exception.step(), exception.code(), exception.getMessage(),
-                    root.getClass().getSimpleName() + ": " + root.getMessage(), exception);
-            throw new ApiException(HttpStatus.BAD_GATEWAY,
-                    "Không thể hoàn tất bước phân tích đặc tả. Đề chưa được lưu thành spec; vui lòng thử lại.",
-                    exception.code(), exception.step());
-        } catch (RuntimeException exception) {
-            markExtractionFailed(input);
-            log.error("Problem extraction failed: problemId={} step=EXTRACTION_PIPELINE code=EXTRACTION_FAILED reason={}",
-                    input.problemId(), exception.getMessage(), exception);
-            throw new ApiException(HttpStatus.BAD_GATEWAY,
-                    "Chưa thể hoàn tất phân tích đề bài. Nội dung chưa được lưu thành spec; bạn có thể thử lại hoặc chỉnh sửa đề.",
-                    "EXTRACTION_FAILED", "EXTRACTION_PIPELINE");
-        }
-    }
-
-    private ExtractionInput beginExtraction(UUID id) {
-        return java.util.Objects.requireNonNull(transactionTemplate().execute(status -> {
-            ProblemSubmission problem = requireOwnedProblem(id);
-            if (!StringUtils.hasText(problem.getEditableText())) {
-                throw new ApiException(HttpStatus.CONFLICT, "Confirm or enter OCR text before extraction");
-            }
-
-            ExtractionRun run = new ExtractionRun();
-            run.setSubmission(problem);
-            run.setExtractionPath(com.example.backend.entity.enums.ExtractionPath.AI_PROVIDER);
-            run.setProviderName("pending");
-            run.setStatus(ExtractionRunStatus.RUNNING);
-            extractionRunRepository.saveAndFlush(run);
-            return new ExtractionInput(problem.getId(), run.getId(), problem.getOwner().getId(), problem.getEditableText());
-        }));
-    }
-
-    private ProblemResponse completeExtraction(ExtractionInput input, ExtractionResult result) {
-        return transactionTemplate().execute(status -> {
-            ProblemSubmission problem = problemRepository.findById(input.problemId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Problem not found"));
-            if (!input.ownerId().equals(problem.getOwner().getId())
-                    || !input.ownerId().equals(currentUserService.requireCurrentUser().getId())) {
-                throw new ApiException(HttpStatus.NOT_FOUND, "Problem not found");
-            }
-            if (!input.text().equals(problem.getEditableText())) {
-                throw new ApiException(HttpStatus.CONFLICT, "Đề bài đã được chỉnh sửa trong lúc phân tích. Hãy phân tích lại.");
-            }
-            ExtractionRun run = extractionRunRepository.findById(input.runId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Extraction run not found"));
-            if (run.getStatus() != ExtractionRunStatus.RUNNING) {
-                throw new ApiException(HttpStatus.CONFLICT, "Extraction run is no longer active");
-            }
-            applyResult(run, result);
-            Specification specification = createSpecification(problem, run, result.document());
-            specificationRepository.save(specification);
-            problem.setCurrentSpecification(specification);
-            problem.setStatus(specification.getConfirmationState() == ConfirmationState.UNRESOLVED
-                    ? SubmissionStatus.NEEDS_CONFIRMATION
-                    : SubmissionStatus.READY_FOR_VALIDATION);
-            return mapper.toResponse(problem);
-        });
-    }
-
-    private void markExtractionFailed(ExtractionInput input) {
-        try {
-            transactionTemplate().executeWithoutResult(status -> {
-                extractionRunRepository.findById(input.runId()).ifPresent(run -> {
-                    run.setStatus(ExtractionRunStatus.FAILED);
-                    run.setOutcome(ExtractionOutcome.FAILED);
-                    run.setErrorMessage("AI extraction failed");
-                    extractionRunRepository.save(run);
-                });
-                problemRepository.findById(input.problemId()).ifPresent(problem -> {
-                    if (input.ownerId().equals(problem.getOwner().getId())) {
-                        problem.setStatus(SubmissionStatus.FAILED);
-                        problemRepository.save(problem);
-                    }
-                });
-            });
-        } catch (RuntimeException ignored) {
-            // Preserve the original provider error. The run remains inspectable if the
-            // failure transaction itself could not be committed.
-        }
-    }
-
-    private static <T extends Throwable> T findCause(Throwable failure, Class<T> type) {
-        Throwable current = failure;
-        while (current != null) {
-            if (type.isInstance(current)) return type.cast(current);
-            if (current.getCause() == current) break;
-            current = current.getCause();
-        }
-        return null;
-    }
-
-    private TransactionTemplate transactionTemplate() {
-        return new TransactionTemplate(transactionManager);
-    }
-
-    @Transactional
-    public ProblemResponse confirm(UUID id, Map<String, String> answers) {
-        return confirmInternal(id, new com.example.backend.dto.problem.ConfirmProblemRequest(answers));
-    }
-
-    @Transactional
-    public ProblemResponse confirm(UUID id, com.example.backend.dto.problem.ConfirmProblemRequest request) {
-        return confirmInternal(id, request);
-    }
-
-    private ProblemResponse confirmInternal(UUID id, com.example.backend.dto.problem.ConfirmProblemRequest request) {
-        ProblemSubmission problem = requireOwnedProblem(id);
-        Specification specification = problem.getCurrentSpecification();
-        if (specification == null) {
-            throw new ApiException(HttpStatus.CONFLICT, "Extract a specification before confirming it");
-        }
-        Map<String, String> safeAnswers = request == null || request.answers() == null
-                ? Map.of() : request.answers();
-        List<ConversationTurn> conversation = request == null || request.conversation() == null
-                ? List.of() : List.copyOf(request.conversation());
-        boolean hasOpenQuestions = specification.getAmbiguityCases().stream()
-                .anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
-        if (!hasOpenQuestions) {
-            readinessService.ensureRequiredAmbiguities(specification);
-            hasOpenQuestions = specification.getAmbiguityCases().stream()
-                    .anyMatch(item -> item.getStatus() == AmbiguityStatus.OPEN);
-            if (!hasOpenQuestions) {
-                specification.setConfirmationState(ConfirmationState.CONFIRMED);
-            }
-        } else {
-            if (safeAnswers.isEmpty() || safeAnswers.values().stream().noneMatch(StringUtils::hasText)) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "A clarification message is required");
-            }
-            try { ambiguityResolutionApplier.applyAll(specification, safeAnswers, conversation); }
-            catch (ApiException exception) { throw exception; }
-            catch (RuntimeException exception) {
-                AiStepException aiFailure = findCause(exception, AiStepException.class);
-                if (aiFailure != null) {
-                    Throwable root = aiFailure.getCause() == null ? aiFailure : aiFailure.getCause();
-                    log.error("AI pipeline failure: problemId={} step={} code={} reason={} rootCause={}",
-                            id, aiFailure.step(), aiFailure.code(), aiFailure.getMessage(),
-                            root.getClass().getSimpleName() + ": " + root.getMessage(), exception);
-                    throw new ApiException(HttpStatus.BAD_GATEWAY,
-                            "Chưa thể hoàn tất bước làm rõ đặc tả. Câu trả lời chưa được lưu; vui lòng thử lại.",
-                            aiFailure.code(), aiFailure.step());
-                }
-                log.warn("Problem clarification failed for submission {}", id, exception);
-                throw new ApiException(HttpStatus.BAD_GATEWAY,
-                        "Chưa thể xử lý câu trả lời này. Spec chưa được cập nhật; hãy thử diễn đạt lại.",
-                        "CLARIFICATION_FAILED", "SPECIFICATION_CLARIFICATION");
-            }
-            readinessService.ensureRequiredAmbiguities(specification);
-        }
-        SubmissionStatus status;
-        if (specification.getConfirmationState() == ConfirmationState.UNRESOLVED) {
-            status = SubmissionStatus.NEEDS_CONFIRMATION;
-        } else if (specification.getConfirmationState() == ConfirmationState.REJECTED) {
-            status = SubmissionStatus.EXTRACTED;
-        } else {
-            status = SubmissionStatus.READY_FOR_VALIDATION;
-        }
-        problem.setStatus(status);
-        return mapper.toResponse(problem);
-    }
-
-    @Transactional
-    public ProblemResponse updateSpecification(UUID id, UpdateSpecificationRequest request) {
-        if (request == null || request.objects() == null || !request.objects().isArray()
-                || request.quantities() == null || !request.quantities().isArray()
-                || request.relations() == null || !request.relations().isArray()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Specification objects, quantities and relations must be arrays");
-        }
-        ProblemSubmission problem = requireOwnedProblem(id);
-        Specification specification = problem.getCurrentSpecification();
-        if (specification == null) {
-            throw new ApiException(HttpStatus.CONFLICT, "Extract a specification before editing it");
-        }
-        specification.setObjects(request.objects().deepCopy());
-        specification.setQuantities(request.quantities().deepCopy());
-        specification.setRelations(request.relations().deepCopy());
-        if (request.endCondition() != null) specification.setEndCondition(request.endCondition().deepCopy());
-        specification.setValidationStatus("NOT_VALIDATED");
-        specification.setValidationResult(null);
-        // Editing the structured facts is a new teacher confirmation. Keep the
-        // audit rows, but recompute required gaps from the edited JSON instead
-        // of trusting stale AI ambiguity decisions.
-        Instant now = Instant.now();
-        for (AmbiguityCase ambiguity : specification.getAmbiguityCases()) {
-            ambiguity.setStatus(AmbiguityStatus.RESOLVED);
-            ambiguity.setResolution("Rechecked after teacher specification edit");
-            ambiguity.setResolvedAt(now);
-        }
-        specification.setConfirmationState(ConfirmationState.CONFIRMED);
-        readinessService.ensureRequiredAmbiguities(specification);
-        problem.setStatus(specification.getConfirmationState() == ConfirmationState.UNRESOLVED
-                ? SubmissionStatus.NEEDS_CONFIRMATION : SubmissionStatus.READY_FOR_VALIDATION);
-        return mapper.toResponse(problem);
-    }
-
     @Transactional(readOnly = true)
-    public SourceAsset requireOwnedAsset(UUID assetId) {
-        User owner = currentUserService.requireCurrentUser();
-        return sourceAssetRepository.findByIdAndSubmissionOwner(assetId, owner)
+    public SourceAsset requireOwnedAsset(UUID id) {
+        return assets.findByIdAndSubmissionOwner(id, currentUser.requireCurrentUser())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Source asset not found"));
     }
 
-    private Specification createSpecification(ProblemSubmission problem, ExtractionRun run,
-            SpecificationDocument document) {
-        Specification specification = new Specification();
-        specification.setSubmission(problem);
-        specification.setExtractionRun(run);
-        specification.setContractVersion(SpecificationDocument.CURRENT_SCHEMA_VERSION);
-        var schema = schemaDefinitions.requireCurrentApproved(document.schemaId(), document.schemaVersion());
-        specification.setSchemaVersion(schema.getVersion());
-        specification.setTopic(schema.getTopic());
-        specification.setSchemaId(document.schemaId());
-        specification.setConfidence(document.confidence());
-        specification.setObjects(objectMapper.valueToTree(document.objects()));
-        specification.setQuantities(objectMapper.valueToTree(document.quantities()));
-        specification.setRelations(objectMapper.valueToTree(document.relations()));
-        specification.setEndCondition(document.endCondition());
-        specification.setAmbiguity(objectMapper.valueToTree(document.ambiguities()));
-        specification.setConfirmationState(document.ambiguities().isEmpty()
-                ? ConfirmationState.NO_AMBIGUITY
-                : ConfirmationState.UNRESOLVED);
-        for (AmbiguityItem item : document.ambiguities()) {
-            AmbiguityCase ambiguity = new AmbiguityCase();
-            ambiguity.setCode(item.code());
-            ambiguity.setFieldPath(item.fieldPath());
-            ambiguity.setQuestion(item.question());
-            ambiguity.setOptions(objectMapper.valueToTree(item.options()));
-            ambiguity.setStatus(AmbiguityStatus.OPEN);
-            specification.addAmbiguityCase(ambiguity);
-        }
-        return specification;
-    }
-
-    private void applyResult(ExtractionRun run, ExtractionResult result) {
-        run.setExtractionPath(result.path());
-        run.setProviderName(result.providerName());
-        run.setModelVersion(result.modelVersion());
-        run.setStatus(ExtractionRunStatus.SUCCEEDED);
-        run.setOutcome(result.outcome());
-        run.setRawResponse(result.rawResponse());
-        run.setErrorMessage(result.errorMessage());
-    }
-
     private ProblemSubmission requireOwnedProblem(UUID id) {
-        User owner = currentUserService.requireCurrentUser();
-        return problemRepository.findByIdAndOwner(id, owner)
+        return problems.findByIdAndOwner(id, currentUser.requireCurrentUser())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Problem not found"));
     }
-
-    private Lesson resolveLesson(UUID lessonId) {
-        if (lessonId == null) {
-            return null;
-        }
-        return lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Lesson not found"));
-    }
-
-    private void validateImage(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Image file is required");
-        }
-        if (file.getSize() > uploadProperties.maxImageBytes()) {
-            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE,
-                    "Image exceeds the configured upload limit");
-        }
-        String rawContentType = file.getContentType();
-        String contentType = rawContentType == null ? "" : rawContentType.toLowerCase(java.util.Locale.ROOT);
-        if (!uploadProperties.allowedImageTypes().contains(contentType)) {
-            throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported image content type");
-        }
-    }
-
-    private byte[] readContent(MultipartFile file) {
-        try {
-            return file.getBytes();
-        } catch (Exception exception) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot read image file");
-        }
-    }
-
-    private String safeFilename(String filename) {
-        if (!StringUtils.hasText(filename)) {
-            return "image";
-        }
-        String normalized = filename.replace('\\', '/');
-        return normalized.substring(normalized.lastIndexOf('/') + 1).replaceAll("[\\r\\n]", "_");
-    }
-
-    private String sha256(byte[] content) {
-        try {
-        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
-        }
-    }
-
-    private String trimToNull(String value) {
-        return StringUtils.hasText(value) ? value.trim() : null;
-    }
-
-    private String joinSourceText(String first, String second) {
-        if (!StringUtils.hasText(first)) return second;
-        if (!StringUtils.hasText(second)) return first;
-        return first + "\n\n" + second;
-    }
-
 }

@@ -3,8 +3,8 @@
 <script type="module">
 import React from 'react';
 import {createRoot} from 'react-dom/client';
-import VisualSandbox from '../src/matter-flow/VisualSandbox.tsx';
-import '../src/styles/matter-pipeline.css';
+import VisualSandbox from '../src/simulation/VisualSandbox.tsx';
+import '../src/styles/simulation.css';
 const cases = await fetch('/tests/generated-cases.local.json').then(r => r.json());
 const requested = new URLSearchParams(location.search).get('case') || 'complete';
 const item = cases.find(c => c.case === requested);

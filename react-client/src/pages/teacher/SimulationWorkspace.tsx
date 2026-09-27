@@ -5,29 +5,29 @@ import "katex/dist/katex.min.css";
 import LearningHeader from "../../components/common/LearningHeader";
 import Icon from "../../components/common/LearningIcon";
 import TeacherLibraryPane from "../../components/workspace/TeacherLibraryPane";
-import VisualSandbox from "../../matter-flow/VisualSandbox";
-import { validateVisualProgram } from "../../matter-flow/visualCodeSafety";
+import VisualSandbox from "../../simulation/VisualSandbox";
+import { validateVisualProgram } from "../../simulation/visualCodeSafety";
 import {
-  confirmMatterExplanation,
-  confirmMatterInput,
-  normalizeMatterImage,
-  normalizeMatterText,
-  reportMatterValidation,
-  reviseMatterIntent,
+  confirmSimulationExplanation,
+  confirmSimulationInput,
+  recognizeSimulationImage,
+  understandSimulationText,
+  reportSimulationValidation,
+  reviseSimulationIntent,
   type IntentResult,
-  type MatterParameter,
-  type MatterSimulationResult,
-  type MatterSourceMode,
-  type MatterValidation,
+  type SimulationParameter,
+  type GeneratedSimulationResult,
+  type SimulationSourceMode,
+  type SimulationValidation,
   type RecognitionResult,
-} from "../../api/matterFlowApi";
+} from "../../api/simulationUnderstandingApi";
 import { createLibraryFolder } from "../../api/libraryApi";
 import { useTeacherLibrary } from "../../store/useTeacherLibrary";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import { canManageLearning } from "../../types/roles";
 import type { LibraryItem } from "../../types/physlive";
 import "../../styles/learning.css";
-import "../../styles/matter-pipeline.css";
+import "../../styles/simulation.css";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -57,11 +57,11 @@ function getError(error: unknown) {
   return error instanceof Error ? error.message : "An unexpected error occurred.";
 }
 
-function parameterValue(parameter: MatterParameter) {
+function parameterValue(parameter: SimulationParameter) {
   return parameter.value;
 }
 
-function parameterBounds(parameter: MatterParameter, visual = false): [number, number] {
+function parameterBounds(parameter: SimulationParameter, visual = false): [number, number] {
   const center = parameterValue(parameter);
   const span = Math.max(1, Math.abs(center) * 2);
   const limit = visual ? 1e30 : 1_000_000;
@@ -79,16 +79,16 @@ function RecognitionDisplay({ recognition }: Readonly<{ recognition: Recognition
       strict: "warn",
       output: "htmlAndMathml",
     });
-    return <div className="matter-recognized-math" aria-label={source}
+    return <div className="simulation-recognized-math" aria-label={source}
       dangerouslySetInnerHTML={{ __html: rendered }} />;
   }
-  return <div className="matter-recognized-text">
+  return <div className="simulation-recognized-text">
     {source.split(/\n\s*\n/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
   </div>;
 }
 
-function MatterParameterControl({ parameter, value, visual, onChange }: Readonly<{
-  parameter: MatterParameter;
+function SimulationParameterControl({ parameter, value, visual, onChange }: Readonly<{
+  parameter: SimulationParameter;
   value: number;
   visual: boolean;
   onChange: (value: number) => void;
@@ -100,7 +100,7 @@ function MatterParameterControl({ parameter, value, visual, onChange }: Readonly
     if (Number.isFinite(numeric)) onChange(numeric);
     setDraft(null);
   };
-  return <label className="matter-control"><span>{parameter.label || parameter.name}</span>
+  return <label className="simulation-control"><span>{parameter.label || parameter.name}</span>
     <strong>{Number(value.toPrecision(5))} {parameter.unit}</strong>
     {min < max && <><input type="range" min={min} max={max} step="any" value={value}
       onChange={(event) => onChange(Number(event.target.value))} />
@@ -110,11 +110,11 @@ function MatterParameterControl({ parameter, value, visual, onChange }: Readonly
   </label>;
 }
 
-type PlannedScene = NonNullable<NonNullable<MatterSimulationResult["simulationSpec"]>["plannedScene"]>;
+type PlannedScene = NonNullable<NonNullable<GeneratedSimulationResult["simulationSpec"]>["plannedScene"]>;
 
-function MatterSceneInventory({ scene }: Readonly<{ scene: PlannedScene }>) {
+function SimulationSceneInventory({ scene }: Readonly<{ scene: PlannedScene }>) {
   const value = (number: number) => Number(number.toPrecision(6));
-  return <details className="matter-scene-inventory">
+  return <details className="simulation-scene-inventory">
     <summary>Planned objects and fixed values · {scene.bodies.length} objects</summary>
     <p>Initial values compiled from the confirmed description. Compare every object before relying on the motion.</p>
     <p>Duration {value(scene.durationSeconds)} s · gravity ({value(scene.gravity.x)}, {value(scene.gravity.y)}) m/s²
@@ -130,7 +130,7 @@ function MatterSceneInventory({ scene }: Readonly<{ scene: PlannedScene }>) {
   </details>;
 }
 
-export default function MatterPipelineWorkspace() {
+export default function SimulationWorkspace() {
   const user = usePhysliveStore((state) => state.user);
   const canManageLearningContent = canManageLearning(user?.role) || !user;
 
@@ -140,7 +140,7 @@ export default function MatterPipelineWorkspace() {
 
   const { folders, setFolders, libraryItems, libraryLoading, libraryError, retryLibrary } = useTeacherLibrary();
 
-  const [sourceMode, setSourceMode] = useState<MatterSourceMode>("TEXT");
+  const [sourceMode, setSourceMode] = useState<SimulationSourceMode>("TEXT");
   const [text, setText] = useState("");
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -152,11 +152,11 @@ export default function MatterPipelineWorkspace() {
   const [manualCorrectionDone, setManualCorrectionDone] = useState(false);
   const [intent, setIntent] = useState<IntentResult | null>(null);
   const [revision, setRevision] = useState("");
-  const [simulation, setSimulation] = useState<MatterSimulationResult | null>(null);
+  const [simulation, setSimulation] = useState<GeneratedSimulationResult | null>(null);
   const [values, setValues] = useState<Record<string, number>>({});
   const [runValues, setRunValues] = useState<Record<string, number>>({});
   const [sandboxKey, setSandboxKey] = useState(0);
-  const [validation, setValidation] = useState<MatterValidation | null>(null);
+  const [validation, setValidation] = useState<SimulationValidation | null>(null);
   const [locallyAdjusted, setLocallyAdjusted] = useState(false);
 
   useEffect(() => {
@@ -250,14 +250,18 @@ export default function MatterPipelineWorkspace() {
     setError("");
     setBusy(true);
     try {
-      const result =
-        sourceMode === "IMAGE" && sourceFile
-          ? await normalizeMatterImage(sourceFile, text || undefined)
-          : await normalizeMatterText(sourceMode as Exclude<MatterSourceMode, "IMAGE">, text);
-      setRecognition(result);
-      setCorrection(result.recognizedText || "");
-      setEditingRecognition(false);
-      setManualCorrectionDone(false);
+      if (sourceMode === "IMAGE" && sourceFile) {
+        const result = await recognizeSimulationImage(sourceFile, text || undefined);
+        setRecognition(result);
+        setCorrection(result.recognizedText || "");
+        setEditingRecognition(false);
+        setManualCorrectionDone(false);
+      } else {
+        const result = await understandSimulationText(text);
+        setRecognition(null);
+        setIntent(result);
+        setRevision("");
+      }
     } catch (cause) {
       setError(getError(cause));
     } finally {
@@ -270,9 +274,9 @@ export default function MatterPipelineWorkspace() {
     setBusy(true);
     setError("");
     try {
-      const result = await confirmMatterInput(
+      const result = await confirmSimulationInput(
         recognition.sessionId,
-        acceptCurrent,
+        recognition.recognizedText,
         acceptCurrent ? undefined : correction,
       );
       if (result.stage === "RECOGNITION" || result.stage === "RECOGNITION_FAILED") {
@@ -300,7 +304,7 @@ export default function MatterPipelineWorkspace() {
     setBusy(true);
     setError("");
     try {
-      const result = await reviseMatterIntent(intent.sessionId, revision.trim());
+      const result = await reviseSimulationIntent(intent.sessionId, revision.trim());
       setIntent(result);
       setRevision("");
     } catch (cause) {
@@ -315,7 +319,7 @@ export default function MatterPipelineWorkspace() {
     setBusy(true);
     setError("");
     try {
-      const result = await confirmMatterExplanation(intent.sessionId);
+      const result = await confirmSimulationExplanation(intent.sessionId);
       if (result.stage !== "SIMULATION") {
         setIntent(result);
         setSimulation(null);
@@ -363,7 +367,7 @@ export default function MatterPipelineWorkspace() {
     }
   };
 
-  const onLocalValidation = (result: MatterValidation) => {
+  const onLocalValidation = (result: SimulationValidation) => {
     if (!simulation) return;
     if (result.status === "PAUSED") return;
     const authoritative = new Set([
@@ -371,7 +375,7 @@ export default function MatterPipelineWorkspace() {
       "UNSUPPORTED", "ASSUMPTION_REVIEW", "FLAGGED",
     ]);
     setValidation((current) => current && authoritative.has(current.status) ? current : result);
-    void reportMatterValidation(simulation.sessionId, result, runValues)
+    void reportSimulationValidation(simulation.sessionId, result, runValues)
       .then((serverValidation) => setValidation(serverValidation))
       .catch(() => {
         setValidation((current) =>
@@ -397,7 +401,7 @@ export default function MatterPipelineWorkspace() {
     return () => window.clearTimeout(timeout);
   }, [values, simulation, locallyAdjusted]);
 
-  const updateParameter = (parameter: MatterParameter, numeric: number) => {
+  const updateParameter = (parameter: SimulationParameter, numeric: number) => {
     const [min, max] = parameterBounds(
       parameter,
       simulation?.simulationSpec?.runtimeKind === "VISUAL",
@@ -431,7 +435,7 @@ export default function MatterPipelineWorkspace() {
 
   return (
     <div
-      className="learning-app matter-workspace-app"
+      className="learning-app simulation-workspace-app"
       onPaste={onPaste}
       onDragOver={(event) => {
         if (event.dataTransfer.types.includes("Files")) event.preventDefault();
@@ -490,15 +494,15 @@ export default function MatterPipelineWorkspace() {
             <section className="learn-stage" aria-label="Mô phỏng tương tác">
               {simulation ? (
                 /* Layout giữa khi có mô phỏng: Canvas card + Header + Restart */
-                <div className="matter-stage-container">
-                  <div className="matter-panel-heading">
+                <div className="simulation-stage-container">
+                  <div className="simulation-panel-heading">
                     <div>
-                      <span className="matter-eyebrow">Interactive simulation</span>
+                      <span className="simulation-eyebrow">Interactive simulation</span>
                       <h2>Explore the model</h2>
                     </div>
                     <button
                       type="button"
-                      className="matter-restart-button"
+                      className="simulation-restart-button"
                       onClick={() => {
                         setRunValues(values);
                         setSandboxKey((key) => key + 1);
@@ -509,7 +513,7 @@ export default function MatterPipelineWorkspace() {
                     </button>
                   </div>
 
-                  <div className="matter-sandbox-card">
+                  <div className="simulation-sandbox-card">
                     {simulation.simulationSpec?.visualProgram ? (
                       <VisualSandbox
                         key={sandboxKey}
@@ -520,32 +524,32 @@ export default function MatterPipelineWorkspace() {
                           onValidation={onLocalValidation}
                       />
                     ) : (
-                      <p className="matter-muted">Simulation has no solver-bound visual program and cannot be executed safely.</p>
+                      <p className="simulation-muted">Simulation has no solver-bound visual program and cannot be executed safely.</p>
                     )}
                   </div>
-                  <p className="matter-muted">
+                  <p className="simulation-muted">
                     Parameter changes rerun the visual renderer locally; physics remains server-solver-bound.
                   </p>
                 </div>
               ) : (
                 /* Layout giữa khi chưa có mô phỏng: Nhập đề, nhận diện, giải thích */
-                <div className="matter-stage-input-container">
-                  <ol className="matter-steps" aria-label="Simulation progress">
+                <div className="simulation-stage-input-container">
+                  <ol className="simulation-steps" aria-label="Simulation progress">
                     <li className={!recognition && !intent ? "active" : "done"}>1. Input</li>
                     <li className={recognition ? "active" : intent ? "done" : ""}>2. Recognition</li>
                     <li className={intent ? "active" : ""}>3. Intent & Build</li>
                   </ol>
 
                   {error && (
-                    <div className="matter-error" role="alert">
+                    <div className="simulation-error" role="alert">
                       {error}
                     </div>
                   )}
 
                   {!recognition && !intent && (
-                    <section className="matter-card matter-entry">
+                    <section className="simulation-card simulation-entry">
                       <h2>Enter a description</h2>
-                      <div className="matter-source-tabs" role="group" aria-label="Input channel">
+                      <div className="simulation-source-tabs" role="group" aria-label="Input channel">
                         {(["TEXT", "LATEX", "IMAGE"] as const).map((mode) => (
                           <button
                             key={mode}
@@ -561,13 +565,13 @@ export default function MatterPipelineWorkspace() {
 
                       <form onSubmit={normalize}>
                         {sourceMode === "IMAGE" && (
-                          <div className="matter-image-drop">
+                          <div className="simulation-image-drop">
                             {previewUrl ? (
                               <img src={previewUrl} alt="Screenshot selected for recognition" />
                             ) : (
                               <p>Drop or paste a PNG, JPEG, or WebP image up to 8 MB, or choose a file.</p>
                             )}
-                            <label className="matter-file-label">
+                            <label className="simulation-file-label">
                               Choose image
                               <input
                                 type="file"
@@ -581,7 +585,7 @@ export default function MatterPipelineWorkspace() {
                             {sourceFile && <span>{sourceFile.name}</span>}
                           </div>
                         )}
-                        <label htmlFor="matter-input">
+                        <label htmlFor="simulation-input">
                           {sourceMode === "IMAGE"
                             ? "Optional context"
                             : sourceMode === "LATEX"
@@ -589,7 +593,7 @@ export default function MatterPipelineWorkspace() {
                             : "Describe the physical setup"}
                         </label>
                         <textarea
-                          id="matter-input"
+                          id="simulation-input"
                           value={text}
                           onChange={(event) => setText(event.target.value)}
                           rows={sourceMode === "IMAGE" ? 3 : 5}
@@ -601,9 +605,9 @@ export default function MatterPipelineWorkspace() {
                               : "Write the objects, interactions, and values you know"
                           }
                         />
-                        <div className="matter-actions">
+                        <div className="simulation-actions">
                           <button
-                            className="matter-primary-button"
+                            className="simulation-primary-button"
                             disabled={
                               busy ||
                               (sourceMode === "IMAGE" && !sourceFile) ||
@@ -618,29 +622,29 @@ export default function MatterPipelineWorkspace() {
                   )}
 
                   {recognition && (
-                    <section className="matter-card">
-                      <span className="matter-eyebrow">Recognition confirmation</span>
+                    <section className="simulation-card">
+                      <span className="simulation-eyebrow">Recognition confirmation</span>
                       <h2>Is this what you meant?</h2>
                       {recognitionLowConfidence && (
-                        <p className="matter-warning" role="status">
+                        <p className="simulation-warning" role="status">
                           Recognition was uncertain. Please correct the text before continuing.
                         </p>
                       )}
-                      {recognition.message && <p className="matter-muted">{recognition.message}</p>}
+                      {recognition.message && <p className="simulation-muted">{recognition.message}</p>}
                       <RecognitionDisplay recognition={recognition} />
                       {editingRecognition ? (
-                        <div className="matter-correction">
-                          <label htmlFor="matter-correction">Correct the recognized description</label>
+                        <div className="simulation-correction">
+                          <label htmlFor="simulation-correction">Correct the recognized description</label>
                           <textarea
-                            id="matter-correction"
+                            id="simulation-correction"
                             rows={5}
                             value={correction}
                             onChange={(event) => setCorrection(event.target.value)}
                           />
-                          <div className="matter-actions">
+                          <div className="simulation-actions">
                             <button
                               type="button"
-                              className="matter-primary-button"
+                              className="simulation-primary-button"
                               disabled={busy || !correction.trim()}
                               onClick={() => void handleRecognition(false)}
                             >
@@ -654,10 +658,10 @@ export default function MatterPipelineWorkspace() {
                           </div>
                         </div>
                       ) : (
-                        <div className="matter-actions">
+                        <div className="simulation-actions">
                           <button
                             type="button"
-                            className="matter-primary-button"
+                            className="simulation-primary-button"
                             disabled={busy || recognition.stage !== "RECOGNITION"}
                             onClick={() => void handleRecognition(true)}
                           >
@@ -679,23 +683,23 @@ export default function MatterPipelineWorkspace() {
                   )}
 
                   {intent && !simulation && (
-                    <section className="matter-card">
-                      <span className="matter-eyebrow">Physics understanding</span>
+                    <section className="simulation-card">
+                      <span className="simulation-eyebrow">Physics understanding</span>
                       {intent.stage === "CLARIFY" && (
                         <>
                           <h2>One detail is needed</h2>
-                          <p className="matter-explanation">{intent.question || intent.message}</p>
+                          <p className="simulation-explanation">{intent.question || intent.message}</p>
                           <form onSubmit={handleRevision}>
-                            <label htmlFor="matter-answer">Your answer</label>
+                            <label htmlFor="simulation-answer">Your answer</label>
                             <textarea
-                              id="matter-answer"
+                              id="simulation-answer"
                               rows={3}
                               value={revision}
                               onChange={(event) => setRevision(event.target.value)}
                             />
-                            <div className="matter-actions">
+                            <div className="simulation-actions">
                               <button
-                                className="matter-primary-button"
+                                className="simulation-primary-button"
                                 disabled={busy || !revision.trim()}
                               >
                                 {busy ? "Checking…" : "Answer"}
@@ -707,20 +711,20 @@ export default function MatterPipelineWorkspace() {
                       {intent.stage === "UNSUPPORTED" && (
                         <>
                           <h2>This setup is outside the available simulation templates</h2>
-                          <p className="matter-explanation">
+                          <p className="simulation-explanation">
                             {intent.message || intent.explanation}
                           </p>
                           <form onSubmit={handleRevision}>
-                            <label htmlFor="matter-revision">Describe a different setup</label>
+                            <label htmlFor="simulation-revision">Describe a different setup</label>
                             <textarea
-                              id="matter-revision"
+                              id="simulation-revision"
                               rows={3}
                               value={revision}
                               onChange={(event) => setRevision(event.target.value)}
                             />
-                            <div className="matter-actions">
+                            <div className="simulation-actions">
                               <button
-                                className="matter-primary-button"
+                                className="simulation-primary-button"
                                 disabled={busy || !revision.trim()}
                               >
                                 Try another description
@@ -732,14 +736,14 @@ export default function MatterPipelineWorkspace() {
                       {intent.stage === "EXPLAIN" && (
                         <>
                           <h2>Review the intended simulation</h2>
-                          <p className="matter-explanation">{intent.explanation}</p>
-                          <p className="matter-muted">
+                          <p className="simulation-explanation">{intent.explanation}</p>
+                          <p className="simulation-muted">
                             Any predicted outcome here is provisional until the simulation and background check run.
                           </p>
-                          <div className="matter-actions">
+                          <div className="simulation-actions">
                             <button
                               type="button"
-                              className="matter-primary-button"
+                              className="simulation-primary-button"
                               disabled={busy}
                               onClick={() => void generate()}
                             >
@@ -749,10 +753,10 @@ export default function MatterPipelineWorkspace() {
                               Start over
                             </button>
                           </div>
-                          <form className="matter-revision-form" onSubmit={handleRevision}>
-                            <label htmlFor="matter-change">Something needs to change?</label>
+                          <form className="simulation-revision-form" onSubmit={handleRevision}>
+                            <label htmlFor="simulation-change">Something needs to change?</label>
                             <textarea
-                              id="matter-change"
+                              id="simulation-change"
                               rows={2}
                               value={revision}
                               onChange={(event) => setRevision(event.target.value)}
@@ -820,7 +824,7 @@ export default function MatterPipelineWorkspace() {
                   {simulation?.parameters?.length ? (
                     <div style={{ display: "grid", gap: 14, marginTop: 12 }}>
                       {simulation.parameters.map((parameter) => (
-                        <MatterParameterControl
+                        <SimulationParameterControl
                           key={parameter.name}
                           parameter={parameter}
                           visual={simulation.simulationSpec?.runtimeKind === "VISUAL"}
@@ -871,7 +875,7 @@ export default function MatterPipelineWorkspace() {
                   )}
 
                   {/* Trạng thái kiểm chứng */}
-                  <div className="matter-validation" role="status" aria-live="polite" style={{ marginTop: 20 }}>
+                  <div className="simulation-validation" role="status" aria-live="polite" style={{ marginTop: 20 }}>
                     <strong>
                       {simulation?.simulationSpec?.runtimeKind === "VISUAL"
                         ? "Trạng thái mô hình: "
@@ -921,16 +925,16 @@ export default function MatterPipelineWorkspace() {
                   <h3>Giải thích hiện tượng vật lý</h3>
                   {intent?.explanation ? (
                     <div style={{ marginTop: 10 }}>
-                      <p className="matter-explanation">{intent.explanation}</p>
+                      <p className="simulation-explanation">{intent.explanation}</p>
                     </div>
                   ) : (
-                    <p className="matter-muted" style={{ padding: "12px 0" }}>
+                    <p className="simulation-muted" style={{ padding: "12px 0" }}>
                       Phần giải thích hiện tượng và lý thuyết vật lý sẽ xuất hiện ở đây sau khi AI phân tích đề bài.
                     </p>
                   )}
 
                   {!!intent?.defaults?.length && (
-                    <div className="matter-defaults" style={{ marginTop: 14 }}>
+                    <div className="simulation-defaults" style={{ marginTop: 14 }}>
                       <strong>Giả định mặc định</strong>
                       <ul>
                         {intent.defaults.map((item, index) => (
@@ -941,10 +945,10 @@ export default function MatterPipelineWorkspace() {
                   )}
 
                   {intent && (
-                    <form className="matter-revision-form" onSubmit={handleRevision}>
-                      <label htmlFor="inspector-matter-change">Cần điều chỉnh gì?</label>
+                    <form className="simulation-revision-form" onSubmit={handleRevision}>
+                      <label htmlFor="inspector-simulation-change">Cần điều chỉnh gì?</label>
                       <textarea
-                        id="inspector-matter-change"
+                        id="inspector-simulation-change"
                         rows={2}
                         value={revision}
                         onChange={(event) => setRevision(event.target.value)}
@@ -961,7 +965,7 @@ export default function MatterPipelineWorkspace() {
                 <div>
                   <h3>Chi tiết mô hình</h3>
                   {simulation?.simulationSpec?.sceneWarnings?.length ? (
-                    <div className="matter-warning" role="status" style={{ marginTop: 10 }}>
+                    <div className="simulation-warning" role="status" style={{ marginTop: 10 }}>
                       <strong>Cảnh báo khung cảnh</strong>
                       <ul>
                         {simulation.simulationSpec.sceneWarnings.map((w, index) => (
@@ -973,12 +977,12 @@ export default function MatterPipelineWorkspace() {
 
                   {simulation?.simulationSpec?.plannedScene && (
                     <div style={{ marginTop: 10 }}>
-                      <MatterSceneInventory scene={simulation.simulationSpec.plannedScene} />
+                      <SimulationSceneInventory scene={simulation.simulationSpec.plannedScene} />
                     </div>
                   )}
 
                   {intent?.simulationSpec?.requiredObjects?.length ? (
-                    <div className="matter-requirement-review" style={{ marginTop: 12 }}>
+                    <div className="simulation-requirement-review" style={{ marginTop: 12 }}>
                       <h4>Thành phần AI nhận diện ({intent.simulationSpec.requiredObjects.length})</h4>
                       <ul>
                         {intent.simulationSpec.requiredObjects.map((object, index) => (
@@ -993,7 +997,7 @@ export default function MatterPipelineWorkspace() {
                     </div>
                   ) : (
                     !simulation?.simulationSpec?.plannedScene && (
-                      <p className="matter-muted" style={{ padding: "12px 0" }}>
+                      <p className="simulation-muted" style={{ padding: "12px 0" }}>
                         AI sẽ chọn các thành phần trực quan theo ngữ cảnh mô tả.
                       </p>
                     )

@@ -19,7 +19,10 @@ public record JevProperties(
 
     public JevProperties {
         apiKey = apiKey == null ? "" : apiKey.trim();
-        model = model == null || model.isBlank() ? "jev-latest" : model.trim();
+        model = model == null ? "" : model.trim();
+        if (apiKey.isBlank() || model.isBlank()) {
+            throw new IllegalArgumentException("JEV API key and model must be configured in the environment");
+        }
         if (baseUrl == null || !"https".equalsIgnoreCase(baseUrl.getScheme())) {
             throw new IllegalArgumentException("Jev base URL must be an HTTPS URL");
         }

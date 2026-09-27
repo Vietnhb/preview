@@ -21,14 +21,14 @@ Local helper functions, flat data destructuring, numeric or array-length loops, 
 
 Matter's background worker compares different timestep resolutions, checks eligible momentum/energy invariants, flags swept-contact risk, and checks declared expected contacts. These checks run after display and do not stop the visible simulation. The VISUAL runtime reports **UNVERIFIED**, because successful execution is not independent evidence of physical correctness; a runtime error is flagged. Actual flags are recorded with the description, generated program, controls, and available metrics. Hidden tabs and completed runs pause workers until restart.
 
-The active creation API is `/api/matter-flow`. Retired problem creation and solver execution HTTP entrypoints return 410. Historical assignment replay, library reads, and export compatibility remain separate from new creation.
+The active creation API is `/api/simulation`; its former flow-specific route name is retired. Retired problem creation and solver execution HTTP entrypoints return 410. Historical assignment replay, library reads, and export compatibility remain separate from new creation.
 
 ## Main source changes
 
 - `backend/src/main/java/com/example/backend/matter/`: staged owner-bound sessions, combined understanding gateway, visual program gateway, advisory scene audit, numeric parameterizer, Matter compiler and its safety gate. The redundant visual AST gate was deleted.
 - `backend/src/main/resources/prompts/matter-understanding-response-schema.json`, `matter-scene-response-schema.json`, and `visual-simulation-response-schema.json`: contracts for understanding, numeric scenes, and visual programs. Obsolete inventory/fidelity schemas and checks were removed.
 - `backend/src/main/resources/schemas/catalog.json` and `schemas/source/**`: eight broad v2 data packs with open vocabulary and runtime capability declarations, replacing enumerated exercise packs. They contain no exercise examples, executable code samples, or fixed asset assignments.
-- `react-client/src/pages/teacher/MatterPipelineWorkspace.tsx`, `src/api/matterFlowApi.ts`, and `src/matter-flow/`: staged confirmation, readable controls, both sandbox runtimes, dynamic drawings, and background status.
+- `react-client/src/pages/teacher/SimulationWorkspace.tsx`, `src/api/simulationUnderstandingApi.ts`, and `src/simulation/`: staged confirmation, readable controls, both sandbox runtimes, dynamic drawings, and background status.
 - The un-routed teacher `Workspace.tsx`, its old creation UI subtree, dead problem API client, and retired simulation creation/adjustment client functions were deleted. Shared assignment, student, library, and replay components were retained.
 - Old RK4/postfix/declarative-dynamics execution code and the simulation WebSocket adjustment entrypoint were removed. Historical typed outputs, replay compatibility, and database migrations remain for existing records.
 

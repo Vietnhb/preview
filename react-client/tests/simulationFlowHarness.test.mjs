@@ -8,7 +8,7 @@ test("simulation flow browser E2E harness traces API and render stages", async (
   const match = html.match(/<script type="module">([\s\S]*?)<\/script>/);
   assert.ok(match, "browser harness must contain a module script");
   parse(match[1], { ecmaVersion: 2022, sourceType: "module" });
-  for (const stage of ["normalizeMatterText", "confirmMatterInput", "confirmMatterExplanation", "VisualSandbox"]) {
+  for (const stage of ["understandSimulationText", "confirmSimulationExplanation", "VisualSandbox"]) {
     assert.match(match[1], new RegExp(`\\b${stage}\\b`), `missing ${stage} stage`);
   }
   assert.match(match[1], /errorDetails/);
@@ -16,10 +16,10 @@ test("simulation flow browser E2E harness traces API and render stages", async (
 });
 
 test("simulation surface inherits the workspace light or dark theme", async () => {
-  const css = await readFile(new URL("../src/styles/matter-pipeline.css", import.meta.url), "utf8");
-  const visualSandbox = await readFile(new URL("../src/matter-flow/VisualSandbox.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../src/styles/simulation.css", import.meta.url), "utf8");
+  const visualSandbox = await readFile(new URL("../src/simulation/VisualSandbox.tsx", import.meta.url), "utf8");
   assert.match(css, /--simulation-surface:/);
-  assert.match(css, /data-theme-effective="dark"\]\s+\.matter-sandbox/);
+  assert.match(css, /data-theme-effective="dark"\]\s+\.simulation-sandbox/);
   assert.match(css, /background:\s*var\(--simulation-surface\)/);
   assert.match(visualSandbox, /background:transparent/);
   assert.match(visualSandbox, /hexColor\(color, 'transparent'\)/);

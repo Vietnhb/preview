@@ -25,7 +25,7 @@ stateDiagram-v2
     MatterSandbox --> NumericalReview: nonblocking numerical and invariant flags
 ```
 
-`/workspace` uses `/api/matter-flow`. Text and raw LaTeX enter directly; images use OCR. Every input reaches a separate recognition confirmation before JEV or semantic interpretation. OCR failure requires correction. JEV supplies a ranking, not a topic hard gate: the model sees compact, data-derived descriptions of every registered capability. The model chooses one capability, asks one essential question when needed, or explains its intended model and disclosed defaults. The user confirms that explanation before generation.
+`/workspace` uses `/api/simulation`. Text and raw LaTeX enter directly; images use OCR. Image recognition can be reviewed before semantic interpretation. OCR failure requires correction. JEV supplies a ranking, not a topic hard gate: the model sees compact, data-derived descriptions of every registered capability. The model chooses one capability, asks one essential question when needed, or explains its intended model and disclosed defaults. The user confirms that explanation before generation.
 
 The same understanding response lists each user-requested physical participant, link, spatial relation, and fixed quantity with a source quote. The UI displays these before generation. Potential extraction gaps become review warnings. Backend semantic review after generation also produces warnings; it does not reject a scene because a natural-language detail could not be proven by a generic rule. There is no separate inventory or semantic-proof provider call.
 

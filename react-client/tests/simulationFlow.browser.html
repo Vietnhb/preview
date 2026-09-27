@@ -45,12 +45,11 @@
       import { createRoot } from "react-dom/client";
       import axios from "axios";
       import {
-        normalizeMatterText,
-        confirmMatterInput,
-        confirmMatterExplanation,
-      } from "../src/api/matterFlowApi.ts";
-      import VisualSandbox from "../src/matter-flow/VisualSandbox.tsx";
-      import "../src/styles/matter-pipeline.css";
+        understandSimulationText,
+        confirmSimulationExplanation,
+      } from "../src/api/simulationUnderstandingApi.ts";
+      import VisualSandbox from "../src/simulation/VisualSandbox.tsx";
+      import "../src/styles/simulation.css";
 
       const DESCRIPTION = "2 vật chuyển động thẳng với vận tốc đầu 15 m/s và gia tốc 2 m/s². Hãy mô phỏng trong 11,5 giây.";
 
@@ -111,9 +110,9 @@
           setRenderValidation(null);
           let normalized;
           try {
-            record("normalize", "PENDING", { request: { sourceMode: "TEXT", text: DESCRIPTION } });
-            normalized = await normalizeMatterText("TEXT", DESCRIPTION);
-            record("normalize", "PASS", summary("normalize", normalized));
+            record("understand", "PENDING", { request: { description: DESCRIPTION } });
+            normalized = await understandSimulationText(DESCRIPTION);
+            record("understand", "PASS", summary("understand", normalized));
           } catch (error) {
             record("normalize", "FAIL", errorDetails(error));
             setRunning(false);
@@ -121,9 +120,8 @@
           }
           let intent;
           try {
-            record("confirm-input", "PENDING", { sessionId: normalized.sessionId });
-            intent = await confirmMatterInput(normalized.sessionId, true);
-            record("confirm-input", intent.stage === "EXPLAIN" ? "PASS" : intent.stage, summary("confirm-input", intent));
+            intent = normalized;
+            record("understand-result", intent.stage === "EXPLAIN" ? "PASS" : intent.stage, summary("understand-result", intent));
           } catch (error) {
             record("confirm-input", "FAIL", errorDetails(error));
             setRunning(false);
@@ -136,22 +134,22 @@
           }
           let generated;
           try {
-            record("confirm-explanation", "PENDING", { sessionId: intent.sessionId });
-            generated = await confirmMatterExplanation(intent.sessionId);
+            record("generate-simulation", "PENDING", { sessionId: intent.sessionId });
+            generated = await confirmSimulationExplanation(intent.sessionId);
             if (generated.stage !== "SIMULATION") {
-              record("confirm-explanation", "FAIL", summary("confirm-explanation", generated));
+              record("generate-simulation", "FAIL", summary("generate-simulation", generated));
               setRunning(false);
               return;
             }
             const values = Object.fromEntries((generated.parameters ?? []).map((item) => [item.name, item.value]));
             setParameters(values);
             setSimulation(generated);
-            record("confirm-explanation", "PASS", summary("confirm-explanation", generated));
+            record("generate-simulation", "PASS", summary("generate-simulation", generated));
             record("visual-safety-and-render", "PENDING", {
               expected: "UNVERIFIED after iframe boot; FLAGGED with an exact safety/runtime reason on failure",
             });
           } catch (error) {
-            record("confirm-explanation", "FAIL", errorDetails(error));
+            record("generate-simulation", "FAIL", errorDetails(error));
           } finally {
             setRunning(false);
           }

@@ -56,7 +56,7 @@ public class SimulationController {
 
     private ApiException legacyExecutionGone() {
         return new ApiException(HttpStatus.GONE,
-                "Legacy numerical solver execution has been retired. Use /api/simulation-flow for new simulations.",
+                "Legacy numerical solver execution has been retired. Use /api/simulation for new simulations.",
                 "LEGACY_EXECUTION_RETIRED", "SIMULATION_FLOW");
     }
 }

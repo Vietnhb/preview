@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import vm from 'node:vm';
-import { instrumentVisualProgram } from '../src/matter-flow/visualWorkBudget.ts';
+import { instrumentVisualProgram } from '../src/simulation/visualWorkBudget.ts';
 
 function execute(step, state = {}) {
   const program = instrumentVisualProgram({ init: 'return {};', step, draw: 'return;' });

@@ -6,8 +6,6 @@ import com.example.backend.entity.enums.LifecycleStatus;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.entity.simulation.SolverVersion;
 import com.example.backend.exception.ApiException;
-import com.example.backend.physics.compatibility.legacy.reference.ReferenceSolverRegistry;
-import com.example.backend.physics.compatibility.legacy.solver.PhysicsSolverRegistry;
 import com.example.backend.repository.simulation.SolverVersionRepository;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import com.example.backend.service.problem.SchemaService;
@@ -26,8 +24,6 @@ import java.util.UUID;
 public class ReviewerVersionService {
     private final SchemaService schemaService;
     private final SolverVersionRepository solverRepository;
-    private final PhysicsSolverRegistry numericalSolvers;
-    private final ReferenceSolverRegistry referenceSolvers;
     private final SchemaDefinitionService schemaDefinitions;
 
     public record ModuleReleaseView(UUID id, String topic, String moduleName, String schemaId,
@@ -52,7 +48,11 @@ public class ReviewerVersionService {
     }
 
     public Map<String, List<String>> implementations() {
-        return Map.of("numerical", numericalSolvers.ids(), "reference", referenceSolvers.ids());
+        List<SolverVersion> bindings = solverRepository.findAll();
+        return Map.of(
+                "numerical", bindings.stream().map(SolverVersion::getSolverId).filter(java.util.Objects::nonNull).distinct().sorted().toList(),
+                "reference", bindings.stream().map(item -> item.getOutputDefinition().path("referenceSolverId").asText(""))
+                        .filter(id -> !id.isBlank()).distinct().sorted().toList());
     }
 
     @Transactional(readOnly = true)
@@ -126,10 +126,8 @@ public class ReviewerVersionService {
 
     private void validate(String solverId, JsonNode definition) {
         String referenceId = definition == null ? "" : definition.path("referenceSolverId").asText("");
-        if (definition == null || !definition.isObject() || !numericalSolvers.ids().contains(solverId)
-                || (!referenceId.isBlank() && !referenceSolvers.ids().contains(referenceId))) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Choose an installed numerical solver and, when available, an independent reference solver module");
+        if (solverId == null || solverId.isBlank() || definition == null || !definition.isObject()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A solver identifier and object-shaped binding metadata are required");
         }
     }
 

@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import type { MatterValidation } from "../api/matterFlowApi";
+import type { SimulationValidation } from "../api/simulationUnderstandingApi";
 import { validateVisualProgram, type VisualProgram } from "./visualCodeSafety";
 import { instrumentVisualProgram } from "./visualWorkBudget";
 
@@ -8,7 +8,7 @@ type Props = {
   parameters: Record<string, number>;
   durationSeconds: number;
   solverTimeline?: unknown;
-  onValidation?: (result: MatterValidation) => void;
+  onValidation?: (result: SimulationValidation) => void;
 };
 
 const WIDTH = 960;
@@ -512,12 +512,12 @@ export default function VisualSandbox({ program, parameters, durationSeconds, so
     return () => { window.removeEventListener("message", receive); window.clearInterval(check); };
   }, [nonce, safetyError]);
 
-  if (safetyError) return <div className="matter-sandbox-error" role="alert">{safetyError}</div>;
-  return <div className="matter-sandbox visual-sandbox" aria-busy={status === "starting"}>
+  if (safetyError) return <div className="simulation-sandbox-error" role="alert">{safetyError}</div>;
+  return <div className="simulation-sandbox visual-sandbox" aria-busy={status === "starting"}>
     {status !== "error" && <iframe key={nonce} ref={iframeRef} title="Interactive visual physics model"
       sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={html} />}
-    {status === "starting" && <div className="matter-sandbox-overlay" role="status">Starting simulationâ€¦</div>}
-    {status === "paused" && <div className="matter-sandbox-note" role="status">{message}</div>}
-    {status === "error" && <div className="matter-sandbox-error" role="alert">{message}</div>}
+    {status === "starting" && <div className="simulation-sandbox-overlay" role="status">Starting simulationâ€¦</div>}
+    {status === "paused" && <div className="simulation-sandbox-note" role="status">{message}</div>}
+    {status === "error" && <div className="simulation-sandbox-error" role="alert">{message}</div>}
   </div>;
 }

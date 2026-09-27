@@ -6,7 +6,7 @@
   "version": "2.0",
   "definition": {
     "metaSchemaVersion": "2.0",
-    "description": "Conceptual vocabulary for dynamics. Apply only the declared objects, relations, quantities, and laws when their assumptions fit the user's confirmed description.",
+    "description": "Động lực học là phần cơ học nghiên cứu mối liên hệ giữa chuyển động và nguyên nhân gây ra chuyển động. Nội dung cốt lõi là sự tương tác, lực và các định luật mô tả tác dụng của lực lên chuyển động, bao gồm các định luật Newton cùng những định luật lực được khai báo trong topic. Động học mô tả chuyển động mà không xét nguyên nhân gây ra chuyển động. Áp dụng định nghĩa và các định luật phù hợp với nội dung bài toán cùng giả định đã xác nhận.",
     "objectTypes": [
       {
         "type": "body",

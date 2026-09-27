@@ -21,7 +21,7 @@ high-school law. It contains no exercise examples, formulas,
 Matter.js code, ODE execution settings, time-series output, or solver bindings.
 
 The classpath catalog is a declarative capability vocabulary. The AI extraction
-and matter-flow runtimes derive their plan from the confirmed user description;
+and simulation runtimes derive their plan from the confirmed user description;
 there is no template registry or fixed asset catalog in the runtime. Visual
 elements are generated procedurally from the confirmed setup. A generated visual
 must be labeled explanatory unless an independently validated numerical runtime
