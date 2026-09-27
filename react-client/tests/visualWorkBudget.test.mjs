@@ -29,6 +29,16 @@ test('work guards instrument for-of array traversal', () => {
     state.total=state.points[0].x+state.points[1].x;`);
   assert.equal(state.total,5);
 });
+test('work guards instrument bounded owned-array map callbacks', () => {
+  const state=execute(`state.values=[1,2,3].map((value)=>value+1);`);
+  assert.deepEqual([...state.values],[2,3,4]);
+  const values=Array(2001).fill(1);
+  assert.throws(()=>execute('state.values=state.values.map((value)=>value+1);',{values}),/data budget/);
+});
+test('work guards wrap pure string cleanup', () => {
+  assert.equal(execute("state.label='  value  '.trim();").label,'value');
+  assert.throws(()=>execute('state.label=state.label.trim();',{label:'x'.repeat(256001)}),/data budget/);
+});
 test('infinite loops and recursive helpers stop within the local work and depth budgets', () => {
   assert.throws(()=>execute('while(true){}'),/work budget/);
   assert.throws(()=>execute('function recur(){return recur();}recur();'),/call depth/);

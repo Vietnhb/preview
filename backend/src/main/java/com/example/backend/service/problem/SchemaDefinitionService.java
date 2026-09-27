@@ -258,8 +258,8 @@ public class SchemaDefinitionService {
         SolverVersion solver = solverRepository.findFirstBySchemaIdAndLifecycleStatusOrderByCreatedAtDesc(
                 exactSchemaId, LifecycleStatus.APPROVED).orElseThrow(() -> new SolverBindingException(
                         "No approved solver binding exists for schemaId=" + exactSchemaId));
-        String referenceId = solver.getOutputDefinition().path("referenceSolverId").asText();
-        if (!StringUtils.hasText(solver.getSolverId()) || !StringUtils.hasText(referenceId)) {
+        String referenceId = solver.getOutputDefinition().path("referenceSolverId").asText(null);
+        if (!StringUtils.hasText(solver.getSolverId())) {
             throw new SolverBindingException("Approved solver binding is incomplete for schemaId=" + exactSchemaId);
         }
         return new SolverBinding(solver.getSolverId(), referenceId, solver.getVersion());
@@ -339,8 +339,8 @@ public class SchemaDefinitionService {
                 .filter(item -> item.getLifecycleStatus() != LifecycleStatus.DRAFT)
                 .orElseThrow(() -> new SolverBindingException("Persisted solver binding is unavailable for runtime: "
                         + exactSchemaId + "@" + version));
-        String referenceId = solver.getOutputDefinition().path("referenceSolverId").asText();
-        if (!StringUtils.hasText(solver.getSolverId()) || !StringUtils.hasText(referenceId)) {
+        String referenceId = solver.getOutputDefinition().path("referenceSolverId").asText(null);
+        if (!StringUtils.hasText(solver.getSolverId())) {
             throw new SolverBindingException("Persisted solver binding is incomplete: " + exactSchemaId + "@" + version);
         }
         return new SolverBinding(solver.getSolverId(), referenceId, solver.getVersion());

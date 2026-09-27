@@ -5,9 +5,7 @@ import "katex/dist/katex.min.css";
 import LearningHeader from "../../components/common/LearningHeader";
 import Icon from "../../components/common/LearningIcon";
 import TeacherLibraryPane from "../../components/workspace/TeacherLibraryPane";
-import MatterSandbox from "../../matter-flow/MatterSandbox";
 import VisualSandbox from "../../matter-flow/VisualSandbox";
-import { validateMatterCode } from "../../matter-flow/codeSafety";
 import { validateVisualProgram } from "../../matter-flow/visualCodeSafety";
 import {
   confirmMatterExplanation,
@@ -341,21 +339,16 @@ export default function MatterPipelineWorkspace() {
       const paramValues = Object.fromEntries(
         parameters.map((item) => [item.name, parameterValue(item)]),
       );
-      const parameterLimit = result.simulationSpec?.runtimeKind === "VISUAL" ? 1e30 : 1_000_000;
+      const parameterLimit = 1e30;
       if (
         Object.values(paramValues).some(
           (value) => !Number.isFinite(value) || Math.abs(value) > parameterLimit,
         )
       )
         throw new Error("Generated simulation has a parameter outside the local runtime limit.");
-      const visual = result.simulationSpec?.runtimeKind === "VISUAL";
-      const unsafe = visual
-        ? result.simulationSpec?.visualProgram
-          ? validateVisualProgram(result.simulationSpec.visualProgram, Object.keys(paramValues))
-          : "Visual simulation program is missing."
-        : result.code
-        ? validateMatterCode(result.code, Object.keys(paramValues))
-        : "Matter simulation code is missing.";
+      const unsafe = result.simulationSpec?.visualProgram
+        ? validateVisualProgram(result.simulationSpec.visualProgram, Object.keys(paramValues))
+        : "Solver-bound visual simulation program is missing.";
       if (unsafe) throw new Error(`Generated simulation failed the safety check: ${unsafe}`);
       setValues(paramValues);
       setRunValues(paramValues);
@@ -372,21 +365,27 @@ export default function MatterPipelineWorkspace() {
 
   const onLocalValidation = (result: MatterValidation) => {
     if (!simulation) return;
-    setValidation(result);
     if (result.status === "PAUSED") return;
-    void reportMatterValidation(simulation.sessionId, result, runValues).catch(() => {
-      setValidation((current) =>
-        current?.status === "FLAGGED"
-          ? {
-              ...current,
-              flags: [
-                ...current.flags,
-                "Could not send the validation flag to the reviewer log.",
-              ],
-            }
-          : current,
-      );
-    });
+    const authoritative = new Set([
+      "VERIFIED_ANALYTICAL", "VERIFIED_NUMERICAL", "VISUAL_ONLY_UNVERIFIED",
+      "UNSUPPORTED", "ASSUMPTION_REVIEW", "FLAGGED",
+    ]);
+    setValidation((current) => current && authoritative.has(current.status) ? current : result);
+    void reportMatterValidation(simulation.sessionId, result, runValues)
+      .then((serverValidation) => setValidation(serverValidation))
+      .catch(() => {
+        setValidation((current) =>
+          current?.status === "FLAGGED"
+            ? {
+                ...current,
+                flags: [
+                  ...current.flags,
+                  "Could not send the validation flag to the reviewer log.",
+                ],
+              }
+            : current,
+        );
+      });
   };
 
   useEffect(() => {
@@ -503,13 +502,7 @@ export default function MatterPipelineWorkspace() {
                       onClick={() => {
                         setRunValues(values);
                         setSandboxKey((key) => key + 1);
-                        setValidation({
-                          status:
-                            simulation.simulationSpec?.runtimeKind === "VISUAL"
-                              ? "UNVERIFIED"
-                              : "PENDING",
-                          flags: [],
-                        });
+                        setValidation(simulation.validation);
                       }}
                     >
                       <Icon name="reset" /> Restart
@@ -517,29 +510,21 @@ export default function MatterPipelineWorkspace() {
                   </div>
 
                   <div className="matter-sandbox-card">
-                    {simulation.simulationSpec?.runtimeKind === "VISUAL" &&
-                    simulation.simulationSpec.visualProgram ? (
+                    {simulation.simulationSpec?.visualProgram ? (
                       <VisualSandbox
                         key={sandboxKey}
-                        program={simulation.simulationSpec.visualProgram}
-                        parameters={runValues}
-                        durationSeconds={simulation.simulationSpec.durationSeconds ?? 0}
-                        onValidation={onLocalValidation}
+                          program={simulation.simulationSpec.visualProgram}
+                          parameters={runValues}
+                          durationSeconds={simulation.simulationSpec.durationSeconds ?? 0}
+                          solverTimeline={simulation.simulationSpec.solverTimeline}
+                          onValidation={onLocalValidation}
                       />
                     ) : (
-                      simulation.code && (
-                        <MatterSandbox
-                          key={sandboxKey}
-                          code={simulation.code}
-                          parameters={runValues}
-                          simulationSpec={simulation.simulationSpec}
-                          onValidation={onLocalValidation}
-                        />
-                      )
+                      <p className="matter-muted">Simulation has no solver-bound visual program and cannot be executed safely.</p>
                     )}
                   </div>
                   <p className="matter-muted">
-                    Parameter changes rerun the generated setup locally. They do not call the AI service.
+                    Parameter changes rerun the visual renderer locally; physics remains server-solver-bound.
                   </p>
                 </div>
               ) : (
@@ -893,14 +878,36 @@ export default function MatterPipelineWorkspace() {
                         : "Kiểm tra vật lý: "}
                       {validation?.status === "FLAGGED"
                         ? "Cần kiểm tra lại"
-                        : validation?.status === "OK"
-                        ? "Đạt chuẩn ✓"
+                        : validation?.status === "VERIFIED_ANALYTICAL"
+                        ? "Đã xác minh bằng số + công thức chuẩn ✓"
+                        : validation?.status === "VERIFIED_NUMERICAL"
+                        ? "Đã xác minh bằng solver số ✓"
+                        : validation?.status === "VISUAL_ONLY_UNVERIFIED"
+                        ? "Chỉ minh họa — chưa xác minh vật lý"
+                        : validation?.status === "UNSUPPORTED"
+                        ? "Chưa hỗ trợ trung thực"
                         : validation?.status === "PAUSED"
                         ? "Đã dừng"
                         : validation?.status === "UNVERIFIED"
                         ? "Chưa kiểm chứng độc lập"
                         : "Đang sẵn sàng"}
                     </strong>
+                    {validation?.capabilityId && (
+                      <p>
+                        Capability: {validation.capabilityId}
+                        {validation.solverMethod ? ` · Solver: ${validation.solverMethod}` : ""}
+                        {validation.referenceSolverVersion ? ` · Reference: ${validation.referenceSolverVersion}` : ""}
+                      </p>
+                    )}
+                    {validation?.verificationMethod && (
+                      <p>Phương pháp xác minh: {validation.verificationMethod}</p>
+                    )}
+                    {validation?.absoluteError !== undefined && validation.absoluteError !== null && (
+                      <p>Sai số lớn nhất: {validation.absoluteError} (tương đối {validation.relativeError ?? "—"})</p>
+                    )}
+                    {!!validation?.assumptions?.length && (
+                      <p>Giả định: {validation.assumptions.join("; ")}</p>
+                    )}
                     {validation?.flags?.map((flag, index) => (
                       <p key={index}>{flag}</p>
                     ))}

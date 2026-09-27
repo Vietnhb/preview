@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
     "status": {
       "type": "string",
@@ -59,6 +59,31 @@
           "items": {}
         },
         "displayPlan": { "type": ["string", "array", "object", "null"] },
+        "schemaId": { "type": ["string", "null"] },
+        "topic": { "type": ["string", "null"] },
+        "topicVersion": { "type": ["string", "null"] },
+        "capabilityId": { "type": ["string", "null"] },
+        "solverBinding": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "properties": {
+            "capabilityId": { "type": ["string", "null"] },
+            "durationSeconds": { "type": ["number", "null"] },
+            "stepSeconds": { "type": ["number", "null"] },
+            "participants": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "id": { "type": ["string", "null"] },
+                  "label": { "type": ["string", "null"] },
+                  "quantities": { "type": "object", "additionalProperties": true }
+                }
+              }
+            }
+          }
+        },
         "requiredObjects": {
           "type": "array",
           "description": "Explicitly named or counted participants. Contextual scenery may be represented elsewhere and does not need an artificial inventory entry.",

@@ -7,6 +7,7 @@ type Props = {
   program: VisualProgram;
   parameters: Record<string, number>;
   durationSeconds: number;
+  solverTimeline?: unknown;
   onValidation?: (result: MatterValidation) => void;
 };
 
@@ -19,6 +20,7 @@ const WIDTH = 960;
 const HEIGHT = 540;
 const MAX_STATE_BYTES = 256000;
 const MAX_COMMANDS = 1000;
+const MAX_RAW_COMMANDS = 2000;
 let ctx = null;
 let canvas = null;
 let state = null;
@@ -33,7 +35,7 @@ const hexColor = (value, fallback = '#64748b') => typeof value === 'string'
   ? value : fallback;
 const finite = (value) => typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= 1e12;
 function add(kind, values) {
-  if (commands.length >= MAX_COMMANDS) throw Error('Drawing command budget exceeded.');
+  if (commands.length >= MAX_RAW_COMMANDS) throw Error('Drawing command generation budget exceeded.');
   if (!values.every((item) => finite(item))) throw Error('Drawing received a non-finite coordinate.');
   commands.push({ kind, values });
 }
@@ -84,7 +86,7 @@ const paint = Object.freeze({
     if (!Array.isArray(points) || points.length < 6 || points.length > 200 || points.length % 2 !== 0)
       throw Error('Polygon needs 3-100 [x,y] pairs as a flat array.');
     if (!points.every((p) => finite(p))) throw Error('Polygon received a non-finite coordinate.');
-    if (commands.length >= MAX_COMMANDS) throw Error('Drawing command budget exceeded.');
+    if (commands.length >= MAX_RAW_COMMANDS) throw Error('Drawing command generation budget exceeded.');
     commands.push({ kind: 'polygon', values: points.slice(0, 200), color: hexColor(color) });
   },
   defs(xml) {
@@ -99,7 +101,10 @@ const paint = Object.freeze({
   },
   svgPath(d, fill, stroke, strokeWidth = 2, shadowColor = null, shadowBlur = 0, shadowOffsetY = 0) {
     if (typeof d !== 'string' || d.length > 20000) throw Error('svgPath expects a path string.');
-    add('svgPath', [strokeWidth, shadowBlur, shadowOffsetY]);
+    const safeStrokeWidth = strokeWidth == null ? 2 : strokeWidth;
+    const safeShadowBlur = shadowBlur == null ? 0 : shadowBlur;
+    const safeShadowOffsetY = shadowOffsetY == null ? 0 : shadowOffsetY;
+    add('svgPath', [safeStrokeWidth, safeShadowBlur, safeShadowOffsetY]);
     const item = commands[commands.length - 1];
     item.d = d;
     item.fill = fill ? hexColor(fill) : 'transparent';
@@ -124,9 +129,29 @@ function checkState() {
   if (!encoded || encoded.length > MAX_STATE_BYTES)
     throw Error('The generated state exceeded its memory budget.');
 }
+function fitCommandBudget(input) {
+  if (input.length <= MAX_COMMANDS) return input;
+  const retained = new Set();
+  const priority = [];
+  const ordinary = [];
+  for (let i = 0; i < input.length; i++) {
+    if (['background','defs','text'].includes(input[i].kind)) priority.push(i);
+    else ordinary.push(i);
+  }
+  const priorityBudget = Math.min(priority.length, Math.floor(MAX_COMMANDS / 4));
+  for (let i = 0; i < priorityBudget; i++) {
+    retained.add(priority[Math.floor(i * priority.length / Math.max(1, priorityBudget))]);
+  }
+  const ordinaryBudget = MAX_COMMANDS - retained.size;
+  for (let i = 0; i < ordinaryBudget; i++) {
+    retained.add(ordinary[Math.floor(i * ordinary.length / Math.max(1, ordinaryBudget))]);
+  }
+  return input.filter((_command, index) => retained.has(index));
+}
 function drawFrame() {
   commands = [];
   draw(state, paint, params, WIDTH, HEIGHT);
+  commands = fitCommandBudget(commands);
   const background = commands.find((command) => command.kind === 'background');
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   if (background) {
@@ -267,6 +292,13 @@ self.onmessage = (event) => {
     params = Object.freeze(message.params);
     state = init(params, WIDTH, HEIGHT);
     if (state && typeof state === 'object' && !Array.isArray(state))
+      Object.defineProperty(state, 'solverTimeline', {
+        value: message.solverTimeline,
+        enumerable: false,
+        writable: false,
+        configurable: false,
+      });
+    if (state && typeof state === 'object' && !Array.isArray(state))
       state.pointer = { x: WIDTH / 2, y: HEIGHT / 2, down: false };
     checkState();
     frameLimit = Math.min(2400, Math.max(1, Math.ceil(message.durationSeconds * 60)));
@@ -294,7 +326,7 @@ function safeJson(value: unknown): string {
 }
 
 function sandboxHtml(program: VisualProgram, parameters: Record<string, number>,
-  durationSeconds: number, nonce: string) {
+  durationSeconds: number, solverTimeline: unknown, nonce: string) {
   const guarded = instrumentVisualProgram(program);
   const source = `function init(params,width,height) { "use strict";\n${guarded.init}\n}\n`
     + `function step(state,dt,params,width,height) { "use strict";\n${guarded.step}\n}\n`
@@ -309,6 +341,7 @@ function sandboxHtml(program: VisualProgram, parameters: Record<string, number>,
       const source = ${safeJson(source)};
       const params = ${safeJson(parameters)};
       const durationSeconds = ${safeJson(durationSeconds)};
+      const solverTimeline = ${safeJson(solverTimeline ?? null)};
       const canvas = document.querySelector('canvas');
       const send = (type, details = {}) => parent.postMessage({ channel: 'physlive-visual', nonce, type, ...details }, '*');
       if (!canvas.transferControlToOffscreen) { send('error', { message: 'OffscreenCanvas is unavailable.' }); return; }
@@ -380,7 +413,7 @@ function sandboxHtml(program: VisualProgram, parameters: Record<string, number>,
       };
       try {
         const offscreen = canvas.transferControlToOffscreen();
-        worker.postMessage({ type: 'start', canvas: offscreen, params, durationSeconds }, [offscreen]);
+        worker.postMessage({ type: 'start', canvas: offscreen, params, durationSeconds, solverTimeline }, [offscreen]);
       } catch (error) {
         stopped = true; worker.terminate(); URL.revokeObjectURL(url);
         send('error', { message: 'Visual canvas could not start: ' + String(error).slice(0, 160) });
@@ -424,7 +457,7 @@ function sandboxHtml(program: VisualProgram, parameters: Record<string, number>,
     })();</script></body></html>`;
 }
 
-export default function VisualSandbox({ program, parameters, durationSeconds, onValidation }: Readonly<Props>) {
+export default function VisualSandbox({ program, parameters, durationSeconds, solverTimeline, onValidation }: Readonly<Props>) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const callbackRef = useRef(onValidation);
   const [status, setStatus] = useState<"starting" | "ready" | "paused" | "error">("starting");
@@ -437,10 +470,10 @@ export default function VisualSandbox({ program, parameters, durationSeconds, on
     return validateVisualProgram(program, Object.keys(parameters));
   }, [program, parameters, durationSeconds]);
   const nonce = useMemo(() => crypto.randomUUID()
-    + JSON.stringify({ program, parameters, durationSeconds }).length,
-  [program, parameters, durationSeconds]);
-  const html = useMemo(() => safetyError ? "" : sandboxHtml(program, parameters, durationSeconds, nonce),
-    [program, parameters, durationSeconds, nonce, safetyError]);
+    + JSON.stringify({ program, parameters, durationSeconds, solverTimeline }).length,
+  [program, parameters, durationSeconds, solverTimeline]);
+  const html = useMemo(() => safetyError ? "" : sandboxHtml(program, parameters, durationSeconds, solverTimeline, nonce),
+    [program, parameters, durationSeconds, solverTimeline, nonce, safetyError]);
 
   useEffect(() => {
     if (safetyError) {

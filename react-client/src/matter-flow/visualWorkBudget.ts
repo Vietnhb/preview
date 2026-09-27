@@ -4,7 +4,8 @@ import type { VisualProgram } from "./visualCodeSafety";
 type Node = { type: string; start: number; end: number; [key: string]: unknown };
 const signatures = { init: "params,width,height", step: "state,dt,params,width,height",
   draw: "state,paint,params,width,height" };
-const arrayMethods = new Set(["push", "pop", "shift", "unshift", "slice"]);
+const arrayMethods = new Set(["push", "pop", "shift", "unshift", "slice", "map"]);
+const stringMethods = new Set(["trim"]);
 const guard = "if(++__visualWork>2000)throw Error('Visual work budget exceeded.');";
 const enter = guard + "if(++__visualDepth>128)throw Error('Visual call depth exceeded.');try{";
 const leave = "}finally{--__visualDepth;}";
@@ -25,6 +26,11 @@ const __visualArray=(array,method,...args)=>{
     ||((method==='push'||method==='unshift')&&array.length+args.length>2000))
     throw Error('Visual array exceeded its data budget.');
   return array[method](...args);
+};
+const __visualString=(value,method,...args)=>{
+  if(typeof value!=='string'||value.length>256000||method!=='trim'||args.length!==0)
+    throw Error('Visual string operation exceeded its data budget.');
+  return value.trim();
 };
 `;
 function isNode(value: unknown): value is Node {
@@ -61,6 +67,12 @@ export function instrumentVisualProgram(program: VisualProgram): VisualProgram {
           && arrayMethods.has(String(property?.name))) {
           const args = (node.arguments as Node[]).map(rewrite);
           return "__visualArray(" + rewrite(callee.object as Node) + ",\"" + property.name
+            + "\"" + (args.length ? "," + args.join(",") : "") + ")";
+        }
+        if (callee?.type === "MemberExpression" && !callee.computed
+          && stringMethods.has(String(property?.name))) {
+          const args = (node.arguments as Node[]).map(rewrite);
+          return "__visualString(" + rewrite(callee.object as Node) + ",\"" + property.name
             + "\"" + (args.length ? "," + args.join(",") : "") + ")";
         }
       }

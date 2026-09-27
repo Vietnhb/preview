@@ -63,12 +63,12 @@ public class PhysicsValidationService {
         SchemaVersion schema = schemaDefinitions.requirePublishedVersion(schemaId, schemaVersion);
         SchemaDefinitionService.SolverBinding binding = schemaDefinitions.requireSolverBinding(schema.getSchemaId(), schemaVersion);
         if (typedModule != null && (!typedModule.numericalSolverId().equals(binding.numericalSolverId())
-                || !typedModule.referenceSolverId().equals(binding.referenceSolverId()))) {
+                || !java.util.Objects.equals(typedModule.referenceSolverId(), binding.referenceSolverId()))) {
             throw new SolverBindingException("Typed physics module does not match pinned solver binding for "
                     + schemaId + "@" + schemaVersion);
         }
         LegacyPhysicsExecutionAdapterV1.AuthorizedReferenceSolver legacySolver = null;
-        if (typedModule == null) {
+        if (typedModule == null && binding.referenceSolverId() != null && !binding.referenceSolverId().isBlank()) {
             boolean latestApproved = schemaDefinitions.isLatestApprovedEnabledVersion(
                     schema.getSchemaId(), schema.getVersion());
             var pinned = new LegacyPhysicsExecutionAdapterV1.PinnedExecution(
@@ -89,6 +89,9 @@ public class PhysicsValidationService {
         List<String> errors = new ArrayList<>();
         List<Double> numericalTimes = numericalFrame == null ? legacyNumerical.time() : numericalFrame.timeSeconds();
         double duration = numericalTimes.isEmpty() ? 0 : numericalTimes.get(numericalTimes.size() - 1);
+        if (typedModule != null && (typedModule.referenceSolverId() == null || typedModule.referenceSolverId().isBlank())) {
+            return new ValidationResponse(null, true, schemaId, tolerance, List.of(), List.of(), elapsedMillis(started));
+        }
         for (double checkpoint : checkpointsFor(validationDefinition, duration)) {
             AnalyticalPoint analytical = typedModule == null
                     ? legacySolver.solve(specification, overrides, checkpoint)

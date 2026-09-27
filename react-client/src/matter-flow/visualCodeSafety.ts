@@ -9,7 +9,8 @@ const maxPartLength = 50_000;
 const blockedNames = new Set([
   "constructor", "prototype", "__proto__", "caller", "callee", "arguments",
   "apply", "call", "bind", "eval", "toString", "valueOf", "then",
-  "__visualWork", "__visualDepth", "__visualIndex", "__visualArray", "__visualArgs", "__visualValue",
+  "__visualWork", "__visualDepth", "__visualIndex", "__visualArray", "__visualString",
+  "__visualArgs", "__visualValue",
 ]);
 const mathCalls = new Set([
   "abs", "min", "max", "sqrt", "pow", "sin", "cos", "tan", "atan2",
@@ -21,7 +22,8 @@ const paintCalls = new Set(["background", "circle", "rect", "line", "arrow", "te
   "gradientRect", "gradientCircle", "polygon",
   "svg", "defs", "svgPath"]);
 const formatCalls = new Set(["toFixed", "toPrecision"]);
-const arrayCalls = new Set(["push", "pop", "shift", "unshift", "slice"]);
+const arrayCalls = new Set(["push", "pop", "shift", "unshift", "slice", "map"]);
+const stringCalls = new Set(["trim"]);
 const signatures: Record<Phase, string> = {
   init: "params,width,height", step: "state,dt,params,width,height",
   draw: "state,paint,params,width,height",
@@ -75,7 +77,7 @@ function owned(current: unknown, env: Environment): boolean {
   if (current.type === "CallExpression" && node(current.callee)) {
     const local = lookup(env, identifier(current.callee) ?? "");
     if (local?.callable) return true;
-    if (current.callee.type === "MemberExpression" && ["slice", "pop", "shift"].includes(identifier(current.callee.property) ?? ""))
+    if (current.callee.type === "MemberExpression" && ["slice", "pop", "shift", "map"].includes(identifier(current.callee.property) ?? ""))
       return owned(current.callee.object, env);
   }
   const root = path(current)?.[0];
@@ -92,6 +94,10 @@ function numericIndex(current: unknown, env: Environment): boolean {
   }
   if (current.type === "MemberExpression" && !current.computed
     && identifier(current.property) === "length") return owned(current.object, env);
+  if (current.type === "MemberExpression" && !current.computed) {
+    const target = path(current);
+    if (target?.[0] === "state" && target.length === 2) return true;
+  }
   if(current.type === "MemberExpression" && !current.computed
     && identifier(current.object) === "params") return true;
   if (current.type === "UnaryExpression" && ["+", "-"].includes(String(current.operator)))
@@ -128,6 +134,11 @@ function formatReceiver(current: unknown, env: Environment): boolean {
 function formatting(current: Node, env: Environment): boolean {
   if (current.type !== "MemberExpression" || current.computed || current.optional) return false;
   return formatCalls.has(identifier(current.property) ?? "") && formatReceiver(current.object, env);
+}
+function stringMethod(current: Node, env: Environment): boolean {
+  return current.type === "MemberExpression" && !current.computed && !current.optional
+    && stringCalls.has(identifier(current.property) ?? "")
+    && formatReceiver(current.object, env);
 }
 function verifyPhase(code: string, phase: Phase): string | null {
   if (phase !== "step" && !code.trim() || code.length > maxPartLength) return `${phase} code is empty or too large.`;
@@ -199,13 +210,20 @@ function verifyPhase(code: string, phase: Phase): string | null {
       const name = declaration ? identifier(declaration.id) : null;
       const test = statement.test as Node;
       const update = statement.update as Node;
+      const incrementTarget = update?.type === "UpdateExpression"
+        ? identifier(update.argument) : update?.type === "AssignmentExpression"
+          ? identifier(update.left) : null;
+      const progressiveUpdate = update?.type === "UpdateExpression"
+        ? ["++", "--"].includes(String(update.operator))
+        : update?.type === "AssignmentExpression"
+          && ["+=", "-="].includes(String(update.operator))
+          && numericIndex(update.right, loop);
       if (init?.kind !== "let" || (init.declarations as Node[])?.length !== 1
         || !name || !numericIndex(declaration?.init,loop) || test?.type !== "BinaryExpression"
         || !["<", "<=", ">", ">="].includes(String(test.operator)) || identifier(test.left) !== name
         || !numericIndex(test.right,loop)
-        || update?.type !== "UpdateExpression" || !["++", "--"].includes(String(update.operator))
-        || identifier(update.argument) !== name) {
-        error = "For loops require a scoped numeric index and numeric bound."; return;
+        || !progressiveUpdate || incrementTarget !== name) {
+        error = "For loops require one local numeric cursor, a finite data bound, and a progressive update."; return;
       }
       prepare(init, loop, multiplier);
       const binding = lookup(loop, name);
@@ -293,6 +311,7 @@ function verifyPhase(code: string, phase: Phase): string | null {
       const target = path(callee);
       const format = formatting(callee, env);
       const array = arrayMethod(callee,env);
+      const string = stringMethod(callee, env);
       const local = callee.type === "Identifier" && lookup(env,String(callee.name))?.callable;
       const args = item.arguments as Node[];
       if (format) {
@@ -307,13 +326,31 @@ function verifyPhase(code: string, phase: Phase): string | null {
           error="Array removal methods take no arguments.";
         if(method === "slice" && (args.length > 2 || args.some((argument) => !literalIndex(argument))))
           error="Array slice requires bounded numeric literal indexes.";
+        if(method === "map" && (args.length !== 1 || !node(args[0])
+          || !["FunctionExpression", "ArrowFunctionExpression"].includes(args[0].type)))
+          error="Array map requires one inline local callback.";
+      } else if (string) {
+        if (args.length !== 0) error = "String trim does not accept arguments.";
       } else if (!local && (!target || !((target[0] === "Math" && target.length === 2 && mathCalls.has(target[1]))
         || (phase === "draw" && target[0] === "paint" && target.length === 2
-          && paintCalls.has(target[1]))))) error = "Visual code calls an unapproved API.";
+          && paintCalls.has(target[1]))))) {
+        const start = typeof callee.start === "number" ? callee.start : -1;
+        const end = typeof callee.end === "number" ? callee.end : -1;
+        const parsedPrefixLength = `function __visual(${signatures[phase]}) {\n"use strict";\n`.length;
+        const sourceStart = start - parsedPrefixLength;
+        const sourceEnd = end - parsedPrefixLength;
+        const source = sourceStart >= 0 && sourceEnd > sourceStart
+          ? code.slice(sourceStart, sourceEnd).replace(/\s+/g, " ").slice(0, 80)
+          : "";
+        const calledApi = target?.join(".") ?? `dynamic/unknown ${callee.type}${source ? ` (${source})` : ""}`;
+        error = `Visual code calls an unapproved API: ${calledApi}.`;
+      }
       if (++calls > 800) error = "Visual code has too many API calls.";
     }
     if (item.type === "MemberExpression") {
       if (formatting(item, env)) return;
+      if (parent?.type === "CallExpression" && key === "callee" && arrayMethod(item, env)) return;
+      if (parent?.type === "CallExpression" && key === "callee" && stringMethod(item, env)) return;
       const target = path(item);
       if (!target || target.some((part) => blockedNames.has(part))) {
         error = "Visual code uses an unsafe property."; return;
@@ -347,7 +384,10 @@ function verifyPhase(code: string, phase: Phase): string | null {
         error = "Visual code has an unsafe state field.";
     }
     if (["FunctionExpression","ArrowFunctionExpression"].includes(item.type)
-      && !(parent?.type === "VariableDeclarator" && key === "init"))
+      && !(parent?.type === "VariableDeclarator" && key === "init")
+      && !(parent?.type === "CallExpression" && key === "arguments"
+        && node(parent.callee) && arrayMethod(parent.callee, env)
+        && identifier(parent.callee.property) === "map"))
       error="Helper functions must be declared as local bindings.";
     if(item.type === "TemplateElement" && typeof (item.value as {raw?:string})?.raw === "string"
       && ((item.value as {raw:string}).raw.length > 500)) error="Visual code has an excessive string.";
@@ -365,7 +405,7 @@ function verifyPhase(code: string, phase: Phase): string | null {
       error = "Visual code has an excessive array.";
     if (item.type === "BinaryExpression" && !allowedBinary.has(String(item.operator)))
       error = "Visual code uses an unsupported operator.";
-    if (item.type === "LogicalExpression" && item.operator !== "&&" && item.operator !== "||")
+    if (item.type === "LogicalExpression" && !["&&", "||", "??"].includes(String(item.operator)))
       error = "Visual code uses an unsupported logical operator.";
     if (item.type === "UnaryExpression" && !["+", "-", "!"].includes(String(item.operator)))
       error = "Visual code uses an unsupported unary operator.";
@@ -384,8 +424,12 @@ function verifyPhase(code: string, phase: Phase): string | null {
       const left = item.left as Node;
       const binding = lookup(env, identifier(left) ?? "");
       const localWrite = left.type === "Identifier" && binding && !binding.constant && !binding.loop && !binding.callable;
+      const loopProgress = parent?.type === "ForStatement" && key === "update"
+        && left.type === "Identifier" && binding?.loop
+        && ["+=", "-="].includes(String(item.operator)) && numericIndex(item.right, env);
       const memberWrite = left.type === "MemberExpression" && owned(left.object, env);
-      if (!["=", "+=", "-=", "*=", "/="].includes(String(item.operator)) || !localWrite && !memberWrite)
+      if (!["=", "+=", "-=", "*=", "/="].includes(String(item.operator))
+        || !localWrite && !loopProgress && !memberWrite)
         error = "Visual code may mutate only local values or its state.";
       if (localWrite && binding) {
         binding.owned = item.operator === "=" && owned(item.right, env);

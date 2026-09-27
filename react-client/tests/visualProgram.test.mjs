@@ -17,6 +17,25 @@ test("visual model accepts bounded state updates and primitive drawing", () => {
   assert.equal(state.markers[0].x, 103);
 });
 
+test("visual code accepts data-sized loops with a computed stride", () => {
+  const candidate = {
+    ...program,
+    init: "return {elapsed:0,points:[1,2,3,4,5,6],stride:2};",
+    step: "for(let i=0;i<state.points.length;i+=state.stride){state.points[i]+=dt;}state.elapsed+=dt;",
+  };
+  assert.equal(validateVisualProgram(candidate, ["rate"]), null);
+  assert.notEqual(validateVisualProgram({...candidate,
+    step:"for(let i=0;i<state.points.length;i+=state.stride){i=0;}"}, ["rate"]), null);
+});
+
+test("visual code accepts bounded pure string cleanup", () => {
+  const candidate = {...program,
+    draw:"let d='  M 0 0 L 1 1  ';d=d.trim();paint.svgPath(d,'#fff','#fff',1);"};
+  assert.equal(validateVisualProgram(candidate, ["rate"]), null);
+  assert.notEqual(validateVisualProgram({...candidate,
+    draw:"let d='x';d=d.trim(1);"}, ["rate"]), null);
+});
+
 test("visual model denies host access and dynamic execution", () => {
   for (const bad of [
     "fetch('https://example.com'); return { elapsed: 0 };",
@@ -84,6 +103,16 @@ test("visual code accepts lexical helpers templates and owned array operations",
   for(const step of ["while(true){}", "function recurse(){recurse();}recurse();",
     "for(let i=0;i<201;i++){state.elapsed+=dt;}"])
     assert.equal(validateVisualProgram({...program,step},["rate"]),null);
+});
+
+test("visual code accepts bounded map over owned arrays", () => {
+  const candidate = {
+    ...program,
+    init: "const angles=[20,15,10,-15,-20].map((angle)=>({angle:angle*Math.PI/180}));return {elapsed:0,angles};",
+    step: "state.elapsed+=dt;",
+    draw: "for(const item of state.angles){paint.text(20,20,item.angle.toFixed(2),'#fff');}",
+  };
+  assert.equal(validateVisualProgram(candidate, ["rate"]), null);
 });
 
 test("visual code accepts flat declared-data destructuring and numeric local loop bounds",()=>{

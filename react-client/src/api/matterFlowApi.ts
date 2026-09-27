@@ -67,9 +67,25 @@ export type IntentResult = {
 };
 
 export type MatterValidation = {
-  status: "PENDING" | "OK" | "FLAGGED" | "PAUSED" | "UNVERIFIED";
+  status: "PENDING" | "OK" | "FLAGGED" | "PAUSED" | "UNVERIFIED" | "UNDERSTOOD"
+    | "NEEDS_CLARIFICATION" | "VERIFIED_ANALYTICAL" | "VERIFIED_NUMERICAL"
+    | "ASSUMPTION_REVIEW" | "VISUAL_ONLY_UNVERIFIED" | "UNSUPPORTED";
   flags: string[];
   metrics?: Record<string, number>;
+  executionMethod?: string;
+  solverMethod?: string;
+  verificationMethod?: string;
+  formulaSource?: string;
+  capabilityId?: string;
+  topicVersion?: string;
+  solverVersion?: string;
+  referenceSolverVersion?: string;
+  absoluteError?: number | null;
+  relativeError?: number | null;
+  convergenceEvidence?: string[];
+  invariantResults?: Record<string, boolean>;
+  assumptions?: string[];
+  benchmarkSummary?: string | null;
 };
 
 export type MatterSimulationResult = {
@@ -138,6 +154,6 @@ export const getMatterValidation = (sessionId: string) =>
 
 export const reportMatterValidation = (sessionId: string, validation: MatterValidation,
   parameters: Record<string, number>) =>
-  axiosClient.post<void>(`/matter-flow/${encodeURIComponent(sessionId)}/validation`,
+  axiosClient.post<MatterValidation>(`/matter-flow/${encodeURIComponent(sessionId)}/validation`,
     { ...validation, parameters })
     .then((response) => response.data);

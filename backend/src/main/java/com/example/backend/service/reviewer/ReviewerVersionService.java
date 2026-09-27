@@ -125,10 +125,11 @@ public class ReviewerVersionService {
     }
 
     private void validate(String solverId, JsonNode definition) {
+        String referenceId = definition == null ? "" : definition.path("referenceSolverId").asText("");
         if (definition == null || !definition.isObject() || !numericalSolvers.ids().contains(solverId)
-                || !referenceSolvers.ids().contains(definition.path("referenceSolverId").asText())) {
+                || (!referenceId.isBlank() && !referenceSolvers.ids().contains(referenceId))) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Choose installed numerical and independent reference solver modules");
+                    "Choose an installed numerical solver and, when available, an independent reference solver module");
         }
     }
 

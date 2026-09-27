@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://physlive.local/schemas/topic-pack/2.0",
   "title": "PhysLive high-school physics topic template",
-  "description": "Open conceptual domain vocabulary and declared physical/visual capabilities; no instance values, equations, executable code, or solver configuration.",
+  "description": "Open conceptual domain vocabulary and reviewer-managed physical/visual capabilities. Capabilities declare metadata, display equations and pinned solver IDs; executable physics remains in backend modules.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -28,6 +28,7 @@
     "quantityDefinitions": { "type": "array", "items": { "$ref": "#/$defs/quantity" } },
     "unitCatalog": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
     "laws": { "type": "array", "items": { "$ref": "#/$defs/law" } },
+    "capabilities": { "type": "array", "items": { "$ref": "#/$defs/capability" } },
     "applicationRequirements": { "type": "array", "items": { "$ref": "#/$defs/applicationRequirement" } },
     "coreTypeRefs": { "type": "array", "items": { "type": "string" } },
     "conceptVocabulary": {
@@ -45,7 +46,7 @@
       "additionalProperties": false,
       "required": ["mode", "scope", "limitations"],
       "properties": {
-        "mode": { "enum": ["matter_js", "generated_visual", "unsupported"] },
+        "mode": { "enum": ["matter_js", "generated_visual", "solver_bound", "unsupported"] },
         "runtimes": { "type": "array", "items": { "enum": ["matter_js", "generated_visual"] } },
         "scope": { "type": "string" },
         "limitations": { "type": "array", "items": { "type": "string" } }
@@ -148,6 +149,101 @@
         "id": { "type": "string" },
         "description": { "type": "string" },
         "appliesTo": { "$ref": "#/$defs/applicability" }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capabilityId",
+        "version",
+        "applicability",
+        "canonicalInputs",
+        "outputs",
+        "assumptions",
+        "validityDomain",
+        "equationSet",
+        "execution",
+        "validation",
+        "rendererBindings"
+      ],
+      "properties": {
+        "capabilityId": { "type": "string" },
+        "version": { "type": "string" },
+        "applicability": { "$ref": "#/$defs/applicability" },
+        "canonicalInputs": { "type": "array", "items": { "$ref": "#/$defs/capabilityQuantity" } },
+        "outputs": { "type": "array", "items": { "$ref": "#/$defs/capabilityQuantity" } },
+        "assumptions": { "type": "array", "items": { "type": "string" } },
+        "validityDomain": { "type": "object", "additionalProperties": true },
+        "equationSet": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["canonical", "derived"],
+          "properties": {
+            "canonical": { "type": "array", "items": { "type": "string" } },
+            "derived": { "type": "array", "items": { "type": "string" } },
+            "dependencies": { "type": "array", "items": { "$ref": "#/$defs/equationDependency" } }
+          }
+        },
+        "execution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["primary", "numerical", "closedForm"],
+          "properties": {
+            "primary": { "enum": ["numerical", "closed_form", "visual_only"] },
+            "numerical": { "$ref": "#/$defs/solverBinding" },
+            "closedForm": {
+              "anyOf": [
+                { "type": "null" },
+                { "$ref": "#/$defs/solverBinding" }
+              ]
+            }
+          }
+        },
+        "validation": { "$ref": "#/$defs/validationContract" },
+        "rendererBindings": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+      }
+    },
+    "capabilityQuantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "unit"],
+      "properties": {
+        "key": { "type": "string" },
+        "unit": { "type": "string" },
+        "description": { "type": "string" },
+        "defaultValue": { "type": "number" }
+      }
+    },
+    "solverBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["solverId", "method"],
+      "properties": {
+        "solverId": { "type": "string" },
+        "method": { "type": "string" },
+        "stepSeconds": { "type": "number" }
+      }
+    },
+    "validationContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "absoluteTolerance", "relativeTolerance", "invariants", "benchmarks"],
+      "properties": {
+        "strategy": { "enum": ["closed_form_checkpoints", "step_refinement", "residual_invariants", "visual_only"] },
+        "absoluteTolerance": { "type": "number" },
+        "relativeTolerance": { "type": "number" },
+        "invariants": { "type": "array", "items": { "type": "string" } },
+        "benchmarks": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+      }
+    },
+    "equationDependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "dependsOn"],
+      "properties": {
+        "id": { "type": "string" },
+        "dependsOn": { "type": "array", "items": { "type": "string" } }
       }
     }
   }
