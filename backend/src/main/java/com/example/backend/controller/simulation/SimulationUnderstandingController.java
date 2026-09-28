@@ -5,6 +5,11 @@ import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.exception.ApiException;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import com.example.backend.service.simulation.SchemaEquationRuntime;
+import com.example.backend.service.simulation.GeneratedSimulationStorage;
+import com.example.backend.dto.simulation.SaveGeneratedSimulationRequest;
+import com.example.backend.dto.library.LibraryItemResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -43,6 +48,7 @@ public class SimulationUnderstandingController {
     private static final String NO_MATCH = "NO_MATCH";
     private final SchemaDefinitionService schemas;
     private final SchemaEquationRuntime equations;
+    private final GeneratedSimulationStorage storage;
     private static final int ROUTING_SUMMARY_MAX = 1400;
     private final JevProperties jev;
     private final ObjectMapper json;
@@ -69,7 +75,7 @@ public class SimulationUnderstandingController {
     private final Duration visualTimeout;
     private final String visualReasoningEffort;
 
-    public SimulationUnderstandingController(SchemaDefinitionService schemas, SchemaEquationRuntime equations, JevProperties jev,
+    public SimulationUnderstandingController(SchemaDefinitionService schemas, SchemaEquationRuntime equations, GeneratedSimulationStorage storage, JevProperties jev,
             ObjectMapper json, @Value("${physlive.ai.provider.api-key}") String llmApiKey,
             @Value("${physlive.ai.provider.base-url}") URI llmBaseUrl,
             @Value("${physlive.ai.provider.text-model}") String llmModel,
@@ -94,6 +100,7 @@ public class SimulationUnderstandingController {
             @Value("${physlive.ai.visual.reasoning-effort:}") String visualReasoningEffort) {
         this.schemas = schemas;
         this.equations = equations;
+        this.storage = storage;
         this.jev = jev;
         this.json = json;
         this.llmApiKey = llmApiKey;
@@ -221,6 +228,26 @@ public class SimulationUnderstandingController {
         ObjectNode result = equations.compute(schema.getDefinition(), request.path("simulationSpec"), request.path("parameters"));
         ((ObjectNode) result.path("validation")).put("topicVersion", schema.getVersion());
         return result;
+    }
+
+    @PostMapping(path = "/saved", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public LibraryItemResponse save(@Valid @RequestBody SaveGeneratedSimulationRequest request) {
+        requireSignedPlan(request.simulation());
+        SchemaVersion schema = selectedSchema(request.simulation());
+        ObjectNode computed = equations.compute(schema.getDefinition(), request.simulation().path("simulationSpec"), request.parameters());
+        ((ObjectNode) computed.path("validation")).put("topicVersion", schema.getVersion());
+        return storage.save(request, schema, computed);
+    }
+
+    @GetMapping("/saved/{id}")
+    public ObjectNode openSaved(@PathVariable UUID id) {
+        return storage.open(id);
+    }
+
+    @org.springframework.web.bind.annotation.PatchMapping("/saved/{id}/visual")
+    public void updateSavedVisual(@PathVariable UUID id, @RequestBody ObjectNode generated) {
+        requireSignedPlan(generated);
+        storage.updateVisual(id, generated);
     }
 
     private SchemaVersion selectedSchema(JsonNode request) {
@@ -399,6 +426,8 @@ public class SimulationUnderstandingController {
                         formula.set("canonical", capability.path("equationSet").path("canonical"));
                         formula.set("derived", capability.path("equationSet").path("derived"));
                         formula.set("assumptions", capability.path("assumptions"));
+                        formula.set("bindings", formulaBindings(selected.getDefinition(), capability, model,
+                                response.path("simulationSpec")));
                     }
                 }
             }
@@ -797,6 +826,43 @@ public class SimulationUnderstandingController {
         } catch (IOException ex) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "AI request could not be completed");
         }
+    }
+
+    /**
+     * Which value feeds each input of the law, derived from the signed plan itself (not from model
+     * prose): the quantity name comes from the approved vocabulary, the source is the slider the value
+     * is read from, a fixed number, or the law's own default. Lets the teacher see a wrong binding
+     * (e.g. a "half-life" slider feeding a decay constant) before confirming.
+     */
+    private ArrayNode formulaBindings(JsonNode definition, JsonNode capability, JsonNode model, JsonNode spec) {
+        Map<String, String> labels = new LinkedHashMap<>();
+        for (JsonNode quantity : definition.path("quantityDefinitions"))
+            labels.put(quantity.path("key").asText(), quantity.path("label").asText());
+        Map<String, JsonNode> parameters = new LinkedHashMap<>();
+        for (JsonNode parameter : spec.path("parameters")) parameters.put(parameter.path("name").asText(), parameter);
+        ArrayNode rows = json.createArrayNode();
+        for (JsonNode input : capability.path("canonicalInputs")) {
+            String key = input.path("key").asText();
+            ObjectNode row = rows.addObject();
+            row.put("quantity", key);
+            row.put("label", labels.getOrDefault(key, key));
+            row.put("unit", input.path("unit").asText(""));
+            JsonNode binding = model.path("inputs").path(key);
+            if (binding.isTextual() && parameters.containsKey(binding.asText())) {
+                JsonNode parameter = parameters.get(binding.asText());
+                row.put("source", "PARAMETER");
+                row.put("parameter", binding.asText());
+                row.put("parameterLabel", parameter.path("label").asText(binding.asText()));
+                row.set("value", parameter.path("value"));
+            } else if (binding.isNumber()) {
+                row.put("source", "FIXED");
+                row.set("value", binding);
+            } else {
+                row.put("source", "DEFAULT");
+                row.set("value", input.path("defaultValue"));
+            }
+        }
+        return rows;
     }
 
     /** What the illustrator needs from the signed plan: participants, adjustable parameters, duration. */

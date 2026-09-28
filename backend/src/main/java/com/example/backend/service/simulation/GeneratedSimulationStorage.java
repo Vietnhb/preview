@@ -120,4 +120,33 @@ public class GeneratedSimulationStorage {
             throw new ApiException(HttpStatus.CONFLICT, "Bài lưu cũ chưa có cảnh SVG/PixiJS để mở trong trình mô phỏng này");
         return ((ObjectNode) run.getResult()).deepCopy();
     }
+
+    @Transactional
+    public void updateVisual(UUID id, ObjectNode generated) {
+        var user = currentUser.requireCurrentUser();
+        var simulation = simulations.findByIdAndOwnerId(id, user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Simulation not found"));
+        var previous = runs.findFirstBySimulationIdOrderByCreatedAtDesc(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không có dữ liệu mô phỏng đã lưu"));
+        ObjectNode snapshot = ((ObjectNode) previous.getResult()).deepCopy();
+        for (String key : java.util.List.of("schemaId", "schemaVersion", "description", "planSignature")) {
+            if (!snapshot.path(key).equals(generated.path(key)))
+                throw new ApiException(HttpStatus.CONFLICT, "Thiết kế mới không thuộc kế hoạch vật lý của bài đã lưu");
+        }
+        var program = generated.path("simulationSpec").path("visualProgram");
+        if (!program.isObject() || (program.path("code").asText().isBlank() && !program.path("scene").isObject()))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu cảnh minh họa mới");
+        ObjectNode spec = (ObjectNode) snapshot.path("simulationSpec");
+        spec.set("visualProgram", program.deepCopy());
+        snapshot.put("code", program.path("code").asText(""));
+        var design = generated.path("simulationSpec").get("visualDesign");
+        if (design == null) spec.remove("visualDesign"); else spec.set("visualDesign", design.deepCopy());
+        // Preserve pinned historical runs and all saved physics/parameter data.
+        var next = new SimulationRun();
+        org.springframework.beans.BeanUtils.copyProperties(previous, next, "id", "createdAt", "updatedAt", "result");
+        next.setResult(snapshot);
+        entities.persist(next);
+        simulation.setLatestRun(next);
+        entities.flush();
+    }
 }

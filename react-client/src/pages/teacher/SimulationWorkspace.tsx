@@ -1,4 +1,4 @@
-import { prettyUnit } from "../../simulation/sceneModel";
+import { formatNumber, prettyUnit } from "../../simulation/sceneModel";
 import { useCallback, useEffect, useState, type ClipboardEvent, type DragEvent, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
@@ -13,6 +13,7 @@ import type { SolverTimeline } from "../../simulation/svgScene";
 import {
   confirmSimulationExplanation,
   openGeneratedSimulation,
+  updateSavedSimulationVisual,
   confirmSimulationInput,
   recognizeSimulationImage,
   understandSimulationText,
@@ -24,6 +25,7 @@ import {
   type SimulationSourceMode,
   type SimulationValidation,
   type RecognitionResult,
+  type SimulationFormulaBinding,
 } from "../../api/simulationUnderstandingApi";
 import { createLibraryFolder } from "../../api/libraryApi";
 import { useTeacherLibrary } from "../../store/useTeacherLibrary";
@@ -126,6 +128,24 @@ function prettyEquation(equation: string) {
     .replace(/([=+])/g, " $1 ").replace(/\s+/g, " ").trim();
 }
 
+const bindingSource = (row: SimulationFormulaBinding) =>
+  row.source === "PARAMETER" ? `thanh trượt “${row.parameterLabel || row.parameter}”`
+    : row.source === "FIXED" ? "giá trị cố định (không có thanh trượt)" : "giá trị mặc định của định luật";
+
+/** Value → law-input table taken from the signed plan, so a wrong binding is visible before confirming. */
+function BindingTable({ bindings }: Readonly<{ bindings: SimulationFormulaBinding[] }>) {
+  return <table className="simulation-bindings">
+    <caption>Giá trị đưa vào công thức</caption>
+    <thead><tr><th scope="col">Đại lượng trong định luật</th><th scope="col">Giá trị</th><th scope="col">Lấy từ</th></tr></thead>
+    <tbody>{bindings.map(row => <tr key={row.quantity}>
+      <td>{row.label}</td>
+      <td className="simulation-bindings__value">{typeof row.value === "number" && Number.isFinite(row.value)
+        ? `${formatNumber(row.value)} ${prettyUnit(row.unit)}`.trim() : "—"}</td>
+      <td>{bindingSource(row)}</td>
+    </tr>)}</tbody>
+  </table>;
+}
+
 function FormulaReview({ intent }: Readonly<{ intent: IntentResult }>) {
   const labels = new Map((intent.simulationSpec?.physicsModels ?? []).map(model => [model.id, model.label]));
   return <div className="simulation-formulas">
@@ -134,6 +154,7 @@ function FormulaReview({ intent }: Readonly<{ intent: IntentResult }>) {
       <strong>{formula.label || labels.get(formula.modelId) || "Đối tượng"}</strong>
       {formula.canonical.map((equation, index) => <p key={index}><code>{prettyEquation(equation)}</code></p>)}
       {!!formula.derived?.length && <p>Suy ra: {formula.derived.map(prettyEquation).join("; ")}</p>}
+      {!!formula.bindings?.length && <BindingTable bindings={formula.bindings} />}
     </div>) : <p>Hiện chưa có công thức tính toán đã kiểm duyệt cho tình huống này; hình sẽ chỉ mang tính minh họa.</p>}
   </div>;
 }
@@ -184,7 +205,7 @@ export default function SimulationWorkspace() {
   const [validation, setValidation] = useState<SimulationValidation | null>(null);
   const [locallyAdjusted, setLocallyAdjusted] = useState(false);
 
-  const restoreSaved = useCallback((result: GeneratedSimulationResult, id: string, title: string) => {
+  const restoreSaved = useCallback((result: GeneratedSimulationResult, id: string) => {
     const params = result.savedParameters ?? Object.fromEntries(result.parameters.map(p => [p.name, p.value]));
     setSimulation(result);
     setIntent({ ...result, stage: "EXPLAIN" });
@@ -195,7 +216,7 @@ export default function SimulationWorkspace() {
     setValidation(result.validation);
     setLocallyAdjusted(false);
     setRenderError(""); setAutoRepairUsed(true);
-    setSaveOpen(false); setSavedMessage(`Đã mở: ${title}`);
+    setSaveOpen(false); setSavedMessage("");
     setCurrentSimulationId(id);
     setSandboxKey(key => key + 1);
   }, []);
@@ -204,7 +225,7 @@ export default function SimulationWorkspace() {
     if (!requestedSimulationId) return;
     let cancelled = false;
     openGeneratedSimulation(requestedSimulationId).then(result => {
-      if (!cancelled) restoreSaved(result, requestedSimulationId, result.description);
+      if (!cancelled) restoreSaved(result, requestedSimulationId);
     }).catch(cause => { if (!cancelled) setError(getError(cause)); })
       .finally(() => { if (!cancelled) { setBusy(false); setOpeningId(null); } });
     return () => { cancelled = true; };
@@ -301,7 +322,7 @@ export default function SimulationWorkspace() {
     setError(null);
     try {
       const result = await openGeneratedSimulation(item.simulationId);
-      restoreSaved(result, item.simulationId, item.title);
+      restoreSaved(result, item.simulationId);
     } catch (cause) { setError(getError(cause)); }
     finally { setBusy(false); setOpeningId(null); }
   };
@@ -413,6 +434,14 @@ export default function SimulationWorkspace() {
         throw new Error("Generated simulation has a parameter outside the local runtime limit.");
       if (!result.simulationSpec.solverTimeline?.frames?.length)
         throw new Error("Generated simulation is missing its server timeline.");
+      if (renderDiagnostics && currentSimulationId) {
+        try {
+          await updateSavedSimulationVisual(currentSimulationId, result);
+        } catch (cause) {
+          throw new Error(`Chưa lưu được thiết kế mới; bài đã lưu vẫn giữ cảnh trước đó. ${getError(cause)}`);
+        }
+        setSavedMessage("Đã cập nhật hình ảnh trong thư viện.");
+      }
       setValues(previous => renderDiagnostics ? previous : paramValues);
       setRunValues(previous => renderDiagnostics ? previous : paramValues);
       setValidation(previous => renderDiagnostics ? previous : result.validation);
@@ -562,21 +591,6 @@ export default function SimulationWorkspace() {
                     </button>
                   </div>
 
-                  {canManageLearningContent && <div className="simulation-actions">
-                    <button type="button" disabled={busy || Boolean(renderError) || saveOpen}
-                      onClick={() => { setSavedMessage(""); setSaveOpen(true); }}>{currentSimulationId ? "Lưu thành bài mới" : "Lưu mô phỏng"}</button>
-                    {savedMessage && <span role="status">{savedMessage}</span>}
-                  </div>}
-                  {saveOpen && <SaveSimulationPanel simulation={{ ...simulation, formulas: intent?.formulas, explanation: intent?.explanation }} parameters={{ ...values }} folders={folders}
-                    onBusyChange={setBusy}
-                    onFolder={folder => setFolders(current => [...current, folder])}
-                    onClose={() => setSaveOpen(false)}
-                    onSaved={item => {
-                      setLibraryItems(current => [item, ...current.filter(value => value.id !== item.id)]);
-                      setFolders(current => current.map(folder => folder.id === item.folderId ? { ...folder, itemCount: folder.itemCount + 1 } : folder));
-                      setCurrentSimulationId(item.simulationId);
-                      setSavedMessage(`Đã lưu: ${item.title}`); setSaveOpen(false);
-                    }} />}
                   {liveTimeline ? (
                     <SvgPixiScene
                       key={sandboxKey}
@@ -857,33 +871,56 @@ export default function SimulationWorkspace() {
                 <button
                   role="tab"
                   type="button"
-                  aria-selected={inspectorTab === "experiment"}
-                  onClick={() => setInspectorTab("experiment")}
+                  aria-selected={!saveOpen && inspectorTab === "experiment"}
+                  disabled={saveOpen && busy}
+                  onClick={() => { setSaveOpen(false); setInspectorTab("experiment"); }}
                 >
                   <Icon name="sliders" /> Thử nghiệm
                 </button>
                 <button
                   role="tab"
                   type="button"
-                  aria-selected={inspectorTab === "understand"}
-                  onClick={() => setInspectorTab("understand")}
+                  aria-selected={!saveOpen && inspectorTab === "understand"}
+                  disabled={saveOpen && busy}
+                  onClick={() => { setSaveOpen(false); setInspectorTab("understand"); }}
                 >
                   <Icon name="book" /> Giải thích
                 </button>
                 <button
                   role="tab"
                   type="button"
-                  aria-selected={inspectorTab === "details"}
-                  onClick={() => setInspectorTab("details")}
+                  aria-selected={!saveOpen && inspectorTab === "details"}
+                  disabled={saveOpen && busy}
+                  onClick={() => { setSaveOpen(false); setInspectorTab("details"); }}
                 >
                   <Icon name="atom" /> Chi tiết
                 </button>
               </div>
+              {simulation && canManageLearningContent && !currentSimulationId && (
+                <button type="button" className="learn-save-button"
+                  disabled={busy || Boolean(renderError) || saveOpen}
+                  onClick={() => { setSavedMessage(""); setSaveOpen(true); }}>
+                  Lưu mô phỏng
+                </button>
+              )}
             </div>
 
             <div className="learn-inspector-body">
+              {canManageLearningContent && savedMessage && <div className="simulation-actions">
+                <span role="status">{savedMessage}</span>
+              </div>}
+              {simulation && saveOpen && <SaveSimulationPanel simulation={{ ...simulation, formulas: intent?.formulas, explanation: intent?.explanation }} parameters={{ ...values }} folders={folders}
+                onBusyChange={setBusy}
+                onFolder={folder => setFolders(current => [...current, folder])}
+                onClose={() => setSaveOpen(false)}
+                onSaved={item => {
+                  setLibraryItems(current => [item, ...current.filter(value => value.id !== item.id)]);
+                  setFolders(current => current.map(folder => folder.id === item.folderId ? { ...folder, itemCount: folder.itemCount + 1 } : folder));
+                  setCurrentSimulationId(item.simulationId);
+                  setSavedMessage(`Đã lưu: ${item.title}`); setSaveOpen(false);
+                }} />}
               {/* Tab 1: Parameters / Controls */}
-              {inspectorTab === "experiment" && (
+              {!saveOpen && inspectorTab === "experiment" && (
                 <div>
                   <div className="learn-section-title">
                     <h3>Thông số mô phỏng</h3>
@@ -994,7 +1031,7 @@ export default function SimulationWorkspace() {
               )}
 
               {/* Tab 2: Physics Explanation */}
-              {inspectorTab === "understand" && (
+              {!saveOpen && inspectorTab === "understand" && (
                 <div>
                   <h3>Giải thích hiện tượng vật lý</h3>
                   {intent?.explanation ? (
@@ -1036,7 +1073,7 @@ export default function SimulationWorkspace() {
               )}
 
               {/* Tab 3: Details & Scene Inventory */}
-              {inspectorTab === "details" && (
+              {!saveOpen && inspectorTab === "details" && (
                 <div>
                   <h3>Chi tiết mô hình</h3>
 

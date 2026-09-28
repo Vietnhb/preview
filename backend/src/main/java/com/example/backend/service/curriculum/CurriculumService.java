@@ -25,6 +25,12 @@ public class CurriculumService {
     private final TopicRepository topicRepository;
 
     @Transactional(readOnly = true)
+    public CurriculumTreeResponse getActiveTreeForTopic(String topic) {
+        return new CurriculumTreeResponse(topicRepository.findByNameIgnoreCaseAndEnabledTrueOrderBySortOrderAsc(topic)
+                .stream().map(item -> toTopic(item, false)).toList());
+    }
+
+    @Transactional(readOnly = true)
     public CurriculumTreeResponse getTree(boolean includeInactive) {
         List<TopicItem> topics = topicRepository.findAllByOrderBySortOrderAsc().stream()
                 .filter(topic -> includeInactive || topic.isEnabled())

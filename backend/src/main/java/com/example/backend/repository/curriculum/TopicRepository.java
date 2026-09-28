@@ -10,6 +10,7 @@ import com.example.backend.entity.curriculum.Topic;
 
 public interface TopicRepository extends JpaRepository<Topic, UUID> {
     Optional<Topic> findBySlug(String slug);
+    List<Topic> findByNameIgnoreCaseAndEnabledTrueOrderBySortOrderAsc(String name);
 
     List<Topic> findAllByOrderBySortOrderAsc();
 

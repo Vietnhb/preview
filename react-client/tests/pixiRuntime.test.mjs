@@ -16,7 +16,7 @@ function runtime() {
   const context = vm.createContext({Proxy, PIXI: {Application: function() {return app;}, Texture: {from: bitmap => bitmap}},
     performance: {now: () => 0}, postMessage: message => messages.push(message), close() {},
     setInterval: callback => {tick = callback;}});
-  vm.runInContext(sampleTimeline.toString() + '\nconst createStageKit = () => ({});\n' + vm.runInNewContext('String.raw`' + worker + '`'), context);
+  vm.runInContext(sampleTimeline.toString() + '\nconst createStageKit = () => ({palette: () => ({ink: "#123456"}), format: (value, unit) => value + " " + unit});\n' + vm.runInNewContext('String.raw`' + worker + '`'), context);
   return {app, messages, send: data => context.onmessage({data}), tick: () => tick()};
 }
 test('runs generated PixiJS functions without a predefined object or scene inventory', async () => {
@@ -30,6 +30,21 @@ test('runs generated PixiJS functions without a predefined object or scene inven
   assert.deepEqual(host.app.stage.children.map(item => item.x), [5,6,7,8,9,10,11]);
   assert.equal(host.messages.some(item => item.type === 'ready'), true);
 });
+
+test('generated code can use top-level palette and a detached format alias', async () => {
+  const host = runtime();
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
+    const item = {colour: api.palette().ink}; app.stage.addChild(item);
+    const fmt = api.format;
+    return {update(frame) { item.text = fmt(frame.fields['arbitrary.position'], 'm'); }};
+  }`});
+  assert.equal(host.messages.some(item => item.type === 'ready'), true);
+  assert.equal(host.app.stage.children[0].colour, '#123456');
+  assert.equal(host.app.stage.children[0].text, '0 m');
+  await host.send({type: 'seek', t: 0.5}); host.tick();
+  assert.equal(host.app.stage.children[0].text, '5 m');
+  assert.equal(host.messages.some(item => item.type === 'error'), false);
+});
 test('parameter edits replace backend fields and ranges without regenerating visual code', async () => {
   const host = runtime();
   await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
@@ -42,6 +57,25 @@ test('parameter edits replace backend fields and ranges without regenerating vis
   assert.equal(host.app.stage.children[0].x, 20);
   assert.equal(host.app.stage.children[0].range, 40);
   assert.equal(host.app.stage.children[0].layoutRange, 40);
+});
+
+test('generated scenes can convert HSV colours through the legacy Pixi utils API', async () => {
+  const host = runtime();
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app) {
+    const marker = {}; app.stage.addChild(marker);
+    return {update(frame) {
+      marker.colour = PIXI.utils.rgb2hex(PIXI.utils.hsv2rgb([frame.t / 3, 1, 1]));
+      marker.white = PIXI.utils.rgb2hex(PIXI.utils.hsv2rgb([0, 0, 1]));
+      marker.blue = PIXI.utils.rgb2hex(PIXI.utils.hsv2rgb([-1 / 3, 1, 1]));
+    }};
+  }`});
+  assert.equal(host.messages.some(item => item.type === 'ready'), true);
+  assert.equal(host.app.stage.children[0].colour, 0xff0000);
+  assert.equal(host.app.stage.children[0].white, 0xffffff);
+  assert.equal(host.app.stage.children[0].blue, 0x0000ff);
+  await host.send({type: 'seek', t: 1}); host.tick();
+  assert.equal(host.app.stage.children[0].colour, 0x00ff00);
+  assert.equal(host.messages.some(item => item.type === 'error'), false);
 });
 test('reports invalid generated lifecycle as a rendering error, not physics verification', async () => {
   const host = runtime();

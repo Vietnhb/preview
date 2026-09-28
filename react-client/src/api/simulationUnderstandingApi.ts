@@ -11,8 +11,14 @@ export type RecognitionResult = {
 export type SimulationParameter = {
   name: string; label?: string; value: number; unit?: string; min?: number; max?: number; step?: number;
 };
+/** Which value feeds each input of the law (built by the backend from the signed plan). */
+export type SimulationFormulaBinding = {
+  quantity: string; label: string; unit: string; source: "PARAMETER" | "FIXED" | "DEFAULT";
+  parameter?: string; parameterLabel?: string; value?: number | null;
+};
 export type SimulationFormula = {
   modelId: string; label?: string; capabilityId: string; canonical: string[]; derived?: string[]; assumptions?: string[];
+  bindings?: SimulationFormulaBinding[];
 };
 export type SimulationSpec = {
   durationSeconds: number; durationParameter?: string; parameters: SimulationParameter[];
@@ -53,6 +59,8 @@ export const saveGeneratedSimulation = (simulation: GeneratedSimulationResult, p
 
 export const openGeneratedSimulation = (id: string) =>
   axiosClient.get<GeneratedSimulationResult>(`/simulation/saved/${id}`).then(r => r.data);
+export const updateSavedSimulationVisual = (id: string, simulation: GeneratedSimulationResult) =>
+  axiosClient.patch<void>(`/simulation/saved/${id}/visual`, simulation);
 export const understandSimulationText = (description: string) =>
   axiosClient.post<IntentResult>("/simulation/understand", { description }).then(response => response.data);
 

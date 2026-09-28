@@ -93,6 +93,8 @@ async function start(message) {
     get scene() { return data.scene; },
     get sceneSpec() { return data.sceneSpec || null; },
     kit,
+    palette: kit.palette,
+    format: kit.format,
     getFrame: () => frame(),
     getFieldRanges: () => data.ranges,
     svgTexture,
@@ -101,7 +103,26 @@ async function start(message) {
   const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
   const mount = await new AsyncFunction('"use strict"; return (' + message.code + '\n);')();
   if (typeof mount !== 'function') throw Error('PixiJS code must be a mount function.');
-  lifecycle = await mount(PIXI, app, api);
+  // Compatibility helpers for generated code; leave the PixiJS namespace untouched.
+  const compatiblePIXI = Object.assign({}, PIXI, {
+    utils: Object.assign({}, PIXI.utils || {}, {
+      hsv2rgb([h, s, v]) {
+        h = ((h % 1) + 1) % 1;
+        s = Math.max(0, Math.min(1, s));
+        v = Math.max(0, Math.min(1, v));
+        const channel = n => {
+          const k = (n + h * 6) % 6;
+          return v * (1 - s * Math.max(0, Math.min(k, 4 - k, 1)));
+        };
+        return [channel(5), channel(3), channel(1)];
+      },
+      rgb2hex(rgb) {
+        const byte = value => Math.round(Math.max(0, Math.min(1, value)) * 255);
+        return (byte(rgb[0]) << 16) | (byte(rgb[1]) << 8) | byte(rgb[2]);
+      }
+    })
+  });
+  lifecycle = await mount(compatiblePIXI, app, api);
   if (!lifecycle || typeof lifecycle.update !== 'function') throw Error('PixiJS code must return update(frame).');
   lifecycle.update(frame(0)); app.render();
   send('ready', {t}); last = performance.now();

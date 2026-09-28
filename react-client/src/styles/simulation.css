@@ -597,6 +597,7 @@
   --sim-muted: #64748b;
   --sim-grid: #e8eef5;
   --sim-axis: #94a3b8;
+  --sim-scrubber-track: #b8c6da;
   --sim-accent: #2563eb;
   --sim-accent-soft: rgba(37, 99, 235, 0.1);
   --sim-ok: #15803d;
@@ -617,6 +618,7 @@
   --sim-muted: #94a3b8;
   --sim-grid: #1c2940;
   --sim-axis: #475569;
+  --sim-scrubber-track: #526580;
   --sim-accent: #60a5fa;
   --sim-accent-soft: rgba(96, 165, 250, 0.14);
   --sim-ok: #4ade80;
@@ -668,18 +670,28 @@
 .sim-icon-button svg { width: 16px; height: 16px; }
 .sim-icon-button--primary { background: var(--sim-accent); border-color: var(--sim-accent); color: #fff; }
 .sim-player[data-theme="dark"] .sim-icon-button--primary { color: #0b1220; }
-.sim-scrubber {
-  flex: 1; min-width: 80px; height: 6px; appearance: none; -webkit-appearance: none; border-radius: 999px; cursor: pointer;
-  background: linear-gradient(to right, var(--sim-accent) 0 var(--progress, 0%), var(--sim-grid) var(--progress, 0%) 100%);
+.sim-player input.sim-scrubber[type="range"] {
+  flex: 1 1 0%; width: 0; min-width: 80px; height: 24px; margin: 0; padding: 0; border: 0;
+  appearance: none; -webkit-appearance: none; border-radius: 999px; cursor: pointer;
+  background: transparent;
+}
+.sim-scrubber::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 999px;
+  background: linear-gradient(to right, var(--sim-accent) 0 var(--progress, 0%), var(--sim-scrubber-track) var(--progress, 0%) 100%);
 }
 .sim-scrubber::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--sim-surface);
-  border: 3px solid var(--sim-accent); box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+  -webkit-appearance: none; box-sizing: border-box; width: 18px; height: 18px; margin-top: -6px;
+  border-radius: 50%; background: var(--sim-accent);
+  border: 2px solid var(--sim-surface); box-shadow: 0 0 0 1px var(--sim-accent), 0 2px 4px rgba(0, 0, 0, .25);
 }
-.sim-scrubber::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--sim-surface); border: 3px solid var(--sim-accent); }
+.sim-scrubber::-moz-range-track { height: 6px; border-radius: 999px; background: var(--sim-scrubber-track); }
+.sim-scrubber::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--sim-accent); }
+.sim-scrubber::-moz-range-thumb { box-sizing: border-box; width: 18px; height: 18px; border-radius: 50%; background: var(--sim-accent); border: 2px solid var(--sim-surface); box-shadow: 0 0 0 1px var(--sim-accent), 0 2px 4px rgba(0, 0, 0, .25); }
+.sim-player input.sim-scrubber:focus-visible { outline: 2px solid var(--sim-accent); outline-offset: 3px; }
 .sim-clock { font-size: 13px; font-weight: 700; min-width: 108px; text-align: right; }
 .sim-clock span { color: var(--sim-muted); font-weight: 500; }
-.sim-select {
+.sim-player .sim-transport select.sim-select {
+  flex: 0 0 76px; width: 76px; min-width: 0; max-width: 76px; box-sizing: border-box;
   font: inherit; font-size: 13px; padding: 5px 6px; border-radius: 8px; border: 1px solid var(--sim-border);
   background: var(--sim-surface); color: var(--sim-ink);
 }
@@ -698,6 +710,12 @@
 .simulation-save-panel label { display: grid; gap: 6px; font-weight: 600; }
 .simulation-save-panel input, .simulation-save-panel select { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px; border: 1px solid var(--sim-border, #ccd5df); border-radius: 8px; font: inherit; color: inherit; background: var(--simulation-surface); }
 .simulation-save-panel small, .simulation-save-panel p { font-weight: 400; font-size: 13px; }
+.simulation-save-panel .simulation-lesson-picker legend { padding: 0; margin-bottom: 6px; font-weight: 600; }
+.simulation-lesson-options { max-height: 240px; overflow-y: auto; min-width: 0; display: grid; gap: 6px; }
+.simulation-save-panel .simulation-lesson-option { display: flex; align-items: flex-start; gap: 8px; padding: 9px; border: 1px solid var(--sim-border, #ccd5df); border-radius: 8px; font-size: 13px; font-weight: 400; cursor: pointer; }
+.simulation-save-panel .simulation-lesson-option input { width: 16px; height: 16px; flex: 0 0 16px; margin: 2px 0 0; padding: 0; }
+.simulation-lesson-option span { min-width: 0; overflow-wrap: anywhere; }
+.simulation-lesson-option:has(input:checked) { background: var(--sim-accent-soft); border-color: var(--sim-accent); }
 .sim-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 2px 2px; font-size: 13px; }
 .sim-legend__item { display: inline-flex; align-items: center; gap: 6px; }
 .sim-legend__item i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
@@ -721,5 +739,11 @@
 @media (max-width: 640px) {
   .sim-stage { height: clamp(260px, 46vh, 420px); }
   .sim-transport { flex-wrap: wrap; }
-  .sim-scrubber { order: 10; flex-basis: 100%; }
+  .sim-player input.sim-scrubber[type="range"] { order: 10; flex-basis: 100%; width: 100%; }
 }
+.simulation-bindings { width: 100%; margin: 10px 0 4px; border-collapse: collapse; font-size: 0.9em; }
+.simulation-bindings caption { text-align: left; font-weight: 600; margin-bottom: 6px; color: var(--text-secondary, #475569); }
+.simulation-bindings th, .simulation-bindings td { padding: 6px 8px; border-bottom: 1px solid var(--border-color, #e2e8f0); text-align: left; vertical-align: top; }
+.simulation-bindings th { font-weight: 600; color: var(--text-secondary, #475569); }
+.simulation-bindings__value { white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) { .simulation-bindings th:nth-child(3), .simulation-bindings td:nth-child(3) { display: none; } }
