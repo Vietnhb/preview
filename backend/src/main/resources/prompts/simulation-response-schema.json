@@ -19,15 +19,16 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "setting",
+            "concept",
             "participants",
-            "props",
+            "layout",
+            "animation",
             "palette"
           ],
           "properties": {
-            "setting": {
+            "concept": {
               "type": "string",
-              "description": "Environment inferred from the user's description (or the most natural real-world setting for these objects), composition and mood."
+              "description": "What the learner should notice and the representation you chose for it, derived from the user's description (or your best judgement where it is silent)."
             },
             "participants": {
               "type": "array",
@@ -37,31 +38,35 @@
                 "required": [
                   "id",
                   "object",
-                  "appearance"
+                  "representation"
                 ],
                 "properties": {
                   "id": {
                     "type": "string",
-                    "description": "physicsModels id"
+                    "description": "participant id (confirmedBrief.participants)"
                   },
                   "object": {
                     "type": "string",
-                    "description": "The real object from the description this participant is."
+                    "description": "The real thing this participant is."
                   },
-                  "appearance": {
+                  "representation": {
                     "type": "string",
-                    "description": "Silhouette, proportions, materials, characteristic colours, 4-10 recognisable details, facing/rotation/size."
+                    "description": "How it looks and which solver fields drive which visible property."
                   }
                 }
               }
             },
-            "props": {
+            "layout": {
               "type": "string",
-              "description": "What the surface, support and connector roles are in this situation (or why a role is unused)."
+              "description": "Composition, camera/scale mapping and setting."
+            },
+            "animation": {
+              "type": "string",
+              "description": "How each changing field is animated on the stage."
             },
             "palette": {
               "type": "string",
-              "description": "Harmonious colours for environment and subjects in LIGHT and DARK themes."
+              "description": "Colours readable in light and dark themes."
             }
           }
         },
@@ -118,7 +123,7 @@
                 "properties": {
                   "id": {
                     "type": "string",
-                    "description": "physicsModels id of the participant this body is."
+                    "description": "participant id this body is."
                   },
                   "svg": {
                     "type": "string",
@@ -196,11 +201,12 @@
                 }
               }
             }
-          }
+          },
+          "description": "Optional shortcut for the kit's SVG illustrator (bodies moved along solver positions). Use empty strings, -1 and [] when you draw everything in code."
         },
         "code": {
           "type": "string",
-          "description": "Usually empty string. Only when the declarative scene cannot express something (state-driven apparatus without spatial motion, extra effects): a complete async function(PIXI, app, api) that starts with const base = await api.kit.illustratedScene(api.sceneSpec) and returns {update(frame){ base.update(frame); ... }, resize(){ base.resize(); }, setData(){ base.setData(); }}."
+          "description": "The PixiJS v8 program async function(PIXI, app, api) { … return { update(frame), resize(), setData() } } that draws the stage; may be empty only when the scene shortcut alone shows every changing field."
         }
       }
     }

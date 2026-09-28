@@ -545,7 +545,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       // --- instrument panel when nothing moves in space (circuits, heat, decay …)
       for (const child of gaugeLayer.removeChildren()) child.destroy({ children: true });
       gauges = [];
-      if (mode === "board" && show.axes) {
+      // Always shown in board mode: without it a non-spatial phenomenon would render an empty stage.
+      if (mode === "board") {
         const keys = Object.values(scene.fields).filter(meta => meta.kind !== "angle" || meta.unit !== "rad").slice(0, 12);
         const columns = keys.length > 6 ? 3 : keys.length > 2 ? 2 : 1;
         const gap = 14, cardW = Math.min(360, (view.w - gap * (columns - 1)) / columns), cardH = 62;

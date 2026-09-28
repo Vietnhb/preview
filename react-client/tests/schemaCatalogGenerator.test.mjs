@@ -7,7 +7,7 @@ import test from "node:test";
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const generatorPath = path.join(repositoryRoot, "scripts", "generate-schema-catalog.mjs");
 
-test("generated schema catalog has no drift from topic source modules", () => {
+test("curriculum schema library is consistent", () => {
   const result = spawnSync(process.execPath, [generatorPath, "--check"], {
     cwd: repositoryRoot,
     encoding: "utf8",
@@ -15,5 +15,5 @@ test("generated schema catalog has no drift from topic source modules", () => {
 
   assert.equal(result.error, undefined, result.error?.message);
   assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
-  assert.match(result.stdout, /Schema catalog is current \(\d+ entries\)\./);
+  assert.match(result.stdout, /Schema library is consistent \(\d+ capabilities, \d+ topics\)\./);
 });

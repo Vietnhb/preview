@@ -7,6 +7,7 @@ import com.example.backend.service.problem.SchemaDefinitionService;
 import com.example.backend.service.simulation.SchemaEquationRuntime;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
@@ -42,6 +43,7 @@ public class SimulationUnderstandingController {
     private static final String NO_MATCH = "NO_MATCH";
     private final SchemaDefinitionService schemas;
     private final SchemaEquationRuntime equations;
+    private static final int ROUTING_SUMMARY_MAX = 1400;
     private final JevProperties jev;
     private final ObjectMapper json;
     private final HttpClient http;
@@ -143,7 +145,9 @@ public class SimulationUnderstandingController {
         ObjectNode computed = equations.compute(schema.getDefinition(), brief, json.createObjectNode());
         ObjectNode input = json.createObjectNode();
         input.put("description", request.path("description").asText());
-        input.set("confirmedBrief", brief);
+        // The planner's plain-language explanation carries the teaching intent (what to notice).
+        if (request.path("explanation").isTextual()) input.put("planExplanation", request.path("explanation").asText());
+        input.set("confirmedBrief", visualBrief(brief));
         JsonNode diagnostics = request.path("renderDiagnostics");
         if (!diagnostics.isMissingNode()) {
             if (!diagnostics.path("code").isTextual() || !diagnostics.path("message").isTextual()
@@ -152,23 +156,31 @@ public class SimulationUnderstandingController {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid rendering diagnostics");
             input.set("renderDiagnostics", diagnostics);
         }
-        input.set("initialSolverFields", computed.path("solverTimeline").path("frames").path(0).path("values"));
-        ObjectNode ranges = input.putObject("solverFieldRanges");
-        for (JsonNode frame : computed.path("solverTimeline").path("frames")) {
-            frame.path("values").fields().forEachRemaining(field -> {
-                ObjectNode range = ranges.has(field.getKey()) ? (ObjectNode) ranges.get(field.getKey()) : ranges.putObject(field.getKey());
-                double value = field.getValue().asDouble();
-                range.put("min", Math.min(range.path("min").asDouble(value), value));
-                range.put("max", Math.max(range.path("max").asDouble(value), value));
-            });
-        }
         ObjectNode fieldMeta = solverFieldMeta(schema.getDefinition(), brief);
-        input.set("solverFields", fieldMeta);
+        input.set("solverFields", visualFields(fieldMeta, computed.path("solverTimeline").path("frames")));
         JsonNode renderingContract = jsonResource("prompts/simulation-response-schema.json");
         ObjectNode visual = (ObjectNode) askCompletion(input,
-                resource("prompts/simulation-visual-system.txt") + "\n\nRESPONSE CONTRACT (JSON Schema):\n" + renderingContract,
+                resource("prompts/simulation-visual-system.txt"),
                 renderingContract);
         JsonNode program = visual.path("visualProgram");
+        java.util.List<String> unbound = unboundParticipants(program, brief);
+        if (!unbound.isEmpty()) {
+            // Validation step 1 (generic, data-bound): every participant the solver computes must be
+            // driven on stage by its solver fields. Give the director one chance to fix it.
+            ObjectNode retryDiagnostics = input.putObject("renderDiagnostics");
+            retryDiagnostics.put("code", truncate(program.toString(), 3 * maxProgramCharacters));
+            retryDiagnostics.put("message", "Not bound to solver data: participant(s) " + String.join(", ", unbound)
+                    + " have no body in scene and are never read in code (frame.fields['<id>.<quantity>']), so the learner "
+                    + "cannot see their computed behaviour. Keep your design, but make every participant's changing fields "
+                    + "visibly drive the stage.");
+            JsonNode retried = askCompletion(input,
+                    resource("prompts/simulation-visual-system.txt"),
+                    renderingContract);
+            if (retried.isObject() && unboundParticipants(retried.path("visualProgram"), brief).size() < unbound.size()) {
+                visual = (ObjectNode) retried;
+                program = visual.path("visualProgram");
+            }
+        }
         String code = program.path("code").asText("").trim();
         JsonNode scene = program.path("scene");
         boolean hasScene = scene.isObject() && (scene.path("bodies").size() > 0
@@ -304,8 +316,10 @@ public class SimulationUnderstandingController {
         }
         Map<String, SchemaVersion> byId = new LinkedHashMap<>();
         ObjectNode criteria = json.createObjectNode();
-        int schemaTextBudget = Math.max(0,
-                (jev.maximumPromptCharacters() - description.length() - 512) / approved.size());
+        // Reserve room for the JSON envelope/instructions; never spend more than
+        // ROUTING_SUMMARY_MAX characters per topic even when the limit would allow it.
+        int schemaTextBudget = Math.min(ROUTING_SUMMARY_MAX, Math.max(0,
+                (jev.maximumPromptCharacters() - description.length() - 2048) / (approved.size() + 1) - 64));
         if (schemaTextBudget == 0) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Simulation description leaves no room for approved schema routing context");
@@ -476,10 +490,22 @@ public class SimulationUnderstandingController {
      * server-side (they are executed, never interpreted by the model), which keeps the
      * prompt small for rate-limited providers.
      */
+    /**
+     * The planner sees only the selected topic, and only what it needs to bind a plan:
+     * capability contracts (inputs/outputs/equations/assumptions) plus a key → label map.
+     * Laws, relations, unit catalog and curriculum are derivable or irrelevant, so they are dropped.
+     */
     private JsonNode planningView(JsonNode definition) {
         ObjectNode view = (ObjectNode) definition.deepCopy();
-        for (String field : java.util.List.of("coreTypeRefs", "simulationCapability", "visualCapability", "limitations"))
+        for (String field : java.util.List.of("coreTypeRefs", "simulationCapability", "visualCapability", "limitations",
+                "laws", "relationTypes", "unitCatalog", "curriculum", "metaSchemaVersion"))
             view.remove(field);
+        ObjectNode labels = json.createObjectNode();
+        for (JsonNode quantity : definition.path("quantityDefinitions"))
+            labels.put(quantity.path("key").asText(), quantity.path("label").asText());
+        view.set("quantityDefinitions", labels);
+        for (JsonNode type : view.path("objectTypes"))
+            if (type instanceof ObjectNode t) t.remove("description");
         for (JsonNode capability : view.path("capabilities")) {
             if (capability instanceof ObjectNode c)
                 for (String field : java.util.List.of("execution", "validation", "rendererBindings", "validityDomain", "applicability"))
@@ -549,9 +575,14 @@ public class SimulationUnderstandingController {
                 if (openRouter) body.putObject("reasoning").put("effort", visualReasoningEffort).put("exclude", true);
                 else body.put("reasoning_effort", visualReasoningEffort);
             }
+            // The JSON contract is written into the prompt only for requests where the provider
+            // does not enforce it (json_object / plain fallback); strict json_schema requests carry
+            // it once, in response_format, instead of twice.
+            String withContract = system + "\n\nRESPONSE CONTRACT (JSON Schema):\n" + contract;
+            String user = json.writeValueAsString(input);
             var messages = body.putArray("messages");
-            messages.addObject().put("role", "system").put("content", system);
-            messages.addObject().put("role", "user").put("content", json.writeValueAsString(input));
+            messages.addObject().put("role", "system").put("content", withContract);
+            messages.addObject().put("role", "user").put("content", user);
             // Providers may opt out of response_format; the contract remains in
             // the prompt and the response is parsed and validated server-side.
             JsonNode completion;
@@ -559,6 +590,9 @@ public class SimulationUnderstandingController {
                 ObjectNode structured = body.deepCopy();
                 ObjectNode format = structured.putObject("response_format");
                 if (strictStructuredOutput) {
+                    var strictMessages = structured.putArray("messages");
+                    strictMessages.addObject().put("role", "system").put("content", system);
+                    strictMessages.addObject().put("role", "user").put("content", user);
                     format.put("type", "json_schema");
                     format.putObject("json_schema").put("name", "simulation_visual").put("strict", true).set("schema", contract);
                 } else format.put("type", "json_object");
@@ -765,31 +799,93 @@ public class SimulationUnderstandingController {
         }
     }
 
-    private String schemaDescription(SchemaVersion schema, int characterBudget) {
-        StringBuilder summary = new StringBuilder();
-        appendBounded(summary, schema.getName(), characterBudget);
-        appendBounded(summary, schema.getTopic(), characterBudget);
-        appendSchemaContent(schema.getDefinition(), summary, characterBudget);
-        return summary.toString();
+    /** What the illustrator needs from the signed plan: participants, adjustable parameters, duration. */
+    private ObjectNode visualBrief(JsonNode brief) {
+        ObjectNode result = json.createObjectNode();
+        result.set("durationSeconds", brief.path("durationSeconds"));
+        ArrayNode participants = result.putArray("participants");
+        for (JsonNode model : brief.path("physicsModels")) {
+            ObjectNode item = participants.addObject();
+            item.put("id", model.path("id").asText());
+            item.put("label", model.path("label").asText(model.path("id").asText()));
+        }
+        ArrayNode parameters = result.putArray("parameters");
+        for (JsonNode parameter : brief.path("parameters")) {
+            ObjectNode item = parameters.addObject();
+            for (String field : java.util.List.of("name", "label", "value", "unit", "min", "max"))
+                if (parameter.has(field)) item.set(field, parameter.get(field));
+        }
+        return result;
     }
 
-    private void appendSchemaContent(JsonNode node, StringBuilder target, int characterBudget) {
-        if (node == null || target.length() >= characterBudget) return;
-        if (node.isTextual()) {
-            appendBounded(target, node.asText(), characterBudget);
-        } else if (node.isObject()) {
-            var fields = node.fields();
-            while (fields.hasNext() && target.length() < characterBudget) {
-                var field = fields.next();
-                appendBounded(target, field.getKey(), characterBudget);
-                appendSchemaContent(field.getValue(), target, characterBudget);
-            }
-        } else if (node.isArray()) {
-            for (JsonNode child : node) {
-                if (target.length() >= characterBudget) break;
-                appendSchemaContent(child, target, characterBudget);
-            }
+    /**
+     * One entry per solver field: meaning (label, unit, participant, renderer role) plus its first
+     * value and range over the run. Keys are exactly those the program reads from frame.fields.
+     */
+    private ObjectNode visualFields(ObjectNode fieldMeta, JsonNode frames) {
+        ObjectNode result = json.createObjectNode();
+        for (JsonNode frame : frames) {
+            frame.path("values").fields().forEachRemaining(value -> {
+                ObjectNode field = result.has(value.getKey()) ? (ObjectNode) result.get(value.getKey()) : result.putObject(value.getKey());
+                if (!field.has("label") && fieldMeta.has(value.getKey())) {
+                    fieldMeta.get(value.getKey()).fields().forEachRemaining(meta -> {
+                        if (!meta.getKey().equals("quantity") && !meta.getKey().equals("participantLabel")) field.set(meta.getKey(), meta.getValue());
+                    });
+                }
+                double v = value.getValue().asDouble();
+                if (!field.has("start")) field.put("start", v);
+                field.put("min", Math.min(field.path("min").asDouble(v), v));
+                field.put("max", Math.max(field.path("max").asDouble(v), v));
+            });
         }
+        return result;
+    }
+
+    /**
+     * Participants whose solver fields nothing on stage reads: no scene body and no reference to
+     * "<id>." in the program. Programs that iterate api.scene.participants bind every participant.
+     */
+    private static java.util.List<String> unboundParticipants(JsonNode program, JsonNode brief) {
+        String code = program.path("code").asText("");
+        java.util.Set<String> bodies = new java.util.HashSet<>();
+        program.path("scene").path("bodies").forEach(body -> {
+            if (!body.path("svg").asText("").isBlank()) bodies.add(body.path("id").asText());
+        });
+        boolean generic = code.contains(".participants");
+        java.util.List<String> unbound = new java.util.ArrayList<>();
+        for (JsonNode model : brief.path("physicsModels")) {
+            String id = model.path("id").asText();
+            if (id.isBlank() || bodies.contains(id) || generic) continue;
+            if (!code.contains("'" + id + ".") && !code.contains("\"" + id + ".") && !code.contains("`" + id + "."))
+                unbound.add(id);
+        }
+        return unbound;
+    }
+
+    private static String truncate(String value, int max) {
+        return value.length() <= max ? value : value.substring(0, max);
+    }
+
+    /**
+     * Routing needs only what distinguishes one topic from another: its name, grade, the
+     * curriculum description written for routing, the curriculum contents and the titles of
+     * the laws it can compute. Equation ASTs, units and vocabulary never reach the router.
+     */
+    private String schemaDescription(SchemaVersion schema, int characterBudget) {
+        JsonNode definition = schema.getDefinition();
+        StringBuilder summary = new StringBuilder();
+        appendBounded(summary, schema.getName(), characterBudget);
+        if (definition.hasNonNull("grade")) appendBounded(summary, "(lớp " + definition.path("grade").asText() + ").", characterBudget);
+        appendBounded(summary, definition.path("description").asText(""), characterBudget);
+        for (JsonNode content : definition.path("curriculum"))
+            appendBounded(summary, content.path("name").asText("") + ": " + content.path("summary").asText(""), characterBudget);
+        StringBuilder laws = new StringBuilder();
+        for (JsonNode capability : definition.path("capabilities")) {
+            String title = capability.path("title").asText("");
+            if (!title.isBlank()) laws.append(laws.isEmpty() ? "Tính được: " : "; ").append(title);
+        }
+        appendBounded(summary, laws.toString(), characterBudget);
+        return summary.toString();
     }
 
     private void appendBounded(StringBuilder target, String value, int characterBudget) {
