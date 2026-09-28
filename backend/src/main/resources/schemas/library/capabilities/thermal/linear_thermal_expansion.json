@@ -1,0 +1,173 @@
+{
+  "capabilityId": "linear_thermal_expansion",
+  "title": "Sự nở dài vì nhiệt",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "heat_source"
+    ],
+    "quantities": [
+      "initial_length",
+      "expansion_coefficient",
+      "initial_temperature",
+      "heating_rate"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "initial_length",
+      "unit": "m",
+      "min": 1e-09
+    },
+    {
+      "key": "expansion_coefficient",
+      "unit": "1/K",
+      "min": 0
+    },
+    {
+      "key": "initial_temperature",
+      "unit": "degC"
+    },
+    {
+      "key": "heating_rate",
+      "unit": "K/s"
+    }
+  ],
+  "outputs": [
+    {
+      "key": "temperature",
+      "unit": "degC"
+    },
+    {
+      "key": "length",
+      "unit": "m"
+    },
+    {
+      "key": "elongation",
+      "unit": "m"
+    }
+  ],
+  "assumptions": [
+    "Vật rắn dạng thanh nở dài đều; nhiệt độ thay đổi đều theo thời gian."
+  ],
+  "equationSet": {
+    "canonical": [
+      "DeltaL = alpha*L0*DeltaT"
+    ],
+    "derived": [
+      "L = L0*(1 + alpha*DeltaT)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "temperature": "initial_temperature"
+      },
+      "rates": {
+        "temperature": "heating_rate"
+      },
+      "outputs": {
+        "temperature": "temperature",
+        "length": [
+          "mul",
+          "initial_length",
+          [
+            "add",
+            1,
+            [
+              "mul",
+              "expansion_coefficient",
+              [
+                "sub",
+                "temperature",
+                "initial_temperature"
+              ]
+            ]
+          ]
+        ],
+        "elongation": [
+          "mul",
+          [
+            "mul",
+            "initial_length",
+            "expansion_coefficient"
+          ],
+          [
+            "sub",
+            "temperature",
+            "initial_temperature"
+          ]
+        ]
+      },
+      "closedForm": {
+        "temperature": [
+          "add",
+          "initial_temperature",
+          [
+            "mul",
+            "heating_rate",
+            "t"
+          ]
+        ],
+        "length": [
+          "mul",
+          "initial_length",
+          [
+            "add",
+            1,
+            [
+              "mul",
+              [
+                "mul",
+                "expansion_coefficient",
+                "heating_rate"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "elongation": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              "initial_length",
+              "expansion_coefficient"
+            ],
+            "heating_rate"
+          ],
+          "t"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "length",
+      "role": "state_value"
+    }
+  ]
+}

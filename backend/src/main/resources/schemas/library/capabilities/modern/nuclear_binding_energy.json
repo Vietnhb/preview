@@ -1,0 +1,277 @@
+{
+  "capabilityId": "nuclear_binding_energy",
+  "title": "Độ hụt khối và năng lượng liên kết hạt nhân",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "nucleus"
+    ],
+    "quantities": [
+      "proton_count",
+      "neutron_count",
+      "nucleus_mass",
+      "proton_mass",
+      "neutron_mass",
+      "light_speed"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "proton_count",
+      "unit": "1",
+      "min": 0
+    },
+    {
+      "key": "neutron_count",
+      "unit": "1",
+      "min": 0
+    },
+    {
+      "key": "nucleus_mass",
+      "unit": "kg",
+      "min": 0
+    },
+    {
+      "key": "proton_mass",
+      "unit": "kg",
+      "min": 0,
+      "defaultValue": 1.67262192e-27
+    },
+    {
+      "key": "neutron_mass",
+      "unit": "kg",
+      "min": 0,
+      "defaultValue": 1.6749275e-27
+    },
+    {
+      "key": "light_speed",
+      "unit": "m/s",
+      "min": 1,
+      "defaultValue": 299792458
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "mass_defect",
+      "unit": "kg"
+    },
+    {
+      "key": "binding_energy",
+      "unit": "J"
+    },
+    {
+      "key": "binding_energy_per_nucleon",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Khối lượng hạt nhân (không phải nguyên tử) tính bằng kg."
+  ],
+  "equationSet": {
+    "canonical": [
+      "Delta m = Z*m_p + N*m_n - m_X",
+      "W_lk = Delta m*c^2"
+    ],
+    "derived": [
+      "W_lk/A lớn -> hạt nhân bền",
+      "E = m*c^2"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "mass_defect": [
+          "sub",
+          [
+            "add",
+            [
+              "mul",
+              "proton_count",
+              "proton_mass"
+            ],
+            [
+              "mul",
+              "neutron_count",
+              "neutron_mass"
+            ]
+          ],
+          "nucleus_mass"
+        ],
+        "binding_energy": [
+          "mul",
+          [
+            "sub",
+            [
+              "add",
+              [
+                "mul",
+                "proton_count",
+                "proton_mass"
+              ],
+              [
+                "mul",
+                "neutron_count",
+                "neutron_mass"
+              ]
+            ],
+            "nucleus_mass"
+          ],
+          [
+            "pow",
+            "light_speed",
+            2
+          ]
+        ],
+        "binding_energy_per_nucleon": [
+          "div",
+          [
+            "mul",
+            [
+              "sub",
+              [
+                "add",
+                [
+                  "mul",
+                  "proton_count",
+                  "proton_mass"
+                ],
+                [
+                  "mul",
+                  "neutron_count",
+                  "neutron_mass"
+                ]
+              ],
+              "nucleus_mass"
+            ],
+            [
+              "pow",
+              "light_speed",
+              2
+            ]
+          ],
+          [
+            "add",
+            "proton_count",
+            "neutron_count"
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "mass_defect": [
+          "sub",
+          [
+            "add",
+            [
+              "mul",
+              "proton_count",
+              "proton_mass"
+            ],
+            [
+              "mul",
+              "neutron_count",
+              "neutron_mass"
+            ]
+          ],
+          "nucleus_mass"
+        ],
+        "binding_energy": [
+          "mul",
+          [
+            "sub",
+            [
+              "add",
+              [
+                "mul",
+                "proton_count",
+                "proton_mass"
+              ],
+              [
+                "mul",
+                "neutron_count",
+                "neutron_mass"
+              ]
+            ],
+            "nucleus_mass"
+          ],
+          [
+            "pow",
+            "light_speed",
+            2
+          ]
+        ],
+        "binding_energy_per_nucleon": [
+          "div",
+          [
+            "mul",
+            [
+              "sub",
+              [
+                "add",
+                [
+                  "mul",
+                  "proton_count",
+                  "proton_mass"
+                ],
+                [
+                  "mul",
+                  "neutron_count",
+                  "neutron_mass"
+                ]
+              ],
+              "nucleus_mass"
+            ],
+            [
+              "pow",
+              "light_speed",
+              2
+            ]
+          ],
+          [
+            "add",
+            "proton_count",
+            "neutron_count"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "binding_energy_per_nucleon",
+      "role": "state_value"
+    }
+  ]
+}

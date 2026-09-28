@@ -1,0 +1,285 @@
+{
+  "capabilityId": "vertical_throw_energy",
+  "title": "Ném thẳng đứng và bảo toàn cơ năng",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "mass",
+      "gravitational_acceleration",
+      "initial_height",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-12,
+      "defaultValue": 1
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "initial_height",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    },
+    {
+      "key": "potential_energy",
+      "unit": "J"
+    },
+    {
+      "key": "mechanical_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Vật ném thẳng đứng (hoặc thả rơi) trong trọng trường đều, bỏ qua sức cản; gốc thế năng tại độ cao 0; chiều dương hướng lên."
+  ],
+  "equationSet": {
+    "canonical": [
+      "Wd = m*v^2/2",
+      "Wt = m*g*h",
+      "W = Wd + Wt = const"
+    ],
+    "derived": []
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "initial_height",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "neg",
+          "gravitational_acceleration"
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            "velocity",
+            2
+          ]
+        ],
+        "potential_energy": [
+          "mul",
+          [
+            "mul",
+            "mass",
+            "gravitational_acceleration"
+          ],
+          "position"
+        ],
+        "mechanical_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              "mass",
+              "gravitational_acceleration"
+            ],
+            "position"
+          ]
+        ]
+      },
+      "closedForm": {
+        "position": [
+          "sub",
+          [
+            "add",
+            "initial_height",
+            [
+              "mul",
+              "initial_velocity",
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "gravitational_acceleration"
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "velocity": [
+          "sub",
+          "initial_velocity",
+          [
+            "mul",
+            "gravitational_acceleration",
+            "t"
+          ]
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            [
+              "sub",
+              "initial_velocity",
+              [
+                "mul",
+                "gravitational_acceleration",
+                "t"
+              ]
+            ],
+            2
+          ]
+        ],
+        "potential_energy": [
+          "mul",
+          [
+            "mul",
+            "mass",
+            "gravitational_acceleration"
+          ],
+          [
+            "sub",
+            [
+              "add",
+              "initial_height",
+              [
+                "mul",
+                "initial_velocity",
+                "t"
+              ]
+            ],
+            [
+              "mul",
+              [
+                "mul",
+                0.5,
+                "gravitational_acceleration"
+              ],
+              [
+                "pow",
+                "t",
+                2
+              ]
+            ]
+          ]
+        ],
+        "mechanical_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "initial_velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              "mass",
+              "gravitational_acceleration"
+            ],
+            "initial_height"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "vertical_position"
+    },
+    {
+      "source": "velocity",
+      "role": "velocity"
+    }
+  ]
+}

@@ -1,0 +1,357 @@
+{
+  "capabilityId": "opamp_comparator_output",
+  "title": "Op-amp so sánh điều khiển thiết bị đầu ra",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "node",
+      "voltage_source"
+    ],
+    "quantities": [
+      "reference_voltage",
+      "sensor_start_voltage",
+      "sensor_voltage_rate",
+      "saturation_voltage"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "reference_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "sensor_start_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "sensor_voltage_rate",
+      "unit": "V/s"
+    },
+    {
+      "key": "saturation_voltage",
+      "unit": "V",
+      "min": 1e-06,
+      "defaultValue": 5
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "sensor_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "output_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "output_state",
+      "unit": "1"
+    }
+  ],
+  "assumptions": [
+    "Op-amp lí tưởng dùng làm bộ so sánh; điện áp từ cảm biến thay đổi đều theo thời gian; output_state = 1 là thiết bị đầu ra (LED, relay) được bật."
+  ],
+  "equationSet": {
+    "canonical": [
+      "U_ra = +U_bh khi U+ > U-, -U_bh khi U+ < U-"
+    ],
+    "derived": [
+      "điều khiển LED/relay theo ngưỡng cảm biến"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "sensor_voltage": [
+          "add",
+          "sensor_start_voltage",
+          [
+            "mul",
+            "sensor_voltage_rate",
+            "elapsed_time"
+          ]
+        ],
+        "output_voltage": [
+          "div",
+          [
+            "mul",
+            "saturation_voltage",
+            [
+              "sub",
+              [
+                "add",
+                "sensor_start_voltage",
+                [
+                  "mul",
+                  "sensor_voltage_rate",
+                  "elapsed_time"
+                ]
+              ],
+              "reference_voltage"
+            ]
+          ],
+          [
+            "add",
+            [
+              "abs",
+              [
+                "sub",
+                [
+                  "add",
+                  "sensor_start_voltage",
+                  [
+                    "mul",
+                    "sensor_voltage_rate",
+                    "elapsed_time"
+                  ]
+                ],
+                "reference_voltage"
+              ]
+            ],
+            [
+              "mul",
+              1e-09,
+              "saturation_voltage"
+            ]
+          ]
+        ],
+        "output_state": [
+          "div",
+          [
+            "add",
+            [
+              "div",
+              [
+                "sub",
+                [
+                  "add",
+                  "sensor_start_voltage",
+                  [
+                    "mul",
+                    "sensor_voltage_rate",
+                    "elapsed_time"
+                  ]
+                ],
+                "reference_voltage"
+              ],
+              "saturation_voltage"
+            ],
+            [
+              "abs",
+              [
+                "div",
+                [
+                  "sub",
+                  [
+                    "add",
+                    "sensor_start_voltage",
+                    [
+                      "mul",
+                      "sensor_voltage_rate",
+                      "elapsed_time"
+                    ]
+                  ],
+                  "reference_voltage"
+                ],
+                "saturation_voltage"
+              ]
+            ]
+          ],
+          [
+            "add",
+            [
+              "mul",
+              2,
+              [
+                "abs",
+                [
+                  "div",
+                  [
+                    "sub",
+                    [
+                      "add",
+                      "sensor_start_voltage",
+                      [
+                        "mul",
+                        "sensor_voltage_rate",
+                        "elapsed_time"
+                      ]
+                    ],
+                    "reference_voltage"
+                  ],
+                  "saturation_voltage"
+                ]
+              ]
+            ],
+            1e-12
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "sensor_voltage": [
+          "add",
+          "sensor_start_voltage",
+          [
+            "mul",
+            "sensor_voltage_rate",
+            "t"
+          ]
+        ],
+        "output_voltage": [
+          "div",
+          [
+            "mul",
+            "saturation_voltage",
+            [
+              "sub",
+              [
+                "add",
+                "sensor_start_voltage",
+                [
+                  "mul",
+                  "sensor_voltage_rate",
+                  "t"
+                ]
+              ],
+              "reference_voltage"
+            ]
+          ],
+          [
+            "add",
+            [
+              "abs",
+              [
+                "sub",
+                [
+                  "add",
+                  "sensor_start_voltage",
+                  [
+                    "mul",
+                    "sensor_voltage_rate",
+                    "t"
+                  ]
+                ],
+                "reference_voltage"
+              ]
+            ],
+            [
+              "mul",
+              1e-09,
+              "saturation_voltage"
+            ]
+          ]
+        ],
+        "output_state": [
+          "div",
+          [
+            "add",
+            [
+              "div",
+              [
+                "sub",
+                [
+                  "add",
+                  "sensor_start_voltage",
+                  [
+                    "mul",
+                    "sensor_voltage_rate",
+                    "t"
+                  ]
+                ],
+                "reference_voltage"
+              ],
+              "saturation_voltage"
+            ],
+            [
+              "abs",
+              [
+                "div",
+                [
+                  "sub",
+                  [
+                    "add",
+                    "sensor_start_voltage",
+                    [
+                      "mul",
+                      "sensor_voltage_rate",
+                      "t"
+                    ]
+                  ],
+                  "reference_voltage"
+                ],
+                "saturation_voltage"
+              ]
+            ]
+          ],
+          [
+            "add",
+            [
+              "mul",
+              2,
+              [
+                "abs",
+                [
+                  "div",
+                  [
+                    "sub",
+                    [
+                      "add",
+                      "sensor_start_voltage",
+                      [
+                        "mul",
+                        "sensor_voltage_rate",
+                        "t"
+                      ]
+                    ],
+                    "reference_voltage"
+                  ],
+                  "saturation_voltage"
+                ]
+              ]
+            ],
+            1e-12
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "output_voltage",
+      "role": "state_value"
+    }
+  ]
+}

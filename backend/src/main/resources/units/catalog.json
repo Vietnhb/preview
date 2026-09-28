@@ -760,5 +760,53 @@
       "L": 2,
       "T": -1
     }
+  },
+  {
+    "canonical": "N/s",
+    "factor": 1,
+    "aliases": [
+      "N/s"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 1,
+      "T": -3
+    }
+  },
+  {
+    "canonical": "J/K",
+    "factor": 1,
+    "aliases": [
+      "J/K"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -2,
+      "K": -1
+    }
+  },
+  {
+    "canonical": "1/m3",
+    "factor": 1,
+    "aliases": [
+      "1/m3",
+      "m^-3"
+    ],
+    "dimensions": {
+      "L": -3
+    }
+  },
+  {
+    "canonical": "W/s",
+    "factor": 1,
+    "aliases": [
+      "W/s"
+    ],
+    "dimensions": {
+      "M": 1,
+      "L": 2,
+      "T": -4
+    }
   }
 ]

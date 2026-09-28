@@ -1,0 +1,60 @@
+{
+  "schemaId": "thpt_medical_physics",
+  "version": "1.0",
+  "topic": "MEDICAL_PHYSICS",
+  "name": "Một số ứng dụng vật lí trong chẩn đoán y học",
+  "grade": 12,
+  "description": "Ứng dụng vật lí trong chẩn đoán y học (Chuyên đề 12.2): cách tạo tia X trong ống tia X, sự suy giảm tia X qua mô, chụp X quang, siêu âm (tạo ảnh bằng tiếng vang), chụp cắt lớp CT (hình chiếu theo góc), cộng hưởng từ MRI (hồi phục từ hoá).",
+  "objectTypes": [
+    {
+      "type": "detector",
+      "label": "đầu thu/máy đo",
+      "description": "Máy đếm, đầu thu tia X, đầu dò siêu âm…"
+    },
+    {
+      "type": "material",
+      "label": "vật liệu",
+      "description": "Kim loại, bán dẫn, mô cơ thể, tấm chắn…"
+    },
+    {
+      "type": "electron",
+      "label": "electron",
+      "description": "Electron tự do hoặc trong nguyên tử."
+    },
+    {
+      "type": "photon",
+      "label": "photon/ánh sáng",
+      "description": "Chùm sáng, bức xạ điện từ."
+    },
+    {
+      "type": "nucleus",
+      "label": "hạt nhân",
+      "description": "Hạt nhân nguyên tử, mẫu chất phóng xạ."
+    }
+  ],
+  "capabilities": [
+    "xray_tube_electron",
+    "radiation_attenuation",
+    "pulse_echo",
+    "ct_projection_sinogram",
+    "magnetization_relaxation"
+  ],
+  "curriculum": [
+    {
+      "name": "Bản chất và cách tạo ra tia X",
+      "summary": "Tạo, điều khiển, suy giảm tia X."
+    },
+    {
+      "name": "Chẩn đoán bằng tia X",
+      "summary": "Liều chiếu, độ tương phản."
+    },
+    {
+      "name": "Chẩn đoán bằng siêu âm",
+      "summary": "Tạo ảnh siêu âm."
+    },
+    {
+      "name": "Chụp cắt lớp, cộng hưởng từ",
+      "summary": "CT, MRI."
+    }
+  ]
+}

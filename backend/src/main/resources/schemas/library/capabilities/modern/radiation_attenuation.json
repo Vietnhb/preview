@@ -1,0 +1,166 @@
+{
+  "capabilityId": "radiation_attenuation",
+  "title": "Sự suy giảm chùm bức xạ qua vật chất",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "photon",
+      "material",
+      "detector"
+    ],
+    "quantities": [
+      "initial_intensity",
+      "attenuation_coefficient",
+      "thickness_rate"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "initial_intensity",
+      "unit": "W/m2",
+      "min": 0
+    },
+    {
+      "key": "attenuation_coefficient",
+      "unit": "1/m",
+      "min": 0
+    },
+    {
+      "key": "thickness_rate",
+      "unit": "m/s",
+      "min": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "thickness",
+      "unit": "m"
+    },
+    {
+      "key": "intensity",
+      "unit": "W/m2"
+    },
+    {
+      "key": "transmitted_fraction",
+      "unit": "1"
+    }
+  ],
+  "assumptions": [
+    "Chùm tia hẹp đơn sắc đi qua vật liệu đồng chất; độ dày lớp vật liệu tăng đều theo thời gian để khảo sát."
+  ],
+  "equationSet": {
+    "canonical": [
+      "I = I0*exp(-mu*x)"
+    ],
+    "derived": [
+      "lop_hap_thu_mot_nua: x_1/2 = ln2/mu"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "thickness": 0
+      },
+      "rates": {
+        "thickness": "thickness_rate"
+      },
+      "outputs": {
+        "thickness": "thickness",
+        "intensity": [
+          "mul",
+          "initial_intensity",
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "neg",
+                "attenuation_coefficient"
+              ],
+              "thickness"
+            ]
+          ]
+        ],
+        "transmitted_fraction": [
+          "exp",
+          [
+            "mul",
+            [
+              "neg",
+              "attenuation_coefficient"
+            ],
+            "thickness"
+          ]
+        ]
+      },
+      "closedForm": {
+        "thickness": [
+          "mul",
+          "thickness_rate",
+          "t"
+        ],
+        "intensity": [
+          "mul",
+          "initial_intensity",
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "neg",
+                  "attenuation_coefficient"
+                ],
+                "thickness_rate"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "transmitted_fraction": [
+          "exp",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "neg",
+                "attenuation_coefficient"
+              ],
+              "thickness_rate"
+            ],
+            "t"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "intensity",
+      "role": "state_value"
+    }
+  ]
+}

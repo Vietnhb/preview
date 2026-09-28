@@ -1,0 +1,263 @@
+{
+  "capabilityId": "atwood_machine_body",
+  "title": "Hai vật nối qua ròng rọc (máy Atwood)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "force_source"
+    ],
+    "quantities": [
+      "mass",
+      "other_mass",
+      "gravitational_acceleration",
+      "initial_position"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "other_mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "tension",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Hai vật treo hai đầu dây vắt qua ròng rọc cố định nhẹ, không ma sát; thả từ nghỉ; chiều dương hướng lên cho mỗi vật."
+  ],
+  "equationSet": {
+    "canonical": [
+      "a = (m2 - m1)*g/(m1 + m2)",
+      "T = 2*m1*m2*g/(m1 + m2)"
+    ],
+    "derived": []
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": 0
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "div",
+          [
+            "mul",
+            [
+              "sub",
+              "other_mass",
+              "mass"
+            ],
+            "gravitational_acceleration"
+          ],
+          [
+            "add",
+            "mass",
+            "other_mass"
+          ]
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "acceleration": [
+          "div",
+          [
+            "mul",
+            [
+              "sub",
+              "other_mass",
+              "mass"
+            ],
+            "gravitational_acceleration"
+          ],
+          [
+            "add",
+            "mass",
+            "other_mass"
+          ]
+        ],
+        "tension": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                2,
+                "mass"
+              ],
+              "other_mass"
+            ],
+            "gravitational_acceleration"
+          ],
+          [
+            "add",
+            "mass",
+            "other_mass"
+          ]
+        ]
+      },
+      "closedForm": {
+        "position": [
+          "add",
+          "initial_position",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  0.5,
+                  [
+                    "sub",
+                    "other_mass",
+                    "mass"
+                  ]
+                ],
+                "gravitational_acceleration"
+              ],
+              [
+                "add",
+                "mass",
+                "other_mass"
+              ]
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "velocity": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "sub",
+                "other_mass",
+                "mass"
+              ],
+              "gravitational_acceleration"
+            ],
+            [
+              "add",
+              "mass",
+              "other_mass"
+            ]
+          ],
+          "t"
+        ],
+        "acceleration": [
+          "div",
+          [
+            "mul",
+            [
+              "sub",
+              "other_mass",
+              "mass"
+            ],
+            "gravitational_acceleration"
+          ],
+          [
+            "add",
+            "mass",
+            "other_mass"
+          ]
+        ],
+        "tension": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                2,
+                "mass"
+              ],
+              "other_mass"
+            ],
+            "gravitational_acceleration"
+          ],
+          [
+            "add",
+            "mass",
+            "other_mass"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "vertical_position"
+    },
+    {
+      "source": "tension",
+      "role": "force"
+    }
+  ]
+}

@@ -1,0 +1,423 @@
+{
+  "capabilityId": "uniform_circular_motion",
+  "title": "Chuyển động tròn đều",
+  "version": "2.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "radius",
+      "angular_velocity",
+      "initial_angle",
+      "mass"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "radius",
+      "unit": "m",
+      "min": 1e-09
+    },
+    {
+      "key": "angular_velocity",
+      "unit": "rad/s"
+    },
+    {
+      "key": "initial_angle",
+      "unit": "rad",
+      "defaultValue": 0
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-12,
+      "defaultValue": 1
+    }
+  ],
+  "outputs": [
+    {
+      "key": "angle",
+      "unit": "rad"
+    },
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    },
+    {
+      "key": "ax",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "ay",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "centripetal_acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "centripetal_force",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Quỹ đạo tròn tâm O, tốc độ góc không đổi."
+  ],
+  "equationSet": {
+    "canonical": [
+      "v = omega*r",
+      "a_ht = v^2/r = omega^2*r"
+    ],
+    "derived": [
+      "T = 2*pi/omega",
+      "F_ht = m*omega^2*r",
+      "F_ht = m*omega^2*r = m*v^2/r"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "angle": "initial_angle"
+      },
+      "rates": {
+        "angle": "angular_velocity"
+      },
+      "outputs": {
+        "angle": "angle",
+        "x": [
+          "mul",
+          "radius",
+          [
+            "cos",
+            "angle"
+          ]
+        ],
+        "y": [
+          "mul",
+          "radius",
+          [
+            "sin",
+            "angle"
+          ]
+        ],
+        "vx": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "radius"
+            ],
+            "angular_velocity"
+          ],
+          [
+            "sin",
+            "angle"
+          ]
+        ],
+        "vy": [
+          "mul",
+          [
+            "mul",
+            "radius",
+            "angular_velocity"
+          ],
+          [
+            "cos",
+            "angle"
+          ]
+        ],
+        "ax": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "radius"
+            ],
+            [
+              "pow",
+              "angular_velocity",
+              2
+            ]
+          ],
+          [
+            "cos",
+            "angle"
+          ]
+        ],
+        "ay": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "radius"
+            ],
+            [
+              "pow",
+              "angular_velocity",
+              2
+            ]
+          ],
+          [
+            "sin",
+            "angle"
+          ]
+        ],
+        "speed": [
+          "mul",
+          "radius",
+          [
+            "abs",
+            "angular_velocity"
+          ]
+        ],
+        "centripetal_acceleration": [
+          "mul",
+          "radius",
+          [
+            "pow",
+            "angular_velocity",
+            2
+          ]
+        ],
+        "centripetal_force": [
+          "mul",
+          [
+            "mul",
+            "mass",
+            "radius"
+          ],
+          [
+            "pow",
+            "angular_velocity",
+            2
+          ]
+        ]
+      },
+      "closedForm": {
+        "angle": [
+          "add",
+          "initial_angle",
+          [
+            "mul",
+            "angular_velocity",
+            "t"
+          ]
+        ],
+        "x": [
+          "mul",
+          "radius",
+          [
+            "cos",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                "angular_velocity",
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "y": [
+          "mul",
+          "radius",
+          [
+            "sin",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                "angular_velocity",
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "vx": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "radius"
+            ],
+            "angular_velocity"
+          ],
+          [
+            "sin",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                "angular_velocity",
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "vy": [
+          "mul",
+          [
+            "mul",
+            "radius",
+            "angular_velocity"
+          ],
+          [
+            "cos",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                "angular_velocity",
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "ax": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "radius"
+            ],
+            [
+              "pow",
+              "angular_velocity",
+              2
+            ]
+          ],
+          [
+            "cos",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                "angular_velocity",
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "ay": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "radius"
+            ],
+            [
+              "pow",
+              "angular_velocity",
+              2
+            ]
+          ],
+          [
+            "sin",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                "angular_velocity",
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "speed": [
+          "mul",
+          "radius",
+          [
+            "abs",
+            "angular_velocity"
+          ]
+        ],
+        "centripetal_acceleration": [
+          "mul",
+          "radius",
+          [
+            "pow",
+            "angular_velocity",
+            2
+          ]
+        ],
+        "centripetal_force": [
+          "mul",
+          [
+            "mul",
+            "mass",
+            "radius"
+          ],
+          [
+            "pow",
+            "angular_velocity",
+            2
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "y",
+      "role": "vertical_position"
+    },
+    {
+      "source": "angle",
+      "role": "angle_annotation"
+    }
+  ]
+}

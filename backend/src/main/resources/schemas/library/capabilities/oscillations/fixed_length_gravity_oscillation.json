@@ -1,0 +1,344 @@
+{
+  "capabilityId": "fixed_length_gravity_oscillation",
+  "title": "Con lắc đơn",
+  "version": "2.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "length",
+      "initial_angle",
+      "initial_angular_velocity",
+      "gravitational_acceleration",
+      "mass"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "length",
+      "unit": "m",
+      "min": 1e-06
+    },
+    {
+      "key": "initial_angle",
+      "unit": "rad"
+    },
+    {
+      "key": "initial_angular_velocity",
+      "unit": "rad/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "defaultValue": 9.80665,
+      "min": 1e-06
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-12,
+      "defaultValue": 1
+    }
+  ],
+  "outputs": [
+    {
+      "key": "angle",
+      "unit": "rad"
+    },
+    {
+      "key": "angular_velocity",
+      "unit": "rad/s"
+    },
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    },
+    {
+      "key": "potential_energy",
+      "unit": "J"
+    },
+    {
+      "key": "mechanical_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "The connector length is fixed and massless.",
+    "The pivot is fixed, gravity is uniform, and damping or driving is absent unless composed with another capability."
+  ],
+  "validityDomain": {
+    "lengthPositive": true,
+    "gravityPositive": true,
+    "durationPositive": true
+  },
+  "equationSet": {
+    "canonical": [
+      "d2theta/dt2=-(g/L)*sin(theta)"
+    ],
+    "derived": [
+      "x=L*sin(theta)",
+      "y=-L*cos(theta)",
+      "T ~ 2*pi*sqrt(L/g) (góc nhỏ)"
+    ],
+    "dependencies": []
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": null,
+    "math": {
+      "initial": {
+        "angle": "initial_angle",
+        "angular_velocity": "initial_angular_velocity"
+      },
+      "rates": {
+        "angle": "angular_velocity",
+        "angular_velocity": [
+          "neg",
+          [
+            "mul",
+            [
+              "div",
+              "gravitational_acceleration",
+              "length"
+            ],
+            [
+              "sin",
+              "angle"
+            ]
+          ]
+        ]
+      },
+      "outputs": {
+        "angle": "angle",
+        "angular_velocity": "angular_velocity",
+        "x": [
+          "mul",
+          "length",
+          [
+            "sin",
+            "angle"
+          ]
+        ],
+        "y": [
+          "neg",
+          [
+            "mul",
+            "length",
+            [
+              "cos",
+              "angle"
+            ]
+          ]
+        ],
+        "vx": [
+          "mul",
+          [
+            "mul",
+            "length",
+            [
+              "cos",
+              "angle"
+            ]
+          ],
+          "angular_velocity"
+        ],
+        "vy": [
+          "mul",
+          [
+            "mul",
+            "length",
+            [
+              "sin",
+              "angle"
+            ]
+          ],
+          "angular_velocity"
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            [
+              "mul",
+              "length",
+              "angular_velocity"
+            ],
+            2
+          ]
+        ],
+        "potential_energy": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              "mass",
+              "gravitational_acceleration"
+            ],
+            "length"
+          ],
+          [
+            "sub",
+            1,
+            [
+              "cos",
+              "angle"
+            ]
+          ]
+        ],
+        "mechanical_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              [
+                "mul",
+                "length",
+                "angular_velocity"
+              ],
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                "mass",
+                "gravitational_acceleration"
+              ],
+              "length"
+            ],
+            [
+              "sub",
+              1,
+              [
+                "cos",
+                "angle"
+              ]
+            ]
+          ]
+        ]
+      },
+      "invariants": {
+        "specific_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              [
+                "pow",
+                "length",
+                2
+              ]
+            ],
+            [
+              "pow",
+              "angular_velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              "gravitational_acceleration",
+              "length"
+            ],
+            [
+              "sub",
+              1,
+              [
+                "cos",
+                "angle"
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "strategy": "residual_invariants",
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "invariants": [
+      "finite_output",
+      "mechanical_energy_conservation"
+    ],
+    "benchmarks": [
+      {
+        "name": "stationary_equilibrium",
+        "durationSeconds": 1,
+        "inputs": {
+          "length": 1,
+          "initial_angle": 0,
+          "initial_angular_velocity": 0,
+          "gravitational_acceleration": 9.8
+        },
+        "expectedOutputs": {
+          "angle": 0,
+          "angular_velocity": 0,
+          "x": 0,
+          "y": -1,
+          "vx": 0,
+          "vy": 0
+        }
+      }
+    ]
+  },
+  "rendererBindings": [
+    {
+      "source": "positions.x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "positions.y",
+      "role": "vertical_position"
+    },
+    {
+      "source": "velocities",
+      "role": "velocity_vector"
+    },
+    {
+      "source": "angle",
+      "role": "connector_angle"
+    }
+  ]
+}

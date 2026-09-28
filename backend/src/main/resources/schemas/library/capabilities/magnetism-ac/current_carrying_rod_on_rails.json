@@ -1,0 +1,242 @@
+{
+  "capabilityId": "current_carrying_rod_on_rails",
+  "title": "Thanh dẫn mang dòng điện trên hai ray trong từ trường",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "coil",
+      "conductor",
+      "field_region"
+    ],
+    "quantities": [
+      "flux_density",
+      "current",
+      "rod_length",
+      "mass",
+      "initial_position",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "flux_density",
+      "unit": "T"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    },
+    {
+      "key": "rod_length",
+      "unit": "m",
+      "min": 1e-09
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Thanh dẫn trượt không ma sát trên hai ray song song nằm ngang, dòng điện không đổi, từ trường đều vuông góc mặt phẳng ray."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F = B*I*l (dây vuông góc B)"
+    ],
+    "derived": [
+      "a = B*I*l/m"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "flux_density",
+              "current"
+            ],
+            "rod_length"
+          ],
+          "mass"
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "acceleration": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "flux_density",
+              "current"
+            ],
+            "rod_length"
+          ],
+          "mass"
+        ],
+        "force": [
+          "mul",
+          [
+            "mul",
+            "flux_density",
+            "current"
+          ],
+          "rod_length"
+        ]
+      },
+      "closedForm": {
+        "position": [
+          "add",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              "initial_velocity",
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    0.5,
+                    "flux_density"
+                  ],
+                  "current"
+                ],
+                "rod_length"
+              ],
+              "mass"
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "velocity": [
+          "add",
+          "initial_velocity",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  "flux_density",
+                  "current"
+                ],
+                "rod_length"
+              ],
+              "mass"
+            ],
+            "t"
+          ]
+        ],
+        "acceleration": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "flux_density",
+              "current"
+            ],
+            "rod_length"
+          ],
+          "mass"
+        ],
+        "force": [
+          "mul",
+          [
+            "mul",
+            "flux_density",
+            "current"
+          ],
+          "rod_length"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "force",
+      "role": "force"
+    }
+  ]
+}

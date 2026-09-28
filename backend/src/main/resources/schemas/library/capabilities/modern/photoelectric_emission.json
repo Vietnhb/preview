@@ -1,0 +1,263 @@
+{
+  "capabilityId": "photoelectric_emission",
+  "title": "Hiệu ứng quang điện",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "photon",
+      "electron",
+      "material"
+    ],
+    "quantities": [
+      "light_frequency",
+      "work_function",
+      "planck_constant",
+      "electron_mass",
+      "elementary_charge"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "light_frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "work_function",
+      "unit": "J",
+      "min": 0
+    },
+    {
+      "key": "planck_constant",
+      "unit": "J*s",
+      "min": 1e-40,
+      "defaultValue": 6.62607015e-34
+    },
+    {
+      "key": "electron_mass",
+      "unit": "kg",
+      "min": 1e-35,
+      "defaultValue": 9.1093837e-31
+    },
+    {
+      "key": "elementary_charge",
+      "unit": "C",
+      "min": 1e-25,
+      "defaultValue": 1.602176634e-19
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "photon_energy",
+      "unit": "J"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    },
+    {
+      "key": "speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "stopping_voltage",
+      "unit": "V"
+    }
+  ],
+  "assumptions": [
+    "Ánh sáng có tần số lớn hơn giới hạn quang điện (h*f > A); vị trí là quãng đường electron có động năng cực đại bay ra khỏi bề mặt trong chân không, không có điện trường."
+  ],
+  "equationSet": {
+    "canonical": [
+      "h*f = A + Wd_max"
+    ],
+    "derived": [
+      "v_max = sqrt(2*(h*f - A)/m)",
+      "e*U_h = Wd_max",
+      "f0 = A/h"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": 0
+      },
+      "rates": {
+        "position": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              2,
+              [
+                "sub",
+                [
+                  "mul",
+                  "planck_constant",
+                  "light_frequency"
+                ],
+                "work_function"
+              ]
+            ],
+            "electron_mass"
+          ]
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "photon_energy": [
+          "mul",
+          "planck_constant",
+          "light_frequency"
+        ],
+        "kinetic_energy": [
+          "sub",
+          [
+            "mul",
+            "planck_constant",
+            "light_frequency"
+          ],
+          "work_function"
+        ],
+        "speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              2,
+              [
+                "sub",
+                [
+                  "mul",
+                  "planck_constant",
+                  "light_frequency"
+                ],
+                "work_function"
+              ]
+            ],
+            "electron_mass"
+          ]
+        ],
+        "stopping_voltage": [
+          "div",
+          [
+            "sub",
+            [
+              "mul",
+              "planck_constant",
+              "light_frequency"
+            ],
+            "work_function"
+          ],
+          "elementary_charge"
+        ]
+      },
+      "closedForm": {
+        "position": [
+          "mul",
+          [
+            "sqrt",
+            [
+              "div",
+              [
+                "mul",
+                2,
+                [
+                  "sub",
+                  [
+                    "mul",
+                    "planck_constant",
+                    "light_frequency"
+                  ],
+                  "work_function"
+                ]
+              ],
+              "electron_mass"
+            ]
+          ],
+          "t"
+        ],
+        "photon_energy": [
+          "mul",
+          "planck_constant",
+          "light_frequency"
+        ],
+        "kinetic_energy": [
+          "sub",
+          [
+            "mul",
+            "planck_constant",
+            "light_frequency"
+          ],
+          "work_function"
+        ],
+        "speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              2,
+              [
+                "sub",
+                [
+                  "mul",
+                  "planck_constant",
+                  "light_frequency"
+                ],
+                "work_function"
+              ]
+            ],
+            "electron_mass"
+          ]
+        ],
+        "stopping_voltage": [
+          "div",
+          [
+            "sub",
+            [
+              "mul",
+              "planck_constant",
+              "light_frequency"
+            ],
+            "work_function"
+          ],
+          "elementary_charge"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    }
+  ]
+}

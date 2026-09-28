@@ -1,0 +1,52 @@
+{
+  "schemaId": "thpt_magnetic_field",
+  "version": "1.0",
+  "topic": "MAGNETIC_FIELD",
+  "name": "Trường từ (Từ trường)",
+  "grade": 12,
+  "description": "Trường từ (Vật lí 12): từ trường, đường sức từ, lực từ lên dây dẫn mang dòng điện F = BIl sinθ, cảm ứng từ, cân dòng điện, hạt mang điện trong từ trường, từ thông, cảm ứng điện từ, định luật Faraday và Lenz, thanh dẫn chuyển động trong từ trường, máy phát điện xoay chiều.",
+  "objectTypes": [
+    {
+      "type": "conductor",
+      "label": "vật dẫn",
+      "description": "Dây dẫn, thanh kim loại, bản tụ…"
+    },
+    {
+      "type": "coil",
+      "label": "khung dây/cuộn dây",
+      "description": "Khung dây, cuộn sơ cấp/thứ cấp."
+    },
+    {
+      "type": "field_region",
+      "label": "vùng có trường",
+      "description": "Vùng điện trường / từ trường đều hoặc không đều."
+    },
+    {
+      "type": "charged_particle",
+      "label": "hạt mang điện",
+      "description": "Điện tích điểm, electron, ion…"
+    }
+  ],
+  "capabilities": [
+    "current_carrying_rod_on_rails",
+    "force_on_wire_rotating_angle",
+    "charge_in_uniform_magnetic_field",
+    "changing_flux_induction",
+    "sliding_rod_magnetic_braking",
+    "rotating_coil_induction"
+  ],
+  "curriculum": [
+    {
+      "name": "Khái niệm từ trường",
+      "summary": "Đường sức từ."
+    },
+    {
+      "name": "Lực từ tác dụng lên đoạn dây dẫn mang dòng điện; Cảm ứng từ",
+      "summary": "F = BIlsinθ; tesla."
+    },
+    {
+      "name": "Từ thông; Cảm ứng điện từ",
+      "summary": "Faraday, Lenz; tạo dòng điện xoay chiều."
+    }
+  ]
+}

@@ -1,0 +1,310 @@
+{
+  "capabilityId": "amplitude_modulated_signal",
+  "title": "Biến điệu biên độ (AM)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "wave_source",
+      "receiver"
+    ],
+    "quantities": [
+      "carrier_amplitude",
+      "carrier_frequency",
+      "message_frequency",
+      "modulation_index"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "carrier_amplitude",
+      "unit": "V",
+      "min": 0
+    },
+    {
+      "key": "carrier_frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "message_frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "modulation_index",
+      "unit": "1",
+      "min": 0,
+      "max": 1
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "signal",
+      "unit": "V"
+    },
+    {
+      "key": "envelope",
+      "unit": "V"
+    },
+    {
+      "key": "message",
+      "unit": "V"
+    }
+  ],
+  "assumptions": [
+    "Tín hiệu âm tần hình sin, biến điệu biên độ lí tưởng (0 <= m <= 1)."
+  ],
+  "equationSet": {
+    "canonical": [
+      "u_AM = U0*(1 + m*cos(2*pi*fm*t))*cos(2*pi*fc*t)"
+    ],
+    "derived": [
+      "biên độ sóng mang biến đổi theo tín hiệu âm tần"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "message": [
+          "mul",
+          [
+            "mul",
+            "carrier_amplitude",
+            "modulation_index"
+          ],
+          [
+            "cos",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "message_frequency"
+              ],
+              "elapsed_time"
+            ]
+          ]
+        ],
+        "envelope": [
+          "mul",
+          "carrier_amplitude",
+          [
+            "add",
+            1,
+            [
+              "mul",
+              "modulation_index",
+              [
+                "cos",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "message_frequency"
+                  ],
+                  "elapsed_time"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "signal": [
+          "mul",
+          [
+            "mul",
+            "carrier_amplitude",
+            [
+              "add",
+              1,
+              [
+                "mul",
+                "modulation_index",
+                [
+                  "cos",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "message_frequency"
+                    ],
+                    "elapsed_time"
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "cos",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "carrier_frequency"
+              ],
+              "elapsed_time"
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "message": [
+          "mul",
+          [
+            "mul",
+            "carrier_amplitude",
+            "modulation_index"
+          ],
+          [
+            "cos",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "message_frequency"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "envelope": [
+          "mul",
+          "carrier_amplitude",
+          [
+            "add",
+            1,
+            [
+              "mul",
+              "modulation_index",
+              [
+                "cos",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "message_frequency"
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "signal": [
+          "mul",
+          [
+            "mul",
+            "carrier_amplitude",
+            [
+              "add",
+              1,
+              [
+                "mul",
+                "modulation_index",
+                [
+                  "cos",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "message_frequency"
+                    ],
+                    "t"
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "cos",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "carrier_frequency"
+              ],
+              "t"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "signal",
+      "role": "state_value"
+    }
+  ]
+}

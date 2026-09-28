@@ -1,0 +1,1750 @@
+{
+  "accelerating_voltage": {
+    "label": "hiệu điện thế tăng tốc",
+    "description": "hiệu điện thế tăng tốc",
+    "aliases": []
+  },
+  "acceleration": {
+    "label": "gia tốc",
+    "description": "gia tốc",
+    "aliases": []
+  },
+  "activity": {
+    "label": "độ phóng xạ",
+    "description": "độ phóng xạ",
+    "aliases": []
+  },
+  "amount": {
+    "label": "lượng khí (mol)",
+    "description": "lượng khí (mol)",
+    "aliases": [
+      "n"
+    ]
+  },
+  "amplitude": {
+    "label": "biên độ",
+    "description": "biên độ",
+    "aliases": [
+      "A"
+    ]
+  },
+  "angle": {
+    "label": "góc",
+    "description": "góc",
+    "aliases": []
+  },
+  "angle_1": {
+    "label": "góc của lực 1",
+    "description": "góc của lực 1",
+    "aliases": []
+  },
+  "angle_2": {
+    "label": "góc của lực 2",
+    "description": "góc của lực 2",
+    "aliases": []
+  },
+  "angular_frequency": {
+    "label": "tần số góc",
+    "description": "Rate of phase change.",
+    "aliases": [
+      "omega"
+    ]
+  },
+  "angular_velocity": {
+    "label": "tốc độ góc",
+    "description": "tốc độ góc",
+    "aliases": []
+  },
+  "applied_force": {
+    "label": "lực kéo",
+    "description": "lực kéo",
+    "aliases": []
+  },
+  "applied_voltage": {
+    "label": "hiệu điện thế đặt vào",
+    "description": "hiệu điện thế đặt vào",
+    "aliases": []
+  },
+  "applied_work": {
+    "label": "công của lực kéo",
+    "description": "công của lực kéo",
+    "aliases": []
+  },
+  "attenuation_coefficient": {
+    "label": "hệ số suy giảm",
+    "description": "hệ số suy giảm",
+    "aliases": []
+  },
+  "attenuation_db": {
+    "label": "độ suy giảm (dB)",
+    "description": "độ suy giảm (dB)",
+    "aliases": []
+  },
+  "attenuation_per_metre": {
+    "label": "độ suy giảm trên mỗi mét",
+    "description": "độ suy giảm trên mỗi mét",
+    "aliases": []
+  },
+  "average_power": {
+    "label": "công suất trung bình",
+    "description": "công suất trung bình",
+    "aliases": []
+  },
+  "ax": {
+    "label": "gia tốc theo x",
+    "description": "gia tốc theo x",
+    "aliases": []
+  },
+  "ay": {
+    "label": "gia tốc theo y",
+    "description": "gia tốc theo y",
+    "aliases": []
+  },
+  "balancing_force_2": {
+    "label": "lực cân bằng cần thiết",
+    "description": "lực cân bằng cần thiết",
+    "aliases": []
+  },
+  "band_gap": {
+    "label": "độ rộng vùng cấm",
+    "description": "độ rộng vùng cấm",
+    "aliases": []
+  },
+  "binding_energy": {
+    "label": "năng lượng liên kết",
+    "description": "năng lượng liên kết",
+    "aliases": []
+  },
+  "binding_energy_per_nucleon": {
+    "label": "năng lượng liên kết riêng",
+    "description": "năng lượng liên kết riêng",
+    "aliases": []
+  },
+  "body_radius": {
+    "label": "bán kính thiên thể",
+    "description": "bán kính thiên thể",
+    "aliases": []
+  },
+  "body_volume": {
+    "label": "thể tích vật",
+    "description": "thể tích vật",
+    "aliases": []
+  },
+  "boltzmann_constant": {
+    "label": "hằng số Boltzmann",
+    "description": "hằng số Boltzmann",
+    "aliases": []
+  },
+  "box_length": {
+    "label": "chiều dài bình",
+    "description": "chiều dài bình",
+    "aliases": []
+  },
+  "buoyant_force": {
+    "label": "lực đẩy Ác-si-mét",
+    "description": "lực đẩy Ác-si-mét",
+    "aliases": []
+  },
+  "capacitance": {
+    "label": "điện dung",
+    "description": "điện dung",
+    "aliases": [
+      "C"
+    ]
+  },
+  "capacitance_1": {
+    "label": "điện dung C1",
+    "description": "điện dung C1",
+    "aliases": []
+  },
+  "capacitance_2": {
+    "label": "điện dung C2",
+    "description": "điện dung C2",
+    "aliases": []
+  },
+  "carrier_amplitude": {
+    "label": "biên độ sóng mang",
+    "description": "biên độ sóng mang",
+    "aliases": []
+  },
+  "carrier_density": {
+    "label": "mật độ hạt tải điện",
+    "description": "mật độ hạt tải điện",
+    "aliases": []
+  },
+  "carrier_frequency": {
+    "label": "tần số sóng mang",
+    "description": "tần số sóng mang",
+    "aliases": []
+  },
+  "central_mass": {
+    "label": "khối lượng vật trung tâm",
+    "description": "khối lượng vật trung tâm",
+    "aliases": []
+  },
+  "centripetal_acceleration": {
+    "label": "gia tốc hướng tâm",
+    "description": "gia tốc hướng tâm",
+    "aliases": []
+  },
+  "centripetal_force": {
+    "label": "lực hướng tâm",
+    "description": "lực hướng tâm",
+    "aliases": []
+  },
+  "charge": {
+    "label": "điện tích",
+    "description": "điện tích",
+    "aliases": [
+      "q"
+    ]
+  },
+  "charge_1": {
+    "label": "điện tích tụ 1",
+    "description": "điện tích tụ 1",
+    "aliases": []
+  },
+  "charge_2": {
+    "label": "điện tích tụ 2",
+    "description": "điện tích tụ 2",
+    "aliases": []
+  },
+  "coil_area": {
+    "label": "diện tích khung dây",
+    "description": "diện tích khung dây",
+    "aliases": []
+  },
+  "coulomb_constant": {
+    "label": "hằng số Coulomb",
+    "description": "hằng số Coulomb",
+    "aliases": []
+  },
+  "cross_section": {
+    "label": "tiết diện dây",
+    "description": "tiết diện dây",
+    "aliases": []
+  },
+  "current": {
+    "label": "cường độ dòng điện",
+    "description": "cường độ dòng điện",
+    "aliases": [
+      "I"
+    ]
+  },
+  "current_1": {
+    "label": "cường độ dòng I1",
+    "description": "cường độ dòng I1",
+    "aliases": []
+  },
+  "current_2": {
+    "label": "cường độ dòng I2",
+    "description": "cường độ dòng I2",
+    "aliases": []
+  },
+  "current_amplitude": {
+    "label": "biên độ dòng điện",
+    "description": "biên độ dòng điện",
+    "aliases": []
+  },
+  "current_rms": {
+    "label": "cường độ dòng điện hiệu dụng",
+    "description": "cường độ dòng điện hiệu dụng",
+    "aliases": []
+  },
+  "damping_coefficient": {
+    "label": "hệ số cản",
+    "description": "hệ số cản",
+    "aliases": []
+  },
+  "daughter_half_life": {
+    "label": "chu kì bán rã hạt nhân con",
+    "description": "chu kì bán rã hạt nhân con",
+    "aliases": []
+  },
+  "daughter_nuclei": {
+    "label": "số hạt nhân con",
+    "description": "số hạt nhân con",
+    "aliases": []
+  },
+  "degrees_of_freedom": {
+    "label": "số bậc tự do",
+    "description": "số bậc tự do",
+    "aliases": []
+  },
+  "depth": {
+    "label": "độ sâu",
+    "description": "độ sâu",
+    "aliases": []
+  },
+  "descent_speed": {
+    "label": "tốc độ đi xuống",
+    "description": "tốc độ đi xuống",
+    "aliases": []
+  },
+  "detector_position": {
+    "label": "vị trí đầu thu",
+    "description": "vị trí đầu thu",
+    "aliases": []
+  },
+  "diode_drop": {
+    "label": "điện áp rơi trên điốt",
+    "description": "điện áp rơi trên điốt",
+    "aliases": []
+  },
+  "displacement": {
+    "label": "li độ",
+    "description": "li độ",
+    "aliases": []
+  },
+  "dissipated_energy": {
+    "label": "năng lượng tiêu hao",
+    "description": "năng lượng tiêu hao",
+    "aliases": []
+  },
+  "distance": {
+    "label": "quãng đường",
+    "description": "quãng đường",
+    "aliases": []
+  },
+  "distance_to_source_1": {
+    "label": "khoảng cách tới nguồn 1",
+    "description": "khoảng cách tới nguồn 1",
+    "aliases": []
+  },
+  "distance_to_source_2": {
+    "label": "khoảng cách tới nguồn 2",
+    "description": "khoảng cách tới nguồn 2",
+    "aliases": []
+  },
+  "drag_coefficient": {
+    "label": "hệ số lực cản",
+    "description": "hệ số lực cản",
+    "aliases": []
+  },
+  "drift_speed": {
+    "label": "tốc độ trôi",
+    "description": "tốc độ trôi",
+    "aliases": []
+  },
+  "drift_velocity_x": {
+    "label": "vận tốc trôi theo x",
+    "description": "vận tốc trôi theo x",
+    "aliases": []
+  },
+  "drift_velocity_y": {
+    "label": "vận tốc trôi theo y",
+    "description": "vận tốc trôi theo y",
+    "aliases": []
+  },
+  "driving_angular_frequency": {
+    "label": "tần số góc ngoại lực",
+    "description": "tần số góc ngoại lực",
+    "aliases": []
+  },
+  "driving_force_amplitude": {
+    "label": "biên độ ngoại lực",
+    "description": "biên độ ngoại lực",
+    "aliases": []
+  },
+  "driving_work": {
+    "label": "công ngoại lực",
+    "description": "công ngoại lực",
+    "aliases": []
+  },
+  "echo_delay": {
+    "label": "thời gian trễ tiếng vọng",
+    "description": "thời gian trễ tiếng vọng",
+    "aliases": []
+  },
+  "efficiency": {
+    "label": "hiệu suất",
+    "description": "hiệu suất",
+    "aliases": []
+  },
+  "elapsed_time": {
+    "label": "thời gian",
+    "description": "thời gian",
+    "aliases": []
+  },
+  "elastic_energy": {
+    "label": "thế năng đàn hồi",
+    "description": "thế năng đàn hồi",
+    "aliases": []
+  },
+  "elastic_limit_force": {
+    "label": "lực ứng với giới hạn đàn hồi",
+    "description": "lực ứng với giới hạn đàn hồi",
+    "aliases": []
+  },
+  "electron_mass": {
+    "label": "khối lượng electron",
+    "description": "khối lượng electron",
+    "aliases": []
+  },
+  "electron_speed": {
+    "label": "tốc độ electron",
+    "description": "tốc độ electron",
+    "aliases": []
+  },
+  "elementary_charge": {
+    "label": "điện tích nguyên tố",
+    "description": "điện tích nguyên tố",
+    "aliases": []
+  },
+  "elongation": {
+    "label": "độ nở dài",
+    "description": "độ nở dài",
+    "aliases": []
+  },
+  "emf": {
+    "label": "suất điện động",
+    "description": "suất điện động",
+    "aliases": []
+  },
+  "energy": {
+    "label": "năng lượng",
+    "description": "năng lượng",
+    "aliases": []
+  },
+  "energy_lost": {
+    "label": "năng lượng mất đi",
+    "description": "năng lượng mất đi",
+    "aliases": []
+  },
+  "envelope": {
+    "label": "đường bao biên độ",
+    "description": "đường bao biên độ",
+    "aliases": []
+  },
+  "equilibrium_magnetization": {
+    "label": "từ hóa cân bằng",
+    "description": "từ hóa cân bằng",
+    "aliases": []
+  },
+  "expansion_coefficient": {
+    "label": "hệ số nở dài",
+    "description": "hệ số nở dài",
+    "aliases": []
+  },
+  "feedback_resistance": {
+    "label": "điện trở hồi tiếp",
+    "description": "điện trở hồi tiếp",
+    "aliases": []
+  },
+  "field_strength": {
+    "label": "cường độ điện trường",
+    "description": "cường độ điện trường",
+    "aliases": []
+  },
+  "fixed_charge": {
+    "label": "điện tích cố định",
+    "description": "điện tích cố định",
+    "aliases": []
+  },
+  "fixed_resistance": {
+    "label": "điện trở cố định",
+    "description": "điện trở cố định",
+    "aliases": []
+  },
+  "fluid_density": {
+    "label": "khối lượng riêng chất lỏng",
+    "description": "khối lượng riêng chất lỏng",
+    "aliases": []
+  },
+  "flux": {
+    "label": "từ thông",
+    "description": "từ thông",
+    "aliases": []
+  },
+  "flux_density": {
+    "label": "cảm ứng từ",
+    "description": "cảm ứng từ",
+    "aliases": []
+  },
+  "flux_density_rate": {
+    "label": "tốc độ biến thiên cảm ứng từ",
+    "description": "tốc độ biến thiên cảm ứng từ",
+    "aliases": []
+  },
+  "force": {
+    "label": "lực",
+    "description": "lực",
+    "aliases": [
+      "F"
+    ]
+  },
+  "force_1": {
+    "label": "lực F1",
+    "description": "lực F1",
+    "aliases": []
+  },
+  "force_2": {
+    "label": "lực F2",
+    "description": "lực F2",
+    "aliases": []
+  },
+  "force_rate": {
+    "label": "tốc độ tăng lực",
+    "description": "tốc độ tăng lực",
+    "aliases": []
+  },
+  "frequency": {
+    "label": "tần số",
+    "description": "tần số",
+    "aliases": []
+  },
+  "frequency_deviation": {
+    "label": "độ lệch tần số",
+    "description": "độ lệch tần số",
+    "aliases": []
+  },
+  "friction_coefficient": {
+    "label": "hệ số ma sát",
+    "description": "hệ số ma sát",
+    "aliases": []
+  },
+  "fringe_spacing": {
+    "label": "khoảng vân",
+    "description": "khoảng vân",
+    "aliases": []
+  },
+  "full_wave": {
+    "label": "chỉnh lưu cả chu kì (1) hay nửa chu kì (0)",
+    "description": "chỉnh lưu cả chu kì (1) hay nửa chu kì (0)",
+    "aliases": []
+  },
+  "gain": {
+    "label": "hệ số khuếch đại",
+    "description": "hệ số khuếch đại",
+    "aliases": []
+  },
+  "gas_constant": {
+    "label": "hằng số khí",
+    "description": "hằng số khí",
+    "aliases": []
+  },
+  "gauge_pressure": {
+    "label": "áp suất do chất lỏng gây ra",
+    "description": "áp suất do chất lỏng gây ra",
+    "aliases": []
+  },
+  "gravitational_acceleration": {
+    "label": "gia tốc trọng trường",
+    "description": "gia tốc trọng trường",
+    "aliases": []
+  },
+  "gravitational_constant": {
+    "label": "hằng số hấp dẫn",
+    "description": "hằng số hấp dẫn",
+    "aliases": []
+  },
+  "gravitational_potential": {
+    "label": "thế hấp dẫn",
+    "description": "thế hấp dẫn",
+    "aliases": []
+  },
+  "ground_speed": {
+    "label": "tốc độ so với mặt đất",
+    "description": "tốc độ so với mặt đất",
+    "aliases": []
+  },
+  "half_life": {
+    "label": "chu kỳ bán rã",
+    "description": "chu kỳ bán rã",
+    "aliases": []
+  },
+  "heading_angle": {
+    "label": "góc hướng",
+    "description": "góc hướng",
+    "aliases": []
+  },
+  "heat": {
+    "label": "nhiệt lượng",
+    "description": "nhiệt lượng",
+    "aliases": [
+      "Q"
+    ]
+  },
+  "heat_transferred": {
+    "label": "nhiệt lượng đã truyền",
+    "description": "nhiệt lượng đã truyền",
+    "aliases": []
+  },
+  "heater_power": {
+    "label": "công suất nguồn nhiệt",
+    "description": "công suất nguồn nhiệt",
+    "aliases": []
+  },
+  "heating_rate": {
+    "label": "tốc độ tăng nhiệt độ",
+    "description": "tốc độ tăng nhiệt độ",
+    "aliases": []
+  },
+  "height": {
+    "label": "độ cao",
+    "description": "độ cao",
+    "aliases": []
+  },
+  "ideal_output_voltage": {
+    "label": "điện áp ra lí tưởng",
+    "description": "điện áp ra lí tưởng",
+    "aliases": []
+  },
+  "ideality_factor": {
+    "label": "hệ số lí tưởng",
+    "description": "hệ số lí tưởng",
+    "aliases": []
+  },
+  "illuminated_fraction": {
+    "label": "phần được chiếu sáng",
+    "description": "phần được chiếu sáng",
+    "aliases": []
+  },
+  "impact_parameter": {
+    "label": "tham số va chạm",
+    "description": "tham số va chạm",
+    "aliases": []
+  },
+  "impedance": {
+    "label": "tổng trở",
+    "description": "tổng trở",
+    "aliases": []
+  },
+  "incident_power": {
+    "label": "công suất chùm tới",
+    "description": "công suất chùm tới",
+    "aliases": []
+  },
+  "incline_angle": {
+    "label": "góc nghiêng",
+    "description": "góc nghiêng",
+    "aliases": []
+  },
+  "inductance": {
+    "label": "độ tự cảm",
+    "description": "độ tự cảm",
+    "aliases": [
+      "L"
+    ]
+  },
+  "initial_angle": {
+    "label": "góc ban đầu",
+    "description": "góc ban đầu",
+    "aliases": [
+      "theta0",
+      "góc lệch ban đầu"
+    ]
+  },
+  "initial_angular_velocity": {
+    "label": "tốc độ góc ban đầu",
+    "description": "tốc độ góc ban đầu",
+    "aliases": [
+      "omega0"
+    ]
+  },
+  "initial_capacitor_voltage": {
+    "label": "hiệu điện thế ban đầu của tụ",
+    "description": "hiệu điện thế ban đầu của tụ",
+    "aliases": []
+  },
+  "initial_displacement": {
+    "label": "li độ ban đầu",
+    "description": "li độ ban đầu",
+    "aliases": []
+  },
+  "initial_flux_density": {
+    "label": "cảm ứng từ ban đầu",
+    "description": "cảm ứng từ ban đầu",
+    "aliases": []
+  },
+  "initial_height": {
+    "label": "độ cao ban đầu",
+    "description": "độ cao ban đầu",
+    "aliases": []
+  },
+  "initial_intensity": {
+    "label": "cường độ chùm tia ban đầu",
+    "description": "cường độ chùm tia ban đầu",
+    "aliases": []
+  },
+  "initial_length": {
+    "label": "chiều dài ban đầu",
+    "description": "chiều dài ban đầu",
+    "aliases": []
+  },
+  "initial_nuclei": {
+    "label": "số hạt nhân ban đầu",
+    "description": "số hạt nhân ban đầu",
+    "aliases": []
+  },
+  "initial_offset": {
+    "label": "độ lệch ban đầu",
+    "description": "độ lệch ban đầu",
+    "aliases": []
+  },
+  "initial_parent_nuclei": {
+    "label": "số hạt nhân mẹ ban đầu",
+    "description": "số hạt nhân mẹ ban đầu",
+    "aliases": []
+  },
+  "initial_phase": {
+    "label": "pha ban đầu",
+    "description": "pha ban đầu",
+    "aliases": []
+  },
+  "initial_position": {
+    "label": "tọa độ ban đầu",
+    "description": "tọa độ ban đầu",
+    "aliases": []
+  },
+  "initial_power": {
+    "label": "công suất ban đầu",
+    "description": "công suất ban đầu",
+    "aliases": []
+  },
+  "initial_speed": {
+    "label": "tốc độ ban đầu",
+    "description": "tốc độ ban đầu",
+    "aliases": []
+  },
+  "initial_temperature": {
+    "label": "nhiệt độ ban đầu",
+    "description": "nhiệt độ ban đầu",
+    "aliases": []
+  },
+  "initial_temperature_1": {
+    "label": "nhiệt độ đầu vật 1",
+    "description": "nhiệt độ đầu vật 1",
+    "aliases": []
+  },
+  "initial_temperature_2": {
+    "label": "nhiệt độ đầu vật 2",
+    "description": "nhiệt độ đầu vật 2",
+    "aliases": []
+  },
+  "initial_velocity": {
+    "label": "vận tốc ban đầu",
+    "description": "vận tốc ban đầu",
+    "aliases": []
+  },
+  "initial_volume": {
+    "label": "thể tích ban đầu",
+    "description": "thể tích ban đầu",
+    "aliases": []
+  },
+  "initial_x": {
+    "label": "tọa độ x ban đầu",
+    "description": "tọa độ x ban đầu",
+    "aliases": []
+  },
+  "initial_y": {
+    "label": "tọa độ y ban đầu",
+    "description": "tọa độ y ban đầu",
+    "aliases": []
+  },
+  "input_amplitude": {
+    "label": "biên độ điện áp vào",
+    "description": "biên độ điện áp vào",
+    "aliases": []
+  },
+  "input_energy": {
+    "label": "năng lượng cung cấp",
+    "description": "năng lượng cung cấp",
+    "aliases": []
+  },
+  "input_frequency": {
+    "label": "tần số điện áp vào",
+    "description": "tần số điện áp vào",
+    "aliases": []
+  },
+  "input_power": {
+    "label": "công suất toàn phần",
+    "description": "công suất toàn phần",
+    "aliases": []
+  },
+  "input_resistance": {
+    "label": "điện trở vào",
+    "description": "điện trở vào",
+    "aliases": []
+  },
+  "input_voltage": {
+    "label": "điện áp vào",
+    "description": "điện áp vào",
+    "aliases": []
+  },
+  "instantaneous_frequency": {
+    "label": "tần số tức thời",
+    "description": "tần số tức thời",
+    "aliases": []
+  },
+  "intensity": {
+    "label": "cường độ chùm tia",
+    "description": "cường độ chùm tia",
+    "aliases": []
+  },
+  "internal_energy_change": {
+    "label": "độ biến thiên nội năng",
+    "description": "độ biến thiên nội năng",
+    "aliases": []
+  },
+  "internal_resistance": {
+    "label": "điện trở trong",
+    "description": "điện trở trong",
+    "aliases": []
+  },
+  "ionization_energy": {
+    "label": "năng lượng ion hoá",
+    "description": "năng lượng ion hoá",
+    "aliases": []
+  },
+  "kinetic_energy": {
+    "label": "động năng",
+    "description": "động năng",
+    "aliases": []
+  },
+  "lane": {
+    "label": "làn hiển thị",
+    "description": "làn hiển thị",
+    "aliases": []
+  },
+  "latent_heat": {
+    "label": "nhiệt chuyển thể riêng",
+    "description": "nhiệt chuyển thể riêng",
+    "aliases": []
+  },
+  "launch_angle": {
+    "label": "góc phóng",
+    "description": "Angle from a stated reference direction.",
+    "aliases": []
+  },
+  "ldr_exponent": {
+    "label": "số mũ đặc trưng quang trở",
+    "description": "số mũ đặc trưng quang trở",
+    "aliases": []
+  },
+  "ldr_reference_resistance": {
+    "label": "điện trở quang trở ở độ sáng chuẩn",
+    "description": "điện trở quang trở ở độ sáng chuẩn",
+    "aliases": []
+  },
+  "ldr_resistance": {
+    "label": "điện trở quang trở",
+    "description": "điện trở quang trở",
+    "aliases": []
+  },
+  "length": {
+    "label": "chiều dài",
+    "description": "chiều dài",
+    "aliases": [
+      "L",
+      "chiều dài dây"
+    ]
+  },
+  "lever_arm_1": {
+    "label": "cánh tay đòn 1",
+    "description": "cánh tay đòn 1",
+    "aliases": []
+  },
+  "lever_arm_2": {
+    "label": "cánh tay đòn 2",
+    "description": "cánh tay đòn 2",
+    "aliases": []
+  },
+  "light_frequency": {
+    "label": "tần số ánh sáng",
+    "description": "tần số ánh sáng",
+    "aliases": []
+  },
+  "light_power": {
+    "label": "công suất chùm sáng",
+    "description": "công suất chùm sáng",
+    "aliases": []
+  },
+  "light_ratio": {
+    "label": "độ sáng tương đối",
+    "description": "độ sáng tương đối",
+    "aliases": []
+  },
+  "light_ratio_rate": {
+    "label": "tốc độ thay đổi độ sáng",
+    "description": "tốc độ thay đổi độ sáng",
+    "aliases": []
+  },
+  "light_ratio_start": {
+    "label": "độ sáng tương đối ban đầu",
+    "description": "độ sáng tương đối ban đầu",
+    "aliases": []
+  },
+  "light_speed": {
+    "label": "tốc độ ánh sáng",
+    "description": "tốc độ ánh sáng",
+    "aliases": []
+  },
+  "line_current": {
+    "label": "cường độ dòng trên dây tải",
+    "description": "cường độ dòng trên dây tải",
+    "aliases": []
+  },
+  "line_resistance": {
+    "label": "điện trở đường dây",
+    "description": "điện trở đường dây",
+    "aliases": []
+  },
+  "load_current": {
+    "label": "cường độ dòng qua tải",
+    "description": "cường độ dòng qua tải",
+    "aliases": []
+  },
+  "load_resistance": {
+    "label": "điện trở mạch ngoài",
+    "description": "điện trở mạch ngoài",
+    "aliases": []
+  },
+  "longitudinal_magnetization": {
+    "label": "từ hóa dọc",
+    "description": "từ hóa dọc",
+    "aliases": []
+  },
+  "longitudinal_relaxation_time": {
+    "label": "thời gian hồi phục T1",
+    "description": "thời gian hồi phục T1",
+    "aliases": []
+  },
+  "loss_power": {
+    "label": "công suất hao phí",
+    "description": "công suất hao phí",
+    "aliases": []
+  },
+  "lower_level": {
+    "label": "mức năng lượng dưới",
+    "description": "mức năng lượng dưới",
+    "aliases": []
+  },
+  "mass": {
+    "label": "khối lượng",
+    "description": "khối lượng",
+    "aliases": [
+      "m"
+    ]
+  },
+  "mass_1": {
+    "label": "khối lượng vật 1",
+    "description": "khối lượng vật 1",
+    "aliases": []
+  },
+  "mass_2": {
+    "label": "khối lượng vật 2",
+    "description": "khối lượng vật 2",
+    "aliases": []
+  },
+  "mass_defect": {
+    "label": "độ hụt khối",
+    "description": "độ hụt khối",
+    "aliases": []
+  },
+  "mass_from_this_body_back": {
+    "label": "khối lượng phía sau (kể cả vật này)",
+    "description": "khối lượng phía sau (kể cả vật này)",
+    "aliases": []
+  },
+  "max_kinetic_energy": {
+    "label": "động năng ban đầu cực đại",
+    "description": "động năng ban đầu cực đại",
+    "aliases": []
+  },
+  "max_photon_energy": {
+    "label": "năng lượng photon cực đại",
+    "description": "năng lượng photon cực đại",
+    "aliases": []
+  },
+  "mean_kinetic_energy": {
+    "label": "động năng trung bình phân tử",
+    "description": "động năng trung bình phân tử",
+    "aliases": []
+  },
+  "mechanical_energy": {
+    "label": "cơ năng",
+    "description": "cơ năng",
+    "aliases": []
+  },
+  "message": {
+    "label": "tín hiệu âm tần",
+    "description": "tín hiệu âm tần",
+    "aliases": []
+  },
+  "message_frequency": {
+    "label": "tần số tín hiệu âm tần",
+    "description": "tần số tín hiệu âm tần",
+    "aliases": []
+  },
+  "metal_current": {
+    "label": "cường độ dòng qua kim loại",
+    "description": "cường độ dòng qua kim loại",
+    "aliases": []
+  },
+  "metal_resistance": {
+    "label": "điện trở kim loại",
+    "description": "điện trở kim loại",
+    "aliases": []
+  },
+  "min_wavelength": {
+    "label": "bước sóng ngắn nhất",
+    "description": "bước sóng ngắn nhất",
+    "aliases": []
+  },
+  "modulation_index": {
+    "label": "hệ số biến điệu",
+    "description": "hệ số biến điệu",
+    "aliases": []
+  },
+  "molecular_mass": {
+    "label": "khối lượng một phân tử",
+    "description": "khối lượng một phân tử",
+    "aliases": []
+  },
+  "molecule_count": {
+    "label": "số phân tử",
+    "description": "số phân tử",
+    "aliases": []
+  },
+  "momentum": {
+    "label": "động lượng",
+    "description": "động lượng",
+    "aliases": []
+  },
+  "net_torque": {
+    "label": "moment lực tổng hợp",
+    "description": "moment lực tổng hợp",
+    "aliases": []
+  },
+  "neutron_count": {
+    "label": "số neutron",
+    "description": "số neutron",
+    "aliases": []
+  },
+  "neutron_mass": {
+    "label": "khối lượng neutron",
+    "description": "khối lượng neutron",
+    "aliases": []
+  },
+  "nuclei_decayed": {
+    "label": "số hạt nhân đã phân rã",
+    "description": "số hạt nhân đã phân rã",
+    "aliases": []
+  },
+  "nuclei_remaining": {
+    "label": "số hạt nhân còn lại",
+    "description": "số hạt nhân còn lại",
+    "aliases": []
+  },
+  "nucleus_mass": {
+    "label": "khối lượng hạt nhân",
+    "description": "khối lượng hạt nhân",
+    "aliases": []
+  },
+  "object_x": {
+    "label": "tọa độ x của vật",
+    "description": "tọa độ x của vật",
+    "aliases": []
+  },
+  "object_y": {
+    "label": "tọa độ y của vật",
+    "description": "tọa độ y của vật",
+    "aliases": []
+  },
+  "orbit_radius": {
+    "label": "bán kính quỹ đạo",
+    "description": "bán kính quỹ đạo",
+    "aliases": []
+  },
+  "other_initial_position": {
+    "label": "tọa độ ban đầu vật kia",
+    "description": "tọa độ ban đầu vật kia",
+    "aliases": []
+  },
+  "other_initial_velocity": {
+    "label": "vận tốc ban đầu vật kia",
+    "description": "vận tốc ban đầu vật kia",
+    "aliases": []
+  },
+  "other_mass": {
+    "label": "khối lượng vật kia",
+    "description": "khối lượng vật kia",
+    "aliases": []
+  },
+  "other_velocity": {
+    "label": "vận tốc vật kia",
+    "description": "vận tốc vật kia",
+    "aliases": []
+  },
+  "output_state": {
+    "label": "trạng thái đầu ra",
+    "description": "trạng thái đầu ra",
+    "aliases": []
+  },
+  "output_voltage": {
+    "label": "điện áp ra",
+    "description": "điện áp ra",
+    "aliases": []
+  },
+  "parent_activity": {
+    "label": "độ phóng xạ hạt nhân mẹ",
+    "description": "độ phóng xạ hạt nhân mẹ",
+    "aliases": []
+  },
+  "parent_half_life": {
+    "label": "chu kì bán rã hạt nhân mẹ",
+    "description": "chu kì bán rã hạt nhân mẹ",
+    "aliases": []
+  },
+  "parent_nuclei": {
+    "label": "số hạt nhân mẹ",
+    "description": "số hạt nhân mẹ",
+    "aliases": []
+  },
+  "period": {
+    "label": "chu kỳ",
+    "description": "chu kỳ",
+    "aliases": []
+  },
+  "phase": {
+    "label": "pha",
+    "description": "pha",
+    "aliases": []
+  },
+  "phase_angle": {
+    "label": "góc pha",
+    "description": "góc pha",
+    "aliases": []
+  },
+  "photon_energy": {
+    "label": "năng lượng photon",
+    "description": "năng lượng photon",
+    "aliases": []
+  },
+  "photon_rate": {
+    "label": "số photon mỗi giây",
+    "description": "số photon mỗi giây",
+    "aliases": []
+  },
+  "planck_constant": {
+    "label": "hằng số Planck",
+    "description": "hằng số Planck",
+    "aliases": []
+  },
+  "position": {
+    "label": "tọa độ",
+    "description": "tọa độ",
+    "aliases": []
+  },
+  "position_along_medium": {
+    "label": "vị trí phần tử",
+    "description": "vị trí phần tử",
+    "aliases": []
+  },
+  "potential": {
+    "label": "điện thế",
+    "description": "điện thế",
+    "aliases": []
+  },
+  "potential_energy": {
+    "label": "thế năng",
+    "description": "thế năng",
+    "aliases": []
+  },
+  "power": {
+    "label": "công suất",
+    "description": "công suất",
+    "aliases": []
+  },
+  "power_factor": {
+    "label": "hệ số công suất",
+    "description": "hệ số công suất",
+    "aliases": []
+  },
+  "power_rate": {
+    "label": "tốc độ tăng công suất",
+    "description": "tốc độ tăng công suất",
+    "aliases": []
+  },
+  "pressure": {
+    "label": "áp suất",
+    "description": "áp suất",
+    "aliases": [
+      "p"
+    ]
+  },
+  "pressure_amplitude": {
+    "label": "biên độ áp suất",
+    "description": "biên độ áp suất",
+    "aliases": []
+  },
+  "pressure_rate": {
+    "label": "tốc độ biến thiên áp suất",
+    "description": "tốc độ biến thiên áp suất",
+    "aliases": []
+  },
+  "primary_initial_angle": {
+    "label": "góc ban đầu của thiên thể chính",
+    "description": "góc ban đầu của thiên thể chính",
+    "aliases": []
+  },
+  "primary_orbit_radius": {
+    "label": "bán kính quỹ đạo thiên thể chính",
+    "description": "bán kính quỹ đạo thiên thể chính",
+    "aliases": []
+  },
+  "primary_period": {
+    "label": "chu kì thiên thể chính",
+    "description": "chu kì thiên thể chính",
+    "aliases": []
+  },
+  "primary_turns": {
+    "label": "số vòng sơ cấp",
+    "description": "số vòng sơ cấp",
+    "aliases": []
+  },
+  "primary_voltage": {
+    "label": "điện áp sơ cấp",
+    "description": "điện áp sơ cấp",
+    "aliases": []
+  },
+  "primary_voltage_amplitude": {
+    "label": "biên độ điện áp sơ cấp",
+    "description": "biên độ điện áp sơ cấp",
+    "aliases": []
+  },
+  "probe_speed": {
+    "label": "tốc độ dịch chuyển điểm khảo sát",
+    "description": "tốc độ dịch chuyển điểm khảo sát",
+    "aliases": []
+  },
+  "projectile_charge": {
+    "label": "điện tích hạt bắn tới",
+    "description": "điện tích hạt bắn tới",
+    "aliases": []
+  },
+  "projectile_mass": {
+    "label": "khối lượng hạt bắn tới",
+    "description": "khối lượng hạt bắn tới",
+    "aliases": []
+  },
+  "propagation_speed": {
+    "label": "tốc độ lan truyền",
+    "description": "tốc độ lan truyền",
+    "aliases": []
+  },
+  "proton_count": {
+    "label": "số proton",
+    "description": "số proton",
+    "aliases": []
+  },
+  "proton_mass": {
+    "label": "khối lượng proton",
+    "description": "khối lượng proton",
+    "aliases": []
+  },
+  "pulling_force": {
+    "label": "lực kéo",
+    "description": "lực kéo",
+    "aliases": []
+  },
+  "quantum_efficiency": {
+    "label": "hiệu suất lượng tử",
+    "description": "hiệu suất lượng tử",
+    "aliases": []
+  },
+  "radius": {
+    "label": "bán kính",
+    "description": "bán kính",
+    "aliases": []
+  },
+  "reference_resistance": {
+    "label": "điện trở ở nhiệt độ chuẩn",
+    "description": "điện trở ở nhiệt độ chuẩn",
+    "aliases": []
+  },
+  "reference_temperature": {
+    "label": "nhiệt độ chuẩn",
+    "description": "nhiệt độ chuẩn",
+    "aliases": []
+  },
+  "reference_voltage": {
+    "label": "điện áp tham chiếu",
+    "description": "điện áp tham chiếu",
+    "aliases": []
+  },
+  "reflector_distance": {
+    "label": "khoảng cách tới mặt phản xạ",
+    "description": "khoảng cách tới mặt phản xạ",
+    "aliases": []
+  },
+  "relative_carrier_density": {
+    "label": "mật độ hạt tải tương đối",
+    "description": "mật độ hạt tải tương đối",
+    "aliases": []
+  },
+  "relative_intensity": {
+    "label": "cường độ tương đối",
+    "description": "cường độ tương đối",
+    "aliases": []
+  },
+  "relative_resistance": {
+    "label": "điện trở tương đối",
+    "description": "điện trở tương đối",
+    "aliases": []
+  },
+  "resistance": {
+    "label": "điện trở",
+    "description": "điện trở",
+    "aliases": [
+      "R"
+    ]
+  },
+  "resistance_1": {
+    "label": "điện trở R1",
+    "description": "điện trở R1",
+    "aliases": []
+  },
+  "resistance_2": {
+    "label": "điện trở R2",
+    "description": "điện trở R2",
+    "aliases": []
+  },
+  "restitution_coefficient": {
+    "label": "hệ số phục hồi",
+    "description": "hệ số phục hồi",
+    "aliases": []
+  },
+  "resultant_force": {
+    "label": "hợp lực",
+    "description": "hợp lực",
+    "aliases": []
+  },
+  "rms_speed": {
+    "label": "tốc độ căn quân phương",
+    "description": "tốc độ căn quân phương",
+    "aliases": []
+  },
+  "rod_length": {
+    "label": "chiều dài thanh",
+    "description": "chiều dài thanh",
+    "aliases": []
+  },
+  "rotation_speed": {
+    "label": "tốc độ quay",
+    "description": "tốc độ quay",
+    "aliases": []
+  },
+  "satellite_initial_angle": {
+    "label": "góc ban đầu của vệ tinh",
+    "description": "góc ban đầu của vệ tinh",
+    "aliases": []
+  },
+  "satellite_orbit_radius": {
+    "label": "bán kính quỹ đạo vệ tinh",
+    "description": "bán kính quỹ đạo vệ tinh",
+    "aliases": []
+  },
+  "satellite_period": {
+    "label": "chu kì vệ tinh",
+    "description": "chu kì vệ tinh",
+    "aliases": []
+  },
+  "saturation_current": {
+    "label": "dòng bão hòa",
+    "description": "dòng bão hòa",
+    "aliases": []
+  },
+  "saturation_voltage": {
+    "label": "điện áp bão hoà",
+    "description": "điện áp bão hoà",
+    "aliases": []
+  },
+  "scan_speed": {
+    "label": "tốc độ quét",
+    "description": "tốc độ quét",
+    "aliases": []
+  },
+  "screen_distance": {
+    "label": "khoảng cách tới màn",
+    "description": "khoảng cách tới màn",
+    "aliases": []
+  },
+  "secondary_turns": {
+    "label": "số vòng thứ cấp",
+    "description": "số vòng thứ cấp",
+    "aliases": []
+  },
+  "secondary_voltage": {
+    "label": "điện áp thứ cấp",
+    "description": "điện áp thứ cấp",
+    "aliases": []
+  },
+  "sensor_start_voltage": {
+    "label": "điện áp cảm biến ban đầu",
+    "description": "điện áp cảm biến ban đầu",
+    "aliases": []
+  },
+  "sensor_voltage": {
+    "label": "điện áp cảm biến",
+    "description": "điện áp cảm biến",
+    "aliases": []
+  },
+  "sensor_voltage_rate": {
+    "label": "tốc độ thay đổi điện áp cảm biến",
+    "description": "tốc độ thay đổi điện áp cảm biến",
+    "aliases": []
+  },
+  "signal": {
+    "label": "tín hiệu",
+    "description": "tín hiệu",
+    "aliases": []
+  },
+  "slit_separation": {
+    "label": "khoảng cách hai khe",
+    "description": "khoảng cách hai khe",
+    "aliases": []
+  },
+  "sound_speed": {
+    "label": "tốc độ âm",
+    "description": "tốc độ âm",
+    "aliases": []
+  },
+  "source_charge": {
+    "label": "điện tích nguồn",
+    "description": "điện tích nguồn",
+    "aliases": []
+  },
+  "source_voltage": {
+    "label": "hiệu điện thế nguồn",
+    "description": "hiệu điện thế nguồn",
+    "aliases": []
+  },
+  "specific_heat_1": {
+    "label": "nhiệt dung riêng vật 1",
+    "description": "nhiệt dung riêng vật 1",
+    "aliases": []
+  },
+  "specific_heat_2": {
+    "label": "nhiệt dung riêng vật 2",
+    "description": "nhiệt dung riêng vật 2",
+    "aliases": []
+  },
+  "specific_heat_after": {
+    "label": "nhiệt dung riêng sau chuyển thể",
+    "description": "nhiệt dung riêng sau chuyển thể",
+    "aliases": []
+  },
+  "specific_heat_before": {
+    "label": "nhiệt dung riêng trước chuyển thể",
+    "description": "nhiệt dung riêng trước chuyển thể",
+    "aliases": []
+  },
+  "speed": {
+    "label": "tốc độ",
+    "description": "tốc độ",
+    "aliases": []
+  },
+  "stable_nuclei": {
+    "label": "số hạt nhân bền",
+    "description": "số hạt nhân bền",
+    "aliases": []
+  },
+  "start_distance": {
+    "label": "khoảng cách ban đầu",
+    "description": "khoảng cách ban đầu",
+    "aliases": []
+  },
+  "start_position": {
+    "label": "vị trí bắt đầu",
+    "description": "vị trí bắt đầu",
+    "aliases": []
+  },
+  "start_temperature": {
+    "label": "nhiệt độ bắt đầu",
+    "description": "nhiệt độ bắt đầu",
+    "aliases": []
+  },
+  "start_voltage": {
+    "label": "hiệu điện thế bắt đầu",
+    "description": "hiệu điện thế bắt đầu",
+    "aliases": []
+  },
+  "stiffness": {
+    "label": "độ cứng",
+    "description": "độ cứng",
+    "aliases": []
+  },
+  "stopping_voltage": {
+    "label": "hiệu điện thế hãm",
+    "description": "hiệu điện thế hãm",
+    "aliases": []
+  },
+  "supply_voltage": {
+    "label": "điện áp nguồn nuôi",
+    "description": "điện áp nguồn nuôi",
+    "aliases": []
+  },
+  "surface_pressure": {
+    "label": "áp suất trên mặt thoáng",
+    "description": "áp suất trên mặt thoáng",
+    "aliases": []
+  },
+  "sweep_rate": {
+    "label": "tốc độ tăng hiệu điện thế",
+    "description": "tốc độ tăng hiệu điện thế",
+    "aliases": []
+  },
+  "system_velocity": {
+    "label": "vận tốc của hệ",
+    "description": "vận tốc của hệ",
+    "aliases": []
+  },
+  "target_charge": {
+    "label": "điện tích hạt nhân bia",
+    "description": "điện tích hạt nhân bia",
+    "aliases": []
+  },
+  "temperature": {
+    "label": "nhiệt độ",
+    "description": "nhiệt độ",
+    "aliases": [
+      "T"
+    ]
+  },
+  "temperature_1": {
+    "label": "nhiệt độ vật 1",
+    "description": "nhiệt độ vật 1",
+    "aliases": []
+  },
+  "temperature_2": {
+    "label": "nhiệt độ vật 2",
+    "description": "nhiệt độ vật 2",
+    "aliases": []
+  },
+  "temperature_coefficient": {
+    "label": "hệ số nhiệt điện trở",
+    "description": "hệ số nhiệt điện trở",
+    "aliases": []
+  },
+  "temperature_rate": {
+    "label": "tốc độ thay đổi nhiệt độ",
+    "description": "tốc độ thay đổi nhiệt độ",
+    "aliases": []
+  },
+  "tension": {
+    "label": "lực căng dây",
+    "description": "lực căng dây",
+    "aliases": []
+  },
+  "thermal_conductance": {
+    "label": "hệ số truyền nhiệt",
+    "description": "hệ số truyền nhiệt",
+    "aliases": []
+  },
+  "thermal_voltage": {
+    "label": "điện áp nhiệt",
+    "description": "điện áp nhiệt",
+    "aliases": []
+  },
+  "thermistor_constant": {
+    "label": "hằng số điện trở nhiệt",
+    "description": "hằng số điện trở nhiệt",
+    "aliases": []
+  },
+  "thermistor_current": {
+    "label": "cường độ dòng qua điện trở nhiệt",
+    "description": "cường độ dòng qua điện trở nhiệt",
+    "aliases": []
+  },
+  "thermistor_resistance": {
+    "label": "điện trở nhiệt",
+    "description": "điện trở nhiệt",
+    "aliases": []
+  },
+  "thickness": {
+    "label": "bề dày",
+    "description": "bề dày",
+    "aliases": []
+  },
+  "thickness_rate": {
+    "label": "tốc độ tăng bề dày",
+    "description": "tốc độ tăng bề dày",
+    "aliases": []
+  },
+  "torque_1": {
+    "label": "moment lực 1",
+    "description": "moment lực 1",
+    "aliases": []
+  },
+  "torque_2": {
+    "label": "moment lực 2",
+    "description": "moment lực 2",
+    "aliases": []
+  },
+  "total_mass": {
+    "label": "tổng khối lượng",
+    "description": "tổng khối lượng",
+    "aliases": []
+  },
+  "transformed_fraction": {
+    "label": "phần đã chuyển thể",
+    "description": "phần đã chuyển thể",
+    "aliases": []
+  },
+  "transition_temperature": {
+    "label": "nhiệt độ chuyển thể",
+    "description": "nhiệt độ chuyển thể",
+    "aliases": []
+  },
+  "transmission_voltage": {
+    "label": "điện áp truyền tải",
+    "description": "điện áp truyền tải",
+    "aliases": []
+  },
+  "transmitted_fraction": {
+    "label": "tỉ lệ truyền qua",
+    "description": "tỉ lệ truyền qua",
+    "aliases": []
+  },
+  "transmitted_power": {
+    "label": "công suất truyền đi",
+    "description": "công suất truyền đi",
+    "aliases": []
+  },
+  "transverse_magnetization": {
+    "label": "từ hóa ngang",
+    "description": "từ hóa ngang",
+    "aliases": []
+  },
+  "transverse_relaxation_time": {
+    "label": "thời gian hồi phục T2",
+    "description": "thời gian hồi phục T2",
+    "aliases": []
+  },
+  "tube_length": {
+    "label": "chiều dài ống",
+    "description": "chiều dài ống",
+    "aliases": []
+  },
+  "turns": {
+    "label": "số vòng dây",
+    "description": "số vòng dây",
+    "aliases": []
+  },
+  "upper_level": {
+    "label": "mức năng lượng trên",
+    "description": "mức năng lượng trên",
+    "aliases": []
+  },
+  "useful_power": {
+    "label": "công suất có ích",
+    "description": "công suất có ích",
+    "aliases": []
+  },
+  "useful_work": {
+    "label": "công có ích",
+    "description": "công có ích",
+    "aliases": []
+  },
+  "velocity": {
+    "label": "vận tốc",
+    "description": "vận tốc",
+    "aliases": []
+  },
+  "voltage": {
+    "label": "hiệu điện thế",
+    "description": "hiệu điện thế",
+    "aliases": [
+      "U"
+    ]
+  },
+  "voltage_1": {
+    "label": "hiệu điện thế U1",
+    "description": "hiệu điện thế U1",
+    "aliases": []
+  },
+  "voltage_2": {
+    "label": "hiệu điện thế U2",
+    "description": "hiệu điện thế U2",
+    "aliases": []
+  },
+  "voltage_amplitude": {
+    "label": "biên độ điện áp",
+    "description": "biên độ điện áp",
+    "aliases": []
+  },
+  "voltage_rate": {
+    "label": "tốc độ tăng điện áp",
+    "description": "tốc độ tăng điện áp",
+    "aliases": []
+  },
+  "voltage_rms": {
+    "label": "điện áp hiệu dụng",
+    "description": "điện áp hiệu dụng",
+    "aliases": []
+  },
+  "volume": {
+    "label": "thể tích",
+    "description": "thể tích",
+    "aliases": [
+      "V"
+    ]
+  },
+  "volume_rate": {
+    "label": "tốc độ thay đổi thể tích",
+    "description": "tốc độ thay đổi thể tích",
+    "aliases": []
+  },
+  "vx": {
+    "label": "vận tốc theo x",
+    "description": "vận tốc theo x",
+    "aliases": []
+  },
+  "vy": {
+    "label": "vận tốc theo y",
+    "description": "vận tốc theo y",
+    "aliases": []
+  },
+  "wave_speed": {
+    "label": "tốc độ truyền sóng",
+    "description": "tốc độ truyền sóng",
+    "aliases": []
+  },
+  "wavelength": {
+    "label": "bước sóng",
+    "description": "Wavelength in a stated medium.",
+    "aliases": []
+  },
+  "weight": {
+    "label": "trọng lực",
+    "description": "trọng lực",
+    "aliases": []
+  },
+  "wire_length": {
+    "label": "chiều dài dây",
+    "description": "chiều dài dây",
+    "aliases": []
+  },
+  "work": {
+    "label": "công",
+    "description": "công",
+    "aliases": []
+  },
+  "work_function": {
+    "label": "công thoát",
+    "description": "công thoát",
+    "aliases": []
+  },
+  "x": {
+    "label": "tọa độ x",
+    "description": "tọa độ x",
+    "aliases": []
+  },
+  "y": {
+    "label": "tọa độ y",
+    "description": "tọa độ y",
+    "aliases": []
+  }
+}

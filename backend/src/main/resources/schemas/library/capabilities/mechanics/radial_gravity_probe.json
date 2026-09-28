@@ -1,0 +1,226 @@
+{
+  "capabilityId": "radial_gravity_probe",
+  "title": "Trường hấp dẫn và thế hấp dẫn theo khoảng cách",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "central_mass",
+      "body_radius",
+      "probe_speed",
+      "gravitational_constant"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "central_mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "body_radius",
+      "unit": "m",
+      "min": 1e-09
+    },
+    {
+      "key": "probe_speed",
+      "unit": "m/s",
+      "min": 0
+    },
+    {
+      "key": "gravitational_constant",
+      "unit": "N*m2/kg2",
+      "min": 1e-20,
+      "defaultValue": 6.674e-11
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "height",
+      "unit": "m"
+    },
+    {
+      "key": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "field_strength",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "gravitational_potential",
+      "unit": "J/kg"
+    }
+  ],
+  "assumptions": [
+    "Vật trung tâm là quả cầu đồng chất (khối lượng coi như tập trung ở tâm); đầu dò đi ra xa đều theo phương bán kính."
+  ],
+  "equationSet": {
+    "canonical": [
+      "g = G*M/r^2",
+      "phi = -G*M/r"
+    ],
+    "derived": [
+      "gần mặt đất: g ~ const"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "distance": [
+          "add",
+          "body_radius",
+          [
+            "mul",
+            "probe_speed",
+            "elapsed_time"
+          ]
+        ],
+        "height": [
+          "mul",
+          "probe_speed",
+          "elapsed_time"
+        ],
+        "field_strength": [
+          "div",
+          [
+            "mul",
+            "gravitational_constant",
+            "central_mass"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              "body_radius",
+              [
+                "mul",
+                "probe_speed",
+                "elapsed_time"
+              ]
+            ],
+            2
+          ]
+        ],
+        "gravitational_potential": [
+          "div",
+          [
+            "mul",
+            [
+              "neg",
+              "gravitational_constant"
+            ],
+            "central_mass"
+          ],
+          [
+            "add",
+            "body_radius",
+            [
+              "mul",
+              "probe_speed",
+              "elapsed_time"
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "distance": [
+          "add",
+          "body_radius",
+          [
+            "mul",
+            "probe_speed",
+            "t"
+          ]
+        ],
+        "height": [
+          "mul",
+          "probe_speed",
+          "t"
+        ],
+        "field_strength": [
+          "div",
+          [
+            "mul",
+            "gravitational_constant",
+            "central_mass"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              "body_radius",
+              [
+                "mul",
+                "probe_speed",
+                "t"
+              ]
+            ],
+            2
+          ]
+        ],
+        "gravitational_potential": [
+          "div",
+          [
+            "mul",
+            [
+              "neg",
+              "gravitational_constant"
+            ],
+            "central_mass"
+          ],
+          [
+            "add",
+            "body_radius",
+            [
+              "mul",
+              "probe_speed",
+              "t"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "height",
+      "role": "vertical_position"
+    }
+  ]
+}

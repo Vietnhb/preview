@@ -1,0 +1,51 @@
+{
+  "schemaId": "thpt_electronics",
+  "version": "1.0",
+  "topic": "ELECTRONICS",
+  "name": "Mở đầu về điện tử học",
+  "grade": 11,
+  "description": "Mở đầu về điện tử học (Chuyên đề 11.3): cảm biến, điện trở quang LDR, điện trở nhiệt, mạch chia áp cảm biến, khuếch đại thuật toán (op-amp) lí tưởng, mạch khuếch đại đảo, mạch so sánh điều khiển LED, relay, đồng hồ đo, đặc tuyến điốt.",
+  "objectTypes": [
+    {
+      "type": "resistor",
+      "label": "điện trở",
+      "description": "Điện trở, bóng đèn, cảm biến điện trở…"
+    },
+    {
+      "type": "voltage_source",
+      "label": "nguồn điện",
+      "description": "Pin, acquy, nguồn xoay chiều, máy phát."
+    },
+    {
+      "type": "node",
+      "label": "linh kiện/nút mạch",
+      "description": "Nút mạch, điốt, op-amp và linh kiện khác."
+    },
+    {
+      "type": "output_device",
+      "label": "thiết bị đầu ra",
+      "description": "LED, relay, đồng hồ đo."
+    }
+  ],
+  "capabilities": [
+    "ldr_voltage_divider",
+    "resistance_temperature_sweep",
+    "opamp_inverting_amplifier",
+    "opamp_comparator_output",
+    "diode_voltage_sweep"
+  ],
+  "curriculum": [
+    {
+      "name": "Khuếch đại thuật toán",
+      "summary": "Cảm biến LDR, điện trở nhiệt; op-amp lí tưởng."
+    },
+    {
+      "name": "Thiết bị đầu ra",
+      "summary": "Op-amp – relay, LED, đồng hồ đo."
+    },
+    {
+      "name": "Thiết bị cảm biến",
+      "summary": "Ứng dụng, nguyên tắc hoạt động."
+    }
+  ]
+}

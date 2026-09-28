@@ -1,0 +1,299 @@
+{
+  "capabilityId": "sliding_rod_magnetic_braking",
+  "title": "Thanh trượt trong từ trường – hãm điện từ",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "conductor",
+      "field_region"
+    ],
+    "quantities": [
+      "flux_density",
+      "rod_length",
+      "resistance",
+      "mass",
+      "initial_velocity",
+      "applied_force",
+      "initial_position"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "flux_density",
+      "unit": "T"
+    },
+    {
+      "key": "rod_length",
+      "unit": "m",
+      "min": 1e-09
+    },
+    {
+      "key": "resistance",
+      "unit": "ohm",
+      "min": 1e-09
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "applied_force",
+      "unit": "N",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "emf",
+      "unit": "V"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    },
+    {
+      "key": "dissipated_energy",
+      "unit": "J"
+    },
+    {
+      "key": "applied_work",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Thanh dẫn trượt không ma sát trên hai ray song song nằm ngang nối điện trở R, từ trường đều vuông góc mặt phẳng ray."
+  ],
+  "equationSet": {
+    "canonical": [
+      "e = B*l*v",
+      "I = e/R",
+      "F_tu = B*I*l ngược chiều chuyển động (định luật Lenz)"
+    ],
+    "derived": [
+      "v_gioi_han = F*R/(B^2*l^2)",
+      "nhiệt tỏa ra = độ giảm động năng + công lực kéo"
+    ]
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": null,
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": "initial_velocity",
+        "dissipated_energy": 0,
+        "applied_work": 0
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "div",
+          [
+            "sub",
+            "applied_force",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "pow",
+                    "flux_density",
+                    2
+                  ],
+                  [
+                    "pow",
+                    "rod_length",
+                    2
+                  ]
+                ],
+                "velocity"
+              ],
+              "resistance"
+            ]
+          ],
+          "mass"
+        ],
+        "dissipated_energy": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "pow",
+                "flux_density",
+                2
+              ],
+              [
+                "pow",
+                "rod_length",
+                2
+              ]
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          "resistance"
+        ],
+        "applied_work": [
+          "mul",
+          "applied_force",
+          "velocity"
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "emf": [
+          "mul",
+          [
+            "mul",
+            "flux_density",
+            "rod_length"
+          ],
+          "velocity"
+        ],
+        "current": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "flux_density",
+              "rod_length"
+            ],
+            "velocity"
+          ],
+          "resistance"
+        ],
+        "force": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "neg",
+                [
+                  "pow",
+                  "flux_density",
+                  2
+                ]
+              ],
+              [
+                "pow",
+                "rod_length",
+                2
+              ]
+            ],
+            "velocity"
+          ],
+          "resistance"
+        ],
+        "dissipated_energy": "dissipated_energy",
+        "applied_work": "applied_work"
+      },
+      "invariants": {
+        "energy_balance": [
+          "sub",
+          [
+            "add",
+            [
+              "mul",
+              [
+                "mul",
+                0.5,
+                "mass"
+              ],
+              [
+                "pow",
+                "velocity",
+                2
+              ]
+            ],
+            "dissipated_energy"
+          ],
+          "applied_work"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "residual_invariants",
+    "invariants": [
+      "finite_output",
+      "declared_invariants"
+    ],
+    "benchmarks": [
+      {
+        "name": "no_field_uniform_motion",
+        "durationSeconds": 1,
+        "inputs": {
+          "flux_density": 0,
+          "rod_length": 0.5,
+          "resistance": 2,
+          "mass": 0.1,
+          "initial_velocity": 3,
+          "applied_force": 0,
+          "initial_position": 0
+        },
+        "expectedOutputs": {
+          "position": 3,
+          "velocity": 3,
+          "emf": 0,
+          "current": 0,
+          "force": 0,
+          "dissipated_energy": 0,
+          "applied_work": 0
+        }
+      }
+    ]
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "force",
+      "role": "force"
+    }
+  ]
+}

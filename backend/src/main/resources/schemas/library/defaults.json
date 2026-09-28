@@ -1,0 +1,134 @@
+{
+  "metaSchemaVersion": "2.0",
+  "model": "generated_visual",
+  "coreTypeRefs": [
+    "object_identity",
+    "scalar_quantity",
+    "typed_relation"
+  ],
+  "simulationCapability": {
+    "mode": "generated_visual",
+    "scope": "LLM-generated contextual SVG/PixiJS presentation. Physical quantities are computed from applicable approved capability equation ASTs. Participant names, counts, shapes and environments are unrestricted by the renderer.",
+    "limitations": [
+      "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+    ],
+    "runtimes": [
+      "generated_visual"
+    ]
+  },
+  "limitations": [
+    "Verified computation requires all relevant behavior to map to declared executable capabilities and their validity domains. Unmapped behavior is explicitly visual-only and unverified."
+  ],
+  "conceptVocabulary": {
+    "openWorld": true,
+    "scope": "high_school_physics",
+    "guidance": "Listed concepts guide interpretation but are not an exhaustive allowlist. An unlisted concept may be introduced only when grounded in the user's confirmed description and an established high-school physics law; explain the law and any assumptions. If that grounding is uncertain, clarify instead of inventing behavior."
+  },
+  "visualCapability": {
+    "mode": "generated_scene",
+    "scope": "Generate or draw procedural visual elements from the confirmed setup, its objects, relations, and quantities. Never require a fixed asset catalog entry for an object.",
+    "purpose": "An explanatory visual illustrates the phenomenon and declared assumptions. It is not evidence of a numerical physical simulation.",
+    "interaction": "Changing parameter controls recomputes backend solver fields; PixiJS updates the generated SVG layers from those fields. Decorative presentation controls remain separate from physics."
+  },
+  "relationTypes": [
+    {
+      "type": "acts_on",
+      "label": "tác dụng lên",
+      "description": "Một đối tượng tác dụng (lực, trường, nhiệt, bức xạ…) lên đối tượng khác."
+    },
+    {
+      "type": "connected_to",
+      "label": "nối với",
+      "description": "Hai đối tượng được nối trực tiếp (dây, mạch, khớp, lò xo)."
+    },
+    {
+      "type": "located_in",
+      "label": "nằm trong",
+      "description": "Đối tượng nằm trong một môi trường, vùng trường hoặc bình chứa."
+    },
+    {
+      "type": "moves_relative_to",
+      "label": "chuyển động so với",
+      "description": "Chuyển động được mô tả so với một hệ quy chiếu hoặc vật khác."
+    },
+    {
+      "type": "emits",
+      "label": "phát ra",
+      "description": "Nguồn phát ra sóng, hạt, bức xạ hoặc nhiệt."
+    }
+  ],
+  "applicationRequirements": [
+    {
+      "id": "participants_and_roles",
+      "description": "Xác định các đối tượng tham gia và vai trò vật lí của từng đối tượng trước khi chọn định luật."
+    },
+    {
+      "id": "initial_state",
+      "description": "Trạng thái ban đầu và các thông số cần do người dùng cung cấp hoặc chấp nhận giá trị mặc định."
+    },
+    {
+      "id": "validity",
+      "description": "Chỉ dùng một năng lực tính toán khi các giả thiết của nó phù hợp với mô tả; nếu không, hỏi lại bằng ngôn ngữ đời thường."
+    }
+  ],
+  "unitDimensions": {
+    "1": "derived",
+    "1/K": "derived",
+    "1/m": "derived",
+    "1/s": "rate",
+    "A": "current",
+    "Bq": "derived",
+    "C": "electric charge",
+    "F": "capacitance",
+    "H": "inductance",
+    "Hz": "derived",
+    "J": "derived",
+    "J*s": "derived",
+    "J/(kg*K)": "specific heat",
+    "J/(mol*K)": "derived",
+    "J/kg": "derived",
+    "K": "temperature",
+    "K/s": "derived",
+    "N": "force",
+    "N*m2/C2": "derived",
+    "N*m2/kg2": "derived",
+    "N/C": "electric field",
+    "N/m": "spring constant",
+    "Pa": "pressure",
+    "Pa/s": "derived",
+    "T": "magnetic field",
+    "V": "voltage",
+    "V/s": "derived",
+    "W": "power",
+    "W/K": "derived",
+    "W/m2": "derived",
+    "Wb": "magnetic flux",
+    "degC": "derived",
+    "kg": "mass",
+    "kg*m/s": "derived",
+    "kg/m^3": "density",
+    "kg/s": "damping coefficient",
+    "m": "length",
+    "m/s": "velocity",
+    "m/s^2": "acceleration",
+    "m2": "derived",
+    "m3": "derived",
+    "m3/s": "derived",
+    "m^3": "volume",
+    "mol": "amount",
+    "ohm": "resistance",
+    "rad": "derived",
+    "rad/s": "angular velocity",
+    "s": "derived"
+  },
+  "supersededSchemaIds": [
+    "adaptive_circuits",
+    "adaptive_dynamics",
+    "adaptive_electromagnetism",
+    "adaptive_kinematics",
+    "adaptive_modern_physics",
+    "adaptive_practical_and_data",
+    "adaptive_thermal",
+    "adaptive_waves"
+  ]
+}

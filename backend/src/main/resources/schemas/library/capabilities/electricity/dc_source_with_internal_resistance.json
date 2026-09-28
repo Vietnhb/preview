@@ -1,0 +1,229 @@
+{
+  "capabilityId": "dc_source_with_internal_resistance",
+  "title": "Nguồn điện có điện trở trong và mạch ngoài",
+  "version": "2.0",
+  "applicability": {
+    "objectTypes": [
+      "voltage_source",
+      "resistor",
+      "node"
+    ],
+    "quantities": [
+      "emf",
+      "internal_resistance",
+      "load_resistance"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "emf",
+      "unit": "V"
+    },
+    {
+      "key": "internal_resistance",
+      "unit": "ohm",
+      "min": 0,
+      "defaultValue": 0
+    },
+    {
+      "key": "load_resistance",
+      "unit": "ohm",
+      "min": 1e-09
+    }
+  ],
+  "outputs": [
+    {
+      "key": "charge",
+      "unit": "C"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    },
+    {
+      "key": "voltage",
+      "unit": "V"
+    },
+    {
+      "key": "power",
+      "unit": "W"
+    },
+    {
+      "key": "energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Mạch một chiều kín gồm nguồn (E, r) và điện trở ngoài R; dây nối có điện trở không đáng kể."
+  ],
+  "equationSet": {
+    "canonical": [
+      "I = E/(R + r)",
+      "U = E - I*r"
+    ],
+    "derived": [
+      "P = U*I",
+      "q = I*t",
+      "A = U*I*t"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "charge": 0
+      },
+      "rates": {
+        "charge": [
+          "div",
+          "emf",
+          [
+            "add",
+            "load_resistance",
+            "internal_resistance"
+          ]
+        ]
+      },
+      "outputs": {
+        "charge": "charge",
+        "current": [
+          "div",
+          "emf",
+          [
+            "add",
+            "load_resistance",
+            "internal_resistance"
+          ]
+        ],
+        "voltage": [
+          "div",
+          [
+            "mul",
+            "emf",
+            "load_resistance"
+          ],
+          [
+            "add",
+            "load_resistance",
+            "internal_resistance"
+          ]
+        ],
+        "power": [
+          "div",
+          [
+            "mul",
+            [
+              "pow",
+              "emf",
+              2
+            ],
+            "load_resistance"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              "load_resistance",
+              "internal_resistance"
+            ],
+            2
+          ]
+        ],
+        "energy": [
+          "mul",
+          "voltage",
+          "charge"
+        ]
+      },
+      "closedForm": {
+        "charge": [
+          "mul",
+          [
+            "div",
+            "emf",
+            [
+              "add",
+              "load_resistance",
+              "internal_resistance"
+            ]
+          ],
+          "t"
+        ],
+        "current": [
+          "div",
+          "emf",
+          [
+            "add",
+            "load_resistance",
+            "internal_resistance"
+          ]
+        ],
+        "voltage": [
+          "div",
+          [
+            "mul",
+            "emf",
+            "load_resistance"
+          ],
+          [
+            "add",
+            "load_resistance",
+            "internal_resistance"
+          ]
+        ],
+        "power": [
+          "div",
+          [
+            "mul",
+            [
+              "pow",
+              "emf",
+              2
+            ],
+            "load_resistance"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              "load_resistance",
+              "internal_resistance"
+            ],
+            2
+          ]
+        ],
+        "energy": [
+          "mul",
+          "voltage",
+          "charge"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "current",
+      "role": "state_value"
+    }
+  ]
+}

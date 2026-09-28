@@ -1,0 +1,259 @@
+{
+  "capabilityId": "photocurrent_saturation",
+  "title": "Dòng quang điện và dòng bão hoà",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "photon",
+      "electron",
+      "material"
+    ],
+    "quantities": [
+      "light_power",
+      "light_frequency",
+      "work_function",
+      "quantum_efficiency",
+      "power_rate",
+      "planck_constant",
+      "elementary_charge"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "light_power",
+      "unit": "W",
+      "min": 0
+    },
+    {
+      "key": "light_frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "work_function",
+      "unit": "J",
+      "min": 0
+    },
+    {
+      "key": "quantum_efficiency",
+      "unit": "1",
+      "min": 0,
+      "max": 1,
+      "defaultValue": 1
+    },
+    {
+      "key": "power_rate",
+      "unit": "W/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "planck_constant",
+      "unit": "J*s",
+      "min": 1e-40,
+      "defaultValue": 6.62607015e-34
+    },
+    {
+      "key": "elementary_charge",
+      "unit": "C",
+      "min": 1e-25,
+      "defaultValue": 1.602176634e-19
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "incident_power",
+      "unit": "W"
+    },
+    {
+      "key": "photon_rate",
+      "unit": "1/s"
+    },
+    {
+      "key": "saturation_current",
+      "unit": "A"
+    },
+    {
+      "key": "max_kinetic_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Ánh sáng đơn sắc có h*f > A; công suất chiếu sáng thay đổi đều theo thời gian để khảo sát."
+  ],
+  "equationSet": {
+    "canonical": [
+      "I_bh = eta*e*P/(h*f)",
+      "Wd_max = h*f - A"
+    ],
+    "derived": [
+      "I_bh tỉ lệ cường độ sáng; Wd_max không phụ thuộc cường độ sáng"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "incident_power": [
+          "add",
+          "light_power",
+          [
+            "mul",
+            "power_rate",
+            "elapsed_time"
+          ]
+        ],
+        "photon_rate": [
+          "div",
+          [
+            "add",
+            "light_power",
+            [
+              "mul",
+              "power_rate",
+              "elapsed_time"
+            ]
+          ],
+          [
+            "mul",
+            "planck_constant",
+            "light_frequency"
+          ]
+        ],
+        "saturation_current": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "quantum_efficiency",
+              "elementary_charge"
+            ],
+            [
+              "add",
+              "light_power",
+              [
+                "mul",
+                "power_rate",
+                "elapsed_time"
+              ]
+            ]
+          ],
+          [
+            "mul",
+            "planck_constant",
+            "light_frequency"
+          ]
+        ],
+        "max_kinetic_energy": [
+          "sub",
+          [
+            "mul",
+            "planck_constant",
+            "light_frequency"
+          ],
+          "work_function"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "incident_power": [
+          "add",
+          "light_power",
+          [
+            "mul",
+            "power_rate",
+            "t"
+          ]
+        ],
+        "photon_rate": [
+          "div",
+          [
+            "add",
+            "light_power",
+            [
+              "mul",
+              "power_rate",
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            "planck_constant",
+            "light_frequency"
+          ]
+        ],
+        "saturation_current": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "quantum_efficiency",
+              "elementary_charge"
+            ],
+            [
+              "add",
+              "light_power",
+              [
+                "mul",
+                "power_rate",
+                "t"
+              ]
+            ]
+          ],
+          [
+            "mul",
+            "planck_constant",
+            "light_frequency"
+          ]
+        ],
+        "max_kinetic_energy": [
+          "sub",
+          [
+            "mul",
+            "planck_constant",
+            "light_frequency"
+          ],
+          "work_function"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "saturation_current",
+      "role": "state_value"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "schemaId": "thpt_work_energy_power",
+  "version": "1.0",
+  "topic": "WORK_ENERGY_POWER",
+  "name": "Công, năng lượng, công suất",
+  "grade": 10,
+  "description": "Công, năng lượng, công suất (Vật lí 10): công của lực, động năng, thế năng trọng trường và đàn hồi, chuyển hoá và bảo toàn cơ năng (ném, rơi, con lắc, lò xo, trượt dốc), công suất P = Fv, hiệu suất của động cơ và máy.",
+  "objectTypes": [
+    {
+      "type": "body",
+      "label": "vật",
+      "description": "Vật có khối lượng, coi như chất điểm hoặc vật rắn đơn giản."
+    },
+    {
+      "type": "surface",
+      "label": "bề mặt",
+      "description": "Mặt sàn, mặt dốc, mặt đường… mà vật tiếp xúc."
+    },
+    {
+      "type": "force_source",
+      "label": "nguồn lực",
+      "description": "Tác nhân gây lực: tay kéo, động cơ, dây, lò xo…"
+    },
+    {
+      "type": "spring",
+      "label": "lò xo",
+      "description": "Vật đàn hồi có độ cứng xác định."
+    }
+  ],
+  "capabilities": [
+    "vertical_throw_energy",
+    "applied_force_with_friction",
+    "motor_lifting_load",
+    "inclined_plane_slide",
+    "fixed_length_gravity_oscillation",
+    "projectile",
+    "linear_restoring_force"
+  ],
+  "curriculum": [
+    {
+      "name": "Công và năng lượng",
+      "summary": "A = F·s·cosα; truyền năng lượng bằng thực hiện công."
+    },
+    {
+      "name": "Động năng và thế năng",
+      "summary": "Wđ = mv²/2; Wt = mgh; bảo toàn cơ năng."
+    },
+    {
+      "name": "Công suất và hiệu suất",
+      "summary": "P = A/t = Fv; H = A_có ích/A_toàn phần."
+    }
+  ]
+}

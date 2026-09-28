@@ -1,5 +1,6 @@
 import axiosClient from "./axios";
 import type { SolverTimeline, PixiVisualProgram } from "../simulation/svgScene";
+import type { LibraryItem } from "../types/physlive";
 
 export type SimulationSourceMode = "TEXT" | "LATEX" | "IMAGE";
 export type RecognitionResult = {
@@ -39,10 +40,19 @@ export type SimulationValidation = {
   benchmarkSummary?: string | null;
 };
 export type GeneratedSimulationResult = {
+  savedParameters?: Record<string, number>;
+  formulas?: SimulationFormula[];
+  explanation?: string;
   sessionId: string; stage: "SIMULATION"; code: string; schemaId: string; schemaVersion: string;
   description: string; planSignature: string;
   parameters: SimulationParameter[]; validation: SimulationValidation; simulationSpec: SimulationSpec;
 };
+export const saveGeneratedSimulation = (simulation: GeneratedSimulationResult, parameters: Record<string, number>,
+  title: string, folderId: string, lessonId: string) =>
+  axiosClient.post<LibraryItem>("/simulation/saved", { simulation, parameters, title, folderId, lessonId }).then(r => r.data);
+
+export const openGeneratedSimulation = (id: string) =>
+  axiosClient.get<GeneratedSimulationResult>(`/simulation/saved/${id}`).then(r => r.data);
 export const understandSimulationText = (description: string) =>
   axiosClient.post<IntentResult>("/simulation/understand", { description }).then(response => response.data);
 

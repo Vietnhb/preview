@@ -1,0 +1,400 @@
+{
+  "capabilityId": "simple_harmonic_motion",
+  "title": "Dao động điều hoà x = A·cos(ωt + φ)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "oscillator",
+      "body"
+    ],
+    "quantities": [
+      "amplitude",
+      "angular_frequency",
+      "initial_phase",
+      "mass"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "amplitude",
+      "unit": "m",
+      "min": 0
+    },
+    {
+      "key": "angular_frequency",
+      "unit": "rad/s",
+      "min": 1e-09
+    },
+    {
+      "key": "initial_phase",
+      "unit": "rad",
+      "defaultValue": 0
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-12,
+      "defaultValue": 1
+    }
+  ],
+  "outputs": [
+    {
+      "key": "displacement",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    },
+    {
+      "key": "potential_energy",
+      "unit": "J"
+    },
+    {
+      "key": "mechanical_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Dao động điều hòa lí tưởng, không ma sát."
+  ],
+  "equationSet": {
+    "canonical": [
+      "x = A*cos(omega*t + phi)",
+      "v = -omega*A*sin(omega*t + phi)",
+      "a = -omega^2*x"
+    ],
+    "derived": [
+      "T = 2*pi/omega",
+      "f = 1/T",
+      "W = m*omega^2*A^2/2"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "displacement": [
+          "mul",
+          "amplitude",
+          [
+            "cos",
+            "initial_phase"
+          ]
+        ],
+        "velocity": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "amplitude"
+            ],
+            "angular_frequency"
+          ],
+          [
+            "sin",
+            "initial_phase"
+          ]
+        ]
+      },
+      "rates": {
+        "displacement": "velocity",
+        "velocity": [
+          "mul",
+          [
+            "neg",
+            [
+              "pow",
+              "angular_frequency",
+              2
+            ]
+          ],
+          "displacement"
+        ]
+      },
+      "outputs": {
+        "displacement": "displacement",
+        "velocity": "velocity",
+        "acceleration": [
+          "mul",
+          [
+            "neg",
+            [
+              "pow",
+              "angular_frequency",
+              2
+            ]
+          ],
+          "displacement"
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            "velocity",
+            2
+          ]
+        ],
+        "potential_energy": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "angular_frequency",
+              2
+            ]
+          ],
+          [
+            "pow",
+            "displacement",
+            2
+          ]
+        ],
+        "mechanical_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                0.5,
+                "mass"
+              ],
+              [
+                "pow",
+                "angular_frequency",
+                2
+              ]
+            ],
+            [
+              "pow",
+              "displacement",
+              2
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "displacement": [
+          "mul",
+          "amplitude",
+          [
+            "cos",
+            [
+              "add",
+              [
+                "mul",
+                "angular_frequency",
+                "t"
+              ],
+              "initial_phase"
+            ]
+          ]
+        ],
+        "velocity": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "amplitude"
+            ],
+            "angular_frequency"
+          ],
+          [
+            "sin",
+            [
+              "add",
+              [
+                "mul",
+                "angular_frequency",
+                "t"
+              ],
+              "initial_phase"
+            ]
+          ]
+        ],
+        "acceleration": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "amplitude"
+            ],
+            [
+              "pow",
+              "angular_frequency",
+              2
+            ]
+          ],
+          [
+            "cos",
+            [
+              "add",
+              [
+                "mul",
+                "angular_frequency",
+                "t"
+              ],
+              "initial_phase"
+            ]
+          ]
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            [
+              "mul",
+              [
+                "mul",
+                "amplitude",
+                "angular_frequency"
+              ],
+              [
+                "sin",
+                [
+                  "add",
+                  [
+                    "mul",
+                    "angular_frequency",
+                    "t"
+                  ],
+                  "initial_phase"
+                ]
+              ]
+            ],
+            2
+          ]
+        ],
+        "potential_energy": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "angular_frequency",
+              2
+            ]
+          ],
+          [
+            "pow",
+            [
+              "mul",
+              "amplitude",
+              [
+                "cos",
+                [
+                  "add",
+                  [
+                    "mul",
+                    "angular_frequency",
+                    "t"
+                  ],
+                  "initial_phase"
+                ]
+              ]
+            ],
+            2
+          ]
+        ],
+        "mechanical_energy": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "angular_frequency",
+              2
+            ]
+          ],
+          [
+            "pow",
+            "amplitude",
+            2
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "displacement",
+      "role": "displacement"
+    },
+    {
+      "source": "velocity",
+      "role": "velocity"
+    }
+  ]
+}

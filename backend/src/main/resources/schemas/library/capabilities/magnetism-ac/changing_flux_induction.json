@@ -1,0 +1,227 @@
+{
+  "capabilityId": "changing_flux_induction",
+  "title": "Cảm ứng điện từ do từ thông biến thiên",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "coil",
+      "field_region"
+    ],
+    "quantities": [
+      "turns",
+      "coil_area",
+      "initial_flux_density",
+      "flux_density_rate",
+      "resistance"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "turns",
+      "unit": "1",
+      "min": 1
+    },
+    {
+      "key": "coil_area",
+      "unit": "m2",
+      "min": 0
+    },
+    {
+      "key": "initial_flux_density",
+      "unit": "T",
+      "defaultValue": 0
+    },
+    {
+      "key": "flux_density_rate",
+      "unit": "T/s"
+    },
+    {
+      "key": "resistance",
+      "unit": "ohm",
+      "min": 1e-09
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "flux_density",
+      "unit": "T"
+    },
+    {
+      "key": "flux",
+      "unit": "Wb"
+    },
+    {
+      "key": "emf",
+      "unit": "V"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    }
+  ],
+  "assumptions": [
+    "Từ trường đều vuông góc mặt khung, cảm ứng từ biến đổi đều theo thời gian."
+  ],
+  "equationSet": {
+    "canonical": [
+      "Phi = N*B*S",
+      "e = -Delta Phi/Delta t (Faraday, Lenz)"
+    ],
+    "derived": []
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "flux_density": [
+          "add",
+          "initial_flux_density",
+          [
+            "mul",
+            "flux_density_rate",
+            "elapsed_time"
+          ]
+        ],
+        "flux": [
+          "mul",
+          [
+            "mul",
+            "turns",
+            "coil_area"
+          ],
+          [
+            "add",
+            "initial_flux_density",
+            [
+              "mul",
+              "flux_density_rate",
+              "elapsed_time"
+            ]
+          ]
+        ],
+        "emf": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "turns"
+            ],
+            "coil_area"
+          ],
+          "flux_density_rate"
+        ],
+        "current": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "neg",
+                "turns"
+              ],
+              "coil_area"
+            ],
+            "flux_density_rate"
+          ],
+          "resistance"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "flux_density": [
+          "add",
+          "initial_flux_density",
+          [
+            "mul",
+            "flux_density_rate",
+            "t"
+          ]
+        ],
+        "flux": [
+          "mul",
+          [
+            "mul",
+            "turns",
+            "coil_area"
+          ],
+          [
+            "add",
+            "initial_flux_density",
+            [
+              "mul",
+              "flux_density_rate",
+              "t"
+            ]
+          ]
+        ],
+        "emf": [
+          "mul",
+          [
+            "mul",
+            [
+              "neg",
+              "turns"
+            ],
+            "coil_area"
+          ],
+          "flux_density_rate"
+        ],
+        "current": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "neg",
+                "turns"
+              ],
+              "coil_area"
+            ],
+            "flux_density_rate"
+          ],
+          "resistance"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "emf",
+      "role": "state_value"
+    }
+  ]
+}

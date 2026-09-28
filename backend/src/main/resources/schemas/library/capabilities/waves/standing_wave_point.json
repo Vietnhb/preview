@@ -1,0 +1,341 @@
+{
+  "capabilityId": "standing_wave_point",
+  "title": "Sóng dừng",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "medium",
+      "wave_source",
+      "receiver"
+    ],
+    "quantities": [
+      "amplitude",
+      "frequency",
+      "wave_speed",
+      "position_along_medium",
+      "initial_phase"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "amplitude",
+      "unit": "m",
+      "min": 0
+    },
+    {
+      "key": "frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "wave_speed",
+      "unit": "m/s",
+      "min": 1e-09
+    },
+    {
+      "key": "position_along_medium",
+      "unit": "m"
+    },
+    {
+      "key": "initial_phase",
+      "unit": "rad",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    }
+  ],
+  "assumptions": [
+    "Sóng dừng trên dây có một đầu cố định tại x = 0 (nút sóng), là chồng chất của sóng tới và sóng phản xạ cùng biên độ."
+  ],
+  "equationSet": {
+    "canonical": [
+      "u(x,t) = 2*A*sin(2*pi*x/lambda)*cos(omega*t + phi)"
+    ],
+    "derived": [
+      "nut: x = k*lambda/2",
+      "bung: x = (2k+1)*lambda/4"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "x": "position_along_medium",
+        "y": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              2,
+              "amplitude"
+            ],
+            [
+              "sin",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "wave_speed"
+              ]
+            ]
+          ],
+          [
+            "cos",
+            "initial_phase"
+          ]
+        ],
+        "vy": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    4
+                  ],
+                  3.141592653589793
+                ],
+                "frequency"
+              ],
+              "amplitude"
+            ],
+            [
+              "sin",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "wave_speed"
+              ]
+            ]
+          ],
+          [
+            "sin",
+            "initial_phase"
+          ]
+        ]
+      },
+      "rates": {
+        "x": 0,
+        "y": "vy",
+        "vy": [
+          "mul",
+          [
+            "neg",
+            [
+              "pow",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "frequency"
+              ],
+              2
+            ]
+          ],
+          "y"
+        ]
+      },
+      "outputs": {
+        "x": "x",
+        "y": "y",
+        "vx": 0,
+        "vy": "vy"
+      },
+      "closedForm": {
+        "x": "position_along_medium",
+        "y": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              2,
+              "amplitude"
+            ],
+            [
+              "sin",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "wave_speed"
+              ]
+            ]
+          ],
+          [
+            "cos",
+            [
+              "add",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "frequency"
+                ],
+                "t"
+              ],
+              "initial_phase"
+            ]
+          ]
+        ],
+        "vx": 0,
+        "vy": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    4
+                  ],
+                  3.141592653589793
+                ],
+                "frequency"
+              ],
+              "amplitude"
+            ],
+            [
+              "sin",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "wave_speed"
+              ]
+            ]
+          ],
+          [
+            "sin",
+            [
+              "add",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "frequency"
+                ],
+                "t"
+              ],
+              "initial_phase"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "y",
+      "role": "vertical_position"
+    }
+  ]
+}

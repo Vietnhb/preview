@@ -1,0 +1,234 @@
+{
+  "capabilityId": "motor_lifting_load",
+  "title": "Động cơ nâng vật: công, công suất, hiệu suất",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "force_source"
+    ],
+    "quantities": [
+      "input_power",
+      "efficiency",
+      "mass",
+      "gravitational_acceleration",
+      "initial_height"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "input_power",
+      "unit": "W",
+      "min": 0
+    },
+    {
+      "key": "efficiency",
+      "unit": "1",
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "initial_height",
+      "unit": "m",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "useful_work",
+      "unit": "J"
+    },
+    {
+      "key": "input_energy",
+      "unit": "J"
+    },
+    {
+      "key": "useful_power",
+      "unit": "W"
+    }
+  ],
+  "assumptions": [
+    "Động cơ kéo vật lên đều (lực kéo bằng trọng lượng), công suất và hiệu suất không đổi."
+  ],
+  "equationSet": {
+    "canonical": [
+      "H = A_ci/A_tp = P_ci/P_tp",
+      "P = F*v"
+    ],
+    "derived": [
+      "v = H*P/(m*g)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "position": [
+          "add",
+          "initial_height",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                "efficiency",
+                "input_power"
+              ],
+              [
+                "mul",
+                "mass",
+                "gravitational_acceleration"
+              ]
+            ],
+            "elapsed_time"
+          ]
+        ],
+        "velocity": [
+          "div",
+          [
+            "mul",
+            "efficiency",
+            "input_power"
+          ],
+          [
+            "mul",
+            "mass",
+            "gravitational_acceleration"
+          ]
+        ],
+        "useful_work": [
+          "mul",
+          [
+            "mul",
+            "efficiency",
+            "input_power"
+          ],
+          "elapsed_time"
+        ],
+        "input_energy": [
+          "mul",
+          "input_power",
+          "elapsed_time"
+        ],
+        "useful_power": [
+          "mul",
+          "efficiency",
+          "input_power"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "position": [
+          "add",
+          "initial_height",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                "efficiency",
+                "input_power"
+              ],
+              [
+                "mul",
+                "mass",
+                "gravitational_acceleration"
+              ]
+            ],
+            "t"
+          ]
+        ],
+        "velocity": [
+          "div",
+          [
+            "mul",
+            "efficiency",
+            "input_power"
+          ],
+          [
+            "mul",
+            "mass",
+            "gravitational_acceleration"
+          ]
+        ],
+        "useful_work": [
+          "mul",
+          [
+            "mul",
+            "efficiency",
+            "input_power"
+          ],
+          "t"
+        ],
+        "input_energy": [
+          "mul",
+          "input_power",
+          "t"
+        ],
+        "useful_power": [
+          "mul",
+          "efficiency",
+          "input_power"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "vertical_position"
+    }
+  ]
+}

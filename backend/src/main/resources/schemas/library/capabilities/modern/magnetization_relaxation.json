@@ -1,0 +1,150 @@
+{
+  "capabilityId": "magnetization_relaxation",
+  "title": "Hồi phục từ hoá trong cộng hưởng từ (MRI)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "nucleus",
+      "detector"
+    ],
+    "quantities": [
+      "equilibrium_magnetization",
+      "longitudinal_relaxation_time",
+      "transverse_relaxation_time"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "equilibrium_magnetization",
+      "unit": "1",
+      "min": 0,
+      "defaultValue": 1
+    },
+    {
+      "key": "longitudinal_relaxation_time",
+      "unit": "s",
+      "min": 1e-09
+    },
+    {
+      "key": "transverse_relaxation_time",
+      "unit": "s",
+      "min": 1e-09
+    }
+  ],
+  "outputs": [
+    {
+      "key": "longitudinal_magnetization",
+      "unit": "1"
+    },
+    {
+      "key": "transverse_magnetization",
+      "unit": "1"
+    }
+  ],
+  "assumptions": [
+    "Sau xung 90 độ; từ hóa được chuẩn hóa theo giá trị cân bằng M0."
+  ],
+  "equationSet": {
+    "canonical": [
+      "Mz = M0*(1 - exp(-t/T1))",
+      "Mxy = M0*exp(-t/T2)"
+    ],
+    "derived": [
+      "T2 <= T1"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "longitudinal_magnetization": 0,
+        "transverse_magnetization": "equilibrium_magnetization"
+      },
+      "rates": {
+        "longitudinal_magnetization": [
+          "div",
+          [
+            "sub",
+            "equilibrium_magnetization",
+            "longitudinal_magnetization"
+          ],
+          "longitudinal_relaxation_time"
+        ],
+        "transverse_magnetization": [
+          "div",
+          [
+            "neg",
+            "transverse_magnetization"
+          ],
+          "transverse_relaxation_time"
+        ]
+      },
+      "outputs": {
+        "longitudinal_magnetization": "longitudinal_magnetization",
+        "transverse_magnetization": "transverse_magnetization"
+      },
+      "closedForm": {
+        "longitudinal_magnetization": [
+          "mul",
+          "equilibrium_magnetization",
+          [
+            "sub",
+            1,
+            [
+              "exp",
+              [
+                "div",
+                [
+                  "neg",
+                  "t"
+                ],
+                "longitudinal_relaxation_time"
+              ]
+            ]
+          ]
+        ],
+        "transverse_magnetization": [
+          "mul",
+          "equilibrium_magnetization",
+          [
+            "exp",
+            [
+              "div",
+              [
+                "neg",
+                "t"
+              ],
+              "transverse_relaxation_time"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "longitudinal_magnetization",
+      "role": "state_value"
+    }
+  ]
+}

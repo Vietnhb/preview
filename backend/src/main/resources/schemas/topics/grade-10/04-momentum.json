@@ -1,0 +1,40 @@
+{
+  "schemaId": "thpt_momentum",
+  "version": "1.0",
+  "topic": "MOMENTUM",
+  "name": "Động lượng",
+  "grade": 10,
+  "description": "Động lượng (Vật lí 10): động lượng p = mv, lực là tốc độ thay đổi động lượng (xung lượng), định luật bảo toàn động lượng trong hệ kín, va chạm đàn hồi và va chạm mềm, chuyển động bằng phản lực, súng giật lùi, vật nổ thành hai mảnh.",
+  "objectTypes": [
+    {
+      "type": "body",
+      "label": "vật",
+      "description": "Vật có khối lượng, coi như chất điểm hoặc vật rắn đơn giản."
+    },
+    {
+      "type": "force_source",
+      "label": "nguồn lực",
+      "description": "Tác nhân gây lực: tay kéo, động cơ, dây, lò xo…"
+    }
+  ],
+  "capabilities": [
+    "one_dimensional_collision",
+    "explosion_fragment",
+    "applied_force_with_friction",
+    "uniform_motion"
+  ],
+  "curriculum": [
+    {
+      "name": "Định nghĩa động lượng",
+      "summary": "p = mv."
+    },
+    {
+      "name": "Bảo toàn động lượng",
+      "summary": "Hệ kín: tổng động lượng không đổi."
+    },
+    {
+      "name": "Động lượng và va chạm",
+      "summary": "F = Δp/Δt; năng lượng trong va chạm."
+    }
+  ]
+}

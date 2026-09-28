@@ -1,0 +1,923 @@
+{
+  "capabilityId": "one_dimensional_collision",
+  "title": "Va chạm trên một đường thẳng và bảo toàn động lượng",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "mass",
+      "initial_position",
+      "initial_velocity",
+      "other_mass",
+      "other_initial_position",
+      "other_initial_velocity",
+      "restitution_coefficient"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "initial_position",
+      "unit": "m"
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "other_mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "other_initial_position",
+      "unit": "m"
+    },
+    {
+      "key": "other_initial_velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "restitution_coefficient",
+      "unit": "1",
+      "min": 0,
+      "max": 1,
+      "defaultValue": 1
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    },
+    {
+      "key": "momentum",
+      "unit": "kg*m/s"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Hai vật coi như chất điểm chuyển động trên cùng một đường thẳng, lúc đầu tiến lại gần nhau và va chạm một lần.",
+    "Mỗi vật là một đối tượng riêng: khai báo cả khối lượng, vị trí, vận tốc ban đầu của vật kia."
+  ],
+  "equationSet": {
+    "canonical": [
+      "m1*v1 + m2*v2 = m1*v1' + m2*v2'",
+      "v2' - v1' = e*(v1 - v2)"
+    ],
+    "derived": [
+      "v1' = ((m1 - e*m2)*v1 + (1 + e)*m2*v2)/(m1 + m2)",
+      "e = 1: va chạm đàn hồi; e = 0: va chạm mềm"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "x": [
+          "add",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              "initial_velocity",
+              "elapsed_time"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "sub",
+              [
+                "div",
+                [
+                  "add",
+                  [
+                    "mul",
+                    [
+                      "sub",
+                      "mass",
+                      [
+                        "mul",
+                        "restitution_coefficient",
+                        "other_mass"
+                      ]
+                    ],
+                    "initial_velocity"
+                  ],
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "add",
+                        1,
+                        "restitution_coefficient"
+                      ],
+                      "other_mass"
+                    ],
+                    "other_initial_velocity"
+                  ]
+                ],
+                [
+                  "add",
+                  "mass",
+                  "other_mass"
+                ]
+              ],
+              "initial_velocity"
+            ],
+            [
+              "mul",
+              0.5,
+              [
+                "add",
+                [
+                  "add",
+                  0,
+                  [
+                    "sub",
+                    "elapsed_time",
+                    [
+                      "div",
+                      [
+                        "sub",
+                        "other_initial_position",
+                        "initial_position"
+                      ],
+                      [
+                        "sub",
+                        "initial_velocity",
+                        "other_initial_velocity"
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "abs",
+                  [
+                    "sub",
+                    0,
+                    [
+                      "sub",
+                      "elapsed_time",
+                      [
+                        "div",
+                        [
+                          "sub",
+                          "other_initial_position",
+                          "initial_position"
+                        ],
+                        [
+                          "sub",
+                          "initial_velocity",
+                          "other_initial_velocity"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "y": 0,
+        "vx": [
+          "add",
+          "initial_velocity",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "sub",
+                [
+                  "div",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      [
+                        "sub",
+                        "mass",
+                        [
+                          "mul",
+                          "restitution_coefficient",
+                          "other_mass"
+                        ]
+                      ],
+                      "initial_velocity"
+                    ],
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "add",
+                          1,
+                          "restitution_coefficient"
+                        ],
+                        "other_mass"
+                      ],
+                      "other_initial_velocity"
+                    ]
+                  ],
+                  [
+                    "add",
+                    "mass",
+                    "other_mass"
+                  ]
+                ],
+                "initial_velocity"
+              ],
+              [
+                "add",
+                [
+                  "sub",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      "elapsed_time",
+                      [
+                        "sub",
+                        "initial_velocity",
+                        "other_initial_velocity"
+                      ]
+                    ],
+                    [
+                      "sub",
+                      "other_initial_position",
+                      "initial_position"
+                    ]
+                  ],
+                  1
+                ],
+                [
+                  "abs",
+                  [
+                    "sub",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        "elapsed_time",
+                        [
+                          "sub",
+                          "initial_velocity",
+                          "other_initial_velocity"
+                        ]
+                      ],
+                      [
+                        "sub",
+                        "other_initial_position",
+                        "initial_position"
+                      ]
+                    ],
+                    1
+                  ]
+                ]
+              ]
+            ],
+            [
+              "add",
+              [
+                "mul",
+                2,
+                [
+                  "abs",
+                  [
+                    "sub",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        "elapsed_time",
+                        [
+                          "sub",
+                          "initial_velocity",
+                          "other_initial_velocity"
+                        ]
+                      ],
+                      [
+                        "sub",
+                        "other_initial_position",
+                        "initial_position"
+                      ]
+                    ],
+                    1
+                  ]
+                ]
+              ],
+              1e-12
+            ]
+          ]
+        ],
+        "vy": 0,
+        "momentum": [
+          "mul",
+          "mass",
+          "vx"
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            "vx",
+            2
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "x": [
+          "add",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              "initial_velocity",
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "sub",
+              [
+                "div",
+                [
+                  "add",
+                  [
+                    "mul",
+                    [
+                      "sub",
+                      "mass",
+                      [
+                        "mul",
+                        "restitution_coefficient",
+                        "other_mass"
+                      ]
+                    ],
+                    "initial_velocity"
+                  ],
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "add",
+                        1,
+                        "restitution_coefficient"
+                      ],
+                      "other_mass"
+                    ],
+                    "other_initial_velocity"
+                  ]
+                ],
+                [
+                  "add",
+                  "mass",
+                  "other_mass"
+                ]
+              ],
+              "initial_velocity"
+            ],
+            [
+              "mul",
+              0.5,
+              [
+                "add",
+                [
+                  "add",
+                  0,
+                  [
+                    "sub",
+                    "t",
+                    [
+                      "div",
+                      [
+                        "sub",
+                        "other_initial_position",
+                        "initial_position"
+                      ],
+                      [
+                        "sub",
+                        "initial_velocity",
+                        "other_initial_velocity"
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "abs",
+                  [
+                    "sub",
+                    0,
+                    [
+                      "sub",
+                      "t",
+                      [
+                        "div",
+                        [
+                          "sub",
+                          "other_initial_position",
+                          "initial_position"
+                        ],
+                        [
+                          "sub",
+                          "initial_velocity",
+                          "other_initial_velocity"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "y": 0,
+        "vx": [
+          "add",
+          "initial_velocity",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "sub",
+                [
+                  "div",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      [
+                        "sub",
+                        "mass",
+                        [
+                          "mul",
+                          "restitution_coefficient",
+                          "other_mass"
+                        ]
+                      ],
+                      "initial_velocity"
+                    ],
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "add",
+                          1,
+                          "restitution_coefficient"
+                        ],
+                        "other_mass"
+                      ],
+                      "other_initial_velocity"
+                    ]
+                  ],
+                  [
+                    "add",
+                    "mass",
+                    "other_mass"
+                  ]
+                ],
+                "initial_velocity"
+              ],
+              [
+                "add",
+                [
+                  "sub",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      "t",
+                      [
+                        "sub",
+                        "initial_velocity",
+                        "other_initial_velocity"
+                      ]
+                    ],
+                    [
+                      "sub",
+                      "other_initial_position",
+                      "initial_position"
+                    ]
+                  ],
+                  1
+                ],
+                [
+                  "abs",
+                  [
+                    "sub",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        "t",
+                        [
+                          "sub",
+                          "initial_velocity",
+                          "other_initial_velocity"
+                        ]
+                      ],
+                      [
+                        "sub",
+                        "other_initial_position",
+                        "initial_position"
+                      ]
+                    ],
+                    1
+                  ]
+                ]
+              ]
+            ],
+            [
+              "add",
+              [
+                "mul",
+                2,
+                [
+                  "abs",
+                  [
+                    "sub",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        "t",
+                        [
+                          "sub",
+                          "initial_velocity",
+                          "other_initial_velocity"
+                        ]
+                      ],
+                      [
+                        "sub",
+                        "other_initial_position",
+                        "initial_position"
+                      ]
+                    ],
+                    1
+                  ]
+                ]
+              ],
+              1e-12
+            ]
+          ]
+        ],
+        "vy": 0,
+        "momentum": [
+          "mul",
+          "mass",
+          [
+            "add",
+            "initial_velocity",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "sub",
+                  [
+                    "div",
+                    [
+                      "add",
+                      [
+                        "mul",
+                        [
+                          "sub",
+                          "mass",
+                          [
+                            "mul",
+                            "restitution_coefficient",
+                            "other_mass"
+                          ]
+                        ],
+                        "initial_velocity"
+                      ],
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "add",
+                            1,
+                            "restitution_coefficient"
+                          ],
+                          "other_mass"
+                        ],
+                        "other_initial_velocity"
+                      ]
+                    ],
+                    [
+                      "add",
+                      "mass",
+                      "other_mass"
+                    ]
+                  ],
+                  "initial_velocity"
+                ],
+                [
+                  "add",
+                  [
+                    "sub",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        "t",
+                        [
+                          "sub",
+                          "initial_velocity",
+                          "other_initial_velocity"
+                        ]
+                      ],
+                      [
+                        "sub",
+                        "other_initial_position",
+                        "initial_position"
+                      ]
+                    ],
+                    1
+                  ],
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          "t",
+                          [
+                            "sub",
+                            "initial_velocity",
+                            "other_initial_velocity"
+                          ]
+                        ],
+                        [
+                          "sub",
+                          "other_initial_position",
+                          "initial_position"
+                        ]
+                      ],
+                      1
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "add",
+                [
+                  "mul",
+                  2,
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          "t",
+                          [
+                            "sub",
+                            "initial_velocity",
+                            "other_initial_velocity"
+                          ]
+                        ],
+                        [
+                          "sub",
+                          "other_initial_position",
+                          "initial_position"
+                        ]
+                      ],
+                      1
+                    ]
+                  ]
+                ],
+                1e-12
+              ]
+            ]
+          ]
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              "initial_velocity",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "sub",
+                    [
+                      "div",
+                      [
+                        "add",
+                        [
+                          "mul",
+                          [
+                            "sub",
+                            "mass",
+                            [
+                              "mul",
+                              "restitution_coefficient",
+                              "other_mass"
+                            ]
+                          ],
+                          "initial_velocity"
+                        ],
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "add",
+                              1,
+                              "restitution_coefficient"
+                            ],
+                            "other_mass"
+                          ],
+                          "other_initial_velocity"
+                        ]
+                      ],
+                      [
+                        "add",
+                        "mass",
+                        "other_mass"
+                      ]
+                    ],
+                    "initial_velocity"
+                  ],
+                  [
+                    "add",
+                    [
+                      "sub",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          "t",
+                          [
+                            "sub",
+                            "initial_velocity",
+                            "other_initial_velocity"
+                          ]
+                        ],
+                        [
+                          "sub",
+                          "other_initial_position",
+                          "initial_position"
+                        ]
+                      ],
+                      1
+                    ],
+                    [
+                      "abs",
+                      [
+                        "sub",
+                        [
+                          "div",
+                          [
+                            "mul",
+                            "t",
+                            [
+                              "sub",
+                              "initial_velocity",
+                              "other_initial_velocity"
+                            ]
+                          ],
+                          [
+                            "sub",
+                            "other_initial_position",
+                            "initial_position"
+                          ]
+                        ],
+                        1
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "add",
+                  [
+                    "mul",
+                    2,
+                    [
+                      "abs",
+                      [
+                        "sub",
+                        [
+                          "div",
+                          [
+                            "mul",
+                            "t",
+                            [
+                              "sub",
+                              "initial_velocity",
+                              "other_initial_velocity"
+                            ]
+                          ],
+                          [
+                            "sub",
+                            "other_initial_position",
+                            "initial_position"
+                          ]
+                        ],
+                        1
+                      ]
+                    ]
+                  ],
+                  1e-12
+                ]
+              ]
+            ],
+            2
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "vx",
+      "role": "velocity"
+    }
+  ]
+}

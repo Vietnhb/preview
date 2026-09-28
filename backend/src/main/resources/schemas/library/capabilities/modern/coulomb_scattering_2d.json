@@ -1,0 +1,352 @@
+{
+  "capabilityId": "coulomb_scattering_2d",
+  "title": "Tán xạ hạt α trên hạt nhân (Rutherford)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "nucleus",
+      "detector"
+    ],
+    "quantities": [
+      "projectile_charge",
+      "target_charge",
+      "projectile_mass",
+      "initial_speed",
+      "impact_parameter",
+      "start_distance",
+      "coulomb_constant"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "projectile_charge",
+      "unit": "C"
+    },
+    {
+      "key": "target_charge",
+      "unit": "C"
+    },
+    {
+      "key": "projectile_mass",
+      "unit": "kg",
+      "min": 1e-35
+    },
+    {
+      "key": "initial_speed",
+      "unit": "m/s",
+      "min": 1e-09
+    },
+    {
+      "key": "impact_parameter",
+      "unit": "m"
+    },
+    {
+      "key": "start_distance",
+      "unit": "m",
+      "min": 1e-18
+    },
+    {
+      "key": "coulomb_constant",
+      "unit": "N*m2/C2",
+      "min": 1,
+      "defaultValue": 8987551792.3
+    }
+  ],
+  "outputs": [
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    },
+    {
+      "key": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Hạt nhân bia nặng, đứng yên tại gốc O; hạt tới (ví dụ α) bay từ xa song song trục x với tham số va chạm b; bỏ qua electron."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F = k*q1*q2/r^2 (hạt nhân cố định tại O)"
+    ],
+    "derived": [
+      "khoảng cách gần nhất ~ kích thước hạt nhân"
+    ]
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": null,
+    "math": {
+      "initial": {
+        "x": [
+          "neg",
+          "start_distance"
+        ],
+        "y": "impact_parameter",
+        "vx": "initial_speed",
+        "vy": 0
+      },
+      "rates": {
+        "x": "vx",
+        "y": "vy",
+        "vx": [
+          "div",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  "coulomb_constant",
+                  "projectile_charge"
+                ],
+                "target_charge"
+              ],
+              "projectile_mass"
+            ],
+            "x"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              [
+                "pow",
+                "x",
+                2
+              ],
+              [
+                "pow",
+                "y",
+                2
+              ]
+            ],
+            1.5
+          ]
+        ],
+        "vy": [
+          "div",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  "coulomb_constant",
+                  "projectile_charge"
+                ],
+                "target_charge"
+              ],
+              "projectile_mass"
+            ],
+            "y"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              [
+                "pow",
+                "x",
+                2
+              ],
+              [
+                "pow",
+                "y",
+                2
+              ]
+            ],
+            1.5
+          ]
+        ]
+      },
+      "outputs": {
+        "x": "x",
+        "y": "y",
+        "vx": "vx",
+        "vy": "vy",
+        "distance": [
+          "sqrt",
+          [
+            "add",
+            [
+              "pow",
+              "x",
+              2
+            ],
+            [
+              "pow",
+              "y",
+              2
+            ]
+          ]
+        ],
+        "force": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "coulomb_constant",
+              "projectile_charge"
+            ],
+            "target_charge"
+          ],
+          [
+            "add",
+            [
+              "pow",
+              "x",
+              2
+            ],
+            [
+              "pow",
+              "y",
+              2
+            ]
+          ]
+        ]
+      },
+      "invariants": {
+        "energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "projectile_mass"
+            ],
+            [
+              "add",
+              [
+                "pow",
+                "vx",
+                2
+              ],
+              [
+                "pow",
+                "vy",
+                2
+              ]
+            ]
+          ],
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                "coulomb_constant",
+                "projectile_charge"
+              ],
+              "target_charge"
+            ],
+            [
+              "sqrt",
+              [
+                "add",
+                [
+                  "pow",
+                  "x",
+                  2
+                ],
+                [
+                  "pow",
+                  "y",
+                  2
+                ]
+              ]
+            ]
+          ]
+        ],
+        "angular_momentum": [
+          "mul",
+          "projectile_mass",
+          [
+            "sub",
+            [
+              "mul",
+              "x",
+              "vy"
+            ],
+            [
+              "mul",
+              "y",
+              "vx"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "residual_invariants",
+    "invariants": [
+      "finite_output",
+      "declared_invariants"
+    ],
+    "benchmarks": [
+      {
+        "name": "neutral_target_straight_line",
+        "durationSeconds": 1,
+        "inputs": {
+          "projectile_charge": 1,
+          "target_charge": 0,
+          "projectile_mass": 1,
+          "initial_speed": 2,
+          "impact_parameter": 0.5,
+          "start_distance": 3,
+          "coulomb_constant": 8987551792.3
+        },
+        "expectedOutputs": {
+          "x": -1,
+          "y": 0.5,
+          "vx": 2,
+          "vy": 0,
+          "distance": 1.118033988749895,
+          "force": 0
+        }
+      }
+    ]
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "y",
+      "role": "vertical_position"
+    }
+  ]
+}

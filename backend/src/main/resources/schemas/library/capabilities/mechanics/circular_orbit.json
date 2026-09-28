@@ -1,0 +1,444 @@
+{
+  "capabilityId": "circular_orbit",
+  "title": "Chuyển động trên quỹ đạo quanh thiên thể (hấp dẫn)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "central_mass",
+      "orbit_radius",
+      "initial_angle",
+      "gravitational_constant"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "central_mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "orbit_radius",
+      "unit": "m",
+      "min": 1e-09
+    },
+    {
+      "key": "initial_angle",
+      "unit": "rad",
+      "defaultValue": 0
+    },
+    {
+      "key": "gravitational_constant",
+      "unit": "N*m2/kg2",
+      "min": 1e-20,
+      "defaultValue": 6.674e-11
+    }
+  ],
+  "outputs": [
+    {
+      "key": "angle",
+      "unit": "rad"
+    },
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    },
+    {
+      "key": "speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "period",
+      "unit": "s"
+    }
+  ],
+  "assumptions": [
+    "Vật nhỏ chuyển động tròn đều quanh vật trung tâm đứng yên; chỉ có lực hấp dẫn."
+  ],
+  "equationSet": {
+    "canonical": [
+      "G*M*m/r^2 = m*v^2/r"
+    ],
+    "derived": [
+      "v = sqrt(G*M/r)",
+      "T = 2*pi*sqrt(r^3/(G*M))"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "angle": "initial_angle"
+      },
+      "rates": {
+        "angle": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              "gravitational_constant",
+              "central_mass"
+            ],
+            [
+              "pow",
+              "orbit_radius",
+              3
+            ]
+          ]
+        ]
+      },
+      "outputs": {
+        "angle": "angle",
+        "x": [
+          "mul",
+          "orbit_radius",
+          [
+            "cos",
+            "angle"
+          ]
+        ],
+        "y": [
+          "mul",
+          "orbit_radius",
+          [
+            "sin",
+            "angle"
+          ]
+        ],
+        "vx": [
+          "mul",
+          [
+            "neg",
+            [
+              "sqrt",
+              [
+                "div",
+                [
+                  "mul",
+                  "gravitational_constant",
+                  "central_mass"
+                ],
+                "orbit_radius"
+              ]
+            ]
+          ],
+          [
+            "sin",
+            "angle"
+          ]
+        ],
+        "vy": [
+          "mul",
+          [
+            "sqrt",
+            [
+              "div",
+              [
+                "mul",
+                "gravitational_constant",
+                "central_mass"
+              ],
+              "orbit_radius"
+            ]
+          ],
+          [
+            "cos",
+            "angle"
+          ]
+        ],
+        "speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              "gravitational_constant",
+              "central_mass"
+            ],
+            "orbit_radius"
+          ]
+        ],
+        "period": [
+          "mul",
+          [
+            "mul",
+            2,
+            3.141592653589793
+          ],
+          [
+            "sqrt",
+            [
+              "div",
+              [
+                "pow",
+                "orbit_radius",
+                3
+              ],
+              [
+                "mul",
+                "gravitational_constant",
+                "central_mass"
+              ]
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "angle": [
+          "add",
+          "initial_angle",
+          [
+            "mul",
+            [
+              "sqrt",
+              [
+                "div",
+                [
+                  "mul",
+                  "gravitational_constant",
+                  "central_mass"
+                ],
+                [
+                  "pow",
+                  "orbit_radius",
+                  3
+                ]
+              ]
+            ],
+            "t"
+          ]
+        ],
+        "x": [
+          "mul",
+          "orbit_radius",
+          [
+            "cos",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      "gravitational_constant",
+                      "central_mass"
+                    ],
+                    [
+                      "pow",
+                      "orbit_radius",
+                      3
+                    ]
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "y": [
+          "mul",
+          "orbit_radius",
+          [
+            "sin",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      "gravitational_constant",
+                      "central_mass"
+                    ],
+                    [
+                      "pow",
+                      "orbit_radius",
+                      3
+                    ]
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "vx": [
+          "mul",
+          [
+            "neg",
+            [
+              "sqrt",
+              [
+                "div",
+                [
+                  "mul",
+                  "gravitational_constant",
+                  "central_mass"
+                ],
+                "orbit_radius"
+              ]
+            ]
+          ],
+          [
+            "sin",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      "gravitational_constant",
+                      "central_mass"
+                    ],
+                    [
+                      "pow",
+                      "orbit_radius",
+                      3
+                    ]
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "vy": [
+          "mul",
+          [
+            "sqrt",
+            [
+              "div",
+              [
+                "mul",
+                "gravitational_constant",
+                "central_mass"
+              ],
+              "orbit_radius"
+            ]
+          ],
+          [
+            "cos",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      "gravitational_constant",
+                      "central_mass"
+                    ],
+                    [
+                      "pow",
+                      "orbit_radius",
+                      3
+                    ]
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              "gravitational_constant",
+              "central_mass"
+            ],
+            "orbit_radius"
+          ]
+        ],
+        "period": [
+          "mul",
+          [
+            "mul",
+            2,
+            3.141592653589793
+          ],
+          [
+            "sqrt",
+            [
+              "div",
+              [
+                "pow",
+                "orbit_radius",
+                3
+              ],
+              [
+                "mul",
+                "gravitational_constant",
+                "central_mass"
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "y",
+      "role": "vertical_position"
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+{
+  "capabilityId": "charge_in_uniform_magnetic_field",
+  "title": "Hạt mang điện trong từ trường đều",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "charged_particle",
+      "field_region"
+    ],
+    "quantities": [
+      "charge",
+      "mass",
+      "flux_density",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "charge",
+      "unit": "C"
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-35
+    },
+    {
+      "key": "flux_density",
+      "unit": "T"
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s"
+    }
+  ],
+  "outputs": [
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Từ trường đều vuông góc mặt phẳng hình (B > 0 hướng ra ngoài mặt hình); hạt bay vào vuông góc với B từ gốc O theo trục x; bỏ qua trọng lực."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F = |q|*v*B (lực Lorentz)",
+      "m*dv/dt = q*v x B"
+    ],
+    "derived": [
+      "r = m*v/(|q|*B)",
+      "T = 2*pi*m/(|q|*B)"
+    ]
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": null,
+    "math": {
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "vx": "initial_velocity",
+        "vy": 0
+      },
+      "rates": {
+        "x": "vx",
+        "y": "vy",
+        "vx": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              "charge",
+              "flux_density"
+            ],
+            "mass"
+          ],
+          "vy"
+        ],
+        "vy": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "neg",
+                "charge"
+              ],
+              "flux_density"
+            ],
+            "mass"
+          ],
+          "vx"
+        ]
+      },
+      "outputs": {
+        "x": "x",
+        "y": "y",
+        "vx": "vx",
+        "vy": "vy",
+        "force": [
+          "mul",
+          [
+            "abs",
+            [
+              "mul",
+              "charge",
+              "flux_density"
+            ]
+          ],
+          [
+            "sqrt",
+            [
+              "add",
+              [
+                "pow",
+                "vx",
+                2
+              ],
+              [
+                "pow",
+                "vy",
+                2
+              ]
+            ]
+          ]
+        ]
+      },
+      "invariants": {
+        "speed_squared": [
+          "add",
+          [
+            "pow",
+            "vx",
+            2
+          ],
+          [
+            "pow",
+            "vy",
+            2
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "residual_invariants",
+    "invariants": [
+      "finite_output",
+      "declared_invariants"
+    ],
+    "benchmarks": [
+      {
+        "name": "no_field_straight_line",
+        "durationSeconds": 1,
+        "inputs": {
+          "charge": 1e-06,
+          "mass": 0.001,
+          "flux_density": 0,
+          "initial_velocity": 2
+        },
+        "expectedOutputs": {
+          "x": 2,
+          "y": 0,
+          "vx": 2,
+          "vy": 0,
+          "force": 0
+        }
+      }
+    ]
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "y",
+      "role": "vertical_position"
+    }
+  ]
+}

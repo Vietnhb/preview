@@ -1,0 +1,227 @@
+{
+  "capabilityId": "parallel_resistor_pair",
+  "title": "Hai điện trở mắc song song",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "voltage_source",
+      "resistor",
+      "node"
+    ],
+    "quantities": [
+      "source_voltage",
+      "resistance_1",
+      "resistance_2"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "source_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "resistance_1",
+      "unit": "ohm",
+      "min": 1e-09
+    },
+    {
+      "key": "resistance_2",
+      "unit": "ohm",
+      "min": 1e-09
+    }
+  ],
+  "outputs": [
+    {
+      "key": "charge",
+      "unit": "C"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    },
+    {
+      "key": "current_1",
+      "unit": "A"
+    },
+    {
+      "key": "current_2",
+      "unit": "A"
+    },
+    {
+      "key": "power",
+      "unit": "W"
+    }
+  ],
+  "assumptions": [
+    "Hai điện trở mắc song song vào hiệu điện thế U không đổi."
+  ],
+  "equationSet": {
+    "canonical": [
+      "1/R_td = 1/R1 + 1/R2",
+      "I = I1 + I2"
+    ],
+    "derived": [
+      "I1 = U/R1",
+      "I2 = U/R2"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "charge": 0
+      },
+      "rates": {
+        "charge": [
+          "add",
+          [
+            "div",
+            "source_voltage",
+            "resistance_1"
+          ],
+          [
+            "div",
+            "source_voltage",
+            "resistance_2"
+          ]
+        ]
+      },
+      "outputs": {
+        "charge": "charge",
+        "current": [
+          "add",
+          [
+            "div",
+            "source_voltage",
+            "resistance_1"
+          ],
+          [
+            "div",
+            "source_voltage",
+            "resistance_2"
+          ]
+        ],
+        "current_1": [
+          "div",
+          "source_voltage",
+          "resistance_1"
+        ],
+        "current_2": [
+          "div",
+          "source_voltage",
+          "resistance_2"
+        ],
+        "power": [
+          "add",
+          [
+            "div",
+            [
+              "pow",
+              "source_voltage",
+              2
+            ],
+            "resistance_1"
+          ],
+          [
+            "div",
+            [
+              "pow",
+              "source_voltage",
+              2
+            ],
+            "resistance_2"
+          ]
+        ]
+      },
+      "closedForm": {
+        "charge": [
+          "mul",
+          [
+            "add",
+            [
+              "div",
+              "source_voltage",
+              "resistance_1"
+            ],
+            [
+              "div",
+              "source_voltage",
+              "resistance_2"
+            ]
+          ],
+          "t"
+        ],
+        "current": [
+          "add",
+          [
+            "div",
+            "source_voltage",
+            "resistance_1"
+          ],
+          [
+            "div",
+            "source_voltage",
+            "resistance_2"
+          ]
+        ],
+        "current_1": [
+          "div",
+          "source_voltage",
+          "resistance_1"
+        ],
+        "current_2": [
+          "div",
+          "source_voltage",
+          "resistance_2"
+        ],
+        "power": [
+          "add",
+          [
+            "div",
+            [
+              "pow",
+              "source_voltage",
+              2
+            ],
+            "resistance_1"
+          ],
+          [
+            "div",
+            [
+              "pow",
+              "source_voltage",
+              2
+            ],
+            "resistance_2"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "current",
+      "role": "state_value"
+    }
+  ]
+}

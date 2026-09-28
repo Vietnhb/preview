@@ -1,0 +1,54 @@
+{
+  "schemaId": "thpt_thermal_physics",
+  "version": "1.0",
+  "topic": "THERMAL_PHYSICS",
+  "name": "Vật lí nhiệt",
+  "grade": 12,
+  "description": "Vật lí nhiệt (Vật lí 12): cấu trúc chất rắn, lỏng, khí; sự chuyển thể (nóng chảy, hoá hơi, sôi); nội năng; định luật 1 nhiệt động lực học ΔU = A + Q; thang nhiệt độ Celsius, Kelvin; nhiệt dung riêng, nhiệt nóng chảy riêng, nhiệt hoá hơi riêng; cân bằng nhiệt, truyền nhiệt; sự nở vì nhiệt.",
+  "objectTypes": [
+    {
+      "type": "body",
+      "label": "vật",
+      "description": "Vật có khối lượng, coi như chất điểm hoặc vật rắn đơn giản."
+    },
+    {
+      "type": "heat_source",
+      "label": "nguồn nhiệt",
+      "description": "Bếp, đèn cồn, điện trở đun…"
+    },
+    {
+      "type": "gas",
+      "label": "khối khí",
+      "description": "Khối khí lí tưởng."
+    },
+    {
+      "type": "container",
+      "label": "bình chứa",
+      "description": "Xilanh, bình kín, pít-tông…"
+    }
+  ],
+  "capabilities": [
+    "heating_with_phase_change",
+    "two_body_heat_exchange",
+    "linear_thermal_expansion",
+    "ideal_gas_process"
+  ],
+  "curriculum": [
+    {
+      "name": "Sự chuyển thể",
+      "summary": "Nóng chảy, hoá hơi."
+    },
+    {
+      "name": "Nội năng, định luật 1 của nhiệt động lực học",
+      "summary": "ΔU = A + Q."
+    },
+    {
+      "name": "Thang nhiệt độ, nhiệt kế",
+      "summary": "Celsius, Kelvin; chiều truyền nhiệt."
+    },
+    {
+      "name": "Nhiệt dung riêng, nhiệt nóng chảy riêng, nhiệt hoá hơi riêng",
+      "summary": "Q = mcΔt; Q = mλ; Q = mL."
+    }
+  ]
+}

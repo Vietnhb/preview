@@ -1,0 +1,237 @@
+{
+  "capabilityId": "diode_voltage_sweep",
+  "title": "Đặc tuyến vôn – ampe của điốt",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "node"
+    ],
+    "quantities": [
+      "saturation_current",
+      "ideality_factor",
+      "thermal_voltage",
+      "start_voltage",
+      "sweep_rate"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "saturation_current",
+      "unit": "A",
+      "min": 1e-18,
+      "defaultValue": 1e-12
+    },
+    {
+      "key": "ideality_factor",
+      "unit": "1",
+      "min": 0.5,
+      "max": 3,
+      "defaultValue": 1
+    },
+    {
+      "key": "thermal_voltage",
+      "unit": "V",
+      "min": 1e-06,
+      "defaultValue": 0.02585
+    },
+    {
+      "key": "start_voltage",
+      "unit": "V",
+      "min": -50,
+      "max": 1.5
+    },
+    {
+      "key": "sweep_rate",
+      "unit": "V/s"
+    }
+  ],
+  "outputs": [
+    {
+      "key": "voltage",
+      "unit": "V"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    },
+    {
+      "key": "power",
+      "unit": "W"
+    }
+  ],
+  "assumptions": [
+    "Điốt bán dẫn lí tưởng theo phương trình Shockley; hiệu điện thế được quét tuyến tính theo thời gian và không vượt quá khoảng ~1,5 V thuận."
+  ],
+  "equationSet": {
+    "canonical": [
+      "I = Is*(exp(U/(n*UT)) - 1)"
+    ],
+    "derived": [
+      "phan cuc thuan: I tang rat nhanh",
+      "phan cuc nguoc: I ~ -Is"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "voltage": "start_voltage"
+      },
+      "rates": {
+        "voltage": "sweep_rate"
+      },
+      "outputs": {
+        "voltage": "voltage",
+        "current": [
+          "mul",
+          "saturation_current",
+          [
+            "sub",
+            [
+              "exp",
+              [
+                "div",
+                "voltage",
+                [
+                  "mul",
+                  "ideality_factor",
+                  "thermal_voltage"
+                ]
+              ]
+            ],
+            1
+          ]
+        ],
+        "power": [
+          "mul",
+          [
+            "mul",
+            "voltage",
+            "saturation_current"
+          ],
+          [
+            "sub",
+            [
+              "exp",
+              [
+                "div",
+                "voltage",
+                [
+                  "mul",
+                  "ideality_factor",
+                  "thermal_voltage"
+                ]
+              ]
+            ],
+            1
+          ]
+        ]
+      },
+      "closedForm": {
+        "voltage": [
+          "add",
+          "start_voltage",
+          [
+            "mul",
+            "sweep_rate",
+            "t"
+          ]
+        ],
+        "current": [
+          "mul",
+          "saturation_current",
+          [
+            "sub",
+            [
+              "exp",
+              [
+                "div",
+                [
+                  "add",
+                  "start_voltage",
+                  [
+                    "mul",
+                    "sweep_rate",
+                    "t"
+                  ]
+                ],
+                [
+                  "mul",
+                  "ideality_factor",
+                  "thermal_voltage"
+                ]
+              ]
+            ],
+            1
+          ]
+        ],
+        "power": [
+          "mul",
+          [
+            "mul",
+            [
+              "add",
+              "start_voltage",
+              [
+                "mul",
+                "sweep_rate",
+                "t"
+              ]
+            ],
+            "saturation_current"
+          ],
+          [
+            "sub",
+            [
+              "exp",
+              [
+                "div",
+                [
+                  "add",
+                  "start_voltage",
+                  [
+                    "mul",
+                    "sweep_rate",
+                    "t"
+                  ]
+                ],
+                [
+                  "mul",
+                  "ideality_factor",
+                  "thermal_voltage"
+                ]
+              ]
+            ],
+            1
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "current",
+      "role": "state_value"
+    }
+  ]
+}

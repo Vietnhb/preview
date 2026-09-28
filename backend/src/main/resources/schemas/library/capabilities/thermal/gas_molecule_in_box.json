@@ -1,0 +1,260 @@
+{
+  "capabilityId": "gas_molecule_in_box",
+  "title": "Chuyển động của phân tử khí trong bình",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "gas",
+      "container"
+    ],
+    "quantities": [
+      "box_length",
+      "molecular_mass",
+      "temperature",
+      "boltzmann_constant",
+      "lane"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "box_length",
+      "unit": "m",
+      "min": 1e-12
+    },
+    {
+      "key": "molecular_mass",
+      "unit": "kg",
+      "min": 1e-30
+    },
+    {
+      "key": "temperature",
+      "unit": "K",
+      "min": 1e-06
+    },
+    {
+      "key": "boltzmann_constant",
+      "unit": "J/K",
+      "min": 1e-30,
+      "defaultValue": 1.380649e-23
+    },
+    {
+      "key": "lane",
+      "unit": "m",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Một phân tử chuyển động với tốc độ căn quân phương qua lại giữa hai thành bình, va chạm đàn hồi; bỏ qua va chạm giữa các phân tử."
+  ],
+  "equationSet": {
+    "canonical": [
+      "Wd_tb = (3/2)*k*T",
+      "v_qm = sqrt(3*k*T/m)"
+    ],
+    "derived": [
+      "p = (1/3)*n*m*v^2",
+      "k = R/N_A"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "x": [
+          "mul",
+          [
+            "div",
+            "box_length",
+            3.141592653589793
+          ],
+          [
+            "acos",
+            [
+              "cos",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    3.141592653589793,
+                    [
+                      "sqrt",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            3,
+                            "boltzmann_constant"
+                          ],
+                          "temperature"
+                        ],
+                        "molecular_mass"
+                      ]
+                    ]
+                  ],
+                  "elapsed_time"
+                ],
+                "box_length"
+              ]
+            ]
+          ]
+        ],
+        "y": "lane",
+        "speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                3,
+                "boltzmann_constant"
+              ],
+              "temperature"
+            ],
+            "molecular_mass"
+          ]
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            1.5,
+            "boltzmann_constant"
+          ],
+          "temperature"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "x": [
+          "mul",
+          [
+            "div",
+            "box_length",
+            3.141592653589793
+          ],
+          [
+            "acos",
+            [
+              "cos",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    3.141592653589793,
+                    [
+                      "sqrt",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            3,
+                            "boltzmann_constant"
+                          ],
+                          "temperature"
+                        ],
+                        "molecular_mass"
+                      ]
+                    ]
+                  ],
+                  "t"
+                ],
+                "box_length"
+              ]
+            ]
+          ]
+        ],
+        "y": "lane",
+        "speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                3,
+                "boltzmann_constant"
+              ],
+              "temperature"
+            ],
+            "molecular_mass"
+          ]
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            1.5,
+            "boltzmann_constant"
+          ],
+          "temperature"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    }
+  ]
+}

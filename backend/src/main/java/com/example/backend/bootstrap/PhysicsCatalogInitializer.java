@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.RequiredArgsConstructor;
 
-/** Publishes approved conceptual templates without numerical solver bindings. */
+/** Publishes the curriculum-aligned topic schemas compiled from schemas/library + schemas/topics. */
 @Component
 @ConditionalOnProperty(prefix = "physlive.bootstrap", name = "catalogs-enabled", havingValue = "true")
 @RequiredArgsConstructor
@@ -30,14 +30,36 @@ public class PhysicsCatalogInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        JsonNode activeCatalog;
-        try (InputStream input = new ClassPathResource("schemas/catalog.json").getInputStream()) {
-            activeCatalog = objectMapper.readTree(input);
-        }
+        JsonNode activeCatalog = SchemaCatalogCompiler.loadFromClasspath(objectMapper);
         if (!activeCatalog.isArray() || activeCatalog.isEmpty()) {
             throw new IllegalStateException("Conceptual topic catalog must contain approved templates");
         }
-        for (JsonNode entry : activeCatalog) upsert(entry);
+        java.util.Set<String> active = new java.util.HashSet<>();
+        for (JsonNode entry : activeCatalog) {
+            upsert(entry);
+            active.add(entry.path("schemaId").asText());
+        }
+        retireSuperseded(active);
+    }
+
+    /**
+     * Schema ids listed in defaults.json "supersededSchemaIds" were replaced by the curriculum-aligned
+     * library. They are retired (still replayable for saved runs) so routing only sees current topics.
+     */
+    private void retireSuperseded(java.util.Set<String> active) throws java.io.IOException {
+        JsonNode defaults;
+        try (InputStream input = new ClassPathResource(SchemaCatalogCompiler.LIBRARY + "defaults.json").getInputStream()) {
+            defaults = objectMapper.readTree(input);
+        }
+        java.util.Set<String> superseded = new java.util.HashSet<>();
+        defaults.path("supersededSchemaIds").forEach(id -> superseded.add(id.asText()));
+        superseded.removeAll(active);
+        for (SchemaVersion schema : schemaRepository.findByLifecycleStatus(LifecycleStatus.APPROVED)) {
+            if (superseded.contains(schema.getSchemaId())) {
+                schema.setLifecycleStatus(LifecycleStatus.RETIRED);
+                schemaRepository.save(schema);
+            }
+        }
     }
 
     private void upsert(JsonNode entry) {

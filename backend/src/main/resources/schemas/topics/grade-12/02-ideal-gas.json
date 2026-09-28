@@ -1,0 +1,48 @@
+{
+  "schemaId": "thpt_ideal_gas",
+  "version": "1.0",
+  "topic": "IDEAL_GAS",
+  "name": "Khí lí tưởng",
+  "grade": 12,
+  "description": "Khí lí tưởng (Vật lí 12): mô hình động học phân tử, chuyển động Brown, định luật Boyle (đẳng nhiệt), định luật Charles (đẳng áp), đẳng tích, phương trình trạng thái pV = nRT, áp suất khí p = (1/3)nmv², động năng phân tử, hằng số Boltzmann.",
+  "objectTypes": [
+    {
+      "type": "gas",
+      "label": "khối khí",
+      "description": "Khối khí lí tưởng."
+    },
+    {
+      "type": "container",
+      "label": "bình chứa",
+      "description": "Xilanh, bình kín, pít-tông…"
+    },
+    {
+      "type": "heat_source",
+      "label": "nguồn nhiệt",
+      "description": "Bếp, đèn cồn, điện trở đun…"
+    }
+  ],
+  "capabilities": [
+    "ideal_gas_process",
+    "gas_molecule_in_box",
+    "kinetic_theory_gas_state"
+  ],
+  "curriculum": [
+    {
+      "name": "Mô hình động học phân tử chất khí",
+      "summary": "Chuyển động Brown; giả thuyết động học phân tử."
+    },
+    {
+      "name": "Phương trình trạng thái",
+      "summary": "Boyle, Charles, pV = nRT."
+    },
+    {
+      "name": "Áp suất khí theo mô hình động học phân tử",
+      "summary": "p = (1/3)nmv²."
+    },
+    {
+      "name": "Động năng phân tử",
+      "summary": "k = R/Nₐ; Wđ = (3/2)kT."
+    }
+  ]
+}

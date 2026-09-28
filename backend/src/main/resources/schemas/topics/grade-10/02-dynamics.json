@@ -1,0 +1,61 @@
+{
+  "schemaId": "thpt_dynamics",
+  "version": "1.0",
+  "topic": "DYNAMICS",
+  "name": "Động lực học",
+  "grade": 10,
+  "description": "Động lực học (Vật lí 10): ba định luật Newton, trọng lực, lực ma sát, lực cản của nước/không khí, lực nâng (đẩy Archimedes), lực căng dây (đoàn xe, máy Atwood), tổng hợp và phân tích lực, mặt phẳng nghiêng, moment lực và điều kiện cân bằng, khối lượng riêng, áp suất chất lỏng Δp = ρgΔh.",
+  "objectTypes": [
+    {
+      "type": "body",
+      "label": "vật",
+      "description": "Vật có khối lượng, coi như chất điểm hoặc vật rắn đơn giản."
+    },
+    {
+      "type": "surface",
+      "label": "bề mặt",
+      "description": "Mặt sàn, mặt dốc, mặt đường… mà vật tiếp xúc."
+    },
+    {
+      "type": "force_source",
+      "label": "nguồn lực",
+      "description": "Tác nhân gây lực: tay kéo, động cơ, dây, lò xo…"
+    },
+    {
+      "type": "fluid",
+      "label": "chất lưu",
+      "description": "Nước, không khí… gây lực cản hoặc lực đẩy."
+    }
+  ],
+  "capabilities": [
+    "applied_force_with_friction",
+    "sliding_to_stop_with_friction",
+    "inclined_plane_slide",
+    "linear_drag_vertical_motion",
+    "buoyancy_with_drag",
+    "pulled_train_body",
+    "atwood_machine_body",
+    "two_force_resultant",
+    "torque_balance",
+    "hydrostatic_pressure_probe",
+    "free_fall"
+  ],
+  "curriculum": [
+    {
+      "name": "Ba định luật Newton về chuyển động",
+      "summary": "F = ma, quán tính, trọng lực, rơi trong trường trọng lực."
+    },
+    {
+      "name": "Một số lực trong thực tiễn",
+      "summary": "Trọng lực, ma sát, lực cản, lực nâng, lực căng dây."
+    },
+    {
+      "name": "Cân bằng lực, moment lực",
+      "summary": "Tổng hợp, phân tích lực; moment lực; điều kiện cân bằng."
+    },
+    {
+      "name": "Khối lượng riêng, áp suất chất lỏng",
+      "summary": "Δp = ρgΔh."
+    }
+  ]
+}

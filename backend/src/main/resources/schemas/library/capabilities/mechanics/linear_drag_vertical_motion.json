@@ -1,0 +1,360 @@
+{
+  "capabilityId": "linear_drag_vertical_motion",
+  "title": "Rơi có lực cản của không khí/nước",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "fluid"
+    ],
+    "quantities": [
+      "mass",
+      "drag_coefficient",
+      "gravitational_acceleration",
+      "initial_position",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-06
+    },
+    {
+      "key": "drag_coefficient",
+      "unit": "kg/s",
+      "min": 1e-09
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Chiều dương hướng lên; lực cản tỉ lệ bậc nhất với vận tốc; bỏ qua lực đẩy của không khí."
+  ],
+  "equationSet": {
+    "canonical": [
+      "m*dv/dt = -m*g - b*v",
+      "F_can = -b*v"
+    ],
+    "derived": [
+      "v_gioi_han = m*g/b"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "sub",
+          [
+            "neg",
+            "gravitational_acceleration"
+          ],
+          [
+            "mul",
+            [
+              "div",
+              "drag_coefficient",
+              "mass"
+            ],
+            "velocity"
+          ]
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "acceleration": [
+          "sub",
+          [
+            "neg",
+            "gravitational_acceleration"
+          ],
+          [
+            "mul",
+            [
+              "div",
+              "drag_coefficient",
+              "mass"
+            ],
+            "velocity"
+          ]
+        ],
+        "force": [
+          "mul",
+          [
+            "neg",
+            "drag_coefficient"
+          ],
+          "velocity"
+        ]
+      },
+      "closedForm": {
+        "velocity": [
+          "add",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "neg",
+                "mass"
+              ],
+              "gravitational_acceleration"
+            ],
+            "drag_coefficient"
+          ],
+          [
+            "mul",
+            [
+              "add",
+              "initial_velocity",
+              [
+                "div",
+                [
+                  "mul",
+                  "mass",
+                  "gravitational_acceleration"
+                ],
+                "drag_coefficient"
+              ]
+            ],
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    "drag_coefficient"
+                  ],
+                  "mass"
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "position": [
+          "add",
+          [
+            "sub",
+            "initial_position",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "mul",
+                  "mass",
+                  "gravitational_acceleration"
+                ],
+                "drag_coefficient"
+              ],
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "div",
+                "mass",
+                "drag_coefficient"
+              ],
+              [
+                "add",
+                "initial_velocity",
+                [
+                  "div",
+                  [
+                    "mul",
+                    "mass",
+                    "gravitational_acceleration"
+                  ],
+                  "drag_coefficient"
+                ]
+              ]
+            ],
+            [
+              "sub",
+              1,
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      "drag_coefficient"
+                    ],
+                    "mass"
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "acceleration": [
+          "mul",
+          [
+            "neg",
+            [
+              "add",
+              "gravitational_acceleration",
+              [
+                "mul",
+                [
+                  "div",
+                  "drag_coefficient",
+                  "mass"
+                ],
+                "initial_velocity"
+              ]
+            ]
+          ],
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  "drag_coefficient"
+                ],
+                "mass"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "force": [
+          "mul",
+          [
+            "neg",
+            "drag_coefficient"
+          ],
+          [
+            "add",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "neg",
+                  "mass"
+                ],
+                "gravitational_acceleration"
+              ],
+              "drag_coefficient"
+            ],
+            [
+              "mul",
+              [
+                "add",
+                "initial_velocity",
+                [
+                  "div",
+                  [
+                    "mul",
+                    "mass",
+                    "gravitational_acceleration"
+                  ],
+                  "drag_coefficient"
+                ]
+              ],
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      "drag_coefficient"
+                    ],
+                    "mass"
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "vertical_position"
+    },
+    {
+      "source": "velocity",
+      "role": "velocity"
+    }
+  ]
+}

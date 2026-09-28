@@ -1,0 +1,159 @@
+{
+  "capabilityId": "force_on_wire_rotating_angle",
+  "title": "Lực từ lên dây dẫn theo góc với cảm ứng từ",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "conductor",
+      "field_region"
+    ],
+    "quantities": [
+      "flux_density",
+      "current",
+      "wire_length",
+      "angular_velocity",
+      "initial_angle"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "flux_density",
+      "unit": "T"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    },
+    {
+      "key": "wire_length",
+      "unit": "m",
+      "min": 0
+    },
+    {
+      "key": "angular_velocity",
+      "unit": "rad/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_angle",
+      "unit": "rad",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "angle",
+      "unit": "rad"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Đoạn dây thẳng mang dòng điện không đổi đặt trong từ trường đều, được xoay dần để đổi góc theta giữa dây và B (cân dòng điện)."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F = B*I*l*sin(theta)"
+    ],
+    "derived": [
+      "B = F/(I*l) khi dây vuông góc"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "angle": "initial_angle"
+      },
+      "rates": {
+        "angle": "angular_velocity"
+      },
+      "outputs": {
+        "angle": "angle",
+        "force": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              "flux_density",
+              "current"
+            ],
+            "wire_length"
+          ],
+          [
+            "sin",
+            "angle"
+          ]
+        ]
+      },
+      "closedForm": {
+        "angle": [
+          "add",
+          "initial_angle",
+          [
+            "mul",
+            "angular_velocity",
+            "t"
+          ]
+        ],
+        "force": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              "flux_density",
+              "current"
+            ],
+            "wire_length"
+          ],
+          [
+            "sin",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                "angular_velocity",
+                "t"
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "force",
+      "role": "state_value"
+    },
+    {
+      "source": "angle",
+      "role": "angle_annotation"
+    }
+  ]
+}

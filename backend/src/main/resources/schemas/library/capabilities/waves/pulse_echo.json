@@ -1,0 +1,216 @@
+{
+  "capabilityId": "pulse_echo",
+  "title": "Xung phản xạ – tiếng vang, siêu âm, sonar",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "wave_source",
+      "medium",
+      "receiver"
+    ],
+    "quantities": [
+      "wave_speed",
+      "reflector_distance"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "wave_speed",
+      "unit": "m/s",
+      "min": 1e-09
+    },
+    {
+      "key": "reflector_distance",
+      "unit": "m",
+      "min": 1e-09
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "echo_delay",
+      "unit": "s"
+    }
+  ],
+  "assumptions": [
+    "Xung truyền thẳng tới mặt phản xạ rồi quay về nguồn với cùng tốc độ; vị trí là khoảng cách của xung tới nguồn."
+  ],
+  "equationSet": {
+    "canonical": [
+      "t_vong = 2*d/v"
+    ],
+    "derived": [
+      "d = v*t/2"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "position": [
+          "sub",
+          "reflector_distance",
+          [
+            "abs",
+            [
+              "sub",
+              "reflector_distance",
+              [
+                "mul",
+                "wave_speed",
+                [
+                  "mul",
+                  0.5,
+                  [
+                    "sub",
+                    [
+                      "add",
+                      "elapsed_time",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          2,
+                          "reflector_distance"
+                        ],
+                        "wave_speed"
+                      ]
+                    ],
+                    [
+                      "abs",
+                      [
+                        "sub",
+                        "elapsed_time",
+                        [
+                          "div",
+                          [
+                            "mul",
+                            2,
+                            "reflector_distance"
+                          ],
+                          "wave_speed"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "echo_delay": [
+          "div",
+          [
+            "mul",
+            2,
+            "reflector_distance"
+          ],
+          "wave_speed"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "position": [
+          "sub",
+          "reflector_distance",
+          [
+            "abs",
+            [
+              "sub",
+              "reflector_distance",
+              [
+                "mul",
+                "wave_speed",
+                [
+                  "mul",
+                  0.5,
+                  [
+                    "sub",
+                    [
+                      "add",
+                      "t",
+                      [
+                        "div",
+                        [
+                          "mul",
+                          2,
+                          "reflector_distance"
+                        ],
+                        "wave_speed"
+                      ]
+                    ],
+                    [
+                      "abs",
+                      [
+                        "sub",
+                        "t",
+                        [
+                          "div",
+                          [
+                            "mul",
+                            2,
+                            "reflector_distance"
+                          ],
+                          "wave_speed"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "echo_delay": [
+          "div",
+          [
+            "mul",
+            2,
+            "reflector_distance"
+          ],
+          "wave_speed"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    }
+  ]
+}

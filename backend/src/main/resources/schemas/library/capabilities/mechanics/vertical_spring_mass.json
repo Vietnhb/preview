@@ -1,0 +1,514 @@
+{
+  "capabilityId": "vertical_spring_mass",
+  "title": "Con lắc lò xo treo thẳng đứng",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "spring"
+    ],
+    "quantities": [
+      "mass",
+      "stiffness",
+      "gravitational_acceleration",
+      "initial_offset",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "stiffness",
+      "unit": "N/m",
+      "min": 1e-09
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "initial_offset",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "elongation",
+      "unit": "m"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    },
+    {
+      "key": "elastic_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Lò xo nhẹ treo thẳng đứng, đầu trên cố định; vị trí 0 là chiều dài tự nhiên, chiều dương hướng lên; trong giới hạn đàn hồi."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F_dh = k*|Delta l| (định luật Hooke)",
+      "cân bằng: k*Delta l0 = m*g"
+    ],
+    "derived": [
+      "Wt_dh = k*x^2/2"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": [
+          "add",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "neg",
+                "mass"
+              ],
+              "gravitational_acceleration"
+            ],
+            "stiffness"
+          ],
+          "initial_offset"
+        ],
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "sub",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "neg",
+                "stiffness"
+              ],
+              "mass"
+            ],
+            "position"
+          ],
+          "gravitational_acceleration"
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "elongation": [
+          "neg",
+          "position"
+        ],
+        "force": [
+          "mul",
+          [
+            "neg",
+            "stiffness"
+          ],
+          "position"
+        ],
+        "elastic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "stiffness"
+          ],
+          [
+            "pow",
+            "position",
+            2
+          ]
+        ]
+      },
+      "closedForm": {
+        "position": [
+          "add",
+          [
+            "add",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "neg",
+                  "mass"
+                ],
+                "gravitational_acceleration"
+              ],
+              "stiffness"
+            ],
+            [
+              "mul",
+              "initial_offset",
+              [
+                "cos",
+                [
+                  "mul",
+                  [
+                    "sqrt",
+                    [
+                      "div",
+                      "stiffness",
+                      "mass"
+                    ]
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            [
+              "div",
+              "initial_velocity",
+              [
+                "sqrt",
+                [
+                  "div",
+                  "stiffness",
+                  "mass"
+                ]
+              ]
+            ],
+            [
+              "sin",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    "stiffness",
+                    "mass"
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "velocity": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "neg",
+                "initial_offset"
+              ],
+              [
+                "sqrt",
+                [
+                  "div",
+                  "stiffness",
+                  "mass"
+                ]
+              ]
+            ],
+            [
+              "sin",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    "stiffness",
+                    "mass"
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ],
+          [
+            "mul",
+            "initial_velocity",
+            [
+              "cos",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    "stiffness",
+                    "mass"
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "elongation": [
+          "sub",
+          [
+            "sub",
+            [
+              "div",
+              [
+                "mul",
+                "mass",
+                "gravitational_acceleration"
+              ],
+              "stiffness"
+            ],
+            [
+              "mul",
+              "initial_offset",
+              [
+                "cos",
+                [
+                  "mul",
+                  [
+                    "sqrt",
+                    [
+                      "div",
+                      "stiffness",
+                      "mass"
+                    ]
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            [
+              "div",
+              "initial_velocity",
+              [
+                "sqrt",
+                [
+                  "div",
+                  "stiffness",
+                  "mass"
+                ]
+              ]
+            ],
+            [
+              "sin",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    "stiffness",
+                    "mass"
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "force": [
+          "mul",
+          "stiffness",
+          [
+            "sub",
+            [
+              "sub",
+              [
+                "div",
+                [
+                  "mul",
+                  "mass",
+                  "gravitational_acceleration"
+                ],
+                "stiffness"
+              ],
+              [
+                "mul",
+                "initial_offset",
+                [
+                  "cos",
+                  [
+                    "mul",
+                    [
+                      "sqrt",
+                      [
+                        "div",
+                        "stiffness",
+                        "mass"
+                      ]
+                    ],
+                    "t"
+                  ]
+                ]
+              ]
+            ],
+            [
+              "mul",
+              [
+                "div",
+                "initial_velocity",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    "stiffness",
+                    "mass"
+                  ]
+                ]
+              ],
+              [
+                "sin",
+                [
+                  "mul",
+                  [
+                    "sqrt",
+                    [
+                      "div",
+                      "stiffness",
+                      "mass"
+                    ]
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "elastic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "stiffness"
+          ],
+          [
+            "pow",
+            [
+              "sub",
+              [
+                "sub",
+                [
+                  "div",
+                  [
+                    "mul",
+                    "mass",
+                    "gravitational_acceleration"
+                  ],
+                  "stiffness"
+                ],
+                [
+                  "mul",
+                  "initial_offset",
+                  [
+                    "cos",
+                    [
+                      "mul",
+                      [
+                        "sqrt",
+                        [
+                          "div",
+                          "stiffness",
+                          "mass"
+                        ]
+                      ],
+                      "t"
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "mul",
+                [
+                  "div",
+                  "initial_velocity",
+                  [
+                    "sqrt",
+                    [
+                      "div",
+                      "stiffness",
+                      "mass"
+                    ]
+                  ]
+                ],
+                [
+                  "sin",
+                  [
+                    "mul",
+                    [
+                      "sqrt",
+                      [
+                        "div",
+                        "stiffness",
+                        "mass"
+                      ]
+                    ],
+                    "t"
+                  ]
+                ]
+              ]
+            ],
+            2
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "vertical_position"
+    },
+    {
+      "source": "force",
+      "role": "force"
+    }
+  ]
+}

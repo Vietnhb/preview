@@ -1,0 +1,309 @@
+{
+  "capabilityId": "atomic_level_transition",
+  "title": "Chuyển mức năng lượng và quang phổ vạch",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "photon",
+      "electron"
+    ],
+    "quantities": [
+      "upper_level",
+      "lower_level",
+      "ionization_energy",
+      "planck_constant",
+      "light_speed"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "upper_level",
+      "unit": "1",
+      "min": 1
+    },
+    {
+      "key": "lower_level",
+      "unit": "1",
+      "min": 1
+    },
+    {
+      "key": "ionization_energy",
+      "unit": "J",
+      "min": 0,
+      "defaultValue": 2.179872e-18
+    },
+    {
+      "key": "planck_constant",
+      "unit": "J*s",
+      "min": 1e-40,
+      "defaultValue": 6.62607015e-34
+    },
+    {
+      "key": "light_speed",
+      "unit": "m/s",
+      "min": 1,
+      "defaultValue": 299792458
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "photon_energy",
+      "unit": "J"
+    },
+    {
+      "key": "frequency",
+      "unit": "Hz"
+    },
+    {
+      "key": "wavelength",
+      "unit": "m"
+    }
+  ],
+  "assumptions": [
+    "Mô hình mức năng lượng dừng kiểu Bohr cho hydrogen; mức trên cao hơn mức dưới; vị trí là quãng đường photon phát ra đi được."
+  ],
+  "equationSet": {
+    "canonical": [
+      "E_n = -E0/n^2 (nguyên tử hydrogen)",
+      "h*f = E_cao - E_thap"
+    ],
+    "derived": [
+      "lambda = h*c/(E_cao - E_thap)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "photon_energy": [
+          "mul",
+          "ionization_energy",
+          [
+            "sub",
+            [
+              "div",
+              1,
+              [
+                "pow",
+                "lower_level",
+                2
+              ]
+            ],
+            [
+              "div",
+              1,
+              [
+                "pow",
+                "upper_level",
+                2
+              ]
+            ]
+          ]
+        ],
+        "frequency": [
+          "div",
+          [
+            "mul",
+            "ionization_energy",
+            [
+              "sub",
+              [
+                "div",
+                1,
+                [
+                  "pow",
+                  "lower_level",
+                  2
+                ]
+              ],
+              [
+                "div",
+                1,
+                [
+                  "pow",
+                  "upper_level",
+                  2
+                ]
+              ]
+            ]
+          ],
+          "planck_constant"
+        ],
+        "wavelength": [
+          "div",
+          [
+            "mul",
+            "planck_constant",
+            "light_speed"
+          ],
+          [
+            "mul",
+            "ionization_energy",
+            [
+              "sub",
+              [
+                "div",
+                1,
+                [
+                  "pow",
+                  "lower_level",
+                  2
+                ]
+              ],
+              [
+                "div",
+                1,
+                [
+                  "pow",
+                  "upper_level",
+                  2
+                ]
+              ]
+            ]
+          ]
+        ],
+        "position": [
+          "mul",
+          "light_speed",
+          "elapsed_time"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "photon_energy": [
+          "mul",
+          "ionization_energy",
+          [
+            "sub",
+            [
+              "div",
+              1,
+              [
+                "pow",
+                "lower_level",
+                2
+              ]
+            ],
+            [
+              "div",
+              1,
+              [
+                "pow",
+                "upper_level",
+                2
+              ]
+            ]
+          ]
+        ],
+        "frequency": [
+          "div",
+          [
+            "mul",
+            "ionization_energy",
+            [
+              "sub",
+              [
+                "div",
+                1,
+                [
+                  "pow",
+                  "lower_level",
+                  2
+                ]
+              ],
+              [
+                "div",
+                1,
+                [
+                  "pow",
+                  "upper_level",
+                  2
+                ]
+              ]
+            ]
+          ],
+          "planck_constant"
+        ],
+        "wavelength": [
+          "div",
+          [
+            "mul",
+            "planck_constant",
+            "light_speed"
+          ],
+          [
+            "mul",
+            "ionization_energy",
+            [
+              "sub",
+              [
+                "div",
+                1,
+                [
+                  "pow",
+                  "lower_level",
+                  2
+                ]
+              ],
+              [
+                "div",
+                1,
+                [
+                  "pow",
+                  "upper_level",
+                  2
+                ]
+              ]
+            ]
+          ]
+        ],
+        "position": [
+          "mul",
+          "light_speed",
+          "t"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    }
+  ]
+}

@@ -1,0 +1,243 @@
+{
+  "capabilityId": "coulomb_repulsion_from_fixed_charge",
+  "title": "Lực Coulomb giữa hai điện tích",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "charged_particle",
+      "field_region"
+    ],
+    "quantities": [
+      "fixed_charge",
+      "charge",
+      "mass",
+      "initial_position",
+      "initial_velocity",
+      "coulomb_constant"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "fixed_charge",
+      "unit": "C"
+    },
+    {
+      "key": "charge",
+      "unit": "C"
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-35
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "min": 1e-12
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "coulomb_constant",
+      "unit": "N*m2/C2",
+      "min": 1,
+      "defaultValue": 8987551792.3
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    },
+    {
+      "key": "potential_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Điện tích Q đứng yên tại gốc O; điện tích q chuyển động trên trục Ox (x > 0) chỉ dưới tác dụng lực Coulomb; q không đi tới gốc O."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F = k*q1*q2/r^2"
+    ],
+    "derived": [
+      "W_t = k*q1*q2/r",
+      "E = k*|Q|/r^2"
+    ]
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": null,
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "coulomb_constant",
+              "fixed_charge"
+            ],
+            "charge"
+          ],
+          [
+            "mul",
+            "mass",
+            [
+              "pow",
+              "position",
+              2
+            ]
+          ]
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "force": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "coulomb_constant",
+              "fixed_charge"
+            ],
+            "charge"
+          ],
+          [
+            "pow",
+            "position",
+            2
+          ]
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            "velocity",
+            2
+          ]
+        ],
+        "potential_energy": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "coulomb_constant",
+              "fixed_charge"
+            ],
+            "charge"
+          ],
+          "position"
+        ]
+      },
+      "invariants": {
+        "energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                "coulomb_constant",
+                "fixed_charge"
+              ],
+              "charge"
+            ],
+            "position"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "residual_invariants",
+    "invariants": [
+      "finite_output",
+      "declared_invariants"
+    ],
+    "benchmarks": [
+      {
+        "name": "neutral_uniform_motion",
+        "durationSeconds": 1,
+        "inputs": {
+          "fixed_charge": 0,
+          "charge": 1e-06,
+          "mass": 0.001,
+          "initial_position": 0.1,
+          "initial_velocity": 0.5,
+          "coulomb_constant": 8987551792.3
+        },
+        "expectedOutputs": {
+          "position": 0.6,
+          "velocity": 0.5,
+          "force": 0,
+          "kinetic_energy": 0.000125,
+          "potential_energy": 0
+        }
+      }
+    ]
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "force",
+      "role": "force"
+    }
+  ]
+}

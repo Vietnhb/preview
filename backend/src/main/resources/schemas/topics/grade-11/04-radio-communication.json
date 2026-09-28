@@ -1,0 +1,45 @@
+{
+  "schemaId": "thpt_radio_communication",
+  "version": "1.0",
+  "topic": "RADIO_COMMUNICATION",
+  "name": "Truyền thông tin bằng sóng vô tuyến",
+  "grade": 11,
+  "description": "Truyền thông tin bằng sóng vô tuyến (Chuyên đề 11.2): biến điệu biên độ AM, biến điệu tần số FM, sóng mang, tín hiệu âm tần, tần số và bước sóng các kênh, suy giảm tín hiệu tính theo dB và dB trên đơn vị độ dài.",
+  "objectTypes": [
+    {
+      "type": "wave_source",
+      "label": "nguồn sóng",
+      "description": "Nguồn phát sóng cơ hoặc sóng điện từ."
+    },
+    {
+      "type": "receiver",
+      "label": "máy thu/điểm quan sát",
+      "description": "Điểm hoặc thiết bị nhận sóng."
+    },
+    {
+      "type": "medium",
+      "label": "môi trường truyền sóng",
+      "description": "Dây, mặt nước, không khí, chân không…"
+    }
+  ],
+  "capabilities": [
+    "amplitude_modulated_signal",
+    "frequency_modulated_signal",
+    "signal_attenuation_along_path",
+    "travelling_wave_point"
+  ],
+  "curriculum": [
+    {
+      "name": "Biến điệu",
+      "summary": "AM, FM; tần số, bước sóng các kênh."
+    },
+    {
+      "name": "Tín hiệu tương tự và tín hiệu số",
+      "summary": "ADC, DAC."
+    },
+    {
+      "name": "Suy giảm tín hiệu",
+      "summary": "dB, dB/đơn vị độ dài."
+    }
+  ]
+}

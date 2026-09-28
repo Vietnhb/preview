@@ -1,0 +1,39 @@
+{
+  "schemaId": "thpt_earth_and_sky",
+  "version": "1.0",
+  "topic": "EARTH_AND_SKY",
+  "name": "Trái Đất và bầu trời",
+  "grade": 10,
+  "description": "Trái Đất và bầu trời (Chuyên đề 10.2): chuyển động nhìn thấy của Mặt Trời, Mặt Trăng, các hành tinh, mô hình nhật tâm, pha Mặt Trăng, nhật thực, nguyệt thực, thuỷ triều, chuyển động biểu kiến của bầu trời sao quanh sao Bắc Cực.",
+  "objectTypes": [
+    {
+      "type": "body",
+      "label": "vật",
+      "description": "Vật có khối lượng, coi như chất điểm hoặc vật rắn đơn giản."
+    },
+    {
+      "type": "observer",
+      "label": "người quan sát",
+      "description": "Người quan sát trên Trái Đất."
+    }
+  ],
+  "capabilities": [
+    "satellite_of_orbiting_body",
+    "uniform_circular_motion",
+    "circular_orbit"
+  ],
+  "curriculum": [
+    {
+      "name": "Xác định phương hướng",
+      "summary": "Chòm sao, sao Bắc Cực."
+    },
+    {
+      "name": "Chuyển động nhìn thấy của một số thiên thể",
+      "summary": "Mặt Trời, Mặt Trăng, Kim Tinh, Thuỷ Tinh; mô hình Copernic."
+    },
+    {
+      "name": "Một số hiện tượng thiên văn",
+      "summary": "Nhật thực, nguyệt thực, thuỷ triều."
+    }
+  ]
+}

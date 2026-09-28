@@ -1,0 +1,492 @@
+{
+  "capabilityId": "two_body_heat_exchange",
+  "title": "Trao đổi nhiệt giữa hai vật – cân bằng nhiệt",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "mass_1",
+      "specific_heat_1",
+      "initial_temperature_1",
+      "mass_2",
+      "specific_heat_2",
+      "initial_temperature_2",
+      "thermal_conductance"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass_1",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "specific_heat_1",
+      "unit": "J/(kg*K)",
+      "min": 1e-09
+    },
+    {
+      "key": "initial_temperature_1",
+      "unit": "degC"
+    },
+    {
+      "key": "mass_2",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "specific_heat_2",
+      "unit": "J/(kg*K)",
+      "min": 1e-09
+    },
+    {
+      "key": "initial_temperature_2",
+      "unit": "degC"
+    },
+    {
+      "key": "thermal_conductance",
+      "unit": "W/K",
+      "min": 1e-09
+    }
+  ],
+  "outputs": [
+    {
+      "key": "temperature_1",
+      "unit": "degC"
+    },
+    {
+      "key": "temperature_2",
+      "unit": "degC"
+    },
+    {
+      "key": "heat_transferred",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Hai vật chỉ trao đổi nhiệt với nhau (hệ cô lập), không chuyển thể; tốc độ truyền nhiệt tỉ lệ hiệu nhiệt độ."
+  ],
+  "equationSet": {
+    "canonical": [
+      "Q_toa = Q_thu",
+      "dQ/dt = G*(T1 - T2)"
+    ],
+    "derived": [
+      "T_cb = (m1*c1*T1 + m2*c2*T2)/(m1*c1 + m2*c2)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "temperature_1": "initial_temperature_1",
+        "temperature_2": "initial_temperature_2",
+        "heat_transferred": 0
+      },
+      "rates": {
+        "temperature_1": [
+          "div",
+          [
+            "mul",
+            [
+              "neg",
+              "thermal_conductance"
+            ],
+            [
+              "sub",
+              "temperature_1",
+              "temperature_2"
+            ]
+          ],
+          [
+            "mul",
+            "mass_1",
+            "specific_heat_1"
+          ]
+        ],
+        "temperature_2": [
+          "div",
+          [
+            "mul",
+            "thermal_conductance",
+            [
+              "sub",
+              "temperature_1",
+              "temperature_2"
+            ]
+          ],
+          [
+            "mul",
+            "mass_2",
+            "specific_heat_2"
+          ]
+        ],
+        "heat_transferred": [
+          "mul",
+          "thermal_conductance",
+          [
+            "sub",
+            "temperature_1",
+            "temperature_2"
+          ]
+        ]
+      },
+      "outputs": {
+        "temperature_1": "temperature_1",
+        "temperature_2": "temperature_2",
+        "heat_transferred": "heat_transferred"
+      },
+      "closedForm": {
+        "temperature_1": [
+          "add",
+          [
+            "div",
+            [
+              "add",
+              [
+                "mul",
+                [
+                  "mul",
+                  "mass_1",
+                  "specific_heat_1"
+                ],
+                "initial_temperature_1"
+              ],
+              [
+                "mul",
+                [
+                  "mul",
+                  "mass_2",
+                  "specific_heat_2"
+                ],
+                "initial_temperature_2"
+              ]
+            ],
+            [
+              "add",
+              [
+                "mul",
+                "mass_1",
+                "specific_heat_1"
+              ],
+              [
+                "mul",
+                "mass_2",
+                "specific_heat_2"
+              ]
+            ]
+          ],
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "sub",
+                    "initial_temperature_1",
+                    "initial_temperature_2"
+                  ],
+                  "mass_2"
+                ],
+                "specific_heat_2"
+              ],
+              [
+                "add",
+                [
+                  "mul",
+                  "mass_1",
+                  "specific_heat_1"
+                ],
+                [
+                  "mul",
+                  "mass_2",
+                  "specific_heat_2"
+                ]
+              ]
+            ],
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "thermal_conductance"
+                  ],
+                  [
+                    "add",
+                    [
+                      "div",
+                      1,
+                      [
+                        "mul",
+                        "mass_1",
+                        "specific_heat_1"
+                      ]
+                    ],
+                    [
+                      "div",
+                      1,
+                      [
+                        "mul",
+                        "mass_2",
+                        "specific_heat_2"
+                      ]
+                    ]
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "temperature_2": [
+          "sub",
+          [
+            "div",
+            [
+              "add",
+              [
+                "mul",
+                [
+                  "mul",
+                  "mass_1",
+                  "specific_heat_1"
+                ],
+                "initial_temperature_1"
+              ],
+              [
+                "mul",
+                [
+                  "mul",
+                  "mass_2",
+                  "specific_heat_2"
+                ],
+                "initial_temperature_2"
+              ]
+            ],
+            [
+              "add",
+              [
+                "mul",
+                "mass_1",
+                "specific_heat_1"
+              ],
+              [
+                "mul",
+                "mass_2",
+                "specific_heat_2"
+              ]
+            ]
+          ],
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "sub",
+                    "initial_temperature_1",
+                    "initial_temperature_2"
+                  ],
+                  "mass_1"
+                ],
+                "specific_heat_1"
+              ],
+              [
+                "add",
+                [
+                  "mul",
+                  "mass_1",
+                  "specific_heat_1"
+                ],
+                [
+                  "mul",
+                  "mass_2",
+                  "specific_heat_2"
+                ]
+              ]
+            ],
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "thermal_conductance"
+                  ],
+                  [
+                    "add",
+                    [
+                      "div",
+                      1,
+                      [
+                        "mul",
+                        "mass_1",
+                        "specific_heat_1"
+                      ]
+                    ],
+                    [
+                      "div",
+                      1,
+                      [
+                        "mul",
+                        "mass_2",
+                        "specific_heat_2"
+                      ]
+                    ]
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "heat_transferred": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "sub",
+                      "initial_temperature_1",
+                      "initial_temperature_2"
+                    ],
+                    "mass_1"
+                  ],
+                  "specific_heat_1"
+                ],
+                "mass_2"
+              ],
+              "specific_heat_2"
+            ],
+            [
+              "add",
+              [
+                "mul",
+                "mass_1",
+                "specific_heat_1"
+              ],
+              [
+                "mul",
+                "mass_2",
+                "specific_heat_2"
+              ]
+            ]
+          ],
+          [
+            "sub",
+            1,
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "thermal_conductance"
+                  ],
+                  [
+                    "add",
+                    [
+                      "div",
+                      1,
+                      [
+                        "mul",
+                        "mass_1",
+                        "specific_heat_1"
+                      ]
+                    ],
+                    [
+                      "div",
+                      1,
+                      [
+                        "mul",
+                        "mass_2",
+                        "specific_heat_2"
+                      ]
+                    ]
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ]
+      },
+      "invariants": {
+        "total_heat_content": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              "mass_1",
+              "specific_heat_1"
+            ],
+            "temperature_1"
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              "mass_2",
+              "specific_heat_2"
+            ],
+            "temperature_2"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output",
+      "declared_invariants"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "temperature_1",
+      "role": "state_value"
+    },
+    {
+      "source": "temperature_2",
+      "role": "state_value"
+    }
+  ]
+}

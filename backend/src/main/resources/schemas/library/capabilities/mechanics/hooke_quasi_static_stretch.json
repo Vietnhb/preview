@@ -1,0 +1,305 @@
+{
+  "capabilityId": "hooke_quasi_static_stretch",
+  "title": "Kéo dãn lò xo từ từ (định luật Hooke)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "spring",
+      "force_source"
+    ],
+    "quantities": [
+      "stiffness",
+      "force_rate",
+      "elastic_limit_force"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "stiffness",
+      "unit": "N/m",
+      "min": 1e-09
+    },
+    {
+      "key": "force_rate",
+      "unit": "N/s",
+      "min": 0
+    },
+    {
+      "key": "elastic_limit_force",
+      "unit": "N",
+      "min": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    },
+    {
+      "key": "elongation",
+      "unit": "m"
+    },
+    {
+      "key": "elastic_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Kéo lò xo rất chậm (cân bằng từng lúc); lực tăng đều và dừng ở giới hạn đàn hồi."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F = k*Delta l"
+    ],
+    "derived": [
+      "Wt = k*Delta l^2/2"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "force": [
+          "mul",
+          0.5,
+          [
+            "sub",
+            [
+              "add",
+              [
+                "mul",
+                "force_rate",
+                "elapsed_time"
+              ],
+              "elastic_limit_force"
+            ],
+            [
+              "abs",
+              [
+                "sub",
+                [
+                  "mul",
+                  "force_rate",
+                  "elapsed_time"
+                ],
+                "elastic_limit_force"
+              ]
+            ]
+          ]
+        ],
+        "elongation": [
+          "div",
+          [
+            "mul",
+            0.5,
+            [
+              "sub",
+              [
+                "add",
+                [
+                  "mul",
+                  "force_rate",
+                  "elapsed_time"
+                ],
+                "elastic_limit_force"
+              ],
+              [
+                "abs",
+                [
+                  "sub",
+                  [
+                    "mul",
+                    "force_rate",
+                    "elapsed_time"
+                  ],
+                  "elastic_limit_force"
+                ]
+              ]
+            ]
+          ],
+          "stiffness"
+        ],
+        "elastic_energy": [
+          "div",
+          [
+            "mul",
+            0.5,
+            [
+              "pow",
+              [
+                "mul",
+                0.5,
+                [
+                  "sub",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      "force_rate",
+                      "elapsed_time"
+                    ],
+                    "elastic_limit_force"
+                  ],
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        "force_rate",
+                        "elapsed_time"
+                      ],
+                      "elastic_limit_force"
+                    ]
+                  ]
+                ]
+              ],
+              2
+            ]
+          ],
+          "stiffness"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "force": [
+          "mul",
+          0.5,
+          [
+            "sub",
+            [
+              "add",
+              [
+                "mul",
+                "force_rate",
+                "t"
+              ],
+              "elastic_limit_force"
+            ],
+            [
+              "abs",
+              [
+                "sub",
+                [
+                  "mul",
+                  "force_rate",
+                  "t"
+                ],
+                "elastic_limit_force"
+              ]
+            ]
+          ]
+        ],
+        "elongation": [
+          "div",
+          [
+            "mul",
+            0.5,
+            [
+              "sub",
+              [
+                "add",
+                [
+                  "mul",
+                  "force_rate",
+                  "t"
+                ],
+                "elastic_limit_force"
+              ],
+              [
+                "abs",
+                [
+                  "sub",
+                  [
+                    "mul",
+                    "force_rate",
+                    "t"
+                  ],
+                  "elastic_limit_force"
+                ]
+              ]
+            ]
+          ],
+          "stiffness"
+        ],
+        "elastic_energy": [
+          "div",
+          [
+            "mul",
+            0.5,
+            [
+              "pow",
+              [
+                "mul",
+                0.5,
+                [
+                  "sub",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      "force_rate",
+                      "t"
+                    ],
+                    "elastic_limit_force"
+                  ],
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        "force_rate",
+                        "t"
+                      ],
+                      "elastic_limit_force"
+                    ]
+                  ]
+                ]
+              ],
+              2
+            ]
+          ],
+          "stiffness"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "elongation",
+      "role": "state_value"
+    }
+  ]
+}

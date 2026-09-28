@@ -1,0 +1,60 @@
+{
+  "schemaId": "thpt_waves",
+  "version": "1.0",
+  "topic": "WAVES",
+  "name": "Sóng",
+  "grade": 11,
+  "description": "Sóng (Vật lí 11): sóng cơ trên dây, mặt nước, sóng âm; bước sóng, tần số, tốc độ v = λf; sóng dọc, sóng ngang; sóng điện từ; giao thoa hai nguồn kết hợp, giao thoa ánh sáng khe Young i = λD/a; sóng dừng, nút, bụng; đo tốc độ truyền âm, tiếng vang.",
+  "objectTypes": [
+    {
+      "type": "medium",
+      "label": "môi trường truyền sóng",
+      "description": "Dây, mặt nước, không khí, chân không…"
+    },
+    {
+      "type": "wave_source",
+      "label": "nguồn sóng",
+      "description": "Nguồn phát sóng cơ hoặc sóng điện từ."
+    },
+    {
+      "type": "receiver",
+      "label": "máy thu/điểm quan sát",
+      "description": "Điểm hoặc thiết bị nhận sóng."
+    }
+  ],
+  "capabilities": [
+    "travelling_wave_point",
+    "longitudinal_wave_point",
+    "standing_wave_point",
+    "two_source_interference_point",
+    "double_slit_screen_scan",
+    "acoustic_pressure_point",
+    "pulse_echo"
+  ],
+  "curriculum": [
+    {
+      "name": "Mô tả sóng",
+      "summary": "λ, A, f, v, cường độ; v = λf."
+    },
+    {
+      "name": "Sóng dọc và sóng ngang",
+      "summary": "So sánh; đo tần số âm."
+    },
+    {
+      "name": "Sóng điện từ",
+      "summary": "Cùng tốc độ trong chân không; thang sóng điện từ."
+    },
+    {
+      "name": "Giao thoa sóng kết hợp",
+      "summary": "Điều kiện giao thoa; i = λD/a."
+    },
+    {
+      "name": "Sóng dừng",
+      "summary": "Nút, bụng."
+    },
+    {
+      "name": "Đo tốc độ truyền âm",
+      "summary": "Phương án đo."
+    }
+  ]
+}

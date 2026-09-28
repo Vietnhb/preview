@@ -1,0 +1,468 @@
+{
+  "capabilityId": "xray_tube_electron",
+  "title": "Electron trong ống tia X và tia X phát ra",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "electron",
+      "detector"
+    ],
+    "quantities": [
+      "accelerating_voltage",
+      "tube_length",
+      "elementary_charge",
+      "electron_mass",
+      "planck_constant",
+      "light_speed"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "accelerating_voltage",
+      "unit": "V",
+      "min": 0
+    },
+    {
+      "key": "tube_length",
+      "unit": "m",
+      "min": 1e-09
+    },
+    {
+      "key": "elementary_charge",
+      "unit": "C",
+      "min": 1e-25,
+      "defaultValue": 1.602176634e-19
+    },
+    {
+      "key": "electron_mass",
+      "unit": "kg",
+      "min": 1e-35,
+      "defaultValue": 9.1093837e-31
+    },
+    {
+      "key": "planck_constant",
+      "unit": "J*s",
+      "min": 1e-40,
+      "defaultValue": 6.62607015e-34
+    },
+    {
+      "key": "light_speed",
+      "unit": "m/s",
+      "min": 1,
+      "defaultValue": 299792458
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "electron_speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "max_photon_energy",
+      "unit": "J"
+    },
+    {
+      "key": "min_wavelength",
+      "unit": "m"
+    }
+  ],
+  "assumptions": [
+    "Electron tăng tốc đều từ nghỉ trong điện trường đều của ống rồi đập vào anot; bỏ qua hiệu ứng tương đối tính."
+  ],
+  "equationSet": {
+    "canonical": [
+      "e*U = m*v^2/2",
+      "h*f_max = e*U"
+    ],
+    "derived": [
+      "lambda_min = h*c/(e*U)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "position": [
+          "mul",
+          0.5,
+          [
+            "sub",
+            [
+              "add",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      0.5,
+                      "elementary_charge"
+                    ],
+                    "accelerating_voltage"
+                  ],
+                  [
+                    "mul",
+                    "electron_mass",
+                    "tube_length"
+                  ]
+                ],
+                [
+                  "pow",
+                  "elapsed_time",
+                  2
+                ]
+              ],
+              "tube_length"
+            ],
+            [
+              "abs",
+              [
+                "sub",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        0.5,
+                        "elementary_charge"
+                      ],
+                      "accelerating_voltage"
+                    ],
+                    [
+                      "mul",
+                      "electron_mass",
+                      "tube_length"
+                    ]
+                  ],
+                  [
+                    "pow",
+                    "elapsed_time",
+                    2
+                  ]
+                ],
+                "tube_length"
+              ]
+            ]
+          ]
+        ],
+        "electron_speed": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              "elementary_charge",
+              "accelerating_voltage"
+            ],
+            [
+              "mul",
+              "electron_mass",
+              "tube_length"
+            ]
+          ],
+          [
+            "mul",
+            0.5,
+            [
+              "sub",
+              [
+                "add",
+                "elapsed_time",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        "electron_mass"
+                      ],
+                      [
+                        "pow",
+                        "tube_length",
+                        2
+                      ]
+                    ],
+                    [
+                      "mul",
+                      "elementary_charge",
+                      "accelerating_voltage"
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "abs",
+                [
+                  "sub",
+                  "elapsed_time",
+                  [
+                    "sqrt",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          2,
+                          "electron_mass"
+                        ],
+                        [
+                          "pow",
+                          "tube_length",
+                          2
+                        ]
+                      ],
+                      [
+                        "mul",
+                        "elementary_charge",
+                        "accelerating_voltage"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "max_photon_energy": [
+          "mul",
+          "elementary_charge",
+          "accelerating_voltage"
+        ],
+        "min_wavelength": [
+          "div",
+          [
+            "mul",
+            "planck_constant",
+            "light_speed"
+          ],
+          [
+            "mul",
+            "elementary_charge",
+            "accelerating_voltage"
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "position": [
+          "mul",
+          0.5,
+          [
+            "sub",
+            [
+              "add",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      0.5,
+                      "elementary_charge"
+                    ],
+                    "accelerating_voltage"
+                  ],
+                  [
+                    "mul",
+                    "electron_mass",
+                    "tube_length"
+                  ]
+                ],
+                [
+                  "pow",
+                  "t",
+                  2
+                ]
+              ],
+              "tube_length"
+            ],
+            [
+              "abs",
+              [
+                "sub",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        0.5,
+                        "elementary_charge"
+                      ],
+                      "accelerating_voltage"
+                    ],
+                    [
+                      "mul",
+                      "electron_mass",
+                      "tube_length"
+                    ]
+                  ],
+                  [
+                    "pow",
+                    "t",
+                    2
+                  ]
+                ],
+                "tube_length"
+              ]
+            ]
+          ]
+        ],
+        "electron_speed": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              "elementary_charge",
+              "accelerating_voltage"
+            ],
+            [
+              "mul",
+              "electron_mass",
+              "tube_length"
+            ]
+          ],
+          [
+            "mul",
+            0.5,
+            [
+              "sub",
+              [
+                "add",
+                "t",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        "electron_mass"
+                      ],
+                      [
+                        "pow",
+                        "tube_length",
+                        2
+                      ]
+                    ],
+                    [
+                      "mul",
+                      "elementary_charge",
+                      "accelerating_voltage"
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "abs",
+                [
+                  "sub",
+                  "t",
+                  [
+                    "sqrt",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          2,
+                          "electron_mass"
+                        ],
+                        [
+                          "pow",
+                          "tube_length",
+                          2
+                        ]
+                      ],
+                      [
+                        "mul",
+                        "elementary_charge",
+                        "accelerating_voltage"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "max_photon_energy": [
+          "mul",
+          "elementary_charge",
+          "accelerating_voltage"
+        ],
+        "min_wavelength": [
+          "div",
+          [
+            "mul",
+            "planck_constant",
+            "light_speed"
+          ],
+          [
+            "mul",
+            "elementary_charge",
+            "accelerating_voltage"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    }
+  ]
+}

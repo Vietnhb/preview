@@ -1,0 +1,444 @@
+{
+  "capabilityId": "applied_force_with_friction",
+  "title": "Vật chịu lực kéo và ma sát (định luật II Newton)",
+  "version": "2.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "surface",
+      "force_source"
+    ],
+    "quantities": [
+      "mass",
+      "applied_force",
+      "friction_coefficient",
+      "gravitational_acceleration",
+      "initial_position",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-06
+    },
+    {
+      "key": "applied_force",
+      "unit": "N"
+    },
+    {
+      "key": "friction_coefficient",
+      "unit": "1",
+      "min": 0,
+      "max": 5,
+      "defaultValue": 0
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "min": 0,
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    },
+    {
+      "key": "work",
+      "unit": "J"
+    },
+    {
+      "key": "power",
+      "unit": "W"
+    },
+    {
+      "key": "momentum",
+      "unit": "kg*m/s"
+    }
+  ],
+  "assumptions": [
+    "Vật chuyển động thẳng trên mặt phẳng ngang theo chiều của lực kéo trong suốt thời gian mô phỏng.",
+    "Lực kéo song song mặt phẳng, hệ số ma sát trượt không đổi."
+  ],
+  "equationSet": {
+    "canonical": [
+      "m*a = F - mu*m*g",
+      "Fms = mu*m*g"
+    ],
+    "derived": [
+      "A = F*s",
+      "P = F*v",
+      "Wd = m*v^2/2",
+      "F_hl = dp/dt"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "div",
+          [
+            "sub",
+            "applied_force",
+            [
+              "mul",
+              [
+                "mul",
+                "friction_coefficient",
+                "mass"
+              ],
+              "gravitational_acceleration"
+            ]
+          ],
+          "mass"
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "acceleration": [
+          "div",
+          [
+            "sub",
+            "applied_force",
+            [
+              "mul",
+              [
+                "mul",
+                "friction_coefficient",
+                "mass"
+              ],
+              "gravitational_acceleration"
+            ]
+          ],
+          "mass"
+        ],
+        "force": [
+          "sub",
+          "applied_force",
+          [
+            "mul",
+            [
+              "mul",
+              "friction_coefficient",
+              "mass"
+            ],
+            "gravitational_acceleration"
+          ]
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            "velocity",
+            2
+          ]
+        ],
+        "work": [
+          "mul",
+          "applied_force",
+          [
+            "sub",
+            "position",
+            "initial_position"
+          ]
+        ],
+        "power": [
+          "mul",
+          "applied_force",
+          "velocity"
+        ],
+        "momentum": [
+          "mul",
+          "mass",
+          "velocity"
+        ]
+      },
+      "closedForm": {
+        "position": [
+          "add",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              "initial_velocity",
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                0.5,
+                [
+                  "sub",
+                  "applied_force",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      "friction_coefficient",
+                      "mass"
+                    ],
+                    "gravitational_acceleration"
+                  ]
+                ]
+              ],
+              "mass"
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "velocity": [
+          "add",
+          "initial_velocity",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "sub",
+                "applied_force",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    "friction_coefficient",
+                    "mass"
+                  ],
+                  "gravitational_acceleration"
+                ]
+              ],
+              "mass"
+            ],
+            "t"
+          ]
+        ],
+        "acceleration": [
+          "div",
+          [
+            "sub",
+            "applied_force",
+            [
+              "mul",
+              [
+                "mul",
+                "friction_coefficient",
+                "mass"
+              ],
+              "gravitational_acceleration"
+            ]
+          ],
+          "mass"
+        ],
+        "force": [
+          "sub",
+          "applied_force",
+          [
+            "mul",
+            [
+              "mul",
+              "friction_coefficient",
+              "mass"
+            ],
+            "gravitational_acceleration"
+          ]
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              "initial_velocity",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "sub",
+                    "applied_force",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        "friction_coefficient",
+                        "mass"
+                      ],
+                      "gravitational_acceleration"
+                    ]
+                  ],
+                  "mass"
+                ],
+                "t"
+              ]
+            ],
+            2
+          ]
+        ],
+        "work": [
+          "mul",
+          "applied_force",
+          [
+            "add",
+            [
+              "mul",
+              "initial_velocity",
+              "t"
+            ],
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "mul",
+                  0.5,
+                  [
+                    "sub",
+                    "applied_force",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        "friction_coefficient",
+                        "mass"
+                      ],
+                      "gravitational_acceleration"
+                    ]
+                  ]
+                ],
+                "mass"
+              ],
+              [
+                "pow",
+                "t",
+                2
+              ]
+            ]
+          ]
+        ],
+        "power": [
+          "mul",
+          "applied_force",
+          [
+            "add",
+            "initial_velocity",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "sub",
+                  "applied_force",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      "friction_coefficient",
+                      "mass"
+                    ],
+                    "gravitational_acceleration"
+                  ]
+                ],
+                "mass"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "momentum": [
+          "mul",
+          "mass",
+          "velocity"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "velocity",
+      "role": "velocity"
+    },
+    {
+      "source": "force",
+      "role": "force"
+    }
+  ]
+}

@@ -6,7 +6,8 @@ import { validateVectorScene } from "../react-client/src/simulation-scene/Vector
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const catalogPath = path.join(root, "backend", "src", "main", "resources", "schemas", "catalog.json");
-const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf8"));
+// Legacy scene-graph checks; the curriculum library (schemas/library) no longer ships a compiled catalog.json.
+const catalog = fs.existsSync(catalogPath) ? JSON.parse(fs.readFileSync(catalogPath, "utf8")) : [];
 const schemas = Array.isArray(catalog) ? catalog : catalog.schemas ?? [];
 const primitives = new Set(AUTHORABLE_PRIMITIVES);
 const effects = new Set(SUPPORTED_EFFECTS);

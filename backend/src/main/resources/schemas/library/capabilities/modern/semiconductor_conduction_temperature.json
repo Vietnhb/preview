@@ -1,0 +1,379 @@
+{
+  "capabilityId": "semiconductor_conduction_temperature",
+  "title": "Dẫn điện của bán dẫn và kim loại theo nhiệt độ",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "electron",
+      "material"
+    ],
+    "quantities": [
+      "band_gap",
+      "reference_temperature",
+      "start_temperature",
+      "heating_rate",
+      "boltzmann_constant"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "band_gap",
+      "unit": "J",
+      "min": 0
+    },
+    {
+      "key": "reference_temperature",
+      "unit": "K",
+      "min": 1e-06
+    },
+    {
+      "key": "start_temperature",
+      "unit": "K",
+      "min": 1e-06
+    },
+    {
+      "key": "heating_rate",
+      "unit": "K/s"
+    },
+    {
+      "key": "boltzmann_constant",
+      "unit": "J/K",
+      "min": 1e-30,
+      "defaultValue": 1.380649e-23
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "temperature",
+      "unit": "K"
+    },
+    {
+      "key": "relative_carrier_density",
+      "unit": "1"
+    },
+    {
+      "key": "relative_resistance",
+      "unit": "1"
+    }
+  ],
+  "assumptions": [
+    "Bán dẫn không pha tạp theo mô hình vùng năng lượng đơn giản; độ linh động coi như không đổi; so sánh tương đối với nhiệt độ tham chiếu."
+  ],
+  "equationSet": {
+    "canonical": [
+      "n_i ~ T^(3/2)*exp(-Eg/(2*k*T))"
+    ],
+    "derived": [
+      "bán dẫn thuần: T tăng -> điện trở giảm (ngược kim loại)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "temperature": [
+          "add",
+          "start_temperature",
+          [
+            "mul",
+            "heating_rate",
+            "elapsed_time"
+          ]
+        ],
+        "relative_carrier_density": [
+          "mul",
+          [
+            "pow",
+            [
+              "div",
+              [
+                "add",
+                "start_temperature",
+                [
+                  "mul",
+                  "heating_rate",
+                  "elapsed_time"
+                ]
+              ],
+              "reference_temperature"
+            ],
+            1.5
+          ],
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  "band_gap"
+                ],
+                [
+                  "mul",
+                  2,
+                  "boltzmann_constant"
+                ]
+              ],
+              [
+                "sub",
+                [
+                  "div",
+                  1,
+                  [
+                    "add",
+                    "start_temperature",
+                    [
+                      "mul",
+                      "heating_rate",
+                      "elapsed_time"
+                    ]
+                  ]
+                ],
+                [
+                  "div",
+                  1,
+                  "reference_temperature"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "relative_resistance": [
+          "div",
+          1,
+          [
+            "mul",
+            [
+              "pow",
+              [
+                "div",
+                [
+                  "add",
+                  "start_temperature",
+                  [
+                    "mul",
+                    "heating_rate",
+                    "elapsed_time"
+                  ]
+                ],
+                "reference_temperature"
+              ],
+              1.5
+            ],
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    "band_gap"
+                  ],
+                  [
+                    "mul",
+                    2,
+                    "boltzmann_constant"
+                  ]
+                ],
+                [
+                  "sub",
+                  [
+                    "div",
+                    1,
+                    [
+                      "add",
+                      "start_temperature",
+                      [
+                        "mul",
+                        "heating_rate",
+                        "elapsed_time"
+                      ]
+                    ]
+                  ],
+                  [
+                    "div",
+                    1,
+                    "reference_temperature"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "temperature": [
+          "add",
+          "start_temperature",
+          [
+            "mul",
+            "heating_rate",
+            "t"
+          ]
+        ],
+        "relative_carrier_density": [
+          "mul",
+          [
+            "pow",
+            [
+              "div",
+              [
+                "add",
+                "start_temperature",
+                [
+                  "mul",
+                  "heating_rate",
+                  "t"
+                ]
+              ],
+              "reference_temperature"
+            ],
+            1.5
+          ],
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  "band_gap"
+                ],
+                [
+                  "mul",
+                  2,
+                  "boltzmann_constant"
+                ]
+              ],
+              [
+                "sub",
+                [
+                  "div",
+                  1,
+                  [
+                    "add",
+                    "start_temperature",
+                    [
+                      "mul",
+                      "heating_rate",
+                      "t"
+                    ]
+                  ]
+                ],
+                [
+                  "div",
+                  1,
+                  "reference_temperature"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "relative_resistance": [
+          "div",
+          1,
+          [
+            "mul",
+            [
+              "pow",
+              [
+                "div",
+                [
+                  "add",
+                  "start_temperature",
+                  [
+                    "mul",
+                    "heating_rate",
+                    "t"
+                  ]
+                ],
+                "reference_temperature"
+              ],
+              1.5
+            ],
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    "band_gap"
+                  ],
+                  [
+                    "mul",
+                    2,
+                    "boltzmann_constant"
+                  ]
+                ],
+                [
+                  "sub",
+                  [
+                    "div",
+                    1,
+                    [
+                      "add",
+                      "start_temperature",
+                      [
+                        "mul",
+                        "heating_rate",
+                        "t"
+                      ]
+                    ]
+                  ],
+                  [
+                    "div",
+                    1,
+                    "reference_temperature"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "relative_resistance",
+      "role": "state_value"
+    }
+  ]
+}

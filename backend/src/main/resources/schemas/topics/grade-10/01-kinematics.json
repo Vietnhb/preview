@@ -1,0 +1,43 @@
+{
+  "schemaId": "thpt_kinematics",
+  "version": "1.0",
+  "topic": "KINEMATICS",
+  "name": "Động học",
+  "grade": 10,
+  "description": "Động học (Vật lí 10): mô tả chuyển động không xét nguyên nhân — độ dịch chuyển, quãng đường, tốc độ, vận tốc, cộng vận tốc (thuyền qua sông, máy bay trong gió), gia tốc, chuyển động thẳng đều và biến đổi đều, rơi tự do, ném ngang, ném xiên, đồ thị độ dịch chuyển – thời gian và vận tốc – thời gian.",
+  "objectTypes": [
+    {
+      "type": "moving_body",
+      "label": "vật chuyển động",
+      "description": "Xe, người, bóng, thuyền, máy bay…"
+    },
+    {
+      "type": "reference_frame",
+      "label": "hệ quy chiếu",
+      "description": "Hệ quy chiếu (mặt đất, dòng nước, gió…)."
+    },
+    {
+      "type": "path",
+      "label": "quỹ đạo",
+      "description": "Đường, làn, quỹ đạo."
+    }
+  ],
+  "capabilities": [
+    "uniform_motion",
+    "uniform_acceleration",
+    "free_fall",
+    "projectile",
+    "uniform_motion_2d",
+    "sliding_to_stop_with_friction"
+  ],
+  "curriculum": [
+    {
+      "name": "Mô tả chuyển động",
+      "summary": "Tốc độ, vận tốc, độ dịch chuyển, độ dịch chuyển và vận tốc tổng hợp; đồ thị độ dịch chuyển – thời gian."
+    },
+    {
+      "name": "Chuyển động biến đổi",
+      "summary": "Gia tốc; đồ thị vận tốc – thời gian; chuyển động thẳng biến đổi đều; rơi tự do; chuyển động ném."
+    }
+  ]
+}

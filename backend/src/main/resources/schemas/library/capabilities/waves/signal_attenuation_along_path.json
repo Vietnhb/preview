@@ -1,0 +1,185 @@
+{
+  "capabilityId": "signal_attenuation_along_path",
+  "title": "Suy giảm tín hiệu theo đường truyền (dB)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "wave_source",
+      "medium",
+      "receiver"
+    ],
+    "quantities": [
+      "initial_power",
+      "attenuation_per_metre",
+      "propagation_speed"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "initial_power",
+      "unit": "W",
+      "min": 0
+    },
+    {
+      "key": "attenuation_per_metre",
+      "unit": "dB/m",
+      "min": 0
+    },
+    {
+      "key": "propagation_speed",
+      "unit": "m/s",
+      "min": 1e-09
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "power",
+      "unit": "W"
+    },
+    {
+      "key": "attenuation_db",
+      "unit": "1"
+    }
+  ],
+  "assumptions": [
+    "Tín hiệu truyền theo một tuyến (cáp, sợi quang, không khí) với hệ số suy giảm không đổi; vị trí là quãng đường tín hiệu đã đi."
+  ],
+  "equationSet": {
+    "canonical": [
+      "suy giảm (dB) = 10*lg(P0/P)",
+      "P = P0*10^(-alpha*d/10)"
+    ],
+    "derived": [
+      "alpha tính theo dB trên một đơn vị độ dài"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "position": [
+          "mul",
+          "propagation_speed",
+          "elapsed_time"
+        ],
+        "attenuation_db": [
+          "mul",
+          [
+            "mul",
+            "attenuation_per_metre",
+            "propagation_speed"
+          ],
+          "elapsed_time"
+        ],
+        "power": [
+          "mul",
+          "initial_power",
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    0.2302585092994046
+                  ],
+                  "attenuation_per_metre"
+                ],
+                "propagation_speed"
+              ],
+              "elapsed_time"
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "position": [
+          "mul",
+          "propagation_speed",
+          "t"
+        ],
+        "attenuation_db": [
+          "mul",
+          [
+            "mul",
+            "attenuation_per_metre",
+            "propagation_speed"
+          ],
+          "t"
+        ],
+        "power": [
+          "mul",
+          "initial_power",
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    0.2302585092994046
+                  ],
+                  "attenuation_per_metre"
+                ],
+                "propagation_speed"
+              ],
+              "t"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "power",
+      "role": "state_value"
+    }
+  ]
+}

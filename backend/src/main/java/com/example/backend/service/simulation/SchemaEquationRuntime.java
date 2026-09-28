@@ -292,7 +292,8 @@ public class SchemaEquationRuntime {
                 if (a != null) a.forEach((key, value) -> { if (value * exponent != 0) result.put(key, value * exponent); });
                 yield result;
             }
-            case "sin", "cos", "exp" -> { require(a == null || a.isEmpty(), "Transcendental input must be dimensionless (angles use radians)"); yield Map.of(); }
+            case "sin", "cos", "exp", "log", "asin", "acos", "atan" -> {
+                require(a == null || a.isEmpty(), "Transcendental input must be dimensionless (angles use radians)"); yield Map.of(); }
             default -> throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Unknown dimension operator: " + op);
         };
     }
@@ -369,7 +370,7 @@ public class SchemaEquationRuntime {
         if (ast.isTextual()) return lookup.applyAsDouble(ast.asText());
         require(ast.isArray() && ast.size() >= 2 && ast.size() <= 3, "Invalid arithmetic AST");
         String op = ast.path(0).asText();
-        boolean unary = List.of("neg", "sin", "cos", "sqrt", "exp", "abs").contains(op);
+        boolean unary = List.of("neg", "sin", "cos", "sqrt", "exp", "abs", "log", "asin", "acos", "atan").contains(op);
         require(ast.size() == (unary ? 2 : 3), "Invalid arithmetic AST arity");
         double a = evaluate(ast.get(1), lookup, depth + 1, nodes);
         double b = ast.size() > 2 ? evaluate(ast.get(2), lookup, depth + 1, nodes) : 0;
@@ -385,6 +386,10 @@ public class SchemaEquationRuntime {
             case "sqrt" -> Math.sqrt(a);
             case "exp" -> Math.exp(a);
             case "abs" -> Math.abs(a);
+            case "log" -> Math.log(a);
+            case "asin" -> Math.asin(a);
+            case "acos" -> Math.acos(a);
+            case "atan" -> Math.atan(a);
             default -> throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Unsupported arithmetic operator: " + op);
         };
         require(Double.isFinite(value), "Equation produced NaN/Infinity");

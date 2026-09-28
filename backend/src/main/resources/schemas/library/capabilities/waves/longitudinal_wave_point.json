@@ -1,0 +1,344 @@
+{
+  "capabilityId": "longitudinal_wave_point",
+  "title": "Sóng dọc (lò xo, sóng âm)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "medium",
+      "wave_source"
+    ],
+    "quantities": [
+      "amplitude",
+      "frequency",
+      "wave_speed",
+      "position_along_medium",
+      "lane",
+      "initial_phase"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "amplitude",
+      "unit": "m",
+      "min": 0
+    },
+    {
+      "key": "frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "wave_speed",
+      "unit": "m/s",
+      "min": 1e-09
+    },
+    {
+      "key": "position_along_medium",
+      "unit": "m"
+    },
+    {
+      "key": "lane",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_phase",
+      "unit": "rad",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    }
+  ],
+  "assumptions": [
+    "Sóng dọc: phần tử dao động dọc theo phương truyền quanh vị trí cân bằng x; nhiều phần tử có thể đặt trên các làn song song (lane)."
+  ],
+  "equationSet": {
+    "canonical": [
+      "u(x,t) = A*cos(omega*t - 2*pi*x/lambda + phi) dọc theo phương truyền"
+    ],
+    "derived": [
+      "lambda = v/f"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "x": [
+          "add",
+          "position_along_medium",
+          [
+            "mul",
+            "amplitude",
+            [
+              "cos",
+              [
+                "sub",
+                [
+                  "add",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    "elapsed_time"
+                  ],
+                  "initial_phase"
+                ],
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    "position_along_medium"
+                  ],
+                  "wave_speed"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "y": "lane",
+        "vx": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "neg",
+                  2
+                ],
+                3.141592653589793
+              ],
+              "frequency"
+            ],
+            "amplitude"
+          ],
+          [
+            "sin",
+            [
+              "sub",
+              [
+                "add",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "elapsed_time"
+                ],
+                "initial_phase"
+              ],
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "wave_speed"
+              ]
+            ]
+          ]
+        ],
+        "vy": 0
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "x": [
+          "add",
+          "position_along_medium",
+          [
+            "mul",
+            "amplitude",
+            [
+              "cos",
+              [
+                "sub",
+                [
+                  "add",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    "t"
+                  ],
+                  "initial_phase"
+                ],
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "frequency"
+                    ],
+                    "position_along_medium"
+                  ],
+                  "wave_speed"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "y": "lane",
+        "vx": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "neg",
+                  2
+                ],
+                3.141592653589793
+              ],
+              "frequency"
+            ],
+            "amplitude"
+          ],
+          [
+            "sin",
+            [
+              "sub",
+              [
+                "add",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "t"
+                ],
+                "initial_phase"
+              ],
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "wave_speed"
+              ]
+            ]
+          ]
+        ],
+        "vy": 0
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    }
+  ]
+}

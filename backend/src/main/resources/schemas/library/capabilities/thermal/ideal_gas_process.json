@@ -1,0 +1,293 @@
+{
+  "capabilityId": "ideal_gas_process",
+  "title": "Quá trình biến đổi trạng thái khí lí tưởng",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "gas",
+      "container",
+      "heat_source"
+    ],
+    "quantities": [
+      "amount",
+      "initial_temperature",
+      "initial_volume",
+      "volume_rate",
+      "temperature_rate",
+      "gas_constant",
+      "degrees_of_freedom"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "amount",
+      "unit": "mol",
+      "min": 1e-12
+    },
+    {
+      "key": "initial_temperature",
+      "unit": "K",
+      "min": 1e-06
+    },
+    {
+      "key": "initial_volume",
+      "unit": "m3",
+      "min": 1e-12
+    },
+    {
+      "key": "volume_rate",
+      "unit": "m3/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "temperature_rate",
+      "unit": "K/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "gas_constant",
+      "unit": "J/(mol*K)",
+      "min": 1,
+      "defaultValue": 8.314462618
+    },
+    {
+      "key": "degrees_of_freedom",
+      "unit": "1",
+      "min": 3,
+      "max": 7,
+      "defaultValue": 3
+    }
+  ],
+  "outputs": [
+    {
+      "key": "volume",
+      "unit": "m3"
+    },
+    {
+      "key": "temperature",
+      "unit": "K"
+    },
+    {
+      "key": "pressure",
+      "unit": "Pa"
+    },
+    {
+      "key": "work",
+      "unit": "J"
+    },
+    {
+      "key": "internal_energy_change",
+      "unit": "J"
+    },
+    {
+      "key": "heat",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Khí lí tưởng biến đổi chuẩn tĩnh; thể tích và nhiệt độ thay đổi đều theo thời gian (tốc độ bằng 0 để giữ đại lượng không đổi); đẳng áp khi V/T giữ không đổi.",
+    "heat là nhiệt lượng khí nhận vào, work là công khí thực hiện."
+  ],
+  "equationSet": {
+    "canonical": [
+      "p*V = n*R*T",
+      "DeltaU = A + Q (A là công khí nhận)",
+      "A_khi = tích phân p*dV"
+    ],
+    "derived": [
+      "đẳng nhiệt: p*V = const",
+      "đẳng tích: p/T = const",
+      "đẳng áp: V/T = const",
+      "DeltaU = (i/2)*n*R*DeltaT"
+    ]
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": null,
+    "math": {
+      "initial": {
+        "volume": "initial_volume",
+        "temperature": "initial_temperature",
+        "work": 0
+      },
+      "rates": {
+        "volume": "volume_rate",
+        "temperature": "temperature_rate",
+        "work": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                "amount",
+                "gas_constant"
+              ],
+              "temperature"
+            ],
+            "volume"
+          ],
+          "volume_rate"
+        ]
+      },
+      "outputs": {
+        "volume": "volume",
+        "temperature": "temperature",
+        "pressure": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "amount",
+              "gas_constant"
+            ],
+            "temperature"
+          ],
+          "volume"
+        ],
+        "work": "work",
+        "internal_energy_change": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                0.5,
+                "degrees_of_freedom"
+              ],
+              "amount"
+            ],
+            "gas_constant"
+          ],
+          [
+            "sub",
+            "temperature",
+            "initial_temperature"
+          ]
+        ],
+        "heat": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  0.5,
+                  "degrees_of_freedom"
+                ],
+                "amount"
+              ],
+              "gas_constant"
+            ],
+            [
+              "sub",
+              "temperature",
+              "initial_temperature"
+            ]
+          ],
+          "work"
+        ]
+      },
+      "invariants": {
+        "gas_law": [
+          "div",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  "amount",
+                  "gas_constant"
+                ],
+                "temperature"
+              ],
+              "volume"
+            ],
+            "volume"
+          ],
+          [
+            "mul",
+            "amount",
+            "temperature"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "residual_invariants",
+    "invariants": [
+      "finite_output",
+      "declared_invariants"
+    ],
+    "benchmarks": [
+      {
+        "name": "isothermal_expansion_doubling",
+        "durationSeconds": 1,
+        "inputs": {
+          "amount": 1,
+          "initial_temperature": 300,
+          "initial_volume": 0.01,
+          "volume_rate": 0.01,
+          "temperature_rate": 0,
+          "gas_constant": 8.314462618,
+          "degrees_of_freedom": 3
+        },
+        "expectedOutputs": {
+          "volume": 0.02,
+          "temperature": 300,
+          "pressure": 124716.93927,
+          "work": 1728.9438964613287
+        }
+      },
+      {
+        "name": "isochoric_heating",
+        "durationSeconds": 1,
+        "inputs": {
+          "amount": 1,
+          "initial_temperature": 300,
+          "initial_volume": 0.01,
+          "volume_rate": 0,
+          "temperature_rate": 100,
+          "gas_constant": 8.314462618,
+          "degrees_of_freedom": 3
+        },
+        "expectedOutputs": {
+          "volume": 0.01,
+          "temperature": 400,
+          "work": 0,
+          "internal_energy_change": 1247.1693927000001
+        }
+      }
+    ]
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "pressure",
+      "role": "state_value"
+    },
+    {
+      "source": "volume",
+      "role": "state_value"
+    }
+  ]
+}

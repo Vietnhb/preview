@@ -1,0 +1,269 @@
+{
+  "capabilityId": "power_transmission_loss",
+  "title": "Truyền tải điện năng đi xa và hao phí",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "conductor",
+      "coil"
+    ],
+    "quantities": [
+      "transmitted_power",
+      "transmission_voltage",
+      "line_resistance",
+      "power_factor"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "transmitted_power",
+      "unit": "W",
+      "min": 0
+    },
+    {
+      "key": "transmission_voltage",
+      "unit": "V",
+      "min": 1e-09
+    },
+    {
+      "key": "line_resistance",
+      "unit": "ohm",
+      "min": 0
+    },
+    {
+      "key": "power_factor",
+      "unit": "1",
+      "min": 1e-06,
+      "max": 1,
+      "defaultValue": 1
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "line_current",
+      "unit": "A"
+    },
+    {
+      "key": "loss_power",
+      "unit": "W"
+    },
+    {
+      "key": "efficiency",
+      "unit": "1"
+    },
+    {
+      "key": "energy_lost",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Truyền tải công suất P không đổi trên đường dây điện trở R."
+  ],
+  "equationSet": {
+    "canonical": [
+      "Delta P = P^2*R/(U*cos(phi))^2"
+    ],
+    "derived": [
+      "tăng U lên n lần -> hao phí giảm n^2 lần (máy biến áp tăng áp)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "line_current": [
+          "div",
+          "transmitted_power",
+          [
+            "mul",
+            "transmission_voltage",
+            "power_factor"
+          ]
+        ],
+        "loss_power": [
+          "div",
+          [
+            "mul",
+            [
+              "pow",
+              "transmitted_power",
+              2
+            ],
+            "line_resistance"
+          ],
+          [
+            "pow",
+            [
+              "mul",
+              "transmission_voltage",
+              "power_factor"
+            ],
+            2
+          ]
+        ],
+        "efficiency": [
+          "sub",
+          1,
+          [
+            "div",
+            [
+              "mul",
+              "transmitted_power",
+              "line_resistance"
+            ],
+            [
+              "pow",
+              [
+                "mul",
+                "transmission_voltage",
+                "power_factor"
+              ],
+              2
+            ]
+          ]
+        ],
+        "energy_lost": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "pow",
+                "transmitted_power",
+                2
+              ],
+              "line_resistance"
+            ],
+            [
+              "pow",
+              [
+                "mul",
+                "transmission_voltage",
+                "power_factor"
+              ],
+              2
+            ]
+          ],
+          "elapsed_time"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "line_current": [
+          "div",
+          "transmitted_power",
+          [
+            "mul",
+            "transmission_voltage",
+            "power_factor"
+          ]
+        ],
+        "loss_power": [
+          "div",
+          [
+            "mul",
+            [
+              "pow",
+              "transmitted_power",
+              2
+            ],
+            "line_resistance"
+          ],
+          [
+            "pow",
+            [
+              "mul",
+              "transmission_voltage",
+              "power_factor"
+            ],
+            2
+          ]
+        ],
+        "efficiency": [
+          "sub",
+          1,
+          [
+            "div",
+            [
+              "mul",
+              "transmitted_power",
+              "line_resistance"
+            ],
+            [
+              "pow",
+              [
+                "mul",
+                "transmission_voltage",
+                "power_factor"
+              ],
+              2
+            ]
+          ]
+        ],
+        "energy_lost": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "pow",
+                "transmitted_power",
+                2
+              ],
+              "line_resistance"
+            ],
+            [
+              "pow",
+              [
+                "mul",
+                "transmission_voltage",
+                "power_factor"
+              ],
+              2
+            ]
+          ],
+          "t"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "loss_power",
+      "role": "state_value"
+    }
+  ]
+}

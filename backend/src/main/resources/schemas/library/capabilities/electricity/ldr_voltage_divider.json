@@ -1,0 +1,343 @@
+{
+  "capabilityId": "ldr_voltage_divider",
+  "title": "Mạch chia áp với quang trở (LDR)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "resistor",
+      "voltage_source",
+      "node"
+    ],
+    "quantities": [
+      "supply_voltage",
+      "fixed_resistance",
+      "ldr_reference_resistance",
+      "light_ratio_start",
+      "light_ratio_rate",
+      "ldr_exponent"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "supply_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "fixed_resistance",
+      "unit": "ohm",
+      "min": 1e-09
+    },
+    {
+      "key": "ldr_reference_resistance",
+      "unit": "ohm",
+      "min": 1e-09
+    },
+    {
+      "key": "light_ratio_start",
+      "unit": "1",
+      "min": 1e-09
+    },
+    {
+      "key": "light_ratio_rate",
+      "unit": "1/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "ldr_exponent",
+      "unit": "1",
+      "min": 0,
+      "defaultValue": 0.7
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "light_ratio",
+      "unit": "1"
+    },
+    {
+      "key": "ldr_resistance",
+      "unit": "ohm"
+    },
+    {
+      "key": "output_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    }
+  ],
+  "assumptions": [
+    "Điện trở quang (LDR) mắc nối tiếp điện trở cố định; cường độ sáng biểu diễn tương đối so với mức tham chiếu và thay đổi đều (luôn dương)."
+  ],
+  "equationSet": {
+    "canonical": [
+      "R_LDR = R_ref*(E/E_ref)^(-gamma)",
+      "U_ra = U*R/(R + R_LDR)"
+    ],
+    "derived": [
+      "sáng hơn -> R_LDR giảm -> U_ra tăng"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "light_ratio": [
+          "add",
+          "light_ratio_start",
+          [
+            "mul",
+            "light_ratio_rate",
+            "elapsed_time"
+          ]
+        ],
+        "ldr_resistance": [
+          "mul",
+          "ldr_reference_resistance",
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "neg",
+                "ldr_exponent"
+              ],
+              [
+                "log",
+                [
+                  "add",
+                  "light_ratio_start",
+                  [
+                    "mul",
+                    "light_ratio_rate",
+                    "elapsed_time"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "output_voltage": [
+          "div",
+          [
+            "mul",
+            "supply_voltage",
+            "fixed_resistance"
+          ],
+          [
+            "add",
+            "fixed_resistance",
+            [
+              "mul",
+              "ldr_reference_resistance",
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "ldr_exponent"
+                  ],
+                  [
+                    "log",
+                    [
+                      "add",
+                      "light_ratio_start",
+                      [
+                        "mul",
+                        "light_ratio_rate",
+                        "elapsed_time"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "current": [
+          "div",
+          "supply_voltage",
+          [
+            "add",
+            "fixed_resistance",
+            [
+              "mul",
+              "ldr_reference_resistance",
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "ldr_exponent"
+                  ],
+                  [
+                    "log",
+                    [
+                      "add",
+                      "light_ratio_start",
+                      [
+                        "mul",
+                        "light_ratio_rate",
+                        "elapsed_time"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "light_ratio": [
+          "add",
+          "light_ratio_start",
+          [
+            "mul",
+            "light_ratio_rate",
+            "t"
+          ]
+        ],
+        "ldr_resistance": [
+          "mul",
+          "ldr_reference_resistance",
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "neg",
+                "ldr_exponent"
+              ],
+              [
+                "log",
+                [
+                  "add",
+                  "light_ratio_start",
+                  [
+                    "mul",
+                    "light_ratio_rate",
+                    "t"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "output_voltage": [
+          "div",
+          [
+            "mul",
+            "supply_voltage",
+            "fixed_resistance"
+          ],
+          [
+            "add",
+            "fixed_resistance",
+            [
+              "mul",
+              "ldr_reference_resistance",
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "ldr_exponent"
+                  ],
+                  [
+                    "log",
+                    [
+                      "add",
+                      "light_ratio_start",
+                      [
+                        "mul",
+                        "light_ratio_rate",
+                        "t"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "current": [
+          "div",
+          "supply_voltage",
+          [
+            "add",
+            "fixed_resistance",
+            [
+              "mul",
+              "ldr_reference_resistance",
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "ldr_exponent"
+                  ],
+                  [
+                    "log",
+                    [
+                      "add",
+                      "light_ratio_start",
+                      [
+                        "mul",
+                        "light_ratio_rate",
+                        "t"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "output_voltage",
+      "role": "state_value"
+    }
+  ]
+}

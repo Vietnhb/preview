@@ -1,0 +1,400 @@
+{
+  "capabilityId": "resistance_temperature_sweep",
+  "title": "Điện trở theo nhiệt độ (kim loại, điện trở nhiệt)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "resistor",
+      "node"
+    ],
+    "quantities": [
+      "reference_resistance",
+      "reference_temperature",
+      "temperature_coefficient",
+      "thermistor_constant",
+      "start_temperature",
+      "heating_rate",
+      "applied_voltage"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "reference_resistance",
+      "unit": "ohm",
+      "min": 1e-09
+    },
+    {
+      "key": "reference_temperature",
+      "unit": "K",
+      "min": 1e-06
+    },
+    {
+      "key": "temperature_coefficient",
+      "unit": "1/K",
+      "defaultValue": 0.0039
+    },
+    {
+      "key": "thermistor_constant",
+      "unit": "K",
+      "min": 0,
+      "defaultValue": 0
+    },
+    {
+      "key": "start_temperature",
+      "unit": "K",
+      "min": 1e-06
+    },
+    {
+      "key": "heating_rate",
+      "unit": "K/s"
+    },
+    {
+      "key": "applied_voltage",
+      "unit": "V",
+      "defaultValue": 1
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "temperature",
+      "unit": "K"
+    },
+    {
+      "key": "metal_resistance",
+      "unit": "ohm"
+    },
+    {
+      "key": "thermistor_resistance",
+      "unit": "ohm"
+    },
+    {
+      "key": "metal_current",
+      "unit": "A"
+    },
+    {
+      "key": "thermistor_current",
+      "unit": "A"
+    }
+  ],
+  "assumptions": [
+    "Nhiệt độ tăng đều; hai mô hình đặt cạnh nhau để so sánh (B = 0 khi không xét điện trở nhiệt)."
+  ],
+  "equationSet": {
+    "canonical": [
+      "R = R0*(1 + alpha*(T - T0)) (kim loại)",
+      "R = R0*exp(B*(1/T - 1/T0)) (điện trở nhiệt NTC, bán dẫn)"
+    ],
+    "derived": [
+      "I = U/R"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "temperature": [
+          "add",
+          "start_temperature",
+          [
+            "mul",
+            "heating_rate",
+            "elapsed_time"
+          ]
+        ],
+        "metal_resistance": [
+          "mul",
+          "reference_resistance",
+          [
+            "add",
+            1,
+            [
+              "mul",
+              "temperature_coefficient",
+              [
+                "sub",
+                [
+                  "add",
+                  "start_temperature",
+                  [
+                    "mul",
+                    "heating_rate",
+                    "elapsed_time"
+                  ]
+                ],
+                "reference_temperature"
+              ]
+            ]
+          ]
+        ],
+        "thermistor_resistance": [
+          "mul",
+          "reference_resistance",
+          [
+            "exp",
+            [
+              "mul",
+              "thermistor_constant",
+              [
+                "sub",
+                [
+                  "div",
+                  1,
+                  [
+                    "add",
+                    "start_temperature",
+                    [
+                      "mul",
+                      "heating_rate",
+                      "elapsed_time"
+                    ]
+                  ]
+                ],
+                [
+                  "div",
+                  1,
+                  "reference_temperature"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "metal_current": [
+          "div",
+          "applied_voltage",
+          [
+            "mul",
+            "reference_resistance",
+            [
+              "add",
+              1,
+              [
+                "mul",
+                "temperature_coefficient",
+                [
+                  "sub",
+                  [
+                    "add",
+                    "start_temperature",
+                    [
+                      "mul",
+                      "heating_rate",
+                      "elapsed_time"
+                    ]
+                  ],
+                  "reference_temperature"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "thermistor_current": [
+          "div",
+          "applied_voltage",
+          [
+            "mul",
+            "reference_resistance",
+            [
+              "exp",
+              [
+                "mul",
+                "thermistor_constant",
+                [
+                  "sub",
+                  [
+                    "div",
+                    1,
+                    [
+                      "add",
+                      "start_temperature",
+                      [
+                        "mul",
+                        "heating_rate",
+                        "elapsed_time"
+                      ]
+                    ]
+                  ],
+                  [
+                    "div",
+                    1,
+                    "reference_temperature"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "temperature": [
+          "add",
+          "start_temperature",
+          [
+            "mul",
+            "heating_rate",
+            "t"
+          ]
+        ],
+        "metal_resistance": [
+          "mul",
+          "reference_resistance",
+          [
+            "add",
+            1,
+            [
+              "mul",
+              "temperature_coefficient",
+              [
+                "sub",
+                [
+                  "add",
+                  "start_temperature",
+                  [
+                    "mul",
+                    "heating_rate",
+                    "t"
+                  ]
+                ],
+                "reference_temperature"
+              ]
+            ]
+          ]
+        ],
+        "thermistor_resistance": [
+          "mul",
+          "reference_resistance",
+          [
+            "exp",
+            [
+              "mul",
+              "thermistor_constant",
+              [
+                "sub",
+                [
+                  "div",
+                  1,
+                  [
+                    "add",
+                    "start_temperature",
+                    [
+                      "mul",
+                      "heating_rate",
+                      "t"
+                    ]
+                  ]
+                ],
+                [
+                  "div",
+                  1,
+                  "reference_temperature"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "metal_current": [
+          "div",
+          "applied_voltage",
+          [
+            "mul",
+            "reference_resistance",
+            [
+              "add",
+              1,
+              [
+                "mul",
+                "temperature_coefficient",
+                [
+                  "sub",
+                  [
+                    "add",
+                    "start_temperature",
+                    [
+                      "mul",
+                      "heating_rate",
+                      "t"
+                    ]
+                  ],
+                  "reference_temperature"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "thermistor_current": [
+          "div",
+          "applied_voltage",
+          [
+            "mul",
+            "reference_resistance",
+            [
+              "exp",
+              [
+                "mul",
+                "thermistor_constant",
+                [
+                  "sub",
+                  [
+                    "div",
+                    1,
+                    [
+                      "add",
+                      "start_temperature",
+                      [
+                        "mul",
+                        "heating_rate",
+                        "t"
+                      ]
+                    ]
+                  ],
+                  [
+                    "div",
+                    1,
+                    "reference_temperature"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "temperature",
+      "role": "state_value"
+    }
+  ]
+}

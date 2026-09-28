@@ -38,12 +38,14 @@ public class CurriculumCatalogInitializer implements CommandLineRunner {
     public void run(String... args) throws IOException {
         CurriculumCatalog catalog = objectMapper.readValue(
                 new ClassPathResource(CATALOG_PATH).getInputStream(), CurriculumCatalog.class);
+        disableRetiredTopics(catalog);
         for (int topicIndex = 0; topicIndex < catalog.topics().size(); topicIndex++) {
             TopicDefinition definition = catalog.topics().get(topicIndex);
             Topic topic = topicRepository.findBySlug(definition.slug()).orElseGet(Topic::new);
             topic.setName(definition.name()); topic.setSlug(definition.slug()); topic.setEnabled(true); topic.setSortOrder(topicIndex);
             topic = topicRepository.save(topic);
             deactivateGeneratedBootstrap(topic);
+            deactivateModulesOutside(topic, definition);
             for (int moduleIndex = 0; moduleIndex < definition.modules().size(); moduleIndex++) {
                 ModuleDefinition moduleDefinition = definition.modules().get(moduleIndex);
                 ContentModule module = moduleRepository.findByTopicAndSlug(topic, moduleDefinition.slug()).orElseGet(ContentModule::new);
@@ -65,13 +67,37 @@ public class CurriculumCatalogInitializer implements CommandLineRunner {
         }
     }
 
+    /** Topics listed as retired (strands that cannot be simulated or were split) are hidden, never deleted. */
+    private void disableRetiredTopics(CurriculumCatalog catalog) {
+        if (catalog.retiredTopicSlugs() == null) return;
+        for (String slug : catalog.retiredTopicSlugs()) {
+            topicRepository.findBySlug(slug).ifPresent(topic -> {
+                topic.setEnabled(false);
+                topic.getModules().forEach(module -> module.setActive(false));
+                topicRepository.save(topic);
+            });
+        }
+    }
+
+    /** Modules of a catalog topic that are no longer in the catalog are deactivated (saved work keeps its lessons). */
+    private void deactivateModulesOutside(Topic topic, TopicDefinition definition) {
+        java.util.Set<String> current = new java.util.HashSet<>();
+        definition.modules().forEach(module -> current.add(module.slug()));
+        for (ContentModule module : topic.getModules()) {
+            if (!current.contains(module.getSlug()) && module.isActive()) {
+                module.setActive(false);
+                moduleRepository.save(module);
+            }
+        }
+    }
+
     private void deactivateGeneratedBootstrap(Topic topic) {
         moduleRepository.findByTopicAndSlug(topic, "mvp-core").filter(module -> module.getLevels().size() == 1)
                 .filter(module -> "THPT".equals(module.getLevels().getFirst().getName()))
                 .ifPresent(module -> { module.setActive(false); moduleRepository.save(module); });
     }
 
-    public record CurriculumCatalog(List<TopicDefinition> topics) { }
+    public record CurriculumCatalog(List<TopicDefinition> topics, List<String> retiredTopicSlugs) { }
     public record TopicDefinition(String name, String slug, List<ModuleDefinition> modules) { }
     public record ModuleDefinition(String name, String slug, List<LevelDefinition> levels) { }
     public record LevelDefinition(String name, List<LessonDefinition> lessons) { }

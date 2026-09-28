@@ -1,0 +1,206 @@
+{
+  "capabilityId": "hydrostatic_pressure_probe",
+  "title": "Áp suất chất lỏng theo độ sâu",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "fluid",
+      "body"
+    ],
+    "quantities": [
+      "fluid_density",
+      "gravitational_acceleration",
+      "surface_pressure",
+      "descent_speed"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "fluid_density",
+      "unit": "kg/m^3",
+      "min": 0
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "surface_pressure",
+      "unit": "Pa",
+      "min": 0,
+      "defaultValue": 101325
+    },
+    {
+      "key": "descent_speed",
+      "unit": "m/s",
+      "min": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "depth",
+      "unit": "m"
+    },
+    {
+      "key": "pressure",
+      "unit": "Pa"
+    },
+    {
+      "key": "gauge_pressure",
+      "unit": "Pa"
+    }
+  ],
+  "assumptions": [
+    "Chất lỏng đứng yên, đồng chất; đầu dò đi xuống đều từ mặt thoáng."
+  ],
+  "equationSet": {
+    "canonical": [
+      "p = p0 + rho*g*h",
+      "Delta p = rho*g*Delta h"
+    ],
+    "derived": []
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "position": [
+          "mul",
+          [
+            "neg",
+            "descent_speed"
+          ],
+          "elapsed_time"
+        ],
+        "depth": [
+          "mul",
+          "descent_speed",
+          "elapsed_time"
+        ],
+        "pressure": [
+          "add",
+          "surface_pressure",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                "fluid_density",
+                "gravitational_acceleration"
+              ],
+              "descent_speed"
+            ],
+            "elapsed_time"
+          ]
+        ],
+        "gauge_pressure": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              "fluid_density",
+              "gravitational_acceleration"
+            ],
+            "descent_speed"
+          ],
+          "elapsed_time"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "position": [
+          "mul",
+          [
+            "neg",
+            "descent_speed"
+          ],
+          "t"
+        ],
+        "depth": [
+          "mul",
+          "descent_speed",
+          "t"
+        ],
+        "pressure": [
+          "add",
+          "surface_pressure",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                "fluid_density",
+                "gravitational_acceleration"
+              ],
+              "descent_speed"
+            ],
+            "t"
+          ]
+        ],
+        "gauge_pressure": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              "fluid_density",
+              "gravitational_acceleration"
+            ],
+            "descent_speed"
+          ],
+          "t"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "vertical_position"
+    },
+    {
+      "source": "pressure",
+      "role": "state_value"
+    }
+  ]
+}

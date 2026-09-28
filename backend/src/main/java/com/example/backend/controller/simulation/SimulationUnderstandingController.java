@@ -338,8 +338,12 @@ public class SimulationUnderstandingController {
         double confidence = answer.path("confidence").asDouble(0);
         double margin = margin(answer.path("probabilities"), selectedId);
         SchemaVersion selected = byId.get(selectedId);
+        // Topic schemas follow the curriculum strands and deliberately share capabilities
+        // (e.g. free fall is taught in both kinematics and dynamics), so a narrow margin between
+        // two real topics is not ambiguity. Only a narrow margin against NO_MATCH is.
+        boolean ambiguousWithNoMatch = margin < jev.minimumMargin() && NO_MATCH.equals(runnerUp(answer.path("probabilities"), selectedId));
         if (selectedId.isBlank() || NO_MATCH.equals(selectedId) || selected == null
-                || confidence < jev.minimumConfidence() || margin < jev.minimumMargin()) {
+                || confidence < jev.minimumConfidence() || ambiguousWithNoMatch) {
             ObjectNode clarify = json.createObjectNode();
             clarify.put("sessionId", sessionId);
             clarify.put("description", description);
@@ -793,6 +797,20 @@ public class SimulationUnderstandingController {
         if (!target.isEmpty()) target.append(' ');
         int remaining = characterBudget - target.length();
         target.append(value, 0, Math.min(value.length(), remaining));
+    }
+
+    private String runnerUp(JsonNode probabilities, String selectedId) {
+        String best = "";
+        double bestValue = -1;
+        var fields = probabilities.fields();
+        while (fields.hasNext()) {
+            var field = fields.next();
+            if (!field.getKey().equals(selectedId) && field.getValue().asDouble(0) > bestValue) {
+                best = field.getKey();
+                bestValue = field.getValue().asDouble(0);
+            }
+        }
+        return best;
     }
 
     private double margin(JsonNode probabilities, String selectedId) {

@@ -1,0 +1,434 @@
+{
+  "capabilityId": "linear_restoring_force",
+  "title": "Dao động dưới tác dụng lực kéo về (con lắc lò xo ngang)",
+  "version": "2.0",
+  "applicability": {
+    "quantities": [
+      "mass",
+      "stiffness",
+      "initial_displacement",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-06
+    },
+    {
+      "key": "stiffness",
+      "unit": "N/m",
+      "min": 1e-06
+    },
+    {
+      "key": "initial_displacement",
+      "unit": "m"
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "displacement",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    },
+    {
+      "key": "potential_energy",
+      "unit": "J"
+    },
+    {
+      "key": "mechanical_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Restoring force is linear within the declared domain.",
+    "Damping and driving are absent."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F=-k*x",
+      "m*d2x/dt2=-k*x"
+    ],
+    "derived": [
+      "omega=sqrt(k/m)",
+      "a = -omega^2*x",
+      "Wt = k*x^2/2"
+    ]
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "displacement": "initial_displacement",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "displacement": "velocity",
+        "velocity": [
+          "neg",
+          [
+            "mul",
+            [
+              "div",
+              "stiffness",
+              "mass"
+            ],
+            "displacement"
+          ]
+        ]
+      },
+      "outputs": {
+        "displacement": "displacement",
+        "velocity": "velocity",
+        "force": [
+          "neg",
+          [
+            "mul",
+            "stiffness",
+            "displacement"
+          ]
+        ],
+        "acceleration": [
+          "mul",
+          [
+            "div",
+            [
+              "neg",
+              "stiffness"
+            ],
+            "mass"
+          ],
+          "displacement"
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            "velocity",
+            2
+          ]
+        ],
+        "potential_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "stiffness"
+          ],
+          [
+            "pow",
+            "displacement",
+            2
+          ]
+        ],
+        "mechanical_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "stiffness"
+            ],
+            [
+              "pow",
+              "displacement",
+              2
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "displacement": [
+          "add",
+          [
+            "mul",
+            "initial_displacement",
+            [
+              "cos",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    "stiffness",
+                    "mass"
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ],
+          [
+            "mul",
+            [
+              "div",
+              "initial_velocity",
+              [
+                "sqrt",
+                [
+                  "div",
+                  "stiffness",
+                  "mass"
+                ]
+              ]
+            ],
+            [
+              "sin",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    "stiffness",
+                    "mass"
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "velocity": [
+          "add",
+          [
+            "neg",
+            [
+              "mul",
+              [
+                "mul",
+                "initial_displacement",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    "stiffness",
+                    "mass"
+                  ]
+                ]
+              ],
+              [
+                "sin",
+                [
+                  "mul",
+                  [
+                    "sqrt",
+                    [
+                      "div",
+                      "stiffness",
+                      "mass"
+                    ]
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            "initial_velocity",
+            [
+              "cos",
+              [
+                "mul",
+                [
+                  "sqrt",
+                  [
+                    "div",
+                    "stiffness",
+                    "mass"
+                  ]
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "force": [
+          "neg",
+          [
+            "mul",
+            "stiffness",
+            "displacement"
+          ]
+        ],
+        "acceleration": [
+          "mul",
+          [
+            "div",
+            [
+              "neg",
+              "stiffness"
+            ],
+            "mass"
+          ],
+          "displacement"
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            "velocity",
+            2
+          ]
+        ],
+        "potential_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "stiffness"
+          ],
+          [
+            "pow",
+            "displacement",
+            2
+          ]
+        ],
+        "mechanical_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "stiffness"
+            ],
+            [
+              "pow",
+              "displacement",
+              2
+            ]
+          ]
+        ]
+      },
+      "invariants": {
+        "energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "stiffness"
+            ],
+            [
+              "pow",
+              "displacement",
+              2
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output",
+      "mechanical_energy_conservation"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "massPositive": true,
+    "stiffnessPositive": true,
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "displacement",
+      "role": "displacement"
+    },
+    {
+      "source": "velocity",
+      "role": "velocity"
+    },
+    {
+      "source": "force",
+      "role": "force"
+    }
+  ]
+}

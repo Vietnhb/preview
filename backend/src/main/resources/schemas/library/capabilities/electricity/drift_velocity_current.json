@@ -1,0 +1,179 @@
+{
+  "capabilityId": "drift_velocity_current",
+  "title": "Cường độ dòng điện I = S·n·v·e",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "conductor"
+    ],
+    "quantities": [
+      "current",
+      "carrier_density",
+      "cross_section",
+      "elementary_charge"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "current",
+      "unit": "A"
+    },
+    {
+      "key": "carrier_density",
+      "unit": "1/m3",
+      "min": 1e-09
+    },
+    {
+      "key": "cross_section",
+      "unit": "m2",
+      "min": 1e-18
+    },
+    {
+      "key": "elementary_charge",
+      "unit": "C",
+      "min": 1e-25,
+      "defaultValue": 1.602176634e-19
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "drift_speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "charge",
+      "unit": "C"
+    }
+  ],
+  "assumptions": [
+    "Dòng điện không đổi trong dây dẫn kim loại đồng chất; vị trí là quãng đường trung bình hạt mang điện trôi được."
+  ],
+  "equationSet": {
+    "canonical": [
+      "I = S*n*v*e",
+      "I = Delta q/Delta t"
+    ],
+    "derived": []
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "drift_speed": [
+          "div",
+          "current",
+          [
+            "mul",
+            [
+              "mul",
+              "carrier_density",
+              "cross_section"
+            ],
+            "elementary_charge"
+          ]
+        ],
+        "position": [
+          "mul",
+          [
+            "div",
+            "current",
+            [
+              "mul",
+              [
+                "mul",
+                "carrier_density",
+                "cross_section"
+              ],
+              "elementary_charge"
+            ]
+          ],
+          "elapsed_time"
+        ],
+        "charge": [
+          "mul",
+          "current",
+          "elapsed_time"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "drift_speed": [
+          "div",
+          "current",
+          [
+            "mul",
+            [
+              "mul",
+              "carrier_density",
+              "cross_section"
+            ],
+            "elementary_charge"
+          ]
+        ],
+        "position": [
+          "mul",
+          [
+            "div",
+            "current",
+            [
+              "mul",
+              [
+                "mul",
+                "carrier_density",
+                "cross_section"
+              ],
+              "elementary_charge"
+            ]
+          ],
+          "t"
+        ],
+        "charge": [
+          "mul",
+          "current",
+          "t"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    }
+  ]
+}

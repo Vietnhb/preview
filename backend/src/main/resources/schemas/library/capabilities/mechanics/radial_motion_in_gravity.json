@@ -1,0 +1,195 @@
+{
+  "capabilityId": "radial_motion_in_gravity",
+  "title": "Vật bay lên / rơi xuyên tâm trong trường hấp dẫn",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "central_mass",
+      "body_radius",
+      "initial_height",
+      "initial_velocity",
+      "gravitational_constant"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "central_mass",
+      "unit": "kg",
+      "min": 0
+    },
+    {
+      "key": "body_radius",
+      "unit": "m",
+      "min": 1e-09
+    },
+    {
+      "key": "initial_height",
+      "unit": "m",
+      "min": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "gravitational_constant",
+      "unit": "N*m2/kg2",
+      "min": 1e-20,
+      "defaultValue": 6.674e-11
+    }
+  ],
+  "outputs": [
+    {
+      "key": "distance",
+      "unit": "m"
+    },
+    {
+      "key": "height",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "field_strength",
+      "unit": "m/s^2"
+    }
+  ],
+  "assumptions": [
+    "Vật chuyển động thẳng theo phương bán kính của vật trung tâm cố định; bỏ qua lực cản; không chạm bề mặt trong thời gian mô phỏng."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F = G*m1*m2/r^2",
+      "dv/dt = -G*M/r^2"
+    ],
+    "derived": [
+      "v_thoat = sqrt(2*G*M/R)",
+      "v_I = sqrt(G*M/R)"
+    ]
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": null,
+    "math": {
+      "initial": {
+        "distance": [
+          "add",
+          "body_radius",
+          "initial_height"
+        ],
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "distance": "velocity",
+        "velocity": [
+          "div",
+          [
+            "mul",
+            [
+              "neg",
+              "gravitational_constant"
+            ],
+            "central_mass"
+          ],
+          [
+            "pow",
+            "distance",
+            2
+          ]
+        ]
+      },
+      "outputs": {
+        "distance": "distance",
+        "height": [
+          "sub",
+          "distance",
+          "body_radius"
+        ],
+        "velocity": "velocity",
+        "field_strength": [
+          "div",
+          [
+            "mul",
+            "gravitational_constant",
+            "central_mass"
+          ],
+          [
+            "pow",
+            "distance",
+            2
+          ]
+        ]
+      },
+      "invariants": {
+        "specific_energy": [
+          "sub",
+          [
+            "mul",
+            0.5,
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "div",
+            [
+              "mul",
+              "gravitational_constant",
+              "central_mass"
+            ],
+            "distance"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "residual_invariants",
+    "invariants": [
+      "finite_output",
+      "declared_invariants"
+    ],
+    "benchmarks": [
+      {
+        "name": "no_mass_uniform_motion",
+        "durationSeconds": 1,
+        "inputs": {
+          "central_mass": 0,
+          "body_radius": 1000,
+          "initial_height": 100,
+          "initial_velocity": 3,
+          "gravitational_constant": 6.674e-11
+        },
+        "expectedOutputs": {
+          "distance": 1103,
+          "height": 103,
+          "velocity": 3,
+          "field_strength": 0
+        }
+      }
+    ]
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "height",
+      "role": "vertical_position"
+    }
+  ]
+}

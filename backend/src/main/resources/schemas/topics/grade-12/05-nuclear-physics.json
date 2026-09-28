@@ -1,0 +1,45 @@
+{
+  "schemaId": "thpt_nuclear_physics",
+  "version": "1.0",
+  "topic": "NUCLEAR_PHYSICS",
+  "name": "Vật lí hạt nhân và phóng xạ",
+  "grade": 12,
+  "description": "Vật lí hạt nhân và phóng xạ (Vật lí 12): thí nghiệm tán xạ hạt α (Rutherford), cấu trúc hạt nhân, độ hụt khối, năng lượng liên kết, E = mc², phân hạch, tổng hợp hạt nhân, sự phóng xạ, định luật phóng xạ, chu kì bán rã, độ phóng xạ H = λN, chuỗi phóng xạ.",
+  "objectTypes": [
+    {
+      "type": "nucleus",
+      "label": "hạt nhân",
+      "description": "Hạt nhân nguyên tử, mẫu chất phóng xạ."
+    },
+    {
+      "type": "detector",
+      "label": "đầu thu/máy đo",
+      "description": "Máy đếm, đầu thu tia X, đầu dò siêu âm…"
+    },
+    {
+      "type": "charged_particle",
+      "label": "hạt mang điện",
+      "description": "Điện tích điểm, electron, ion…"
+    }
+  ],
+  "capabilities": [
+    "radioactive_decay",
+    "decay_chain_two_step",
+    "coulomb_scattering_2d",
+    "nuclear_binding_energy"
+  ],
+  "curriculum": [
+    {
+      "name": "Cấu trúc hạt nhân",
+      "summary": "Tán xạ α; kí hiệu hạt nhân."
+    },
+    {
+      "name": "Độ hụt khối và năng lượng liên kết hạt nhân",
+      "summary": "E = mc²; phân hạch, nhiệt hạch."
+    },
+    {
+      "name": "Sự phóng xạ và chu kì bán rã",
+      "summary": "H = λN; x = x₀e^(−λt)."
+    }
+  ]
+}

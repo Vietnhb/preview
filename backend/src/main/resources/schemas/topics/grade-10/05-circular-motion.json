@@ -1,0 +1,29 @@
+{
+  "schemaId": "thpt_circular_motion",
+  "version": "1.0",
+  "topic": "CIRCULAR_MOTION",
+  "name": "Chuyển động tròn",
+  "grade": 10,
+  "description": "Chuyển động tròn (Vật lí 10): radian, độ dịch chuyển góc, tốc độ góc, chuyển động tròn đều, gia tốc hướng tâm a = v²/r = ω²r, lực hướng tâm F = mω²r (xe qua khúc cua, vệ tinh, đu quay, vật trên đĩa quay).",
+  "objectTypes": [
+    {
+      "type": "body",
+      "label": "vật",
+      "description": "Vật có khối lượng, coi như chất điểm hoặc vật rắn đơn giản."
+    }
+  ],
+  "capabilities": [
+    "uniform_circular_motion",
+    "circular_orbit"
+  ],
+  "curriculum": [
+    {
+      "name": "Động học của chuyển động tròn đều",
+      "summary": "Radian, tốc độ góc."
+    },
+    {
+      "name": "Gia tốc hướng tâm và lực hướng tâm",
+      "summary": "a = rω², F = mrω²."
+    }
+  ]
+}

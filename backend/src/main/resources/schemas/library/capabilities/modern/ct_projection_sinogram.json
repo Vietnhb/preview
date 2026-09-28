@@ -1,0 +1,166 @@
+{
+  "capabilityId": "ct_projection_sinogram",
+  "title": "Hình chiếu chụp cắt lớp (CT) theo góc quay",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "detector",
+      "material"
+    ],
+    "quantities": [
+      "object_x",
+      "object_y",
+      "rotation_speed",
+      "initial_angle"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "object_x",
+      "unit": "m"
+    },
+    {
+      "key": "object_y",
+      "unit": "m"
+    },
+    {
+      "key": "rotation_speed",
+      "unit": "rad/s"
+    },
+    {
+      "key": "initial_angle",
+      "unit": "rad",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "angle",
+      "unit": "rad"
+    },
+    {
+      "key": "detector_position",
+      "unit": "m"
+    }
+  ],
+  "assumptions": [
+    "Nguồn tia X và đầu thu quay đều quanh bệnh nhân; khảo sát hình chiếu của một điểm hấp thụ mạnh."
+  ],
+  "equationSet": {
+    "canonical": [
+      "s(theta) = x*cos(theta) + y*sin(theta) (hình chiếu song song)"
+    ],
+    "derived": [
+      "tập các hình chiếu theo góc = sinogram -> tái tạo ảnh cắt lớp"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "angle": "initial_angle"
+      },
+      "rates": {
+        "angle": "rotation_speed"
+      },
+      "outputs": {
+        "angle": "angle",
+        "detector_position": [
+          "add",
+          [
+            "mul",
+            "object_x",
+            [
+              "cos",
+              "angle"
+            ]
+          ],
+          [
+            "mul",
+            "object_y",
+            [
+              "sin",
+              "angle"
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "angle": [
+          "add",
+          "initial_angle",
+          [
+            "mul",
+            "rotation_speed",
+            "t"
+          ]
+        ],
+        "detector_position": [
+          "add",
+          [
+            "mul",
+            "object_x",
+            [
+              "cos",
+              [
+                "add",
+                "initial_angle",
+                [
+                  "mul",
+                  "rotation_speed",
+                  "t"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            "object_y",
+            [
+              "sin",
+              [
+                "add",
+                "initial_angle",
+                [
+                  "mul",
+                  "rotation_speed",
+                  "t"
+                ]
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "detector_position",
+      "role": "state_value"
+    },
+    {
+      "source": "angle",
+      "role": "angle_annotation"
+    }
+  ]
+}

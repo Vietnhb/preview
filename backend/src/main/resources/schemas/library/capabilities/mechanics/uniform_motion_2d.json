@@ -1,0 +1,318 @@
+{
+  "capabilityId": "uniform_motion_2d",
+  "title": "Chuyển động trong mặt phẳng và cộng vận tốc",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "moving_body",
+      "reference_frame"
+    ],
+    "quantities": [
+      "initial_x",
+      "initial_y",
+      "speed",
+      "heading_angle",
+      "drift_velocity_x",
+      "drift_velocity_y"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "initial_x",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_y",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "heading_angle",
+      "unit": "rad",
+      "defaultValue": 0
+    },
+    {
+      "key": "drift_velocity_x",
+      "unit": "m/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "drift_velocity_y",
+      "unit": "m/s",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    },
+    {
+      "key": "ground_speed",
+      "unit": "m/s"
+    }
+  ],
+  "assumptions": [
+    "Vật chuyển động thẳng đều so với môi trường (nước, gió…) và môi trường chuyển động đều so với mặt đất."
+  ],
+  "equationSet": {
+    "canonical": [
+      "v13 = v12 + v23 (cộng vận tốc)"
+    ],
+    "derived": [
+      "d = v*t"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "x": "initial_x",
+        "y": "initial_y"
+      },
+      "rates": {
+        "x": [
+          "add",
+          [
+            "mul",
+            "speed",
+            [
+              "cos",
+              "heading_angle"
+            ]
+          ],
+          "drift_velocity_x"
+        ],
+        "y": [
+          "add",
+          [
+            "mul",
+            "speed",
+            [
+              "sin",
+              "heading_angle"
+            ]
+          ],
+          "drift_velocity_y"
+        ]
+      },
+      "outputs": {
+        "x": "x",
+        "y": "y",
+        "vx": [
+          "add",
+          [
+            "mul",
+            "speed",
+            [
+              "cos",
+              "heading_angle"
+            ]
+          ],
+          "drift_velocity_x"
+        ],
+        "vy": [
+          "add",
+          [
+            "mul",
+            "speed",
+            [
+              "sin",
+              "heading_angle"
+            ]
+          ],
+          "drift_velocity_y"
+        ],
+        "ground_speed": [
+          "sqrt",
+          [
+            "add",
+            [
+              "pow",
+              [
+                "add",
+                [
+                  "mul",
+                  "speed",
+                  [
+                    "cos",
+                    "heading_angle"
+                  ]
+                ],
+                "drift_velocity_x"
+              ],
+              2
+            ],
+            [
+              "pow",
+              [
+                "add",
+                [
+                  "mul",
+                  "speed",
+                  [
+                    "sin",
+                    "heading_angle"
+                  ]
+                ],
+                "drift_velocity_y"
+              ],
+              2
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "x": [
+          "add",
+          "initial_x",
+          [
+            "mul",
+            [
+              "add",
+              [
+                "mul",
+                "speed",
+                [
+                  "cos",
+                  "heading_angle"
+                ]
+              ],
+              "drift_velocity_x"
+            ],
+            "t"
+          ]
+        ],
+        "y": [
+          "add",
+          "initial_y",
+          [
+            "mul",
+            [
+              "add",
+              [
+                "mul",
+                "speed",
+                [
+                  "sin",
+                  "heading_angle"
+                ]
+              ],
+              "drift_velocity_y"
+            ],
+            "t"
+          ]
+        ],
+        "vx": [
+          "add",
+          [
+            "mul",
+            "speed",
+            [
+              "cos",
+              "heading_angle"
+            ]
+          ],
+          "drift_velocity_x"
+        ],
+        "vy": [
+          "add",
+          [
+            "mul",
+            "speed",
+            [
+              "sin",
+              "heading_angle"
+            ]
+          ],
+          "drift_velocity_y"
+        ],
+        "ground_speed": [
+          "sqrt",
+          [
+            "add",
+            [
+              "pow",
+              [
+                "add",
+                [
+                  "mul",
+                  "speed",
+                  [
+                    "cos",
+                    "heading_angle"
+                  ]
+                ],
+                "drift_velocity_x"
+              ],
+              2
+            ],
+            [
+              "pow",
+              [
+                "add",
+                [
+                  "mul",
+                  "speed",
+                  [
+                    "sin",
+                    "heading_angle"
+                  ]
+                ],
+                "drift_velocity_y"
+              ],
+              2
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "y",
+      "role": "vertical_position"
+    }
+  ]
+}

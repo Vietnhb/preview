@@ -1,0 +1,40 @@
+{
+  "schemaId": "thpt_solid_deformation",
+  "version": "1.0",
+  "topic": "SOLID_DEFORMATION",
+  "name": "Biến dạng của vật rắn",
+  "grade": 10,
+  "description": "Biến dạng của vật rắn (Vật lí 10): biến dạng kéo, nén, lò xo, độ dãn, độ cứng, giới hạn đàn hồi, định luật Hooke F = kΔl, lò xo treo vật, thế năng đàn hồi.",
+  "objectTypes": [
+    {
+      "type": "spring",
+      "label": "lò xo",
+      "description": "Vật đàn hồi có độ cứng xác định."
+    },
+    {
+      "type": "body",
+      "label": "vật",
+      "description": "Vật có khối lượng, coi như chất điểm hoặc vật rắn đơn giản."
+    },
+    {
+      "type": "force_source",
+      "label": "nguồn lực",
+      "description": "Tác nhân gây lực: tay kéo, động cơ, dây, lò xo…"
+    }
+  ],
+  "capabilities": [
+    "hooke_quasi_static_stretch",
+    "vertical_spring_mass",
+    "linear_restoring_force"
+  ],
+  "curriculum": [
+    {
+      "name": "Biến dạng kéo và biến dạng nén; đặc tính của lò xo",
+      "summary": "Giới hạn đàn hồi, độ dãn, độ cứng."
+    },
+    {
+      "name": "Định luật Hooke",
+      "summary": "F = kΔl."
+    }
+  ]
+}

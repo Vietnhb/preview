@@ -1,0 +1,289 @@
+{
+  "capabilityId": "rc_circuit",
+  "title": "Nạp / xả tụ điện qua điện trở",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "capacitor",
+      "resistor",
+      "voltage_source",
+      "node"
+    ],
+    "quantities": [
+      "source_voltage",
+      "resistance",
+      "capacitance",
+      "initial_capacitor_voltage"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "source_voltage",
+      "unit": "V",
+      "defaultValue": 0
+    },
+    {
+      "key": "resistance",
+      "unit": "ohm",
+      "min": 1e-09
+    },
+    {
+      "key": "capacitance",
+      "unit": "F",
+      "min": 1e-15
+    },
+    {
+      "key": "initial_capacitor_voltage",
+      "unit": "V",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "charge",
+      "unit": "C"
+    },
+    {
+      "key": "voltage",
+      "unit": "V"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    },
+    {
+      "key": "energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Tụ nạp (E > U0) hoặc phóng điện (E = 0) qua điện trở R; nguồn lí tưởng."
+  ],
+  "equationSet": {
+    "canonical": [
+      "R*dq/dt + q/C = E",
+      "u_C = E + (U0 - E)*exp(-t/(R*C))"
+    ],
+    "derived": [
+      "tau = R*C",
+      "W = C*u^2/2"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "charge": [
+          "mul",
+          "capacitance",
+          "initial_capacitor_voltage"
+        ]
+      },
+      "rates": {
+        "charge": [
+          "div",
+          [
+            "sub",
+            "source_voltage",
+            [
+              "div",
+              "charge",
+              "capacitance"
+            ]
+          ],
+          "resistance"
+        ]
+      },
+      "outputs": {
+        "charge": "charge",
+        "voltage": [
+          "div",
+          "charge",
+          "capacitance"
+        ],
+        "current": [
+          "div",
+          [
+            "sub",
+            "source_voltage",
+            [
+              "div",
+              "charge",
+              "capacitance"
+            ]
+          ],
+          "resistance"
+        ],
+        "energy": [
+          "div",
+          [
+            "mul",
+            0.5,
+            [
+              "pow",
+              "charge",
+              2
+            ]
+          ],
+          "capacitance"
+        ]
+      },
+      "closedForm": {
+        "charge": [
+          "mul",
+          "capacitance",
+          [
+            "add",
+            "source_voltage",
+            [
+              "mul",
+              [
+                "sub",
+                "initial_capacitor_voltage",
+                "source_voltage"
+              ],
+              [
+                "exp",
+                [
+                  "div",
+                  [
+                    "neg",
+                    "t"
+                  ],
+                  [
+                    "mul",
+                    "resistance",
+                    "capacitance"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "voltage": [
+          "add",
+          "source_voltage",
+          [
+            "mul",
+            [
+              "sub",
+              "initial_capacitor_voltage",
+              "source_voltage"
+            ],
+            [
+              "exp",
+              [
+                "div",
+                [
+                  "neg",
+                  "t"
+                ],
+                [
+                  "mul",
+                  "resistance",
+                  "capacitance"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "current": [
+          "mul",
+          [
+            "div",
+            [
+              "sub",
+              "source_voltage",
+              "initial_capacitor_voltage"
+            ],
+            "resistance"
+          ],
+          [
+            "exp",
+            [
+              "div",
+              [
+                "neg",
+                "t"
+              ],
+              [
+                "mul",
+                "resistance",
+                "capacitance"
+              ]
+            ]
+          ]
+        ],
+        "energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "capacitance"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              "source_voltage",
+              [
+                "mul",
+                [
+                  "sub",
+                  "initial_capacitor_voltage",
+                  "source_voltage"
+                ],
+                [
+                  "exp",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      "t"
+                    ],
+                    [
+                      "mul",
+                      "resistance",
+                      "capacitance"
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            2
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "voltage",
+      "role": "state_value"
+    },
+    {
+      "source": "current",
+      "role": "state_value"
+    }
+  ]
+}

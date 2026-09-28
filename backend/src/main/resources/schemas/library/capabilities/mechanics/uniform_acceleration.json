@@ -1,0 +1,176 @@
+{
+  "capabilityId": "uniform_acceleration",
+  "title": "Chuyển động thẳng biến đổi đều",
+  "version": "2.0",
+  "applicability": {
+    "objectTypes": [
+      "moving_body"
+    ],
+    "quantities": [
+      "initial_position",
+      "initial_velocity",
+      "acceleration",
+      "elapsed_time"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    }
+  ],
+  "assumptions": [
+    "Acceleration is constant during the interval.",
+    "All participants use the same axis convention."
+  ],
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "equationSet": {
+    "canonical": [
+      "x(t)=x0+v0*t+0.5*a*t^2",
+      "v(t)=v0+a*t"
+    ],
+    "derived": [
+      "displacement=x(t)-x0"
+    ],
+    "dependencies": [
+      {
+        "id": "position",
+        "dependsOn": [
+          "initial_position",
+          "initial_velocity",
+          "acceleration"
+        ]
+      },
+      {
+        "id": "velocity",
+        "dependsOn": [
+          "initial_velocity",
+          "acceleration"
+        ]
+      },
+      {
+        "id": "acceleration",
+        "dependsOn": []
+      }
+    ]
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": "acceleration"
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "acceleration": "acceleration"
+      },
+      "closedForm": {
+        "position": [
+          "add",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              "initial_velocity",
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "acceleration"
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "velocity": [
+          "add",
+          "initial_velocity",
+          [
+            "mul",
+            "acceleration",
+            "t"
+          ]
+        ],
+        "acceleration": "acceleration"
+      }
+    }
+  },
+  "validation": {
+    "strategy": "closed_form_checkpoints",
+    "absoluteTolerance": 1e-08,
+    "relativeTolerance": 1e-08,
+    "invariants": [
+      "finite_output",
+      "v_equals_v0_plus_a_times_t"
+    ],
+    "benchmarks": [
+      {
+        "name": "zero_acceleration",
+        "inputs": {
+          "acceleration": 0
+        }
+      }
+    ]
+  },
+  "rendererBindings": [
+    {
+      "source": "positions.x",
+      "role": "trajectory"
+    },
+    {
+      "source": "velocities.x",
+      "role": "velocity_vector"
+    },
+    {
+      "source": "accelerations.x",
+      "role": "acceleration_vector"
+    }
+  ]
+}

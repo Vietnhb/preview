@@ -1,0 +1,199 @@
+{
+  "capabilityId": "ideal_transformer",
+  "title": "Máy biến áp lí tưởng",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "coil",
+      "conductor",
+      "field_region"
+    ],
+    "quantities": [
+      "primary_voltage_amplitude",
+      "frequency",
+      "primary_turns",
+      "secondary_turns"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "primary_voltage_amplitude",
+      "unit": "V"
+    },
+    {
+      "key": "frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "primary_turns",
+      "unit": "1",
+      "min": 1
+    },
+    {
+      "key": "secondary_turns",
+      "unit": "1",
+      "min": 1
+    }
+  ],
+  "outputs": [
+    {
+      "key": "phase",
+      "unit": "rad"
+    },
+    {
+      "key": "primary_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "secondary_voltage",
+      "unit": "V"
+    }
+  ],
+  "assumptions": [
+    "Máy biến áp lí tưởng, không hao phí; điện áp sơ cấp xoay chiều hình sin."
+  ],
+  "equationSet": {
+    "canonical": [
+      "U2/U1 = N2/N1"
+    ],
+    "derived": [
+      "I1/I2 = N2/N1 (máy biến áp lí tưởng)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "phase": 0
+      },
+      "rates": {
+        "phase": [
+          "mul",
+          [
+            "mul",
+            2,
+            3.141592653589793
+          ],
+          "frequency"
+        ]
+      },
+      "outputs": {
+        "phase": "phase",
+        "primary_voltage": [
+          "mul",
+          "primary_voltage_amplitude",
+          [
+            "cos",
+            "phase"
+          ]
+        ],
+        "secondary_voltage": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              "primary_voltage_amplitude",
+              "secondary_turns"
+            ],
+            "primary_turns"
+          ],
+          [
+            "cos",
+            "phase"
+          ]
+        ]
+      },
+      "closedForm": {
+        "phase": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              2,
+              3.141592653589793
+            ],
+            "frequency"
+          ],
+          "t"
+        ],
+        "primary_voltage": [
+          "mul",
+          "primary_voltage_amplitude",
+          [
+            "cos",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "frequency"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "secondary_voltage": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              "primary_voltage_amplitude",
+              "secondary_turns"
+            ],
+            "primary_turns"
+          ],
+          [
+            "cos",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "frequency"
+              ],
+              "t"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "secondary_voltage",
+      "role": "state_value"
+    }
+  ]
+}

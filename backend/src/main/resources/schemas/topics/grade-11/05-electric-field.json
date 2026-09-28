@@ -1,0 +1,65 @@
+{
+  "schemaId": "thpt_electric_field",
+  "version": "1.0",
+  "topic": "ELECTRIC_FIELD",
+  "name": "Trường điện (Điện trường)",
+  "grade": 11,
+  "description": "Trường điện (Vật lí 11): định luật Coulomb, cường độ điện trường của điện tích điểm E = kQ/r², điện trường đều E = U/d giữa hai bản, chuyển động của điện tích (electron) bay vào điện trường, điện thế, thế năng điện, tụ điện, điện dung, ghép tụ nối tiếp/song song, năng lượng tụ điện.",
+  "objectTypes": [
+    {
+      "type": "charged_particle",
+      "label": "hạt mang điện",
+      "description": "Điện tích điểm, electron, ion…"
+    },
+    {
+      "type": "charge_source",
+      "label": "điện tích nguồn",
+      "description": "Điện tích hoặc vật nhiễm điện tạo ra điện trường."
+    },
+    {
+      "type": "field_region",
+      "label": "vùng có trường",
+      "description": "Vùng điện trường / từ trường đều hoặc không đều."
+    },
+    {
+      "type": "conductor",
+      "label": "vật dẫn",
+      "description": "Dây dẫn, thanh kim loại, bản tụ…"
+    },
+    {
+      "type": "capacitor",
+      "label": "tụ điện",
+      "description": "Tụ điện."
+    }
+  ],
+  "capabilities": [
+    "coulomb_repulsion_from_fixed_charge",
+    "point_charge_field_probe",
+    "charge_in_uniform_electric_field",
+    "series_capacitor_pair",
+    "parallel_capacitor_pair",
+    "rc_circuit"
+  ],
+  "curriculum": [
+    {
+      "name": "Lực điện tương tác giữa các điện tích",
+      "summary": "Định luật Coulomb."
+    },
+    {
+      "name": "Khái niệm điện trường",
+      "summary": "E = Q/4πε₀r²."
+    },
+    {
+      "name": "Điện trường đều",
+      "summary": "E = U/d; điện tích bay vào điện trường."
+    },
+    {
+      "name": "Điện thế và thế năng điện",
+      "summary": "V = A/q."
+    },
+    {
+      "name": "Tụ điện và điện dung",
+      "summary": "Ghép tụ; năng lượng tụ điện."
+    }
+  ]
+}

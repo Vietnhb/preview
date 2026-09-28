@@ -1,0 +1,233 @@
+{
+  "capabilityId": "charge_in_uniform_electric_field",
+  "title": "Hạt mang điện trong điện trường đều",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "charged_particle",
+      "field_region"
+    ],
+    "quantities": [
+      "charge",
+      "mass",
+      "field_strength",
+      "initial_velocity",
+      "initial_position",
+      "initial_height"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "charge",
+      "unit": "C"
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-35
+    },
+    {
+      "key": "field_strength",
+      "unit": "N/C"
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_height",
+      "unit": "m",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    },
+    {
+      "key": "ax",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "ay",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Điện trường đều hướng theo trục y (E > 0 hướng lên); hạt bay vào song song trục x; bỏ qua trọng lực."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F = q*E",
+      "a = q*E/m"
+    ],
+    "derived": [
+      "x = v0*t",
+      "y = a*t^2/2"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "x": "initial_position",
+        "y": "initial_height",
+        "vx": "initial_velocity",
+        "vy": 0
+      },
+      "rates": {
+        "x": "vx",
+        "y": "vy",
+        "vx": 0,
+        "vy": [
+          "div",
+          [
+            "mul",
+            "charge",
+            "field_strength"
+          ],
+          "mass"
+        ]
+      },
+      "outputs": {
+        "x": "x",
+        "y": "y",
+        "vx": "vx",
+        "vy": "vy",
+        "ax": 0,
+        "ay": [
+          "div",
+          [
+            "mul",
+            "charge",
+            "field_strength"
+          ],
+          "mass"
+        ],
+        "force": [
+          "mul",
+          "charge",
+          "field_strength"
+        ]
+      },
+      "closedForm": {
+        "x": [
+          "add",
+          "initial_position",
+          [
+            "mul",
+            "initial_velocity",
+            "t"
+          ]
+        ],
+        "y": [
+          "add",
+          "initial_height",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  0.5,
+                  "charge"
+                ],
+                "field_strength"
+              ],
+              "mass"
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "vx": "initial_velocity",
+        "vy": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              "charge",
+              "field_strength"
+            ],
+            "mass"
+          ],
+          "t"
+        ],
+        "ax": 0,
+        "ay": [
+          "div",
+          [
+            "mul",
+            "charge",
+            "field_strength"
+          ],
+          "mass"
+        ],
+        "force": [
+          "mul",
+          "charge",
+          "field_strength"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "y",
+      "role": "vertical_position"
+    }
+  ]
+}

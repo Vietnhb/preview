@@ -1,0 +1,222 @@
+{
+  "capabilityId": "double_slit_screen_scan",
+  "title": "Giao thoa ánh sáng khe Young",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "wave_source",
+      "medium",
+      "receiver"
+    ],
+    "quantities": [
+      "wavelength",
+      "slit_separation",
+      "screen_distance",
+      "scan_speed",
+      "start_position"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "wavelength",
+      "unit": "m",
+      "min": 1e-12
+    },
+    {
+      "key": "slit_separation",
+      "unit": "m",
+      "min": 1e-12
+    },
+    {
+      "key": "screen_distance",
+      "unit": "m",
+      "min": 1e-09
+    },
+    {
+      "key": "scan_speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "start_position",
+      "unit": "m",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "relative_intensity",
+      "unit": "1"
+    },
+    {
+      "key": "fringe_spacing",
+      "unit": "m"
+    }
+  ],
+  "assumptions": [
+    "Hai khe hẹp kết hợp, chiếu ánh sáng đơn sắc; màn xa (D >> a); đầu đo quét dọc màn đều theo thời gian."
+  ],
+  "equationSet": {
+    "canonical": [
+      "i = lambda*D/a",
+      "vân sáng: x = k*i"
+    ],
+    "derived": [
+      "I ~ cos^2(pi*a*x/(lambda*D))"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "position": [
+          "add",
+          "start_position",
+          [
+            "mul",
+            "scan_speed",
+            "elapsed_time"
+          ]
+        ],
+        "relative_intensity": [
+          "pow",
+          [
+            "cos",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  3.141592653589793,
+                  "slit_separation"
+                ],
+                [
+                  "add",
+                  "start_position",
+                  [
+                    "mul",
+                    "scan_speed",
+                    "elapsed_time"
+                  ]
+                ]
+              ],
+              [
+                "mul",
+                "wavelength",
+                "screen_distance"
+              ]
+            ]
+          ],
+          2
+        ],
+        "fringe_spacing": [
+          "div",
+          [
+            "mul",
+            "wavelength",
+            "screen_distance"
+          ],
+          "slit_separation"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "position": [
+          "add",
+          "start_position",
+          [
+            "mul",
+            "scan_speed",
+            "t"
+          ]
+        ],
+        "relative_intensity": [
+          "pow",
+          [
+            "cos",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "mul",
+                  3.141592653589793,
+                  "slit_separation"
+                ],
+                [
+                  "add",
+                  "start_position",
+                  [
+                    "mul",
+                    "scan_speed",
+                    "t"
+                  ]
+                ]
+              ],
+              [
+                "mul",
+                "wavelength",
+                "screen_distance"
+              ]
+            ]
+          ],
+          2
+        ],
+        "fringe_spacing": [
+          "div",
+          [
+            "mul",
+            "wavelength",
+            "screen_distance"
+          ],
+          "slit_separation"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "relative_intensity",
+      "role": "state_value"
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "capabilityId": "pulled_train_body",
+  "title": "Hệ vật nối bằng dây được kéo (lực căng dây)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "surface",
+      "force_source"
+    ],
+    "quantities": [
+      "pulling_force",
+      "total_mass",
+      "mass_from_this_body_back",
+      "friction_coefficient",
+      "gravitational_acceleration",
+      "initial_position",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "pulling_force",
+      "unit": "N"
+    },
+    {
+      "key": "total_mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "mass_from_this_body_back",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "friction_coefficient",
+      "unit": "1",
+      "min": 0,
+      "max": 5,
+      "defaultValue": 0
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "tension",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Các vật nối nhau bằng dây không dãn, khối lượng dây không đáng kể, cùng hệ số ma sát, chuyển động theo chiều lực kéo.",
+    "Mỗi vật là một đối tượng: khai báo tổng khối lượng cả đoàn và khối lượng từ vật đó trở về phía sau; vị trí ban đầu khác nhau."
+  ],
+  "equationSet": {
+    "canonical": [
+      "a = (F - mu*(m1 + m2 + ...)*g)/(m1 + m2 + ...)",
+      "T = (khối lượng phía sau)*(a + mu*g)"
+    ],
+    "derived": [
+      "T = m_sau*F/m_tong"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "sub",
+          [
+            "div",
+            "pulling_force",
+            "total_mass"
+          ],
+          [
+            "mul",
+            "friction_coefficient",
+            "gravitational_acceleration"
+          ]
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "acceleration": [
+          "sub",
+          [
+            "div",
+            "pulling_force",
+            "total_mass"
+          ],
+          [
+            "mul",
+            "friction_coefficient",
+            "gravitational_acceleration"
+          ]
+        ],
+        "tension": [
+          "div",
+          [
+            "mul",
+            "mass_from_this_body_back",
+            "pulling_force"
+          ],
+          "total_mass"
+        ]
+      },
+      "closedForm": {
+        "position": [
+          "add",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              "initial_velocity",
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              [
+                "sub",
+                [
+                  "div",
+                  "pulling_force",
+                  "total_mass"
+                ],
+                [
+                  "mul",
+                  "friction_coefficient",
+                  "gravitational_acceleration"
+                ]
+              ]
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "velocity": [
+          "add",
+          "initial_velocity",
+          [
+            "mul",
+            [
+              "sub",
+              [
+                "div",
+                "pulling_force",
+                "total_mass"
+              ],
+              [
+                "mul",
+                "friction_coefficient",
+                "gravitational_acceleration"
+              ]
+            ],
+            "t"
+          ]
+        ],
+        "acceleration": [
+          "sub",
+          [
+            "div",
+            "pulling_force",
+            "total_mass"
+          ],
+          [
+            "mul",
+            "friction_coefficient",
+            "gravitational_acceleration"
+          ]
+        ],
+        "tension": [
+          "div",
+          [
+            "mul",
+            "mass_from_this_body_back",
+            "pulling_force"
+          ],
+          "total_mass"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "tension",
+      "role": "force"
+    }
+  ]
+}

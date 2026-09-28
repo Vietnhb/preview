@@ -1,0 +1,39 @@
+{
+  "schemaId": "thpt_gravitational_field",
+  "version": "1.0",
+  "topic": "GRAVITATIONAL_FIELD",
+  "name": "Trường hấp dẫn",
+  "grade": 11,
+  "description": "Trường hấp dẫn (Chuyên đề 11.1): định luật vạn vật hấp dẫn F = Gm₁m₂/r², cường độ trường hấp dẫn g = GM/r², thế hấp dẫn φ = −GM/r, vệ tinh, vệ tinh địa tĩnh, tốc độ vũ trụ cấp 1, vật bay lên và rơi xa bề mặt hành tinh.",
+  "objectTypes": [
+    {
+      "type": "body",
+      "label": "vật",
+      "description": "Vật có khối lượng, coi như chất điểm hoặc vật rắn đơn giản."
+    }
+  ],
+  "capabilities": [
+    "circular_orbit",
+    "radial_gravity_probe",
+    "radial_motion_in_gravity",
+    "projectile"
+  ],
+  "curriculum": [
+    {
+      "name": "Khái niệm trường hấp dẫn",
+      "summary": "Mọi vật có khối lượng tạo trường hấp dẫn."
+    },
+    {
+      "name": "Lực hấp dẫn",
+      "summary": "F = Gm₁m₂/r²."
+    },
+    {
+      "name": "Cường độ trường hấp dẫn",
+      "summary": "g = GM/r²."
+    },
+    {
+      "name": "Thế hấp dẫn và thế năng hấp dẫn",
+      "summary": "φ = −GM/r; vệ tinh địa tĩnh; tốc độ vũ trụ cấp 1."
+    }
+  ]
+}

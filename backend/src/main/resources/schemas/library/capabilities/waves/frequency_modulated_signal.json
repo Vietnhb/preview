@@ -1,0 +1,279 @@
+{
+  "capabilityId": "frequency_modulated_signal",
+  "title": "Biến điệu tần số (FM)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "wave_source",
+      "receiver"
+    ],
+    "quantities": [
+      "carrier_amplitude",
+      "carrier_frequency",
+      "message_frequency",
+      "frequency_deviation"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "carrier_amplitude",
+      "unit": "V",
+      "min": 0
+    },
+    {
+      "key": "carrier_frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "message_frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "frequency_deviation",
+      "unit": "Hz",
+      "min": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "phase",
+      "unit": "rad"
+    },
+    {
+      "key": "signal",
+      "unit": "V"
+    },
+    {
+      "key": "instantaneous_frequency",
+      "unit": "Hz"
+    }
+  ],
+  "assumptions": [
+    "Biến điệu tần số lí tưởng bằng tín hiệu âm tần hình sin; biên độ sóng mang không đổi."
+  ],
+  "equationSet": {
+    "canonical": [
+      "f(t) = fc + Delta_f*cos(2*pi*fm*t)",
+      "u_FM = U0*cos(2*pi*fc*t + (Delta_f/fm)*sin(2*pi*fm*t))"
+    ],
+    "derived": []
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "phase": 0
+      },
+      "rates": {
+        "phase": [
+          "mul",
+          [
+            "mul",
+            2,
+            3.141592653589793
+          ],
+          [
+            "add",
+            "carrier_frequency",
+            [
+              "mul",
+              "frequency_deviation",
+              [
+                "cos",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "message_frequency"
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ]
+        ]
+      },
+      "outputs": {
+        "phase": "phase",
+        "signal": [
+          "mul",
+          "carrier_amplitude",
+          [
+            "cos",
+            "phase"
+          ]
+        ],
+        "instantaneous_frequency": [
+          "add",
+          "carrier_frequency",
+          [
+            "mul",
+            "frequency_deviation",
+            [
+              "cos",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "message_frequency"
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "phase": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                2,
+                3.141592653589793
+              ],
+              "carrier_frequency"
+            ],
+            "t"
+          ],
+          [
+            "mul",
+            [
+              "div",
+              "frequency_deviation",
+              "message_frequency"
+            ],
+            [
+              "sin",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "message_frequency"
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "signal": [
+          "mul",
+          "carrier_amplitude",
+          [
+            "cos",
+            [
+              "add",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "carrier_frequency"
+                ],
+                "t"
+              ],
+              [
+                "mul",
+                [
+                  "div",
+                  "frequency_deviation",
+                  "message_frequency"
+                ],
+                [
+                  "sin",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "message_frequency"
+                    ],
+                    "t"
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "instantaneous_frequency": [
+          "add",
+          "carrier_frequency",
+          [
+            "mul",
+            "frequency_deviation",
+            [
+              "cos",
+              [
+                "mul",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "message_frequency"
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "signal",
+      "role": "state_value"
+    }
+  ]
+}

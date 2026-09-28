@@ -4,32 +4,497 @@
       "name": "KINEMATICS",
       "slug": "kinematics",
       "modules": [
-        {"name":"Linear Motion","slug":"linear-motion","levels":[{"name":"Grade 10","lessons":[{"name":"Distance and Displacement","slug":"distance-and-displacement"},{"name":"Speed and Velocity","slug":"speed-and-velocity"},{"name":"Uniform Linear Motion","slug":"uniform-linear-motion"},{"name":"Acceleration","slug":"acceleration"},{"name":"Uniformly Accelerated Motion","slug":"uniformly-accelerated-motion"}]}]},
-        {"name":"Free Fall","slug":"free-fall","levels":[{"name":"Grade 10","lessons":[{"name":"Free-Fall Motion","slug":"free-fall-motion"},{"name":"Free-Fall Equations","slug":"free-fall-equations"}]}]},
-        {"name":"Projectile Motion","slug":"projectile-motion","levels":[{"name":"Grade 10","lessons":[{"name":"Horizontal Projectile Motion","slug":"horizontal-projectile-motion"},{"name":"Oblique Projectile Motion","slug":"oblique-projectile-motion"}]}]},
-        {"name":"Motion Graphs","slug":"motion-graphs","levels":[{"name":"Grade 10","lessons":[{"name":"Position-Time Graph","slug":"position-time-graph"},{"name":"Velocity-Time Graph","slug":"velocity-time-graph"},{"name":"Acceleration-Time Graph","slug":"acceleration-time-graph"}]}]}
+        {
+          "name": "Mô tả chuyển động",
+          "slug": "mo-ta-chuyen-dong",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Tốc độ, vận tốc, độ dịch chuyển, độ dịch chuyển và vận tốc tổng hợp",
+                  "slug": "toc-do-van-toc-do-dich-chuyen-do-dich-chuyen-va-van-toc-tong-hop"
+                },
+                {
+                  "name": "Đồ thị độ dịch chuyển – thời gian",
+                  "slug": "do-thi-do-dich-chuyen-thoi-gian"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Chuyển động biến đổi",
+          "slug": "chuyen-dong-bien-doi",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Gia tốc",
+                  "slug": "gia-toc"
+                },
+                {
+                  "name": "Đồ thị vận tốc – thời gian",
+                  "slug": "do-thi-van-toc-thoi-gian"
+                },
+                {
+                  "name": "Chuyển động thẳng biến đổi đều",
+                  "slug": "chuyen-dong-thang-bien-doi-deu"
+                },
+                {
+                  "name": "Rơi tự do",
+                  "slug": "roi-tu-do"
+                },
+                {
+                  "name": "Chuyển động ném",
+                  "slug": "chuyen-dong-nem"
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
       "name": "DYNAMICS",
       "slug": "dynamics",
       "modules": [
-        {"name":"Forces and Newton's Laws","slug":"forces-newton-laws","levels":[{"name":"Grade 10","lessons":[{"name":"Force and Acceleration","slug":"force-and-acceleration"},{"name":"Newton's Laws","slug":"newton-laws"},{"name":"Friction","slug":"friction"},{"name":"Linear Air Resistance","slug":"linear-drag-motion"},{"name":"Moment and Rotational Equilibrium","slug":"moment-equilibrium"}]}]},
-        {"name":"Oscillations","slug":"oscillations","levels":[{"name":"Grade 11","lessons":[{"name":"Harmonic Motion","slug":"harmonic-motion"},{"name":"Spring Oscillation","slug":"spring-oscillation"},{"name":"Damped and Forced Oscillation","slug":"damped-forced-oscillation"}]}]},
-        {"name":"Momentum and Collisions","slug":"momentum-collisions","levels":[{"name":"Grade 10","lessons":[{"name":"Conservation of Momentum","slug":"conservation-of-momentum"},{"name":"Elastic Collision","slug":"elastic-collision"}]}]},
-        {"name":"Energy and Circular Motion","slug":"energy-circular-motion","levels":[{"name":"Grade 10","lessons":[{"name":"Work, Energy and Power","slug":"work-energy-power"},{"name":"Uniform Circular Motion","slug":"circular-motion"},{"name":"Hooke Law and Elastic Deformation","slug":"hooke-law"},{"name":"Hydrostatic Pressure and Buoyancy","slug":"hydrostatics"}]}]},
-        {"name":"Gravitation and Orbits","slug":"gravitation-orbits","levels":[{"name":"Grade 11","lessons":[{"name":"Gravity Field and Circular Orbits","slug":"gravity-orbit"}]}]}
+        {
+          "name": "Ba định luật Newton về chuyển động",
+          "slug": "ba-dinh-luat-newton-ve-chuyen-dong",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "F = ma, quán tính, trọng lực, rơi trong trường trọng lực",
+                  "slug": "f-ma-quan-tinh-trong-luc-roi-trong-truong-trong-luc"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Một số lực trong thực tiễn",
+          "slug": "mot-so-luc-trong-thuc-tien",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Trọng lực, ma sát, lực cản, lực nâng, lực căng dây",
+                  "slug": "trong-luc-ma-sat-luc-can-luc-nang-luc-cang-day"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Cân bằng lực, moment lực",
+          "slug": "can-bang-luc-moment-luc",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Tổng hợp, phân tích lực",
+                  "slug": "tong-hop-phan-tich-luc"
+                },
+                {
+                  "name": "Moment lực",
+                  "slug": "moment-luc"
+                },
+                {
+                  "name": "Điều kiện cân bằng",
+                  "slug": "dieu-kien-can-bang"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Khối lượng riêng, áp suất chất lỏng",
+          "slug": "khoi-luong-rieng-ap-suat-chat-long",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Δp = ρgΔh",
+                  "slug": "p-g-h"
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
-      "name": "CIRCUITS",
-      "slug": "circuits",
+      "name": "WORK_ENERGY_POWER",
+      "slug": "work-energy-power",
       "modules": [
-        {"name":"Direct Current Circuits","slug":"direct-current-circuits","levels":[{"name":"Grade 11","lessons":[{"name":"Current, Voltage and Resistance","slug":"current-voltage-resistance"},{"name":"Ohm's Law","slug":"ohms-law"},{"name":"Series and Parallel Circuits","slug":"series-parallel-circuits"},{"name":"EMF and Internal Resistance","slug":"source-internal-resistance"}]}]},
-        {"name":"Capacitors and RC Circuits","slug":"capacitors-rc","levels":[{"name":"Grade 11","lessons":[{"name":"Capacitance","slug":"capacitance"},{"name":"RC Charging and Discharging","slug":"rc-charging-discharging"}]}]},
-        {"name":"Alternating Current","slug":"alternating-current","levels":[{"name":"Grade 12","lessons":[{"name":"AC Voltage and Current","slug":"ac-voltage-current"}]}]},
-        {"name":"Semiconductor Electronics","slug":"semiconductor-electronics","levels":[{"name":"Grade 12","lessons":[{"name":"Diode Characteristic","slug":"diode-characteristic"}]}]},
-        {"name":"Sensors and Op-Amps","slug":"sensors-op-amps","levels":[{"name":"Grade 11","lessons":[{"name":"Sensor Divider and Op-Amp Output","slug":"sensor-op-amp"},{"name":"Thermistor Response","slug":"thermistor-response"}]}]}
+        {
+          "name": "Công và năng lượng",
+          "slug": "cong-va-nang-luong",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "A = F·s·cosα",
+                  "slug": "a-f-s-cos"
+                },
+                {
+                  "name": "Truyền năng lượng bằng thực hiện công",
+                  "slug": "truyen-nang-luong-bang-thuc-hien-cong"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Động năng và thế năng",
+          "slug": "dong-nang-va-the-nang",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Wđ = mv²/2",
+                  "slug": "wd-mv-2"
+                },
+                {
+                  "name": "Wt = mgh",
+                  "slug": "wt-mgh"
+                },
+                {
+                  "name": "Bảo toàn cơ năng",
+                  "slug": "bao-toan-co-nang"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Công suất và hiệu suất",
+          "slug": "cong-suat-va-hieu-suat",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "P = A/t = Fv",
+                  "slug": "p-a-t-fv"
+                },
+                {
+                  "name": "H = A_có ích/A_toàn phần",
+                  "slug": "h-a-co-ich-a-toan-phan"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MOMENTUM",
+      "slug": "momentum",
+      "modules": [
+        {
+          "name": "Định nghĩa động lượng",
+          "slug": "dinh-nghia-dong-luong",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "P = mv",
+                  "slug": "p-mv"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Bảo toàn động lượng",
+          "slug": "bao-toan-dong-luong",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Hệ kín: tổng động lượng không đổi",
+                  "slug": "he-kin-tong-dong-luong-khong-doi"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Động lượng và va chạm",
+          "slug": "dong-luong-va-va-cham",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "F = Δp/Δt",
+                  "slug": "f-p-t"
+                },
+                {
+                  "name": "Năng lượng trong va chạm",
+                  "slug": "nang-luong-trong-va-cham"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CIRCULAR_MOTION",
+      "slug": "circular-motion",
+      "modules": [
+        {
+          "name": "Động học của chuyển động tròn đều",
+          "slug": "dong-hoc-cua-chuyen-dong-tron-deu",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Radian, tốc độ góc",
+                  "slug": "radian-toc-do-goc"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Gia tốc hướng tâm và lực hướng tâm",
+          "slug": "gia-toc-huong-tam-va-luc-huong-tam",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "A = rω², F = mrω²",
+                  "slug": "a-r-f-mr"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SOLID_DEFORMATION",
+      "slug": "solid-deformation",
+      "modules": [
+        {
+          "name": "Biến dạng kéo và biến dạng nén; đặc tính của lò xo",
+          "slug": "bien-dang-keo-va-bien-dang-nen-dac-tinh-cua-lo-xo",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Giới hạn đàn hồi, độ dãn, độ cứng",
+                  "slug": "gioi-han-dan-hoi-do-dan-do-cung"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Định luật Hooke",
+          "slug": "dinh-luat-hooke",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "F = kΔl",
+                  "slug": "f-k-l"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "EARTH_AND_SKY",
+      "slug": "earth-and-sky",
+      "modules": [
+        {
+          "name": "Xác định phương hướng",
+          "slug": "xac-dinh-phuong-huong",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Chòm sao, sao Bắc Cực",
+                  "slug": "chom-sao-sao-bac-cuc"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Chuyển động nhìn thấy của một số thiên thể",
+          "slug": "chuyen-dong-nhin-thay-cua-mot-so-thien-the",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Mặt Trời, Mặt Trăng, Kim Tinh, Thuỷ Tinh",
+                  "slug": "mat-troi-mat-trang-kim-tinh-thuy-tinh"
+                },
+                {
+                  "name": "Mô hình Copernic",
+                  "slug": "mo-hinh-copernic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Một số hiện tượng thiên văn",
+          "slug": "mot-so-hien-tuong-thien-van",
+          "levels": [
+            {
+              "name": "Lớp 10",
+              "lessons": [
+                {
+                  "name": "Nhật thực, nguyệt thực, thuỷ triều",
+                  "slug": "nhat-thuc-nguyet-thuc-thuy-trieu"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GRAVITATIONAL_FIELD",
+      "slug": "gravitational-field",
+      "modules": [
+        {
+          "name": "Khái niệm trường hấp dẫn",
+          "slug": "khai-niem-truong-hap-dan",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Mọi vật có khối lượng tạo trường hấp dẫn",
+                  "slug": "moi-vat-co-khoi-luong-tao-truong-hap-dan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Lực hấp dẫn",
+          "slug": "luc-hap-dan",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "F = Gm₁m₂/r²",
+                  "slug": "f-gm-m-r"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Cường độ trường hấp dẫn",
+          "slug": "cuong-do-truong-hap-dan",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "G = GM/r²",
+                  "slug": "g-gm-r"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Thế hấp dẫn và thế năng hấp dẫn",
+          "slug": "the-hap-dan-va-the-nang-hap-dan",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Φ = −GM/r",
+                  "slug": "gm-r"
+                },
+                {
+                  "name": "Vệ tinh địa tĩnh",
+                  "slug": "ve-tinh-dia-tinh"
+                },
+                {
+                  "name": "Tốc độ vũ trụ cấp 1",
+                  "slug": "toc-do-vu-tru-cap-1"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "OSCILLATIONS",
+      "slug": "oscillations",
+      "modules": [
+        {
+          "name": "Dao động điều hoà",
+          "slug": "dao-dong-dieu-hoa",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Biên độ, chu kì, tần số, độ lệch pha",
+                  "slug": "bien-do-chu-ki-tan-so-do-lech-pha"
+                },
+                {
+                  "name": "A = −ω²x",
+                  "slug": "a-x"
+                },
+                {
+                  "name": "Năng lượng",
+                  "slug": "nang-luong"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dao động tắt dần, hiện tượng cộng hưởng",
+          "slug": "dao-dong-tat-dan-hien-tuong-cong-huong",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Dao động cưỡng bức, cộng hưởng",
+                  "slug": "dao-dong-cuong-buc-cong-huong"
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
@@ -37,80 +502,862 @@
       "slug": "waves",
       "modules": [
         {
-          "name": "Mechanical Waves",
-          "slug": "mechanical-waves",
+          "name": "Mô tả sóng",
+          "slug": "mo-ta-song",
           "levels": [
             {
-              "name": "Grade 11",
+              "name": "Lớp 11",
               "lessons": [
                 {
-                  "name": "Transverse Wave on a String (pilot)",
-                  "slug": "transverse-string-wave-pilot"
+                  "name": "Λ, A, f, v, cường độ",
+                  "slug": "a-f-v-cuong-do"
                 },
                 {
-                  "name": "Travelling Pulse on a String",
-                  "slug": "travelling-pulse"
-                },
-                {
-                  "name": "Standing-Wave Interference",
-                  "slug": "standing-wave"
-                },
-                {
-                  "name": "Reflection at a Fixed or Free Boundary",
-                  "slug": "reflection-boundary"
-                },
-                {
-                  "name": "Wave Superposition",
-                  "slug": "superposition"
-                },
-                {
-                  "name": "Sound as an Acoustic Pressure Wave",
-                  "slug": "sound"
+                  "name": "V = λf",
+                  "slug": "v-f"
                 }
               ]
             }
           ]
         },
-        {"name":"Radio Communication","slug":"radio-communication","levels":[{"name":"Grade 11","lessons":[{"name":"Radio Communication","slug":"radio-communication"},{"name":"AM FM Signal Chain and Attenuation","slug":"radio-signal-chain"}]}]},
-        {"name":"Medical Waves","slug":"medical-waves","levels":[{"name":"Grade 12","lessons":[{"name":"Pulse-Echo Ultrasound Imaging","slug":"ultrasound-imaging"}]}]
+        {
+          "name": "Sóng dọc và sóng ngang",
+          "slug": "song-doc-va-song-ngang",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "So sánh",
+                  "slug": "so-sanh"
+                },
+                {
+                  "name": "Đo tần số âm",
+                  "slug": "do-tan-so-am"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Sóng điện từ",
+          "slug": "song-dien-tu",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Cùng tốc độ trong chân không",
+                  "slug": "cung-toc-do-trong-chan-khong"
+                },
+                {
+                  "name": "Thang sóng điện từ",
+                  "slug": "thang-song-dien-tu"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Giao thoa sóng kết hợp",
+          "slug": "giao-thoa-song-ket-hop",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Điều kiện giao thoa",
+                  "slug": "dieu-kien-giao-thoa"
+                },
+                {
+                  "name": "I = λD/a",
+                  "slug": "i-d-a"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Sóng dừng",
+          "slug": "song-dung",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Nút, bụng",
+                  "slug": "nut-bung"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Đo tốc độ truyền âm",
+          "slug": "do-toc-do-truyen-am",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Phương án đo",
+                  "slug": "phuong-an-do"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
     {
-      "name": "THERMAL",
-      "slug": "thermal",
+      "name": "RADIO_COMMUNICATION",
+      "slug": "radio-communication",
       "modules": [
-        {"name":"Temperature and Heat","slug":"temperature-heat","levels":[{"name":"Grade 12","lessons":[{"name":"Temperature Scales","slug":"temperature-scales"},{"name":"Thermal Expansion","slug":"thermal-expansion"},{"name":"Heat and Calorimetry","slug":"heat-calorimetry"}]}]},
-        {"name":"Phase Changes","slug":"phase-changes","levels":[{"name":"Grade 12","lessons":[{"name":"Heating Curve and Phase Changes","slug":"phase-change"}]}]},
-        {"name":"Gases and Thermodynamics","slug":"gases-thermodynamics","levels":[{"name":"Grade 12","lessons":[{"name":"Ideal Gas Law","slug":"ideal-gas-law"},{"name":"Gas Processes","slug":"gas-processes"},{"name":"First Law of Thermodynamics","slug":"first-law-thermodynamics"}]}]}
+        {
+          "name": "Biến điệu",
+          "slug": "bien-dieu",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "AM, FM",
+                  "slug": "am-fm"
+                },
+                {
+                  "name": "Tần số, bước sóng các kênh",
+                  "slug": "tan-so-buoc-song-cac-kenh"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Tín hiệu tương tự và tín hiệu số",
+          "slug": "tin-hieu-tuong-tu-va-tin-hieu-so",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "ADC, DAC",
+                  "slug": "adc-dac"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Suy giảm tín hiệu",
+          "slug": "suy-giam-tin-hieu",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "DB, dB/đơn vị độ dài",
+                  "slug": "db-db-don-vi-do-dai"
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
-      "name": "ELECTROMAGNETISM",
-      "slug": "electromagnetism",
+      "name": "ELECTRIC_FIELD",
+      "slug": "electric-field",
       "modules": [
-        {"name":"Electric Fields and Potential","slug":"electric-fields","levels":[{"name":"Grade 11","lessons":[{"name":"Electric Field","slug":"electric-field"},{"name":"Uniform Electric Field","slug":"uniform-electric-field"},{"name":"Electric Potential and Energy","slug":"electric-potential"}]}]},
-        {"name":"Magnetism and Induction","slug":"magnetism-induction","levels":[{"name":"Grade 12","lessons":[{"name":"Magnetic Force","slug":"magnetic-force"},{"name":"Electromagnetic Induction","slug":"electromagnetic-induction"},{"name":"Transformers","slug":"transformers"}]}]},
-        {"name":"Alternating Current","slug":"alternating-current-advanced","levels":[{"name":"Grade 12","lessons":[{"name":"AC RLC Circuits","slug":"ac-rlc"},{"name":"Power Factor","slug":"power-factor"}]}]}
+        {
+          "name": "Lực điện tương tác giữa các điện tích",
+          "slug": "luc-dien-tuong-tac-giua-cac-dien-tich",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Định luật Coulomb",
+                  "slug": "dinh-luat-coulomb"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Khái niệm điện trường",
+          "slug": "khai-niem-dien-truong",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "E = Q/4πε₀r²",
+                  "slug": "e-q-4-r"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Điện trường đều",
+          "slug": "dien-truong-deu",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "E = U/d",
+                  "slug": "e-u-d"
+                },
+                {
+                  "name": "Điện tích bay vào điện trường",
+                  "slug": "dien-tich-bay-vao-dien-truong"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Điện thế và thế năng điện",
+          "slug": "dien-the-va-the-nang-dien",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "V = A/q",
+                  "slug": "v-a-q"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Tụ điện và điện dung",
+          "slug": "tu-dien-va-dien-dung",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Ghép tụ",
+                  "slug": "ghep-tu"
+                },
+                {
+                  "name": "Năng lượng tụ điện",
+                  "slug": "nang-luong-tu-dien"
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
-      "name": "MODERN_PHYSICS",
-      "slug": "modern-physics",
+      "name": "ELECTRIC_CURRENT",
+      "slug": "electric-current",
       "modules": [
-        {"name":"Quantum Phenomena","slug":"quantum-phenomena","levels":[{"name":"Grade 12","lessons":[{"name":"Photoelectric Effect","slug":"photoelectric-effect"},{"name":"Atomic Spectra","slug":"atomic-spectra"},{"name":"De Broglie Matter Waves and Electron Diffraction","slug":"de-broglie-diffraction"},{"name":"Energy Band Transition","slug":"energy-band-transition"}]}]},
-        {"name":"Medical Imaging","slug":"medical-imaging","levels":[{"name":"Grade 12","lessons":[{"name":"X-ray Attenuation and Imaging","slug":"xray-imaging"},{"name":"CT Projection and Reconstruction","slug":"ct-reconstruction"},{"name":"MRI Relaxation","slug":"mri-relaxation"}]}]},
-        {"name":"Earth and Sky","slug":"earth-and-sky","levels":[{"name":"Grade 10","lessons":[{"name":"Eclipse Geometry","slug":"eclipse-geometry"}]}]},
-        {"name":"Nuclear Physics","slug":"nuclear-physics","levels":[{"name":"Grade 12","lessons":[{"name":"Radioactive Decay","slug":"radioactive-decay"},{"name":"Nuclear Reactions and Energy","slug":"nuclear-energy"},{"name":"Reaction Mass Balance","slug":"nuclear-reaction-energy"},{"name":"Radiation Safety","slug":"radiation-safety"}]}]}
+        {
+          "name": "Cường độ dòng điện",
+          "slug": "cuong-do-dong-dien",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "I = Snve",
+                  "slug": "i-snve"
+                },
+                {
+                  "name": "Coulomb",
+                  "slug": "coulomb"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Mạch điện và điện trở",
+          "slug": "mach-dien-va-dien-tro",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Định luật Ohm",
+                  "slug": "dinh-luat-ohm"
+                },
+                {
+                  "name": "I – U",
+                  "slug": "i-u"
+                },
+                {
+                  "name": "Điện trở nhiệt",
+                  "slug": "dien-tro-nhiet"
+                },
+                {
+                  "name": "Suất điện động, điện trở trong",
+                  "slug": "suat-dien-dong-dien-tro-trong"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Năng lượng điện, công suất điện",
+          "slug": "nang-luong-dien-cong-suat-dien",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "A = UIt",
+                  "slug": "a-uit"
+                },
+                {
+                  "name": "P = UI",
+                  "slug": "p-ui"
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
-      "name": "PRACTICAL_AND_DATA",
-      "slug": "practical-data",
+      "name": "ELECTRONICS",
+      "slug": "electronics",
       "modules": [
-        {"name":"Measurement and Uncertainty","slug":"measurement-uncertainty","levels":[{"name":"Grade 10","lessons":[{"name":"SI Units and Significant Figures","slug":"si-units"},{"name":"Uncertainty and Error","slug":"uncertainty-error"},{"name":"Graphing Experimental Data","slug":"experimental-graphs"}]}]},
-        {"name":"Investigation Activities","slug":"investigations","levels":[{"name":"Grade 10","lessons":[{"name":"Motion Measurement Lab","slug":"motion-lab"},{"name":"Energy and Environment Project","slug":"energy-environment"}]},{"name":"Grade 11","lessons":[{"name":"Circuit Measurement Lab","slug":"circuit-lab"}]},{"name":"Grade 12","lessons":[{"name":"Radiation and Counting Lab","slug":"radiation-lab"}]}]}
+        {
+          "name": "Khuếch đại thuật toán",
+          "slug": "khuech-dai-thuat-toan",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Cảm biến LDR, điện trở nhiệt",
+                  "slug": "cam-bien-ldr-dien-tro-nhiet"
+                },
+                {
+                  "name": "Op-amp lí tưởng",
+                  "slug": "op-amp-li-tuong"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Thiết bị đầu ra",
+          "slug": "thiet-bi-dau-ra",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Op-amp – relay, LED, đồng hồ đo",
+                  "slug": "op-amp-relay-led-dong-ho-do"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Thiết bị cảm biến",
+          "slug": "thiet-bi-cam-bien",
+          "levels": [
+            {
+              "name": "Lớp 11",
+              "lessons": [
+                {
+                  "name": "Ứng dụng, nguyên tắc hoạt động",
+                  "slug": "ung-dung-nguyen-tac-hoat-dong"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "THERMAL_PHYSICS",
+      "slug": "thermal-physics",
+      "modules": [
+        {
+          "name": "Sự chuyển thể",
+          "slug": "su-chuyen-the",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Nóng chảy, hoá hơi",
+                  "slug": "nong-chay-hoa-hoi"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Nội năng, định luật 1 của nhiệt động lực học",
+          "slug": "noi-nang-dinh-luat-1-cua-nhiet-dong-luc-hoc",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "ΔU = A + Q",
+                  "slug": "u-a-q"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Thang nhiệt độ, nhiệt kế",
+          "slug": "thang-nhiet-do-nhiet-ke",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Celsius, Kelvin",
+                  "slug": "celsius-kelvin"
+                },
+                {
+                  "name": "Chiều truyền nhiệt",
+                  "slug": "chieu-truyen-nhiet"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Nhiệt dung riêng, nhiệt nóng chảy riêng, nhiệt hoá hơi riêng",
+          "slug": "nhiet-dung-rieng-nhiet-nong-chay-rieng-nhiet-hoa-hoi-rieng",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Q = mcΔt",
+                  "slug": "q-mc-t"
+                },
+                {
+                  "name": "Q = mλ",
+                  "slug": "q-m"
+                },
+                {
+                  "name": "Q = mL",
+                  "slug": "q-ml"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "IDEAL_GAS",
+      "slug": "ideal-gas",
+      "modules": [
+        {
+          "name": "Mô hình động học phân tử chất khí",
+          "slug": "mo-hinh-dong-hoc-phan-tu-chat-khi",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Chuyển động Brown",
+                  "slug": "chuyen-dong-brown"
+                },
+                {
+                  "name": "Giả thuyết động học phân tử",
+                  "slug": "gia-thuyet-dong-hoc-phan-tu"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Phương trình trạng thái",
+          "slug": "phuong-trinh-trang-thai",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Boyle, Charles, pV = nRT",
+                  "slug": "boyle-charles-pv-nrt"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Áp suất khí theo mô hình động học phân tử",
+          "slug": "ap-suat-khi-theo-mo-hinh-dong-hoc-phan-tu",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "P = (1/3)nmv²",
+                  "slug": "p-1-3-nmv"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Động năng phân tử",
+          "slug": "dong-nang-phan-tu",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "K = R/Nₐ",
+                  "slug": "k-r-n"
+                },
+                {
+                  "name": "Wđ = (3/2)kT",
+                  "slug": "wd-3-2-kt"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MAGNETIC_FIELD",
+      "slug": "magnetic-field",
+      "modules": [
+        {
+          "name": "Khái niệm từ trường",
+          "slug": "khai-niem-tu-truong",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Đường sức từ",
+                  "slug": "duong-suc-tu"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Lực từ tác dụng lên đoạn dây dẫn mang dòng điện; Cảm ứng từ",
+          "slug": "luc-tu-tac-dung-len-doan-day-dan-mang-dong-dien-cam-ung-tu",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "F = BIlsinθ",
+                  "slug": "f-bilsin"
+                },
+                {
+                  "name": "Tesla",
+                  "slug": "tesla"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Từ thông; Cảm ứng điện từ",
+          "slug": "tu-thong-cam-ung-dien-tu",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Faraday, Lenz",
+                  "slug": "faraday-lenz"
+                },
+                {
+                  "name": "Tạo dòng điện xoay chiều",
+                  "slug": "tao-dong-dien-xoay-chieu"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ALTERNATING_CURRENT",
+      "slug": "alternating-current",
+      "modules": [
+        {
+          "name": "Các đặc trưng của dòng điện xoay chiều",
+          "slug": "cac-dac-trung-cua-dong-dien-xoay-chieu",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Giá trị hiệu dụng",
+                  "slug": "gia-tri-hieu-dung"
+                },
+                {
+                  "name": "Công suất",
+                  "slug": "cong-suat"
+                },
+                {
+                  "name": "Mạch RLC",
+                  "slug": "mach-rlc"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Máy biến áp",
+          "slug": "may-bien-ap",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Truyền tải điện năng",
+                  "slug": "truyen-tai-dien-nang"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Chỉnh lưu dòng điện xoay chiều",
+          "slug": "chinh-luu-dong-dien-xoay-chieu",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Điốt",
+                  "slug": "diot"
+                },
+                {
+                  "name": "Chỉnh lưu nửa chu kì, cả chu kì",
+                  "slug": "chinh-luu-nua-chu-ki-ca-chu-ki"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NUCLEAR_PHYSICS",
+      "slug": "nuclear-physics",
+      "modules": [
+        {
+          "name": "Cấu trúc hạt nhân",
+          "slug": "cau-truc-hat-nhan",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Tán xạ α",
+                  "slug": "tan-xa"
+                },
+                {
+                  "name": "Kí hiệu hạt nhân",
+                  "slug": "ki-hieu-hat-nhan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Độ hụt khối và năng lượng liên kết hạt nhân",
+          "slug": "do-hut-khoi-va-nang-luong-lien-ket-hat-nhan",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "E = mc²",
+                  "slug": "e-mc"
+                },
+                {
+                  "name": "Phân hạch, nhiệt hạch",
+                  "slug": "phan-hach-nhiet-hach"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Sự phóng xạ và chu kì bán rã",
+          "slug": "su-phong-xa-va-chu-ki-ban-ra",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "H = λN",
+                  "slug": "h-n"
+                },
+                {
+                  "name": "X = x₀e^(−λt)",
+                  "slug": "x-x-e-t"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MEDICAL_PHYSICS",
+      "slug": "medical-physics",
+      "modules": [
+        {
+          "name": "Bản chất và cách tạo ra tia X",
+          "slug": "ban-chat-va-cach-tao-ra-tia-x",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Tạo, điều khiển, suy giảm tia X",
+                  "slug": "tao-dieu-khien-suy-giam-tia-x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Chẩn đoán bằng tia X",
+          "slug": "chan-doan-bang-tia-x",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Liều chiếu, độ tương phản",
+                  "slug": "lieu-chieu-do-tuong-phan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Chẩn đoán bằng siêu âm",
+          "slug": "chan-doan-bang-sieu-am",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Tạo ảnh siêu âm",
+                  "slug": "tao-anh-sieu-am"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Chụp cắt lớp, cộng hưởng từ",
+          "slug": "chup-cat-lop-cong-huong-tu",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "CT, MRI",
+                  "slug": "ct-mri"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "QUANTUM_PHYSICS",
+      "slug": "quantum-physics",
+      "modules": [
+        {
+          "name": "Hiệu ứng quang điện và năng lượng của photon",
+          "slug": "hieu-ung-quang-dien-va-nang-luong-cua-photon",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "E = hf",
+                  "slug": "e-hf"
+                },
+                {
+                  "name": "Phương trình Einstein",
+                  "slug": "phuong-trinh-einstein"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Lưỡng tính sóng hạt",
+          "slug": "luong-tinh-song-hat",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Λ = h/p",
+                  "slug": "h-p"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Quang phổ vạch của nguyên tử",
+          "slug": "quang-pho-vach-cua-nguyen-tu",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Hf = E₁ − E₂",
+                  "slug": "hf-e-e"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Vùng năng lượng",
+          "slug": "vung-nang-luong",
+          "levels": [
+            {
+              "name": "Lớp 12",
+              "lessons": [
+                {
+                  "name": "Điện trở kim loại, bán dẫn, LDR",
+                  "slug": "dien-tro-kim-loai-ban-dan-ldr"
+                }
+              ]
+            }
+          ]
+        }
       ]
     }
+  ],
+  "retiredTopicSlugs": [
+    "circuits",
+    "electromagnetism",
+    "modern-physics",
+    "practical-data",
+    "thermal"
   ]
 }

@@ -1,0 +1,212 @@
+{
+  "capabilityId": "torque_balance",
+  "title": "Moment lực và điều kiện cân bằng của đòn bẩy",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "force_source"
+    ],
+    "quantities": [
+      "force_1",
+      "lever_arm_1",
+      "force_2",
+      "lever_arm_2"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "force_1",
+      "unit": "N",
+      "min": 0
+    },
+    {
+      "key": "lever_arm_1",
+      "unit": "m",
+      "min": 0
+    },
+    {
+      "key": "force_2",
+      "unit": "N",
+      "min": 0
+    },
+    {
+      "key": "lever_arm_2",
+      "unit": "m",
+      "min": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "torque_1",
+      "unit": "N*m"
+    },
+    {
+      "key": "torque_2",
+      "unit": "N*m"
+    },
+    {
+      "key": "net_torque",
+      "unit": "N*m"
+    },
+    {
+      "key": "balancing_force_2",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Hai lực vuông góc với thanh, làm thanh quay ngược chiều nhau quanh trục cố định; xét điều kiện cân bằng."
+  ],
+  "equationSet": {
+    "canonical": [
+      "M = F*d",
+      "cân bằng: M1 = M2 (quy tắc moment)"
+    ],
+    "derived": [
+      "F2 = F1*d1/d2"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "torque_1": [
+          "mul",
+          "force_1",
+          "lever_arm_1"
+        ],
+        "torque_2": [
+          "mul",
+          "force_2",
+          "lever_arm_2"
+        ],
+        "net_torque": [
+          "sub",
+          [
+            "mul",
+            "force_2",
+            "lever_arm_2"
+          ],
+          [
+            "mul",
+            "force_1",
+            "lever_arm_1"
+          ]
+        ],
+        "balancing_force_2": [
+          "div",
+          [
+            "mul",
+            "force_1",
+            "lever_arm_1"
+          ],
+          [
+            "add",
+            [
+              "add",
+              "lever_arm_2",
+              [
+                "mul",
+                1e-12,
+                "lever_arm_1"
+              ]
+            ],
+            [
+              "mul",
+              1e-12,
+              "lever_arm_2"
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "torque_1": [
+          "mul",
+          "force_1",
+          "lever_arm_1"
+        ],
+        "torque_2": [
+          "mul",
+          "force_2",
+          "lever_arm_2"
+        ],
+        "net_torque": [
+          "sub",
+          [
+            "mul",
+            "force_2",
+            "lever_arm_2"
+          ],
+          [
+            "mul",
+            "force_1",
+            "lever_arm_1"
+          ]
+        ],
+        "balancing_force_2": [
+          "div",
+          [
+            "mul",
+            "force_1",
+            "lever_arm_1"
+          ],
+          [
+            "add",
+            [
+              "add",
+              "lever_arm_2",
+              [
+                "mul",
+                1e-12,
+                "lever_arm_1"
+              ]
+            ],
+            [
+              "mul",
+              1e-12,
+              "lever_arm_2"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "net_torque",
+      "role": "state_value"
+    }
+  ]
+}

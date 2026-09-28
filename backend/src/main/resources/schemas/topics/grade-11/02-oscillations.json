@@ -1,0 +1,47 @@
+{
+  "schemaId": "thpt_oscillations",
+  "version": "1.0",
+  "topic": "OSCILLATIONS",
+  "name": "Dao động",
+  "grade": 11,
+  "description": "Dao động (Vật lí 11): dao động điều hoà x = Acos(ωt + φ), biên độ, chu kì, tần số, pha, li độ – vận tốc – gia tốc, a = −ω²x, con lắc lò xo, con lắc đơn, chuyển hoá động năng – thế năng, dao động tắt dần, dao động cưỡng bức, cộng hưởng.",
+  "objectTypes": [
+    {
+      "type": "oscillator",
+      "label": "vật dao động",
+      "description": "Vật dao động quanh vị trí cân bằng."
+    },
+    {
+      "type": "body",
+      "label": "vật",
+      "description": "Vật có khối lượng, coi như chất điểm hoặc vật rắn đơn giản."
+    },
+    {
+      "type": "spring",
+      "label": "lò xo",
+      "description": "Vật đàn hồi có độ cứng xác định."
+    },
+    {
+      "type": "force_source",
+      "label": "nguồn lực",
+      "description": "Tác nhân gây lực: tay kéo, động cơ, dây, lò xo…"
+    }
+  ],
+  "capabilities": [
+    "simple_harmonic_motion",
+    "linear_restoring_force",
+    "fixed_length_gravity_oscillation",
+    "damped_driven_oscillation",
+    "vertical_spring_mass"
+  ],
+  "curriculum": [
+    {
+      "name": "Dao động điều hoà",
+      "summary": "Biên độ, chu kì, tần số, độ lệch pha; a = −ω²x; năng lượng."
+    },
+    {
+      "name": "Dao động tắt dần, hiện tượng cộng hưởng",
+      "summary": "Dao động cưỡng bức, cộng hưởng."
+    }
+  ]
+}

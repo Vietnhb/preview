@@ -1,0 +1,292 @@
+{
+  "capabilityId": "de_broglie_accelerated_electron",
+  "title": "Bước sóng de Broglie của electron được tăng tốc",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "electron"
+    ],
+    "quantities": [
+      "start_voltage",
+      "voltage_rate",
+      "elementary_charge",
+      "electron_mass",
+      "planck_constant"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "start_voltage",
+      "unit": "V",
+      "min": 0
+    },
+    {
+      "key": "voltage_rate",
+      "unit": "V/s",
+      "min": 0
+    },
+    {
+      "key": "elementary_charge",
+      "unit": "C",
+      "min": 1e-25,
+      "defaultValue": 1.602176634e-19
+    },
+    {
+      "key": "electron_mass",
+      "unit": "kg",
+      "min": 1e-35,
+      "defaultValue": 9.1093837e-31
+    },
+    {
+      "key": "planck_constant",
+      "unit": "J*s",
+      "min": 1e-40,
+      "defaultValue": 6.62607015e-34
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "voltage",
+      "unit": "V"
+    },
+    {
+      "key": "momentum",
+      "unit": "kg*m/s"
+    },
+    {
+      "key": "wavelength",
+      "unit": "m"
+    },
+    {
+      "key": "speed",
+      "unit": "m/s"
+    }
+  ],
+  "assumptions": [
+    "Electron tăng tốc từ nghỉ qua hiệu điện thế U (tăng dần, luôn dương); bỏ qua hiệu ứng tương đối tính."
+  ],
+  "equationSet": {
+    "canonical": [
+      "lambda = h/p",
+      "p = sqrt(2*m*e*U)"
+    ],
+    "derived": []
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "voltage": [
+          "add",
+          "start_voltage",
+          [
+            "mul",
+            "voltage_rate",
+            "elapsed_time"
+          ]
+        ],
+        "momentum": [
+          "sqrt",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                2,
+                "electron_mass"
+              ],
+              "elementary_charge"
+            ],
+            [
+              "add",
+              "start_voltage",
+              [
+                "mul",
+                "voltage_rate",
+                "elapsed_time"
+              ]
+            ]
+          ]
+        ],
+        "wavelength": [
+          "div",
+          "planck_constant",
+          [
+            "sqrt",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  "electron_mass"
+                ],
+                "elementary_charge"
+              ],
+              [
+                "add",
+                "start_voltage",
+                [
+                  "mul",
+                  "voltage_rate",
+                  "elapsed_time"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                2,
+                "elementary_charge"
+              ],
+              [
+                "add",
+                "start_voltage",
+                [
+                  "mul",
+                  "voltage_rate",
+                  "elapsed_time"
+                ]
+              ]
+            ],
+            "electron_mass"
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "voltage": [
+          "add",
+          "start_voltage",
+          [
+            "mul",
+            "voltage_rate",
+            "t"
+          ]
+        ],
+        "momentum": [
+          "sqrt",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                2,
+                "electron_mass"
+              ],
+              "elementary_charge"
+            ],
+            [
+              "add",
+              "start_voltage",
+              [
+                "mul",
+                "voltage_rate",
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "wavelength": [
+          "div",
+          "planck_constant",
+          [
+            "sqrt",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  "electron_mass"
+                ],
+                "elementary_charge"
+              ],
+              [
+                "add",
+                "start_voltage",
+                [
+                  "mul",
+                  "voltage_rate",
+                  "t"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                2,
+                "elementary_charge"
+              ],
+              [
+                "add",
+                "start_voltage",
+                [
+                  "mul",
+                  "voltage_rate",
+                  "t"
+                ]
+              ]
+            ],
+            "electron_mass"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "wavelength",
+      "role": "state_value"
+    }
+  ]
+}

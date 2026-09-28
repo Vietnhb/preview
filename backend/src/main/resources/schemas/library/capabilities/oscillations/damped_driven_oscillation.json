@@ -1,0 +1,308 @@
+{
+  "capabilityId": "damped_driven_oscillation",
+  "title": "Dao động tắt dần, cưỡng bức và cộng hưởng",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "spring",
+      "force_source"
+    ],
+    "quantities": [
+      "mass",
+      "stiffness",
+      "damping_coefficient",
+      "driving_force_amplitude",
+      "driving_angular_frequency",
+      "initial_displacement",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-06
+    },
+    {
+      "key": "stiffness",
+      "unit": "N/m",
+      "min": 1e-06
+    },
+    {
+      "key": "damping_coefficient",
+      "unit": "kg/s",
+      "min": 0,
+      "defaultValue": 0
+    },
+    {
+      "key": "driving_force_amplitude",
+      "unit": "N",
+      "defaultValue": 0
+    },
+    {
+      "key": "driving_angular_frequency",
+      "unit": "rad/s",
+      "min": 0,
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_displacement",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "displacement",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "force",
+      "unit": "N"
+    },
+    {
+      "key": "mechanical_energy",
+      "unit": "J"
+    },
+    {
+      "key": "dissipated_energy",
+      "unit": "J"
+    },
+    {
+      "key": "driving_work",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Lực cản tỉ lệ vận tốc; ngoại lực cưỡng bức điều hòa (F0 = 0 là dao động tắt dần tự do)."
+  ],
+  "equationSet": {
+    "canonical": [
+      "m*d2x/dt2 = -k*x - b*dx/dt + F0*cos(Omega*t)"
+    ],
+    "derived": [
+      "omega0 = sqrt(k/m)",
+      "W = k*x^2/2 + m*v^2/2"
+    ]
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": null,
+    "math": {
+      "initial": {
+        "displacement": "initial_displacement",
+        "velocity": "initial_velocity",
+        "dissipated_energy": 0,
+        "driving_work": 0
+      },
+      "rates": {
+        "displacement": "velocity",
+        "velocity": [
+          "div",
+          [
+            "add",
+            [
+              "sub",
+              [
+                "mul",
+                [
+                  "neg",
+                  "stiffness"
+                ],
+                "displacement"
+              ],
+              [
+                "mul",
+                "damping_coefficient",
+                "velocity"
+              ]
+            ],
+            [
+              "mul",
+              "driving_force_amplitude",
+              [
+                "cos",
+                [
+                  "mul",
+                  "driving_angular_frequency",
+                  "t"
+                ]
+              ]
+            ]
+          ],
+          "mass"
+        ],
+        "dissipated_energy": [
+          "mul",
+          "damping_coefficient",
+          [
+            "pow",
+            "velocity",
+            2
+          ]
+        ],
+        "driving_work": [
+          "mul",
+          [
+            "mul",
+            "driving_force_amplitude",
+            [
+              "cos",
+              [
+                "mul",
+                "driving_angular_frequency",
+                "t"
+              ]
+            ]
+          ],
+          "velocity"
+        ]
+      },
+      "outputs": {
+        "displacement": "displacement",
+        "velocity": "velocity",
+        "force": [
+          "mul",
+          [
+            "neg",
+            "stiffness"
+          ],
+          "displacement"
+        ],
+        "mechanical_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "stiffness"
+            ],
+            [
+              "pow",
+              "displacement",
+              2
+            ]
+          ]
+        ],
+        "dissipated_energy": "dissipated_energy",
+        "driving_work": "driving_work"
+      },
+      "invariants": {
+        "energy_balance": [
+          "sub",
+          [
+            "add",
+            [
+              "add",
+              [
+                "mul",
+                [
+                  "mul",
+                  0.5,
+                  "mass"
+                ],
+                [
+                  "pow",
+                  "velocity",
+                  2
+                ]
+              ],
+              [
+                "mul",
+                [
+                  "mul",
+                  0.5,
+                  "stiffness"
+                ],
+                [
+                  "pow",
+                  "displacement",
+                  2
+                ]
+              ]
+            ],
+            "dissipated_energy"
+          ],
+          "driving_work"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "residual_invariants",
+    "invariants": [
+      "finite_output",
+      "declared_invariants"
+    ],
+    "benchmarks": [
+      {
+        "name": "rest_at_equilibrium",
+        "durationSeconds": 1,
+        "inputs": {
+          "mass": 1,
+          "stiffness": 10,
+          "damping_coefficient": 0.5,
+          "driving_force_amplitude": 0,
+          "driving_angular_frequency": 0,
+          "initial_displacement": 0,
+          "initial_velocity": 0
+        },
+        "expectedOutputs": {
+          "displacement": 0,
+          "velocity": 0,
+          "force": 0,
+          "mechanical_energy": 0,
+          "dissipated_energy": 0,
+          "driving_work": 0
+        }
+      }
+    ]
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "displacement",
+      "role": "displacement"
+    },
+    {
+      "source": "velocity",
+      "role": "velocity"
+    },
+    {
+      "source": "force",
+      "role": "force"
+    }
+  ]
+}

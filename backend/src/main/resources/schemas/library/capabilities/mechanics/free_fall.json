@@ -1,0 +1,259 @@
+{
+  "capabilityId": "free_fall",
+  "title": "Rơi tự do và chuyển động thẳng đứng trong trọng trường",
+  "version": "2.0",
+  "applicability": {
+    "objectTypes": [
+      "moving_body"
+    ],
+    "quantities": [
+      "initial_position",
+      "initial_velocity",
+      "gravitational_acceleration",
+      "mass"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 5e-324
+    },
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-12,
+      "defaultValue": 1
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    },
+    {
+      "key": "potential_energy",
+      "unit": "J"
+    },
+    {
+      "key": "mechanical_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Air resistance is neglected.",
+    "Gravity is uniform and points along the selected axis."
+  ],
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "equationSet": {
+    "canonical": [
+      "a=-g",
+      "x(t)=x0+v0*t-0.5*g*t^2",
+      "v(t)=v0-g*t"
+    ],
+    "derived": [
+      "Wd = m*v^2/2",
+      "Wt = m*g*h",
+      "W = Wd + Wt"
+    ],
+    "dependencies": []
+  },
+  "execution": {
+    "primary": "numerical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "neg",
+          "gravitational_acceleration"
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            "velocity",
+            2
+          ]
+        ],
+        "potential_energy": [
+          "mul",
+          [
+            "mul",
+            "mass",
+            "gravitational_acceleration"
+          ],
+          "position"
+        ],
+        "mechanical_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              "mass",
+              "gravitational_acceleration"
+            ],
+            "position"
+          ]
+        ]
+      },
+      "closedForm": {
+        "position": [
+          "add",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              "initial_velocity",
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              [
+                "neg",
+                "gravitational_acceleration"
+              ]
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "velocity": [
+          "add",
+          "initial_velocity",
+          [
+            "mul",
+            [
+              "neg",
+              "gravitational_acceleration"
+            ],
+            "t"
+          ]
+        ],
+        "kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            "mass"
+          ],
+          [
+            "pow",
+            "velocity",
+            2
+          ]
+        ],
+        "potential_energy": [
+          "mul",
+          [
+            "mul",
+            "mass",
+            "gravitational_acceleration"
+          ],
+          "position"
+        ],
+        "mechanical_energy": [
+          "add",
+          [
+            "mul",
+            [
+              "mul",
+              0.5,
+              "mass"
+            ],
+            [
+              "pow",
+              "velocity",
+              2
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              "mass",
+              "gravitational_acceleration"
+            ],
+            "position"
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "strategy": "closed_form_checkpoints",
+    "absoluteTolerance": 1e-08,
+    "relativeTolerance": 1e-08,
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "rendererBindings": [
+    {
+      "source": "positions.x",
+      "role": "trajectory"
+    }
+  ]
+}

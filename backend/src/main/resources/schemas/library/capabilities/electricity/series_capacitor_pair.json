@@ -1,0 +1,470 @@
+{
+  "capabilityId": "series_capacitor_pair",
+  "title": "Hai tụ điện ghép nối tiếp",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "charge_source",
+      "conductor"
+    ],
+    "quantities": [
+      "source_voltage",
+      "resistance",
+      "capacitance_1",
+      "capacitance_2"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "source_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "resistance",
+      "unit": "ohm",
+      "min": 1e-09
+    },
+    {
+      "key": "capacitance_1",
+      "unit": "F",
+      "min": 1e-15
+    },
+    {
+      "key": "capacitance_2",
+      "unit": "F",
+      "min": 1e-15
+    }
+  ],
+  "outputs": [
+    {
+      "key": "charge",
+      "unit": "C"
+    },
+    {
+      "key": "voltage_1",
+      "unit": "V"
+    },
+    {
+      "key": "voltage_2",
+      "unit": "V"
+    },
+    {
+      "key": "current",
+      "unit": "A"
+    },
+    {
+      "key": "energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Hai tụ ban đầu chưa tích điện, ghép nối tiếp và được nạp qua điện trở R từ nguồn U."
+  ],
+  "equationSet": {
+    "canonical": [
+      "1/C_b = 1/C1 + 1/C2",
+      "Q1 = Q2 = Q"
+    ],
+    "derived": [
+      "W = Q^2/(2*C_b)",
+      "U1 = Q/C1"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "charge": 0
+      },
+      "rates": {
+        "charge": [
+          "div",
+          [
+            "sub",
+            "source_voltage",
+            [
+              "mul",
+              "charge",
+              [
+                "add",
+                [
+                  "div",
+                  1,
+                  "capacitance_1"
+                ],
+                [
+                  "div",
+                  1,
+                  "capacitance_2"
+                ]
+              ]
+            ]
+          ],
+          "resistance"
+        ]
+      },
+      "outputs": {
+        "charge": "charge",
+        "voltage_1": [
+          "div",
+          "charge",
+          "capacitance_1"
+        ],
+        "voltage_2": [
+          "div",
+          "charge",
+          "capacitance_2"
+        ],
+        "current": [
+          "div",
+          [
+            "sub",
+            "source_voltage",
+            [
+              "mul",
+              "charge",
+              [
+                "add",
+                [
+                  "div",
+                  1,
+                  "capacitance_1"
+                ],
+                [
+                  "div",
+                  1,
+                  "capacitance_2"
+                ]
+              ]
+            ]
+          ],
+          "resistance"
+        ],
+        "energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            [
+              "pow",
+              "charge",
+              2
+            ]
+          ],
+          [
+            "add",
+            [
+              "div",
+              1,
+              "capacitance_1"
+            ],
+            [
+              "div",
+              1,
+              "capacitance_2"
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "charge": [
+          "mul",
+          [
+            "div",
+            "source_voltage",
+            [
+              "add",
+              [
+                "div",
+                1,
+                "capacitance_1"
+              ],
+              [
+                "div",
+                1,
+                "capacitance_2"
+              ]
+            ]
+          ],
+          [
+            "sub",
+            1,
+            [
+              "exp",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "neg",
+                    "t"
+                  ],
+                  [
+                    "add",
+                    [
+                      "div",
+                      1,
+                      "capacitance_1"
+                    ],
+                    [
+                      "div",
+                      1,
+                      "capacitance_2"
+                    ]
+                  ]
+                ],
+                "resistance"
+              ]
+            ]
+          ]
+        ],
+        "voltage_1": [
+          "div",
+          [
+            "mul",
+            [
+              "div",
+              "source_voltage",
+              [
+                "add",
+                [
+                  "div",
+                  1,
+                  "capacitance_1"
+                ],
+                [
+                  "div",
+                  1,
+                  "capacitance_2"
+                ]
+              ]
+            ],
+            [
+              "sub",
+              1,
+              [
+                "exp",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "neg",
+                      "t"
+                    ],
+                    [
+                      "add",
+                      [
+                        "div",
+                        1,
+                        "capacitance_1"
+                      ],
+                      [
+                        "div",
+                        1,
+                        "capacitance_2"
+                      ]
+                    ]
+                  ],
+                  "resistance"
+                ]
+              ]
+            ]
+          ],
+          "capacitance_1"
+        ],
+        "voltage_2": [
+          "div",
+          [
+            "mul",
+            [
+              "div",
+              "source_voltage",
+              [
+                "add",
+                [
+                  "div",
+                  1,
+                  "capacitance_1"
+                ],
+                [
+                  "div",
+                  1,
+                  "capacitance_2"
+                ]
+              ]
+            ],
+            [
+              "sub",
+              1,
+              [
+                "exp",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "neg",
+                      "t"
+                    ],
+                    [
+                      "add",
+                      [
+                        "div",
+                        1,
+                        "capacitance_1"
+                      ],
+                      [
+                        "div",
+                        1,
+                        "capacitance_2"
+                      ]
+                    ]
+                  ],
+                  "resistance"
+                ]
+              ]
+            ]
+          ],
+          "capacitance_2"
+        ],
+        "current": [
+          "mul",
+          [
+            "div",
+            "source_voltage",
+            "resistance"
+          ],
+          [
+            "exp",
+            [
+              "div",
+              [
+                "mul",
+                [
+                  "neg",
+                  "t"
+                ],
+                [
+                  "add",
+                  [
+                    "div",
+                    1,
+                    "capacitance_1"
+                  ],
+                  [
+                    "div",
+                    1,
+                    "capacitance_2"
+                  ]
+                ]
+              ],
+              "resistance"
+            ]
+          ]
+        ],
+        "energy": [
+          "mul",
+          [
+            "mul",
+            0.5,
+            [
+              "pow",
+              [
+                "mul",
+                [
+                  "div",
+                  "source_voltage",
+                  [
+                    "add",
+                    [
+                      "div",
+                      1,
+                      "capacitance_1"
+                    ],
+                    [
+                      "div",
+                      1,
+                      "capacitance_2"
+                    ]
+                  ]
+                ],
+                [
+                  "sub",
+                  1,
+                  [
+                    "exp",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "neg",
+                          "t"
+                        ],
+                        [
+                          "add",
+                          [
+                            "div",
+                            1,
+                            "capacitance_1"
+                          ],
+                          [
+                            "div",
+                            1,
+                            "capacitance_2"
+                          ]
+                        ]
+                      ],
+                      "resistance"
+                    ]
+                  ]
+                ]
+              ],
+              2
+            ]
+          ],
+          [
+            "add",
+            [
+              "div",
+              1,
+              "capacitance_1"
+            ],
+            [
+              "div",
+              1,
+              "capacitance_2"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "charge",
+      "role": "state_value"
+    }
+  ]
+}

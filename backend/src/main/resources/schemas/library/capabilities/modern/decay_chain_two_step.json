@@ -1,0 +1,498 @@
+{
+  "capabilityId": "decay_chain_two_step",
+  "title": "Chuỗi phóng xạ hai giai đoạn",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "nucleus",
+      "detector"
+    ],
+    "quantities": [
+      "initial_parent_nuclei",
+      "parent_half_life",
+      "daughter_half_life"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "initial_parent_nuclei",
+      "unit": "1",
+      "min": 0
+    },
+    {
+      "key": "parent_half_life",
+      "unit": "s",
+      "min": 1e-12
+    },
+    {
+      "key": "daughter_half_life",
+      "unit": "s",
+      "min": 1e-12
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "parent_nuclei",
+      "unit": "1"
+    },
+    {
+      "key": "daughter_nuclei",
+      "unit": "1"
+    },
+    {
+      "key": "stable_nuclei",
+      "unit": "1"
+    },
+    {
+      "key": "parent_activity",
+      "unit": "Bq"
+    }
+  ],
+  "assumptions": [
+    "Chuỗi phóng xạ mẹ -> con -> bền; ban đầu chỉ có hạt nhân mẹ; hai chu kì bán rã khác nhau."
+  ],
+  "equationSet": {
+    "canonical": [
+      "dN1/dt = -lambda1*N1",
+      "dN2/dt = lambda1*N1 - lambda2*N2"
+    ],
+    "derived": [
+      "lambda = ln2/T"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "parent_nuclei": [
+          "mul",
+          "initial_parent_nuclei",
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  0.6931471805599453
+                ],
+                "parent_half_life"
+              ],
+              "elapsed_time"
+            ]
+          ]
+        ],
+        "daughter_nuclei": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              "initial_parent_nuclei",
+              [
+                "div",
+                0.6931471805599453,
+                "parent_half_life"
+              ]
+            ],
+            [
+              "sub",
+              [
+                "div",
+                0.6931471805599453,
+                "daughter_half_life"
+              ],
+              [
+                "div",
+                0.6931471805599453,
+                "parent_half_life"
+              ]
+            ]
+          ],
+          [
+            "sub",
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    0.6931471805599453
+                  ],
+                  "parent_half_life"
+                ],
+                "elapsed_time"
+              ]
+            ],
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    0.6931471805599453
+                  ],
+                  "daughter_half_life"
+                ],
+                "elapsed_time"
+              ]
+            ]
+          ]
+        ],
+        "stable_nuclei": [
+          "sub",
+          [
+            "sub",
+            "initial_parent_nuclei",
+            [
+              "mul",
+              "initial_parent_nuclei",
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      0.6931471805599453
+                    ],
+                    "parent_half_life"
+                  ],
+                  "elapsed_time"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                "initial_parent_nuclei",
+                [
+                  "div",
+                  0.6931471805599453,
+                  "parent_half_life"
+                ]
+              ],
+              [
+                "sub",
+                [
+                  "div",
+                  0.6931471805599453,
+                  "daughter_half_life"
+                ],
+                [
+                  "div",
+                  0.6931471805599453,
+                  "parent_half_life"
+                ]
+              ]
+            ],
+            [
+              "sub",
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      0.6931471805599453
+                    ],
+                    "parent_half_life"
+                  ],
+                  "elapsed_time"
+                ]
+              ],
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      0.6931471805599453
+                    ],
+                    "daughter_half_life"
+                  ],
+                  "elapsed_time"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "parent_activity": [
+          "mul",
+          [
+            "mul",
+            [
+              "div",
+              0.6931471805599453,
+              "parent_half_life"
+            ],
+            "initial_parent_nuclei"
+          ],
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  0.6931471805599453
+                ],
+                "parent_half_life"
+              ],
+              "elapsed_time"
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "parent_nuclei": [
+          "mul",
+          "initial_parent_nuclei",
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  0.6931471805599453
+                ],
+                "parent_half_life"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "daughter_nuclei": [
+          "mul",
+          [
+            "div",
+            [
+              "mul",
+              "initial_parent_nuclei",
+              [
+                "div",
+                0.6931471805599453,
+                "parent_half_life"
+              ]
+            ],
+            [
+              "sub",
+              [
+                "div",
+                0.6931471805599453,
+                "daughter_half_life"
+              ],
+              [
+                "div",
+                0.6931471805599453,
+                "parent_half_life"
+              ]
+            ]
+          ],
+          [
+            "sub",
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    0.6931471805599453
+                  ],
+                  "parent_half_life"
+                ],
+                "t"
+              ]
+            ],
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    0.6931471805599453
+                  ],
+                  "daughter_half_life"
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "stable_nuclei": [
+          "sub",
+          [
+            "sub",
+            "initial_parent_nuclei",
+            [
+              "mul",
+              "initial_parent_nuclei",
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      0.6931471805599453
+                    ],
+                    "parent_half_life"
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                "initial_parent_nuclei",
+                [
+                  "div",
+                  0.6931471805599453,
+                  "parent_half_life"
+                ]
+              ],
+              [
+                "sub",
+                [
+                  "div",
+                  0.6931471805599453,
+                  "daughter_half_life"
+                ],
+                [
+                  "div",
+                  0.6931471805599453,
+                  "parent_half_life"
+                ]
+              ]
+            ],
+            [
+              "sub",
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      0.6931471805599453
+                    ],
+                    "parent_half_life"
+                  ],
+                  "t"
+                ]
+              ],
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      0.6931471805599453
+                    ],
+                    "daughter_half_life"
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "parent_activity": [
+          "mul",
+          [
+            "mul",
+            [
+              "div",
+              0.6931471805599453,
+              "parent_half_life"
+            ],
+            "initial_parent_nuclei"
+          ],
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  0.6931471805599453
+                ],
+                "parent_half_life"
+              ],
+              "t"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "parent_nuclei",
+      "role": "state_value"
+    }
+  ]
+}

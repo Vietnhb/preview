@@ -1,0 +1,62 @@
+{
+  "schemaId": "thpt_alternating_current",
+  "version": "1.0",
+  "topic": "ALTERNATING_CURRENT",
+  "name": "Dòng điện xoay chiều",
+  "grade": 12,
+  "description": "Dòng điện xoay chiều (Chuyên đề 12.1): điện áp, cường độ xoay chiều, giá trị cực đại và hiệu dụng, công suất, mạch RLC nối tiếp, cộng hưởng điện, hệ số công suất, máy phát, máy biến áp, truyền tải điện năng đi xa, chỉnh lưu nửa chu kì và cả chu kì bằng điốt.",
+  "objectTypes": [
+    {
+      "type": "voltage_source",
+      "label": "nguồn điện",
+      "description": "Pin, acquy, nguồn xoay chiều, máy phát."
+    },
+    {
+      "type": "resistor",
+      "label": "điện trở",
+      "description": "Điện trở, bóng đèn, cảm biến điện trở…"
+    },
+    {
+      "type": "capacitor",
+      "label": "tụ điện",
+      "description": "Tụ điện."
+    },
+    {
+      "type": "inductor",
+      "label": "cuộn cảm",
+      "description": "Cuộn dây có độ tự cảm."
+    },
+    {
+      "type": "coil",
+      "label": "khung dây/cuộn dây",
+      "description": "Khung dây, cuộn sơ cấp/thứ cấp."
+    },
+    {
+      "type": "node",
+      "label": "linh kiện/nút mạch",
+      "description": "Nút mạch, điốt, op-amp và linh kiện khác."
+    }
+  ],
+  "capabilities": [
+    "ac_series_rlc",
+    "ideal_transformer",
+    "rotating_coil_induction",
+    "diode_rectifier",
+    "diode_voltage_sweep",
+    "power_transmission_loss"
+  ],
+  "curriculum": [
+    {
+      "name": "Các đặc trưng của dòng điện xoay chiều",
+      "summary": "Giá trị hiệu dụng; công suất; mạch RLC."
+    },
+    {
+      "name": "Máy biến áp",
+      "summary": "Truyền tải điện năng."
+    },
+    {
+      "name": "Chỉnh lưu dòng điện xoay chiều",
+      "summary": "Điốt; chỉnh lưu nửa chu kì, cả chu kì."
+    }
+  ]
+}

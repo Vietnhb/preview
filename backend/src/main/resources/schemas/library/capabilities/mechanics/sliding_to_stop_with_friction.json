@@ -1,0 +1,577 @@
+{
+  "capabilityId": "sliding_to_stop_with_friction",
+  "title": "Vật trượt chậm dần do ma sát",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "surface"
+    ],
+    "quantities": [
+      "initial_velocity",
+      "friction_coefficient",
+      "gravitational_acceleration",
+      "initial_position"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "min": 1e-09
+    },
+    {
+      "key": "friction_coefficient",
+      "unit": "1",
+      "min": 1e-06,
+      "max": 5
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    }
+  ],
+  "assumptions": [
+    "Vật trượt trên mặt ngang chỉ chịu ma sát trượt, dừng lại và đứng yên khi vận tốc bằng 0."
+  ],
+  "equationSet": {
+    "canonical": [
+      "a = -mu*g (khi vật còn trượt)",
+      "v = v0 - mu*g*t",
+      "s = v0^2/(2*mu*g)"
+    ],
+    "derived": [
+      "t_dung = v0/(mu*g)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "position": [
+          "sub",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              "initial_velocity",
+              [
+                "mul",
+                0.5,
+                [
+                  "sub",
+                  [
+                    "add",
+                    "elapsed_time",
+                    [
+                      "div",
+                      "initial_velocity",
+                      [
+                        "mul",
+                        "friction_coefficient",
+                        "gravitational_acceleration"
+                      ]
+                    ]
+                  ],
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      "elapsed_time",
+                      [
+                        "div",
+                        "initial_velocity",
+                        [
+                          "mul",
+                          "friction_coefficient",
+                          "gravitational_acceleration"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                0.5,
+                "friction_coefficient"
+              ],
+              "gravitational_acceleration"
+            ],
+            [
+              "pow",
+              [
+                "mul",
+                0.5,
+                [
+                  "sub",
+                  [
+                    "add",
+                    "elapsed_time",
+                    [
+                      "div",
+                      "initial_velocity",
+                      [
+                        "mul",
+                        "friction_coefficient",
+                        "gravitational_acceleration"
+                      ]
+                    ]
+                  ],
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      "elapsed_time",
+                      [
+                        "div",
+                        "initial_velocity",
+                        [
+                          "mul",
+                          "friction_coefficient",
+                          "gravitational_acceleration"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              2
+            ]
+          ]
+        ],
+        "velocity": [
+          "sub",
+          "initial_velocity",
+          [
+            "mul",
+            [
+              "mul",
+              "friction_coefficient",
+              "gravitational_acceleration"
+            ],
+            [
+              "mul",
+              0.5,
+              [
+                "sub",
+                [
+                  "add",
+                  "elapsed_time",
+                  [
+                    "div",
+                    "initial_velocity",
+                    [
+                      "mul",
+                      "friction_coefficient",
+                      "gravitational_acceleration"
+                    ]
+                  ]
+                ],
+                [
+                  "abs",
+                  [
+                    "sub",
+                    "elapsed_time",
+                    [
+                      "div",
+                      "initial_velocity",
+                      [
+                        "mul",
+                        "friction_coefficient",
+                        "gravitational_acceleration"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "acceleration": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "neg",
+                "friction_coefficient"
+              ],
+              "gravitational_acceleration"
+            ],
+            [
+              "add",
+              [
+                "sub",
+                [
+                  "div",
+                  "initial_velocity",
+                  [
+                    "mul",
+                    "friction_coefficient",
+                    "gravitational_acceleration"
+                  ]
+                ],
+                "elapsed_time"
+              ],
+              [
+                "abs",
+                [
+                  "sub",
+                  [
+                    "div",
+                    "initial_velocity",
+                    [
+                      "mul",
+                      "friction_coefficient",
+                      "gravitational_acceleration"
+                    ]
+                  ],
+                  "elapsed_time"
+                ]
+              ]
+            ]
+          ],
+          [
+            "add",
+            [
+              "mul",
+              2,
+              [
+                "abs",
+                [
+                  "sub",
+                  [
+                    "div",
+                    "initial_velocity",
+                    [
+                      "mul",
+                      "friction_coefficient",
+                      "gravitational_acceleration"
+                    ]
+                  ],
+                  "elapsed_time"
+                ]
+              ]
+            ],
+            [
+              "div",
+              [
+                "mul",
+                1e-12,
+                "initial_velocity"
+              ],
+              [
+                "mul",
+                "friction_coefficient",
+                "gravitational_acceleration"
+              ]
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "position": [
+          "sub",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              "initial_velocity",
+              [
+                "mul",
+                0.5,
+                [
+                  "sub",
+                  [
+                    "add",
+                    "t",
+                    [
+                      "div",
+                      "initial_velocity",
+                      [
+                        "mul",
+                        "friction_coefficient",
+                        "gravitational_acceleration"
+                      ]
+                    ]
+                  ],
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      "t",
+                      [
+                        "div",
+                        "initial_velocity",
+                        [
+                          "mul",
+                          "friction_coefficient",
+                          "gravitational_acceleration"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                0.5,
+                "friction_coefficient"
+              ],
+              "gravitational_acceleration"
+            ],
+            [
+              "pow",
+              [
+                "mul",
+                0.5,
+                [
+                  "sub",
+                  [
+                    "add",
+                    "t",
+                    [
+                      "div",
+                      "initial_velocity",
+                      [
+                        "mul",
+                        "friction_coefficient",
+                        "gravitational_acceleration"
+                      ]
+                    ]
+                  ],
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      "t",
+                      [
+                        "div",
+                        "initial_velocity",
+                        [
+                          "mul",
+                          "friction_coefficient",
+                          "gravitational_acceleration"
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              2
+            ]
+          ]
+        ],
+        "velocity": [
+          "sub",
+          "initial_velocity",
+          [
+            "mul",
+            [
+              "mul",
+              "friction_coefficient",
+              "gravitational_acceleration"
+            ],
+            [
+              "mul",
+              0.5,
+              [
+                "sub",
+                [
+                  "add",
+                  "t",
+                  [
+                    "div",
+                    "initial_velocity",
+                    [
+                      "mul",
+                      "friction_coefficient",
+                      "gravitational_acceleration"
+                    ]
+                  ]
+                ],
+                [
+                  "abs",
+                  [
+                    "sub",
+                    "t",
+                    [
+                      "div",
+                      "initial_velocity",
+                      [
+                        "mul",
+                        "friction_coefficient",
+                        "gravitational_acceleration"
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        "acceleration": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "neg",
+                "friction_coefficient"
+              ],
+              "gravitational_acceleration"
+            ],
+            [
+              "add",
+              [
+                "sub",
+                [
+                  "div",
+                  "initial_velocity",
+                  [
+                    "mul",
+                    "friction_coefficient",
+                    "gravitational_acceleration"
+                  ]
+                ],
+                "t"
+              ],
+              [
+                "abs",
+                [
+                  "sub",
+                  [
+                    "div",
+                    "initial_velocity",
+                    [
+                      "mul",
+                      "friction_coefficient",
+                      "gravitational_acceleration"
+                    ]
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ],
+          [
+            "add",
+            [
+              "mul",
+              2,
+              [
+                "abs",
+                [
+                  "sub",
+                  [
+                    "div",
+                    "initial_velocity",
+                    [
+                      "mul",
+                      "friction_coefficient",
+                      "gravitational_acceleration"
+                    ]
+                  ],
+                  "t"
+                ]
+              ]
+            ],
+            [
+              "div",
+              [
+                "mul",
+                1e-12,
+                "initial_velocity"
+              ],
+              [
+                "mul",
+                "friction_coefficient",
+                "gravitational_acceleration"
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "velocity",
+      "role": "velocity"
+    }
+  ]
+}

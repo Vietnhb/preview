@@ -1,0 +1,213 @@
+{
+  "capabilityId": "rotating_coil_induction",
+  "title": "Khung dây quay trong từ trường (máy phát xoay chiều)",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "coil",
+      "conductor",
+      "field_region"
+    ],
+    "quantities": [
+      "turns",
+      "coil_area",
+      "flux_density",
+      "angular_velocity",
+      "initial_angle"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "turns",
+      "unit": "1",
+      "min": 1
+    },
+    {
+      "key": "coil_area",
+      "unit": "m2",
+      "min": 0
+    },
+    {
+      "key": "flux_density",
+      "unit": "T"
+    },
+    {
+      "key": "angular_velocity",
+      "unit": "rad/s"
+    },
+    {
+      "key": "initial_angle",
+      "unit": "rad",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "angle",
+      "unit": "rad"
+    },
+    {
+      "key": "flux",
+      "unit": "Wb"
+    },
+    {
+      "key": "emf",
+      "unit": "V"
+    }
+  ],
+  "assumptions": [
+    "Khung dây phẳng quay đều trong từ trường đều quanh trục vuông góc với B."
+  ],
+  "equationSet": {
+    "canonical": [
+      "Phi = N*B*S*cos(omega*t + phi0)",
+      "e = -dPhi/dt"
+    ],
+    "derived": [
+      "E0 = N*B*S*omega"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "angle": "initial_angle"
+      },
+      "rates": {
+        "angle": "angular_velocity"
+      },
+      "outputs": {
+        "angle": "angle",
+        "flux": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              "turns",
+              "flux_density"
+            ],
+            "coil_area"
+          ],
+          [
+            "cos",
+            "angle"
+          ]
+        ],
+        "emf": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                "turns",
+                "flux_density"
+              ],
+              "coil_area"
+            ],
+            "angular_velocity"
+          ],
+          [
+            "sin",
+            "angle"
+          ]
+        ]
+      },
+      "closedForm": {
+        "angle": [
+          "add",
+          "initial_angle",
+          [
+            "mul",
+            "angular_velocity",
+            "t"
+          ]
+        ],
+        "flux": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              "turns",
+              "flux_density"
+            ],
+            "coil_area"
+          ],
+          [
+            "cos",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                "angular_velocity",
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "emf": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                "turns",
+                "flux_density"
+              ],
+              "coil_area"
+            ],
+            "angular_velocity"
+          ],
+          [
+            "sin",
+            [
+              "add",
+              "initial_angle",
+              [
+                "mul",
+                "angular_velocity",
+                "t"
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "emf",
+      "role": "state_value"
+    },
+    {
+      "source": "angle",
+      "role": "angle_annotation"
+    }
+  ]
+}

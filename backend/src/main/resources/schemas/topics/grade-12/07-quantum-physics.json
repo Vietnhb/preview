@@ -1,0 +1,51 @@
+{
+  "schemaId": "thpt_quantum_physics",
+  "version": "1.0",
+  "topic": "QUANTUM_PHYSICS",
+  "name": "Vật lí lượng tử",
+  "grade": 12,
+  "description": "Vật lí lượng tử (Chuyên đề 12.3): năng lượng photon E = hf, hiệu ứng quang điện, giới hạn quang điện, công thoát, phương trình Einstein, dòng quang điện bão hoà, lưỡng tính sóng hạt, bước sóng de Broglie λ = h/p, quang phổ vạch, mức năng lượng dừng hf = E₁ − E₂, vùng năng lượng, điện trở kim loại và bán dẫn theo nhiệt độ, điện trở quang.",
+  "objectTypes": [
+    {
+      "type": "photon",
+      "label": "photon/ánh sáng",
+      "description": "Chùm sáng, bức xạ điện từ."
+    },
+    {
+      "type": "electron",
+      "label": "electron",
+      "description": "Electron tự do hoặc trong nguyên tử."
+    },
+    {
+      "type": "material",
+      "label": "vật liệu",
+      "description": "Kim loại, bán dẫn, mô cơ thể, tấm chắn…"
+    }
+  ],
+  "capabilities": [
+    "photoelectric_emission",
+    "photocurrent_saturation",
+    "de_broglie_accelerated_electron",
+    "atomic_level_transition",
+    "semiconductor_conduction_temperature",
+    "ldr_voltage_divider"
+  ],
+  "curriculum": [
+    {
+      "name": "Hiệu ứng quang điện và năng lượng của photon",
+      "summary": "E = hf; phương trình Einstein."
+    },
+    {
+      "name": "Lưỡng tính sóng hạt",
+      "summary": "λ = h/p."
+    },
+    {
+      "name": "Quang phổ vạch của nguyên tử",
+      "summary": "hf = E₁ − E₂."
+    },
+    {
+      "name": "Vùng năng lượng",
+      "summary": "Điện trở kim loại, bán dẫn, LDR."
+    }
+  ]
+}

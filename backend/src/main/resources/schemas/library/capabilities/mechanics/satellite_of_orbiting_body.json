@@ -1,0 +1,517 @@
+{
+  "capabilityId": "satellite_of_orbiting_body",
+  "title": "Vật quay quanh một thiên thể đang quay quanh thiên thể khác",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "primary_orbit_radius",
+      "primary_period",
+      "satellite_orbit_radius",
+      "satellite_period",
+      "primary_initial_angle",
+      "satellite_initial_angle"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "primary_orbit_radius",
+      "unit": "m",
+      "min": 0
+    },
+    {
+      "key": "primary_period",
+      "unit": "s",
+      "min": 1e-09
+    },
+    {
+      "key": "satellite_orbit_radius",
+      "unit": "m",
+      "min": 0
+    },
+    {
+      "key": "satellite_period",
+      "unit": "s",
+      "min": 1e-09
+    },
+    {
+      "key": "primary_initial_angle",
+      "unit": "rad",
+      "defaultValue": 0
+    },
+    {
+      "key": "satellite_initial_angle",
+      "unit": "rad",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "phase_angle",
+      "unit": "rad"
+    },
+    {
+      "key": "illuminated_fraction",
+      "unit": "1"
+    }
+  ],
+  "assumptions": [
+    "Quỹ đạo tròn đồng phẳng; tâm hệ (ví dụ Mặt Trời) cố định tại gốc; góc pha đo giữa hướng tâm→vật chính và vật chính→vệ tinh."
+  ],
+  "equationSet": {
+    "canonical": [
+      "vị trí = vị trí vật chính quanh tâm + vị trí vệ tinh quanh vật chính"
+    ],
+    "derived": [
+      "pha Mặt Trăng: phần được chiếu sáng = (1 - cos(góc))/2",
+      "nhật/nguyệt thực khi ba thiên thể thẳng hàng"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "x": [
+          "add",
+          [
+            "mul",
+            "primary_orbit_radius",
+            [
+              "cos",
+              [
+                "add",
+                "primary_initial_angle",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "elapsed_time"
+                  ],
+                  "primary_period"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            "satellite_orbit_radius",
+            [
+              "cos",
+              [
+                "add",
+                "satellite_initial_angle",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "elapsed_time"
+                  ],
+                  "satellite_period"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "y": [
+          "add",
+          [
+            "mul",
+            "primary_orbit_radius",
+            [
+              "sin",
+              [
+                "add",
+                "primary_initial_angle",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "elapsed_time"
+                  ],
+                  "primary_period"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            "satellite_orbit_radius",
+            [
+              "sin",
+              [
+                "add",
+                "satellite_initial_angle",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "elapsed_time"
+                  ],
+                  "satellite_period"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "phase_angle": [
+          "acos",
+          [
+            "cos",
+            [
+              "sub",
+              [
+                "sub",
+                [
+                  "add",
+                  "satellite_initial_angle",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "elapsed_time"
+                    ],
+                    "satellite_period"
+                  ]
+                ],
+                "primary_initial_angle"
+              ],
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "elapsed_time"
+                ],
+                "primary_period"
+              ]
+            ]
+          ]
+        ],
+        "illuminated_fraction": [
+          "mul",
+          0.5,
+          [
+            "sub",
+            1,
+            [
+              "cos",
+              [
+                "sub",
+                [
+                  "sub",
+                  [
+                    "add",
+                    "satellite_initial_angle",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          2,
+                          3.141592653589793
+                        ],
+                        "elapsed_time"
+                      ],
+                      "satellite_period"
+                    ]
+                  ],
+                  "primary_initial_angle"
+                ],
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "elapsed_time"
+                  ],
+                  "primary_period"
+                ]
+              ]
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "x": [
+          "add",
+          [
+            "mul",
+            "primary_orbit_radius",
+            [
+              "cos",
+              [
+                "add",
+                "primary_initial_angle",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "t"
+                  ],
+                  "primary_period"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            "satellite_orbit_radius",
+            [
+              "cos",
+              [
+                "add",
+                "satellite_initial_angle",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "t"
+                  ],
+                  "satellite_period"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "y": [
+          "add",
+          [
+            "mul",
+            "primary_orbit_radius",
+            [
+              "sin",
+              [
+                "add",
+                "primary_initial_angle",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "t"
+                  ],
+                  "primary_period"
+                ]
+              ]
+            ]
+          ],
+          [
+            "mul",
+            "satellite_orbit_radius",
+            [
+              "sin",
+              [
+                "add",
+                "satellite_initial_angle",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "t"
+                  ],
+                  "satellite_period"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "phase_angle": [
+          "acos",
+          [
+            "cos",
+            [
+              "sub",
+              [
+                "sub",
+                [
+                  "add",
+                  "satellite_initial_angle",
+                  [
+                    "div",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        2,
+                        3.141592653589793
+                      ],
+                      "t"
+                    ],
+                    "satellite_period"
+                  ]
+                ],
+                "primary_initial_angle"
+              ],
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    2,
+                    3.141592653589793
+                  ],
+                  "t"
+                ],
+                "primary_period"
+              ]
+            ]
+          ]
+        ],
+        "illuminated_fraction": [
+          "mul",
+          0.5,
+          [
+            "sub",
+            1,
+            [
+              "cos",
+              [
+                "sub",
+                [
+                  "sub",
+                  [
+                    "add",
+                    "satellite_initial_angle",
+                    [
+                      "div",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          2,
+                          3.141592653589793
+                        ],
+                        "t"
+                      ],
+                      "satellite_period"
+                    ]
+                  ],
+                  "primary_initial_angle"
+                ],
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "t"
+                  ],
+                  "primary_period"
+                ]
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "y",
+      "role": "vertical_position"
+    }
+  ]
+}

@@ -1,0 +1,311 @@
+{
+  "capabilityId": "acoustic_pressure_point",
+  "title": "Sóng âm: dao động áp suất",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "medium",
+      "wave_source",
+      "receiver"
+    ],
+    "quantities": [
+      "pressure_amplitude",
+      "frequency",
+      "sound_speed",
+      "position_along_medium",
+      "initial_phase"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "pressure_amplitude",
+      "unit": "Pa",
+      "min": 0
+    },
+    {
+      "key": "frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "sound_speed",
+      "unit": "m/s",
+      "min": 1e-09,
+      "defaultValue": 343
+    },
+    {
+      "key": "position_along_medium",
+      "unit": "m"
+    },
+    {
+      "key": "initial_phase",
+      "unit": "rad",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "pressure",
+      "unit": "Pa"
+    },
+    {
+      "key": "pressure_rate",
+      "unit": "Pa/s"
+    }
+  ],
+  "assumptions": [
+    "Sóng âm là sóng dọc; đại lượng hiển thị là độ biến thiên áp suất tại điểm cách nguồn x."
+  ],
+  "equationSet": {
+    "canonical": [
+      "p(x,t) = p0*cos(omega*t - 2*pi*x/lambda)"
+    ],
+    "derived": [
+      "lambda = v/f"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "position_along_medium",
+        "pressure": [
+          "mul",
+          "pressure_amplitude",
+          [
+            "cos",
+            [
+              "sub",
+              "initial_phase",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "sound_speed"
+              ]
+            ]
+          ]
+        ],
+        "pressure_rate": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "neg",
+                  2
+                ],
+                3.141592653589793
+              ],
+              "frequency"
+            ],
+            "pressure_amplitude"
+          ],
+          [
+            "sin",
+            [
+              "sub",
+              "initial_phase",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "sound_speed"
+              ]
+            ]
+          ]
+        ]
+      },
+      "rates": {
+        "position": 0,
+        "pressure": "pressure_rate",
+        "pressure_rate": [
+          "mul",
+          [
+            "neg",
+            [
+              "pow",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "frequency"
+              ],
+              2
+            ]
+          ],
+          "pressure"
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "pressure": "pressure",
+        "pressure_rate": "pressure_rate"
+      },
+      "closedForm": {
+        "position": "position_along_medium",
+        "pressure": [
+          "mul",
+          "pressure_amplitude",
+          [
+            "cos",
+            [
+              "sub",
+              [
+                "add",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "t"
+                ],
+                "initial_phase"
+              ],
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "sound_speed"
+              ]
+            ]
+          ]
+        ],
+        "pressure_rate": [
+          "mul",
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "neg",
+                  2
+                ],
+                3.141592653589793
+              ],
+              "frequency"
+            ],
+            "pressure_amplitude"
+          ],
+          [
+            "sin",
+            [
+              "sub",
+              [
+                "add",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "t"
+                ],
+                "initial_phase"
+              ],
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "mul",
+                    [
+                      "mul",
+                      2,
+                      3.141592653589793
+                    ],
+                    "frequency"
+                  ],
+                  "position_along_medium"
+                ],
+                "sound_speed"
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "pressure",
+      "role": "state_value"
+    }
+  ]
+}

@@ -1,0 +1,271 @@
+{
+  "capabilityId": "kinetic_theory_gas_state",
+  "title": "Áp suất và động năng phân tử theo thuyết động học",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "gas",
+      "container"
+    ],
+    "quantities": [
+      "molecule_count",
+      "molecular_mass",
+      "volume",
+      "start_temperature",
+      "temperature_rate",
+      "boltzmann_constant"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "molecule_count",
+      "unit": "1",
+      "min": 1
+    },
+    {
+      "key": "molecular_mass",
+      "unit": "kg",
+      "min": 1e-30
+    },
+    {
+      "key": "volume",
+      "unit": "m3",
+      "min": 1e-12
+    },
+    {
+      "key": "start_temperature",
+      "unit": "K",
+      "min": 1e-06
+    },
+    {
+      "key": "temperature_rate",
+      "unit": "K/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "boltzmann_constant",
+      "unit": "J/K",
+      "min": 1e-30,
+      "defaultValue": 1.380649e-23
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "temperature",
+      "unit": "K"
+    },
+    {
+      "key": "rms_speed",
+      "unit": "m/s"
+    },
+    {
+      "key": "mean_kinetic_energy",
+      "unit": "J"
+    },
+    {
+      "key": "pressure",
+      "unit": "Pa"
+    }
+  ],
+  "assumptions": [
+    "Khí lí tưởng trong bình kín thể tích không đổi, nhiệt độ thay đổi đều."
+  ],
+  "equationSet": {
+    "canonical": [
+      "p*V = (1/3)*N*m*v^2",
+      "p*V = N*k*T"
+    ],
+    "derived": [
+      "Wd_tb = (3/2)*k*T"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "temperature": [
+          "add",
+          "start_temperature",
+          [
+            "mul",
+            "temperature_rate",
+            "elapsed_time"
+          ]
+        ],
+        "rms_speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                3,
+                "boltzmann_constant"
+              ],
+              [
+                "add",
+                "start_temperature",
+                [
+                  "mul",
+                  "temperature_rate",
+                  "elapsed_time"
+                ]
+              ]
+            ],
+            "molecular_mass"
+          ]
+        ],
+        "mean_kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            1.5,
+            "boltzmann_constant"
+          ],
+          [
+            "add",
+            "start_temperature",
+            [
+              "mul",
+              "temperature_rate",
+              "elapsed_time"
+            ]
+          ]
+        ],
+        "pressure": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "molecule_count",
+              "boltzmann_constant"
+            ],
+            [
+              "add",
+              "start_temperature",
+              [
+                "mul",
+                "temperature_rate",
+                "elapsed_time"
+              ]
+            ]
+          ],
+          "volume"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "temperature": [
+          "add",
+          "start_temperature",
+          [
+            "mul",
+            "temperature_rate",
+            "t"
+          ]
+        ],
+        "rms_speed": [
+          "sqrt",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "mul",
+                3,
+                "boltzmann_constant"
+              ],
+              [
+                "add",
+                "start_temperature",
+                [
+                  "mul",
+                  "temperature_rate",
+                  "t"
+                ]
+              ]
+            ],
+            "molecular_mass"
+          ]
+        ],
+        "mean_kinetic_energy": [
+          "mul",
+          [
+            "mul",
+            1.5,
+            "boltzmann_constant"
+          ],
+          [
+            "add",
+            "start_temperature",
+            [
+              "mul",
+              "temperature_rate",
+              "t"
+            ]
+          ]
+        ],
+        "pressure": [
+          "div",
+          [
+            "mul",
+            [
+              "mul",
+              "molecule_count",
+              "boltzmann_constant"
+            ],
+            [
+              "add",
+              "start_temperature",
+              [
+                "mul",
+                "temperature_rate",
+                "t"
+              ]
+            ]
+          ],
+          "volume"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "pressure",
+      "role": "state_value"
+    }
+  ]
+}

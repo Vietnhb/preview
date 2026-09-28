@@ -1,0 +1,189 @@
+{
+  "capabilityId": "radioactive_decay",
+  "title": "Phóng xạ và chu kì bán rã",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "nucleus",
+      "detector"
+    ],
+    "quantities": [
+      "initial_nuclei",
+      "half_life"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "initial_nuclei",
+      "unit": "1",
+      "min": 0
+    },
+    {
+      "key": "half_life",
+      "unit": "s",
+      "min": 1e-12
+    }
+  ],
+  "outputs": [
+    {
+      "key": "nuclei_remaining",
+      "unit": "1"
+    },
+    {
+      "key": "nuclei_decayed",
+      "unit": "1"
+    },
+    {
+      "key": "activity",
+      "unit": "Bq"
+    }
+  ],
+  "assumptions": [
+    "Mẫu một loại hạt nhân phóng xạ, số hạt đủ lớn để dùng quy luật thống kê."
+  ],
+  "equationSet": {
+    "canonical": [
+      "N = N0*2^(-t/T)",
+      "H = lambda*N"
+    ],
+    "derived": [
+      "lambda = ln2/T"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "nuclei_remaining": "initial_nuclei"
+      },
+      "rates": {
+        "nuclei_remaining": [
+          "mul",
+          [
+            "div",
+            [
+              "neg",
+              0.6931471805599453
+            ],
+            "half_life"
+          ],
+          "nuclei_remaining"
+        ]
+      },
+      "outputs": {
+        "nuclei_remaining": "nuclei_remaining",
+        "nuclei_decayed": [
+          "sub",
+          "initial_nuclei",
+          "nuclei_remaining"
+        ],
+        "activity": [
+          "mul",
+          [
+            "div",
+            0.6931471805599453,
+            "half_life"
+          ],
+          "nuclei_remaining"
+        ]
+      },
+      "closedForm": {
+        "nuclei_remaining": [
+          "mul",
+          "initial_nuclei",
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  0.6931471805599453
+                ],
+                "half_life"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "nuclei_decayed": [
+          "mul",
+          "initial_nuclei",
+          [
+            "sub",
+            1,
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    0.6931471805599453
+                  ],
+                  "half_life"
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "activity": [
+          "mul",
+          [
+            "mul",
+            [
+              "div",
+              0.6931471805599453,
+              "half_life"
+            ],
+            "initial_nuclei"
+          ],
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  0.6931471805599453
+                ],
+                "half_life"
+              ],
+              "t"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "nuclei_remaining",
+      "role": "state_value"
+    }
+  ]
+}

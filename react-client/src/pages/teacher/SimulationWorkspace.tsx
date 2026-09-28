@@ -1,15 +1,18 @@
 import { prettyUnit } from "../../simulation/sceneModel";
-import { useEffect, useState, type ClipboardEvent, type DragEvent, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type ClipboardEvent, type DragEvent, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import LearningHeader from "../../components/common/LearningHeader";
 import Icon from "../../components/common/LearningIcon";
 import TeacherLibraryPane from "../../components/workspace/TeacherLibraryPane";
+import SaveSimulationPanel from "../../components/workspace/SaveSimulationPanel";
 import SvgPixiScene from "../../simulation/SvgPixiScene";
 import type { SolverTimeline } from "../../simulation/svgScene";
 import {
   confirmSimulationExplanation,
+  openGeneratedSimulation,
   confirmSimulationInput,
   recognizeSimulationImage,
   understandSimulationText,
@@ -143,6 +146,8 @@ function visualSource(simulation: GeneratedSimulationResult) {
 }
 
 export default function SimulationWorkspace() {
+  const [searchParams] = useSearchParams();
+  const requestedSimulationId = searchParams.get("simulationId");
   const user = usePhysliveStore((state) => state.user);
   const canManageLearningContent = canManageLearning(user?.role) || !user;
 
@@ -150,13 +155,17 @@ export default function SimulationWorkspace() {
   const [mobilePanel, setMobilePanel] = useState<"observe" | "inspect">("observe");
   const [inspectorTab, setInspectorTab] = useState<"experiment" | "understand" | "details">("experiment");
 
-  const { folders, setFolders, libraryItems, libraryLoading, libraryError, retryLibrary } = useTeacherLibrary();
+  const { folders, setFolders, setLibraryItems, libraryItems, libraryLoading, libraryError, retryLibrary } = useTeacherLibrary();
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [savedMessage, setSavedMessage] = useState("");
+  const [currentSimulationId, setCurrentSimulationId] = useState("");
+  const [openingId, setOpeningId] = useState<string | null>(requestedSimulationId);
 
   const [sourceMode, setSourceMode] = useState<SimulationSourceMode>("TEXT");
   const [text, setText] = useState("");
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(Boolean(requestedSimulationId));
   const [error, setError] = useState<string | null>(null);
   const [recognition, setRecognition] = useState<RecognitionResult | null>(null);
   const [correction, setCorrection] = useState("");
@@ -174,6 +183,32 @@ export default function SimulationWorkspace() {
   const [sandboxKey, setSandboxKey] = useState(0);
   const [validation, setValidation] = useState<SimulationValidation | null>(null);
   const [locallyAdjusted, setLocallyAdjusted] = useState(false);
+
+  const restoreSaved = useCallback((result: GeneratedSimulationResult, id: string, title: string) => {
+    const params = result.savedParameters ?? Object.fromEntries(result.parameters.map(p => [p.name, p.value]));
+    setSimulation(result);
+    setIntent({ ...result, stage: "EXPLAIN" });
+    setRecognition(null);
+    setText(result.description);
+    setLiveTimeline(result.simulationSpec.solverTimeline ?? null);
+    setValues(params); setRunValues(params);
+    setValidation(result.validation);
+    setLocallyAdjusted(false);
+    setRenderError(""); setAutoRepairUsed(true);
+    setSaveOpen(false); setSavedMessage(`Đã mở: ${title}`);
+    setCurrentSimulationId(id);
+    setSandboxKey(key => key + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!requestedSimulationId) return;
+    let cancelled = false;
+    openGeneratedSimulation(requestedSimulationId).then(result => {
+      if (!cancelled) restoreSaved(result, requestedSimulationId, result.description);
+    }).catch(cause => { if (!cancelled) setError(getError(cause)); })
+      .finally(() => { if (!cancelled) { setBusy(false); setOpeningId(null); } });
+    return () => { cancelled = true; };
+  }, [requestedSimulationId, restoreSaved]);
 
   useEffect(() => {
     return () => {
@@ -224,6 +259,10 @@ export default function SimulationWorkspace() {
   };
 
   const reset = () => {
+    if (busy || openingId) return;
+    setSaveOpen(false);
+    setSavedMessage("");
+    setCurrentSimulationId("");
     setRecognition(null);
     setCorrection("");
     setEditingRecognition(false);
@@ -256,9 +295,15 @@ export default function SimulationWorkspace() {
   };
 
   const openLibraryItem = async (item: LibraryItem) => {
-    reset();
-    setText(item.title);
-    setSourceMode("TEXT");
+    if (busy || openingId || saveOpen) return;
+    setOpeningId(item.id);
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await openGeneratedSimulation(item.simulationId);
+      restoreSaved(result, item.simulationId, item.title);
+    } catch (cause) { setError(getError(cause)); }
+    finally { setBusy(false); setOpeningId(null); }
   };
 
   const normalize = async (event: FormEvent) => {
@@ -337,7 +382,12 @@ export default function SimulationWorkspace() {
     if (!intent || intent.stage !== "EXPLAIN" || busy) return;
     setBusy(true);
     setError("");
-    if (!renderDiagnostics) setAutoRepairUsed(false);
+    if (!renderDiagnostics) {
+      setAutoRepairUsed(false);
+      setSaveOpen(false);
+      setSavedMessage("");
+      setCurrentSimulationId("");
+    }
     try {
       const result = await confirmSimulationExplanation(intent, renderDiagnostics);
       const parameters = result.parameters ?? [];
@@ -479,10 +529,10 @@ export default function SimulationWorkspace() {
               folders={folders}
               items={libraryItems}
               onRetry={retryLibrary}
-              currentSimulationId=""
+              currentSimulationId={currentSimulationId}
               loading={libraryLoading}
               error={libraryError}
-              openingId={null}
+              openingId={openingId}
               onCreateFolder={createFolder}
               onOpen={openLibraryItem}
               onNewSimulation={reset}
@@ -512,6 +562,21 @@ export default function SimulationWorkspace() {
                     </button>
                   </div>
 
+                  {canManageLearningContent && <div className="simulation-actions">
+                    <button type="button" disabled={busy || Boolean(renderError) || saveOpen}
+                      onClick={() => { setSavedMessage(""); setSaveOpen(true); }}>{currentSimulationId ? "Lưu thành bài mới" : "Lưu mô phỏng"}</button>
+                    {savedMessage && <span role="status">{savedMessage}</span>}
+                  </div>}
+                  {saveOpen && <SaveSimulationPanel simulation={{ ...simulation, formulas: intent?.formulas, explanation: intent?.explanation }} parameters={{ ...values }} folders={folders}
+                    onBusyChange={setBusy}
+                    onFolder={folder => setFolders(current => [...current, folder])}
+                    onClose={() => setSaveOpen(false)}
+                    onSaved={item => {
+                      setLibraryItems(current => [item, ...current.filter(value => value.id !== item.id)]);
+                      setFolders(current => current.map(folder => folder.id === item.folderId ? { ...folder, itemCount: folder.itemCount + 1 } : folder));
+                      setCurrentSimulationId(item.simulationId);
+                      setSavedMessage(`Đã lưu: ${item.title}`); setSaveOpen(false);
+                    }} />}
                   {liveTimeline ? (
                     <SvgPixiScene
                       key={sandboxKey}

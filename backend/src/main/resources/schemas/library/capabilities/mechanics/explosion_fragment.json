@@ -1,0 +1,315 @@
+{
+  "capabilityId": "explosion_fragment",
+  "title": "Vật nổ thành hai mảnh / chuyển động bằng phản lực",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body"
+    ],
+    "quantities": [
+      "mass",
+      "other_mass",
+      "system_velocity",
+      "other_velocity",
+      "initial_position"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "other_mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "system_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    },
+    {
+      "key": "other_velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "momentum",
+      "unit": "kg*m/s"
+    },
+    {
+      "key": "kinetic_energy",
+      "unit": "J"
+    }
+  ],
+  "assumptions": [
+    "Hệ kín tách thành hai phần tức thời tại t = 0 (nổ, bắn súng, đẩy nhau); vận tốc của phần kia sau khi tách đã biết."
+  ],
+  "equationSet": {
+    "canonical": [
+      "(m1 + m2)*v = m1*v1 + m2*v2 (hệ kín)"
+    ],
+    "derived": [
+      "đứng yên rồi tách: v1 = -m2*v2/m1 (giật lùi)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "velocity": [
+          "div",
+          [
+            "sub",
+            [
+              "mul",
+              [
+                "add",
+                "mass",
+                "other_mass"
+              ],
+              "system_velocity"
+            ],
+            [
+              "mul",
+              "other_mass",
+              "other_velocity"
+            ]
+          ],
+          "mass"
+        ],
+        "position": [
+          "add",
+          "initial_position",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "sub",
+                [
+                  "mul",
+                  [
+                    "add",
+                    "mass",
+                    "other_mass"
+                  ],
+                  "system_velocity"
+                ],
+                [
+                  "mul",
+                  "other_mass",
+                  "other_velocity"
+                ]
+              ],
+              "mass"
+            ],
+            "elapsed_time"
+          ]
+        ],
+        "momentum": [
+          "sub",
+          [
+            "mul",
+            [
+              "add",
+              "mass",
+              "other_mass"
+            ],
+            "system_velocity"
+          ],
+          [
+            "mul",
+            "other_mass",
+            "other_velocity"
+          ]
+        ],
+        "kinetic_energy": [
+          "div",
+          [
+            "mul",
+            0.5,
+            [
+              "pow",
+              [
+                "sub",
+                [
+                  "mul",
+                  [
+                    "add",
+                    "mass",
+                    "other_mass"
+                  ],
+                  "system_velocity"
+                ],
+                [
+                  "mul",
+                  "other_mass",
+                  "other_velocity"
+                ]
+              ],
+              2
+            ]
+          ],
+          "mass"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "velocity": [
+          "div",
+          [
+            "sub",
+            [
+              "mul",
+              [
+                "add",
+                "mass",
+                "other_mass"
+              ],
+              "system_velocity"
+            ],
+            [
+              "mul",
+              "other_mass",
+              "other_velocity"
+            ]
+          ],
+          "mass"
+        ],
+        "position": [
+          "add",
+          "initial_position",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "sub",
+                [
+                  "mul",
+                  [
+                    "add",
+                    "mass",
+                    "other_mass"
+                  ],
+                  "system_velocity"
+                ],
+                [
+                  "mul",
+                  "other_mass",
+                  "other_velocity"
+                ]
+              ],
+              "mass"
+            ],
+            "t"
+          ]
+        ],
+        "momentum": [
+          "sub",
+          [
+            "mul",
+            [
+              "add",
+              "mass",
+              "other_mass"
+            ],
+            "system_velocity"
+          ],
+          [
+            "mul",
+            "other_mass",
+            "other_velocity"
+          ]
+        ],
+        "kinetic_energy": [
+          "div",
+          [
+            "mul",
+            0.5,
+            [
+              "pow",
+              [
+                "sub",
+                [
+                  "mul",
+                  [
+                    "add",
+                    "mass",
+                    "other_mass"
+                  ],
+                  "system_velocity"
+                ],
+                [
+                  "mul",
+                  "other_mass",
+                  "other_velocity"
+                ]
+              ],
+              2
+            ]
+          ],
+          "mass"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "velocity",
+      "role": "velocity"
+    }
+  ]
+}

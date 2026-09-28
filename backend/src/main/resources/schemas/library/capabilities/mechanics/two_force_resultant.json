@@ -1,0 +1,525 @@
+{
+  "capabilityId": "two_force_resultant",
+  "title": "Tổng hợp và phân tích hai lực đồng quy",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "force_source"
+    ],
+    "quantities": [
+      "mass",
+      "force_1",
+      "angle_1",
+      "force_2",
+      "angle_2",
+      "initial_x",
+      "initial_y"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "force_1",
+      "unit": "N",
+      "min": 0
+    },
+    {
+      "key": "angle_1",
+      "unit": "rad",
+      "defaultValue": 0
+    },
+    {
+      "key": "force_2",
+      "unit": "N",
+      "min": 0
+    },
+    {
+      "key": "angle_2",
+      "unit": "rad"
+    },
+    {
+      "key": "initial_x",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_y",
+      "unit": "m",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "x",
+      "unit": "m"
+    },
+    {
+      "key": "y",
+      "unit": "m"
+    },
+    {
+      "key": "vx",
+      "unit": "m/s"
+    },
+    {
+      "key": "vy",
+      "unit": "m/s"
+    },
+    {
+      "key": "ax",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "ay",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "resultant_force",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Vật ban đầu đứng yên trên mặt phẳng ngang nhẵn, chịu hai lực không đổi đồng quy (góc đo từ trục x)."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F = F1 + F2 (quy tắc hình bình hành)",
+      "a = F/m"
+    ],
+    "derived": [
+      "F^2 = F1^2 + F2^2 + 2*F1*F2*cos(alpha)"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "x": "initial_x",
+        "y": "initial_y",
+        "vx": 0,
+        "vy": 0
+      },
+      "rates": {
+        "x": "vx",
+        "y": "vy",
+        "vx": [
+          "div",
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "cos",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "cos",
+                "angle_2"
+              ]
+            ]
+          ],
+          "mass"
+        ],
+        "vy": [
+          "div",
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "sin",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "sin",
+                "angle_2"
+              ]
+            ]
+          ],
+          "mass"
+        ]
+      },
+      "outputs": {
+        "x": "x",
+        "y": "y",
+        "vx": "vx",
+        "vy": "vy",
+        "ax": [
+          "div",
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "cos",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "cos",
+                "angle_2"
+              ]
+            ]
+          ],
+          "mass"
+        ],
+        "ay": [
+          "div",
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "sin",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "sin",
+                "angle_2"
+              ]
+            ]
+          ],
+          "mass"
+        ],
+        "resultant_force": [
+          "sqrt",
+          [
+            "add",
+            [
+              "pow",
+              [
+                "add",
+                [
+                  "mul",
+                  "force_1",
+                  [
+                    "cos",
+                    "angle_1"
+                  ]
+                ],
+                [
+                  "mul",
+                  "force_2",
+                  [
+                    "cos",
+                    "angle_2"
+                  ]
+                ]
+              ],
+              2
+            ],
+            [
+              "pow",
+              [
+                "add",
+                [
+                  "mul",
+                  "force_1",
+                  [
+                    "sin",
+                    "angle_1"
+                  ]
+                ],
+                [
+                  "mul",
+                  "force_2",
+                  [
+                    "sin",
+                    "angle_2"
+                  ]
+                ]
+              ],
+              2
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "x": [
+          "add",
+          "initial_x",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                0.5,
+                [
+                  "add",
+                  [
+                    "mul",
+                    "force_1",
+                    [
+                      "cos",
+                      "angle_1"
+                    ]
+                  ],
+                  [
+                    "mul",
+                    "force_2",
+                    [
+                      "cos",
+                      "angle_2"
+                    ]
+                  ]
+                ]
+              ],
+              "mass"
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "y": [
+          "add",
+          "initial_y",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "mul",
+                0.5,
+                [
+                  "add",
+                  [
+                    "mul",
+                    "force_1",
+                    [
+                      "sin",
+                      "angle_1"
+                    ]
+                  ],
+                  [
+                    "mul",
+                    "force_2",
+                    [
+                      "sin",
+                      "angle_2"
+                    ]
+                  ]
+                ]
+              ],
+              "mass"
+            ],
+            [
+              "pow",
+              "t",
+              2
+            ]
+          ]
+        ],
+        "vx": [
+          "mul",
+          [
+            "div",
+            [
+              "add",
+              [
+                "mul",
+                "force_1",
+                [
+                  "cos",
+                  "angle_1"
+                ]
+              ],
+              [
+                "mul",
+                "force_2",
+                [
+                  "cos",
+                  "angle_2"
+                ]
+              ]
+            ],
+            "mass"
+          ],
+          "t"
+        ],
+        "vy": [
+          "mul",
+          [
+            "div",
+            [
+              "add",
+              [
+                "mul",
+                "force_1",
+                [
+                  "sin",
+                  "angle_1"
+                ]
+              ],
+              [
+                "mul",
+                "force_2",
+                [
+                  "sin",
+                  "angle_2"
+                ]
+              ]
+            ],
+            "mass"
+          ],
+          "t"
+        ],
+        "ax": [
+          "div",
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "cos",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "cos",
+                "angle_2"
+              ]
+            ]
+          ],
+          "mass"
+        ],
+        "ay": [
+          "div",
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "sin",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "sin",
+                "angle_2"
+              ]
+            ]
+          ],
+          "mass"
+        ],
+        "resultant_force": [
+          "sqrt",
+          [
+            "add",
+            [
+              "pow",
+              [
+                "add",
+                [
+                  "mul",
+                  "force_1",
+                  [
+                    "cos",
+                    "angle_1"
+                  ]
+                ],
+                [
+                  "mul",
+                  "force_2",
+                  [
+                    "cos",
+                    "angle_2"
+                  ]
+                ]
+              ],
+              2
+            ],
+            [
+              "pow",
+              [
+                "add",
+                [
+                  "mul",
+                  "force_1",
+                  [
+                    "sin",
+                    "angle_1"
+                  ]
+                ],
+                [
+                  "mul",
+                  "force_2",
+                  [
+                    "sin",
+                    "angle_2"
+                  ]
+                ]
+              ],
+              2
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "x",
+      "role": "horizontal_position"
+    },
+    {
+      "source": "y",
+      "role": "vertical_position"
+    }
+  ]
+}

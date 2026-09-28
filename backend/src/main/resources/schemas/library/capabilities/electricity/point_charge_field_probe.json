@@ -1,0 +1,211 @@
+{
+  "capabilityId": "point_charge_field_probe",
+  "title": "Điện trường và điện thế của điện tích điểm",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "charge_source",
+      "field_region"
+    ],
+    "quantities": [
+      "source_charge",
+      "start_distance",
+      "probe_speed",
+      "coulomb_constant"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "source_charge",
+      "unit": "C"
+    },
+    {
+      "key": "start_distance",
+      "unit": "m",
+      "min": 1e-12
+    },
+    {
+      "key": "probe_speed",
+      "unit": "m/s",
+      "min": 0
+    },
+    {
+      "key": "coulomb_constant",
+      "unit": "N*m2/C2",
+      "min": 1,
+      "defaultValue": 8987551792.3
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "field_strength",
+      "unit": "N/C"
+    },
+    {
+      "key": "potential",
+      "unit": "V"
+    }
+  ],
+  "assumptions": [
+    "Điện tích điểm Q đứng yên tại gốc trong chân không; điểm khảo sát dịch ra xa đều theo phương bán kính."
+  ],
+  "equationSet": {
+    "canonical": [
+      "E = k*|Q|/r^2",
+      "V = k*Q/r"
+    ],
+    "derived": [
+      "F = q*E",
+      "W_t = q*V"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "position": [
+          "add",
+          "start_distance",
+          [
+            "mul",
+            "probe_speed",
+            "elapsed_time"
+          ]
+        ],
+        "field_strength": [
+          "div",
+          [
+            "mul",
+            "coulomb_constant",
+            "source_charge"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              "start_distance",
+              [
+                "mul",
+                "probe_speed",
+                "elapsed_time"
+              ]
+            ],
+            2
+          ]
+        ],
+        "potential": [
+          "div",
+          [
+            "mul",
+            "coulomb_constant",
+            "source_charge"
+          ],
+          [
+            "add",
+            "start_distance",
+            [
+              "mul",
+              "probe_speed",
+              "elapsed_time"
+            ]
+          ]
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "position": [
+          "add",
+          "start_distance",
+          [
+            "mul",
+            "probe_speed",
+            "t"
+          ]
+        ],
+        "field_strength": [
+          "div",
+          [
+            "mul",
+            "coulomb_constant",
+            "source_charge"
+          ],
+          [
+            "pow",
+            [
+              "add",
+              "start_distance",
+              [
+                "mul",
+                "probe_speed",
+                "t"
+              ]
+            ],
+            2
+          ]
+        ],
+        "potential": [
+          "div",
+          [
+            "mul",
+            "coulomb_constant",
+            "source_charge"
+          ],
+          [
+            "add",
+            "start_distance",
+            [
+              "mul",
+              "probe_speed",
+              "t"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "position"
+    },
+    {
+      "source": "field_strength",
+      "role": "state_value"
+    }
+  ]
+}

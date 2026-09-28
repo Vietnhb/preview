@@ -1,0 +1,57 @@
+{
+  "schemaId": "thpt_electric_current",
+  "version": "1.0",
+  "topic": "ELECTRIC_CURRENT",
+  "name": "Dòng điện, mạch điện",
+  "grade": 11,
+  "description": "Dòng điện, mạch điện (Vật lí 11): cường độ dòng điện I = Snve, điện lượng, điện trở, định luật Ohm, đặc trưng I – U, ảnh hưởng nhiệt độ lên điện trở (đèn sợi đốt, điện trở nhiệt), suất điện động và điện trở trong của nguồn, mạch nối tiếp/song song, năng lượng điện, công suất điện, nạp xả tụ.",
+  "objectTypes": [
+    {
+      "type": "voltage_source",
+      "label": "nguồn điện",
+      "description": "Pin, acquy, nguồn xoay chiều, máy phát."
+    },
+    {
+      "type": "resistor",
+      "label": "điện trở",
+      "description": "Điện trở, bóng đèn, cảm biến điện trở…"
+    },
+    {
+      "type": "capacitor",
+      "label": "tụ điện",
+      "description": "Tụ điện."
+    },
+    {
+      "type": "conductor",
+      "label": "vật dẫn",
+      "description": "Dây dẫn, thanh kim loại, bản tụ…"
+    },
+    {
+      "type": "node",
+      "label": "linh kiện/nút mạch",
+      "description": "Nút mạch, điốt, op-amp và linh kiện khác."
+    }
+  ],
+  "capabilities": [
+    "dc_source_with_internal_resistance",
+    "series_resistor_pair",
+    "parallel_resistor_pair",
+    "drift_velocity_current",
+    "resistance_temperature_sweep",
+    "rc_circuit"
+  ],
+  "curriculum": [
+    {
+      "name": "Cường độ dòng điện",
+      "summary": "I = Snve; coulomb."
+    },
+    {
+      "name": "Mạch điện và điện trở",
+      "summary": "Định luật Ohm; I – U; điện trở nhiệt; suất điện động, điện trở trong."
+    },
+    {
+      "name": "Năng lượng điện, công suất điện",
+      "summary": "A = UIt; P = UI."
+    }
+  ]
+}

@@ -1,0 +1,609 @@
+{
+  "capabilityId": "opamp_inverting_amplifier",
+  "title": "Khuếch đại thuật toán mắc đảo",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "node",
+      "voltage_source"
+    ],
+    "quantities": [
+      "input_amplitude",
+      "input_frequency",
+      "input_resistance",
+      "feedback_resistance",
+      "saturation_voltage"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "input_amplitude",
+      "unit": "V",
+      "min": 0
+    },
+    {
+      "key": "input_frequency",
+      "unit": "Hz",
+      "min": 1e-09
+    },
+    {
+      "key": "input_resistance",
+      "unit": "ohm",
+      "min": 1e-09
+    },
+    {
+      "key": "feedback_resistance",
+      "unit": "ohm",
+      "min": 0
+    },
+    {
+      "key": "saturation_voltage",
+      "unit": "V",
+      "min": 1e-06,
+      "defaultValue": 12
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "input_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "ideal_output_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "output_voltage",
+      "unit": "V"
+    },
+    {
+      "key": "gain",
+      "unit": "1"
+    }
+  ],
+  "assumptions": [
+    "Op-amp lí tưởng mắc khuếch đại đảo; tín hiệu vào hình sin; đầu ra bị giới hạn bởi điện áp bão hòa."
+  ],
+  "equationSet": {
+    "canonical": [
+      "U_ra = -(R_f/R_v)*U_v",
+      "|U_ra| <= U_bh"
+    ],
+    "derived": [
+      "op-amp lí tưởng: dòng vào bằng 0, U+ = U-"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "input_voltage": [
+          "mul",
+          "input_amplitude",
+          [
+            "sin",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "input_frequency"
+              ],
+              "elapsed_time"
+            ]
+          ]
+        ],
+        "ideal_output_voltage": [
+          "mul",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "neg",
+                "feedback_resistance"
+              ],
+              "input_resistance"
+            ],
+            "input_amplitude"
+          ],
+          [
+            "sin",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "input_frequency"
+              ],
+              "elapsed_time"
+            ]
+          ]
+        ],
+        "output_voltage": [
+          "mul",
+          0.5,
+          [
+            "add",
+            [
+              "add",
+              [
+                "mul",
+                0.5,
+                [
+                  "sub",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "div",
+                          [
+                            "neg",
+                            "feedback_resistance"
+                          ],
+                          "input_resistance"
+                        ],
+                        "input_amplitude"
+                      ],
+                      [
+                        "sin",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "input_frequency"
+                          ],
+                          "elapsed_time"
+                        ]
+                      ]
+                    ],
+                    "saturation_voltage"
+                  ],
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "div",
+                            [
+                              "neg",
+                              "feedback_resistance"
+                            ],
+                            "input_resistance"
+                          ],
+                          "input_amplitude"
+                        ],
+                        [
+                          "sin",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "input_frequency"
+                            ],
+                            "elapsed_time"
+                          ]
+                        ]
+                      ],
+                      "saturation_voltage"
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "neg",
+                "saturation_voltage"
+              ]
+            ],
+            [
+              "abs",
+              [
+                "sub",
+                [
+                  "mul",
+                  0.5,
+                  [
+                    "sub",
+                    [
+                      "add",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "div",
+                            [
+                              "neg",
+                              "feedback_resistance"
+                            ],
+                            "input_resistance"
+                          ],
+                          "input_amplitude"
+                        ],
+                        [
+                          "sin",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "input_frequency"
+                            ],
+                            "elapsed_time"
+                          ]
+                        ]
+                      ],
+                      "saturation_voltage"
+                    ],
+                    [
+                      "abs",
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "div",
+                              [
+                                "neg",
+                                "feedback_resistance"
+                              ],
+                              "input_resistance"
+                            ],
+                            "input_amplitude"
+                          ],
+                          [
+                            "sin",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "input_frequency"
+                              ],
+                              "elapsed_time"
+                            ]
+                          ]
+                        ],
+                        "saturation_voltage"
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "neg",
+                  "saturation_voltage"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "gain": [
+          "div",
+          [
+            "neg",
+            "feedback_resistance"
+          ],
+          "input_resistance"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "input_voltage": [
+          "mul",
+          "input_amplitude",
+          [
+            "sin",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "input_frequency"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "ideal_output_voltage": [
+          "mul",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "neg",
+                "feedback_resistance"
+              ],
+              "input_resistance"
+            ],
+            "input_amplitude"
+          ],
+          [
+            "sin",
+            [
+              "mul",
+              [
+                "mul",
+                [
+                  "mul",
+                  2,
+                  3.141592653589793
+                ],
+                "input_frequency"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "output_voltage": [
+          "mul",
+          0.5,
+          [
+            "add",
+            [
+              "add",
+              [
+                "mul",
+                0.5,
+                [
+                  "sub",
+                  [
+                    "add",
+                    [
+                      "mul",
+                      [
+                        "mul",
+                        [
+                          "div",
+                          [
+                            "neg",
+                            "feedback_resistance"
+                          ],
+                          "input_resistance"
+                        ],
+                        "input_amplitude"
+                      ],
+                      [
+                        "sin",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              2,
+                              3.141592653589793
+                            ],
+                            "input_frequency"
+                          ],
+                          "t"
+                        ]
+                      ]
+                    ],
+                    "saturation_voltage"
+                  ],
+                  [
+                    "abs",
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "div",
+                            [
+                              "neg",
+                              "feedback_resistance"
+                            ],
+                            "input_resistance"
+                          ],
+                          "input_amplitude"
+                        ],
+                        [
+                          "sin",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "input_frequency"
+                            ],
+                            "t"
+                          ]
+                        ]
+                      ],
+                      "saturation_voltage"
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "neg",
+                "saturation_voltage"
+              ]
+            ],
+            [
+              "abs",
+              [
+                "sub",
+                [
+                  "mul",
+                  0.5,
+                  [
+                    "sub",
+                    [
+                      "add",
+                      [
+                        "mul",
+                        [
+                          "mul",
+                          [
+                            "div",
+                            [
+                              "neg",
+                              "feedback_resistance"
+                            ],
+                            "input_resistance"
+                          ],
+                          "input_amplitude"
+                        ],
+                        [
+                          "sin",
+                          [
+                            "mul",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                2,
+                                3.141592653589793
+                              ],
+                              "input_frequency"
+                            ],
+                            "t"
+                          ]
+                        ]
+                      ],
+                      "saturation_voltage"
+                    ],
+                    [
+                      "abs",
+                      [
+                        "sub",
+                        [
+                          "mul",
+                          [
+                            "mul",
+                            [
+                              "div",
+                              [
+                                "neg",
+                                "feedback_resistance"
+                              ],
+                              "input_resistance"
+                            ],
+                            "input_amplitude"
+                          ],
+                          [
+                            "sin",
+                            [
+                              "mul",
+                              [
+                                "mul",
+                                [
+                                  "mul",
+                                  2,
+                                  3.141592653589793
+                                ],
+                                "input_frequency"
+                              ],
+                              "t"
+                            ]
+                          ]
+                        ],
+                        "saturation_voltage"
+                      ]
+                    ]
+                  ]
+                ],
+                [
+                  "neg",
+                  "saturation_voltage"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "gain": [
+          "div",
+          [
+            "neg",
+            "feedback_resistance"
+          ],
+          "input_resistance"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "output_voltage",
+      "role": "state_value"
+    }
+  ]
+}

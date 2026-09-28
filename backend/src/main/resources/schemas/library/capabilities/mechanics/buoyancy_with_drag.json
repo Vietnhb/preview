@@ -1,0 +1,414 @@
+{
+  "capabilityId": "buoyancy_with_drag",
+  "title": "Vật trong chất lỏng: lực đẩy Archimedes và lực cản",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "body",
+      "fluid"
+    ],
+    "quantities": [
+      "mass",
+      "body_volume",
+      "fluid_density",
+      "drag_coefficient",
+      "gravitational_acceleration",
+      "initial_position",
+      "initial_velocity"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "mass",
+      "unit": "kg",
+      "min": 1e-09
+    },
+    {
+      "key": "body_volume",
+      "unit": "m^3",
+      "min": 1e-12
+    },
+    {
+      "key": "fluid_density",
+      "unit": "kg/m^3",
+      "min": 0
+    },
+    {
+      "key": "drag_coefficient",
+      "unit": "kg/s",
+      "min": 1e-09
+    },
+    {
+      "key": "gravitational_acceleration",
+      "unit": "m/s^2",
+      "min": 1e-06,
+      "defaultValue": 9.80665
+    },
+    {
+      "key": "initial_position",
+      "unit": "m",
+      "defaultValue": 0
+    },
+    {
+      "key": "initial_velocity",
+      "unit": "m/s",
+      "defaultValue": 0
+    }
+  ],
+  "outputs": [
+    {
+      "key": "position",
+      "unit": "m"
+    },
+    {
+      "key": "velocity",
+      "unit": "m/s"
+    },
+    {
+      "key": "acceleration",
+      "unit": "m/s^2"
+    },
+    {
+      "key": "buoyant_force",
+      "unit": "N"
+    },
+    {
+      "key": "weight",
+      "unit": "N"
+    }
+  ],
+  "assumptions": [
+    "Vật ngập hoàn toàn trong chất lỏng suốt thời gian mô phỏng; chiều dương hướng lên; lực cản tỉ lệ vận tốc."
+  ],
+  "equationSet": {
+    "canonical": [
+      "F_A = rho*V*g",
+      "m*dv/dt = rho*V*g - m*g - b*v"
+    ],
+    "derived": [
+      "p = p0 + rho*g*h"
+    ]
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "position": "initial_position",
+        "velocity": "initial_velocity"
+      },
+      "rates": {
+        "position": "velocity",
+        "velocity": [
+          "sub",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "sub",
+                [
+                  "mul",
+                  "fluid_density",
+                  "body_volume"
+                ],
+                "mass"
+              ],
+              "gravitational_acceleration"
+            ],
+            "mass"
+          ],
+          [
+            "mul",
+            [
+              "div",
+              "drag_coefficient",
+              "mass"
+            ],
+            "velocity"
+          ]
+        ]
+      },
+      "outputs": {
+        "position": "position",
+        "velocity": "velocity",
+        "acceleration": [
+          "sub",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "sub",
+                [
+                  "mul",
+                  "fluid_density",
+                  "body_volume"
+                ],
+                "mass"
+              ],
+              "gravitational_acceleration"
+            ],
+            "mass"
+          ],
+          [
+            "mul",
+            [
+              "div",
+              "drag_coefficient",
+              "mass"
+            ],
+            "velocity"
+          ]
+        ],
+        "buoyant_force": [
+          "mul",
+          [
+            "mul",
+            "fluid_density",
+            "body_volume"
+          ],
+          "gravitational_acceleration"
+        ],
+        "weight": [
+          "mul",
+          "mass",
+          "gravitational_acceleration"
+        ]
+      },
+      "closedForm": {
+        "velocity": [
+          "add",
+          [
+            "div",
+            [
+              "mul",
+              [
+                "sub",
+                [
+                  "mul",
+                  "fluid_density",
+                  "body_volume"
+                ],
+                "mass"
+              ],
+              "gravitational_acceleration"
+            ],
+            "drag_coefficient"
+          ],
+          [
+            "mul",
+            [
+              "sub",
+              "initial_velocity",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "sub",
+                    [
+                      "mul",
+                      "fluid_density",
+                      "body_volume"
+                    ],
+                    "mass"
+                  ],
+                  "gravitational_acceleration"
+                ],
+                "drag_coefficient"
+              ]
+            ],
+            [
+              "exp",
+              [
+                "mul",
+                [
+                  "div",
+                  [
+                    "neg",
+                    "drag_coefficient"
+                  ],
+                  "mass"
+                ],
+                "t"
+              ]
+            ]
+          ]
+        ],
+        "position": [
+          "add",
+          [
+            "add",
+            "initial_position",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "sub",
+                    [
+                      "mul",
+                      "fluid_density",
+                      "body_volume"
+                    ],
+                    "mass"
+                  ],
+                  "gravitational_acceleration"
+                ],
+                "drag_coefficient"
+              ],
+              "t"
+            ]
+          ],
+          [
+            "mul",
+            [
+              "mul",
+              [
+                "div",
+                "mass",
+                "drag_coefficient"
+              ],
+              [
+                "sub",
+                "initial_velocity",
+                [
+                  "div",
+                  [
+                    "mul",
+                    [
+                      "sub",
+                      [
+                        "mul",
+                        "fluid_density",
+                        "body_volume"
+                      ],
+                      "mass"
+                    ],
+                    "gravitational_acceleration"
+                  ],
+                  "drag_coefficient"
+                ]
+              ]
+            ],
+            [
+              "sub",
+              1,
+              [
+                "exp",
+                [
+                  "mul",
+                  [
+                    "div",
+                    [
+                      "neg",
+                      "drag_coefficient"
+                    ],
+                    "mass"
+                  ],
+                  "t"
+                ]
+              ]
+            ]
+          ]
+        ],
+        "acceleration": [
+          "mul",
+          [
+            "mul",
+            [
+              "div",
+              [
+                "neg",
+                "drag_coefficient"
+              ],
+              "mass"
+            ],
+            [
+              "sub",
+              "initial_velocity",
+              [
+                "div",
+                [
+                  "mul",
+                  [
+                    "sub",
+                    [
+                      "mul",
+                      "fluid_density",
+                      "body_volume"
+                    ],
+                    "mass"
+                  ],
+                  "gravitational_acceleration"
+                ],
+                "drag_coefficient"
+              ]
+            ]
+          ],
+          [
+            "exp",
+            [
+              "mul",
+              [
+                "div",
+                [
+                  "neg",
+                  "drag_coefficient"
+                ],
+                "mass"
+              ],
+              "t"
+            ]
+          ]
+        ],
+        "buoyant_force": [
+          "mul",
+          [
+            "mul",
+            "fluid_density",
+            "body_volume"
+          ],
+          "gravitational_acceleration"
+        ],
+        "weight": [
+          "mul",
+          "mass",
+          "gravitational_acceleration"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "position",
+      "role": "vertical_position"
+    },
+    {
+      "source": "velocity",
+      "role": "velocity"
+    }
+  ]
+}
