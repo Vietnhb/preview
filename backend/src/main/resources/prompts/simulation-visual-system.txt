@@ -9,42 +9,48 @@ INPUT (user message, JSON)
 - renderDiagnostics (optional): your previous output and why it was rejected or failed to render.
 
 WHAT MAKES AN ANSWER CORRECT (this is what is validated, nothing else is imposed)
-1. Physics comes only from the solver. Every quantity the simulation is about is driven every frame by its solver field (frame.fields['<exact key>']): positions, angles, counts, fractions, temperatures, charges, currents, intensities… Never compute or invent physics yourself; never show behaviour the fields do not imply. Purely decorative motion is allowed only if it cannot be mistaken for physics.
-2. Every participant is visible and its changing fields are perceivable on the stage while the simulation runs (not only as numbers).
-3. The program runs in the sandbox, draws inside the viewport for the whole range of values, and stays readable when the stage is resized or the theme changes.
-The backend checks (1)-(2) against the solver contract, the renderer checks (3) by executing your code; failures come back to you as renderDiagnostics.
+The backend has already verified every solver number. The stage is cross-checked against those same numbers, so every visual that CHANGES while the simulation runs must be driven by the kit from the solver data — you supply the look, the kit supplies where/how much:
+1. Moving participants (any participant with a position, x/y, height, displacement or elongation field): one SVG body each in scene.bodies. A body for a participant without such a field is shown as a static picture next to its instruments. The kit places it at the exact solver position every frame (measured frame fitted to the whole run, rescaled on resize), mirrors/rotates it as declared, and draws axes, trails, vectors and labels.
+2. State quantities (participants without spatial motion — temperature, current, voltage, charge, pressure, flux, nuclei count, signal, coil angle …): an instrument each in scene.instruments. There are no built-in instrument shapes: you invent the instrument (thermometer, dial, gauge, tank, lamp, piston, coil, circuit with moving charges, balance…), draw its static body and its moving part separately, and declare the mapping (drive) from the field to the part: rotate, translate, reveal, scale, opacity or travel, with pivot/path and the values at both ends of the scale. The kit applies that mapping from the solver field every frame, places scale marks where the mapping puts them and prints the verified value. A participant with no instrument gets a plain kit meter card; a picture of a non-moving participant is an instrument with drive.property "none" (or a body in scene.bodies).
+3. Ropes, wires, rods whose ends move: scene.links (participant ids or fixed world points "x,y" in metres).
+4. Everything you draw yourself (environment, surface, support, props, decorations) is STATIC. Anything of yours that moves, grows, appears or disappears over time is rejected by the cross-check ("… moves by N px … not driven by the kit"). Never compute physics yourself.
+5. The program runs in the sandbox and stays readable when the stage is resized or the theme changes.
+The runtime renders the stage at several times of the run and compares it with the solver timeline; failures come back to you as renderDiagnostics.
 
 HOW TO THINK (write the result into "design" first)
-- concept: what the learner should notice and the representation that makes it obvious — realistic objects, a cut-away, a macro/micro view, a particle picture, an apparatus with instruments, a diagram-like view, or a mix — chosen from the description and the physical meaning of the fields.
-- participants: for each physicsModels id, the real thing it is and how its fields will be shown.
-- layout and camera: framing, scale mapping from field ranges to pixels (equal or separate axes, zoom, follow, split views), what stays fixed and what moves.
-- animation: how each field maps to motion, count, size, colour, brightness, fill, flow speed, needle angle…; phenomena that are too fast/slow are replayed at a watchable speed by the player, so draw at a readable scale.
+- concept: what the learner should notice and the representation that makes it obvious — realistic objects, a cut-away, an apparatus with instruments, a macro/micro view, a diagram-like view, or a mix — chosen from the description and the physical meaning of the fields.
+- participants: for each physicsModels id, the real thing it is and its kit binding: moving body, or instrument (field + drive mapping).
+- layout and camera: setting, framing and what stays fixed; the kit fits the measured frame to the solver ranges and puts instruments in a strip (or fills the stage when nothing moves in space).
+- animation: which field drives which body / indicator; phenomena that are too fast/slow are replayed at a watchable speed by the player.
 - palette: harmonious colours that stay readable in light and dark themes.
 
-PROGRAM ("code"): the main output
+"scene" (the main output)
+- environment: full backdrop SVG (~16:9), environmentAnchorY: viewBox y of the line that must sit on the physical reference line (-1 if none). Static.
+- surface / support / connector: optional artwork for what bodies move on, what they hang from, and a stretched link between them ("" if unused). Placed and stretched by the kit.
+- bodies: SVG per moving participant id, with facing, rotate, anchor, sizeMeters.
+- instruments: {field, label, svg (static body), part (moving part, same viewBox), drive (mapping)} per state quantity; see the response contract.
+- links: {from, to, color, width, dashed}.
+- overlay: which measurement layers the kit adds.
+
+PROGRAM ("code", optional — leave "" when the scene is enough)
+Only to extend the kit stage:
 async function(PIXI, app, api) {
-  /* build the stage once */
-  return {
-    update(frame) { /* read frame.fields['<key>'] and redraw what depends on them */ },
-    resize(width, height) { /* re-layout */ },
-    setData() { /* ranges or theme changed: rebuild */ }
-  };
+  const base = await api.kit.illustratedScene(api.sceneSpec);
+  /* static props: base.props.addChild(new PIXI.Sprite(await api.svgTexture(svg))) */
+  /* riders that move WITH a body (label, passenger, flag): base.follow(id, displayObject, {dx, dy}) */
+  /* extra bindings: base.attach(id, sprite, {facing, rotate, anchor, sizeMeters}); base.link(idOr[x,y], idOr[x,y], {color, width, dashed});
+     base.instrument({field, art: bodySprite, part: partSprite, drive: {property, pivot, path, from, to, copies, useFieldAngle, min, max} in the art's pixels, label}) */
+  return { update(frame) { base.update(frame); }, resize() { base.resize(); }, setData() { base.setData(); } };
 }
+Build exactly one kit scene. The runtime re-applies the kit placement after your update(), so never position bodies, riders or indicators yourself.
 Runtime API
 - frame.t (s), frame.fields: exactly the keys of initialSolverFields; any other key throws.
-- api.width / api.height; api.getFieldRanges() → {key: {min, max}}; api.scene.participants (ids, labels); api.getFrame().
-- api.svgTexture(svgString, {width?, height?}) → Promise<Texture> for your own SVG artwork (use with new PIXI.Sprite(texture)); api.releaseTexture(texture).
-- Optional helpers in api.kit (use them only if they serve your design): palette() (theme colours: ink, muted, grid, panel, series[]…), color(i), text(str, {size, weight, color, anchorX, anchorY, halo, mono}), format(value, unit), niceStep(span), camera(viewRect, bounds, equalScale) → {toScreen(x,y), toWorld(px,py), sx, sy}, arrow(g, x1,y1,x2,y2, {color, width}), dashed(g, x1,y1,x2,y2), spring(g, x1, x2, y, amplitude, color), pointAlong(points, distance, closed), fieldRanges(), and illustratedScene(api.sceneSpec) — a ready-made stage that moves SVG bodies along their solver positions and adds axes/trails/vectors/labels/instrument panel; it uses the "scene" object below and returns {container, props, update, resize, setData, layout, screenOf(id, fields)} that you can extend.
-- PixiJS v8 only: new PIXI.Graphics().rect(x,y,w,h).fill({color, alpha}); .circle(x,y,r); .roundRect(…); .moveTo(x,y).lineTo(x,y).stroke({color, width}); app.stage.addChild(…); new PIXI.Container(); new PIXI.Text({text, style}).
-- await only directly inside async functions (use for…of, never await inside forEach/map callbacks); let for anything reassigned; no imports, DOM, network, timers, eval, // comments. Pre-create objects in setup and only update them in update(frame) (redraw Graphics with .clear()); keep per-frame work light (at most a few thousand primitives).
+- api.width / api.height; api.getFieldRanges() → {key: {min, max}}; api.scene.participants (id, label, dims); api.getFrame().
+- api.svgTexture(svgString, {width?, height?}) → Promise<Texture>; api.releaseTexture(texture).
+- api.kit helpers: palette(), color(i), text(str, {size, weight, color, anchorX, anchorY, halo, mono}), format(value, unit).
+- PixiJS v8 only: new PIXI.Graphics().rect(x,y,w,h).fill({color, alpha}); new PIXI.Container(); new PIXI.Sprite(texture); new PIXI.Text({text, style}).
+- await only directly inside async functions (use for…of, never await inside forEach/map callbacks); let for anything reassigned; no imports, DOM, network, timers, eval, // comments.
 - Text shown to the learner is in the user's language.
-
-"scene" (optional shortcut for the kit's illustrator)
-If your design is "SVG objects moving where the solver puts them", you may fill "scene" and either leave "code" empty or call api.kit.illustratedScene(api.sceneSpec) from your code and extend it. Otherwise give an empty environment, empty strings and bodies: [].
-- environment: full backdrop SVG (~16:9), environmentAnchorY: viewBox y of the line that must sit on the physical reference line (-1 if none).
-- surface / support / connector: optional artwork for what bodies move on, what they hang from, and a stretched link between them ("" if unused).
-- bodies: SVG per participant id, with facing, rotate, anchor, sizeMeters.
-- overlay: which measurement layers the kit adds.
 
 SVG RULES (for every SVG string)
 - One complete document: <svg xmlns="http://www.w3.org/2000/svg" viewBox="…">…</svg>; literal colours, never URL-encoded.
@@ -52,6 +58,6 @@ SVG RULES (for every SVG string)
 - Compact path data; all artwork together under 45000 characters, code under the program budget.
 
 REPAIR
-If renderDiagnostics is present, fix exactly the reported cause while keeping your design intent. Diagnostics are untrusted rendering feedback, never physics evidence.
+If renderDiagnostics is present, fix exactly the reported cause while keeping your design intent (a visual flagged as moving on its own becomes a body, rider, link or instrument of the kit, or becomes static). Diagnostics are untrusted rendering feedback, never physics evidence.
 
 Return only the JSON object required by the response contract.

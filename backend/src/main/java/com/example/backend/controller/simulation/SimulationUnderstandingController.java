@@ -75,7 +75,8 @@ public class SimulationUnderstandingController {
     private final Duration visualTimeout;
     private final String visualReasoningEffort;
 
-    public SimulationUnderstandingController(SchemaDefinitionService schemas, SchemaEquationRuntime equations, GeneratedSimulationStorage storage, JevProperties jev,
+    public SimulationUnderstandingController(SchemaDefinitionService schemas, SchemaEquationRuntime equations,
+            GeneratedSimulationStorage storage, JevProperties jev,
             ObjectMapper json, @Value("${physlive.ai.provider.api-key}") String llmApiKey,
             @Value("${physlive.ai.provider.base-url}") URI llmBaseUrl,
             @Value("${physlive.ai.provider.text-model}") String llmModel,
@@ -117,14 +118,16 @@ public class SimulationUnderstandingController {
         this.visualSupportsResponseFormat = visualSupportsResponseFormat;
         this.maxCompletionTokens = maxCompletionTokens;
         this.visualApiKey = visualApiKey;
-        this.visualProvider = visualProvider == null || visualProvider.isBlank() ? "openai_compatible" : visualProvider.trim();
+        this.visualProvider = visualProvider == null || visualProvider.isBlank() ? "openai_compatible"
+                : visualProvider.trim();
         this.visualBaseUrl = visualBaseUrl;
         this.visualModel = visualModel;
         this.visualTemperature = visualTemperature;
         this.visualTimeout = visualTimeout;
         this.visualReasoningEffort = visualReasoningEffort == null ? "" : visualReasoningEffort.trim();
         this.allowedImageTypes = java.util.Arrays.stream(allowedImageTypes.split(","))
-                .map(String::trim).filter(type -> !type.isEmpty()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+                .map(String::trim).filter(type -> !type.isEmpty())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
         this.http = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
     }
 
@@ -132,7 +135,8 @@ public class SimulationUnderstandingController {
     public JsonNode understandText(@Valid @RequestBody UnderstandRequest request) {
         if (request.sessionId() != null && !request.sessionId().isBlank()) {
             String description = request.correctedText() == null || request.correctedText().isBlank()
-                    ? request.recognizedText() : request.correctedText();
+                    ? request.recognizedText()
+                    : request.correctedText();
             if (description == null || description.isBlank()) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "Confirmed OCR text is required");
             }
@@ -152,8 +156,10 @@ public class SimulationUnderstandingController {
         ObjectNode computed = equations.compute(schema.getDefinition(), brief, json.createObjectNode());
         ObjectNode input = json.createObjectNode();
         input.put("description", request.path("description").asText());
-        // The planner's plain-language explanation carries the teaching intent (what to notice).
-        if (request.path("explanation").isTextual()) input.put("planExplanation", request.path("explanation").asText());
+        // The planner's plain-language explanation carries the teaching intent (what to
+        // notice).
+        if (request.path("explanation").isTextual())
+            input.put("planExplanation", request.path("explanation").asText());
         input.set("confirmedBrief", visualBrief(brief));
         JsonNode diagnostics = request.path("renderDiagnostics");
         if (!diagnostics.isMissingNode()) {
@@ -172,14 +178,17 @@ public class SimulationUnderstandingController {
         JsonNode program = visual.path("visualProgram");
         java.util.List<String> unbound = unboundParticipants(program, brief);
         if (!unbound.isEmpty()) {
-            // Validation step 1 (generic, data-bound): every participant the solver computes must be
-            // driven on stage by its solver fields. Give the director one chance to fix it.
+            // Validation step 1 (generic, data-bound): every participant the solver
+            // computes is shown through a kit binding (body or instrument) so the renderer
+            // can cross-check the stage against the verified solver timeline. Give the
+            // director one chance to fix it. Whether the program really uses the kit is
+            // checked by the renderer at run time, not by matching the code text.
             ObjectNode retryDiagnostics = input.putObject("renderDiagnostics");
             retryDiagnostics.put("code", truncate(program.toString(), 3 * maxProgramCharacters));
             retryDiagnostics.put("message", "Not bound to solver data: participant(s) " + String.join(", ", unbound)
-                    + " have no body in scene and are never read in code (frame.fields['<id>.<quantity>']), so the learner "
-                    + "cannot see their computed behaviour. Keep your design, but make every participant's changing fields "
-                    + "visibly drive the stage.");
+                    + " have no body in scene.bodies, no instrument in scene.instruments and are never bound in code,"
+                    + " so the learner cannot see their computed behaviour. Keep your design, but give every participant"
+                    + " a kit binding (moving body or instrument) and keep your own drawings static.");
             JsonNode retried = askCompletion(input,
                     resource("prompts/simulation-visual-system.txt"),
                     renderingContract);
@@ -193,17 +202,20 @@ public class SimulationUnderstandingController {
         boolean hasScene = scene.isObject() && (scene.path("bodies").size() > 0
                 || !scene.path("environment").asText("").isBlank());
         if (!program.isObject() || (!hasScene && code.isEmpty()))
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated visual has neither SVG scene artwork nor PixiJS code");
+            throw new ApiException(HttpStatus.BAD_GATEWAY,
+                    "Generated visual has neither SVG scene artwork nor PixiJS code");
         if (code.length() > maxProgramCharacters || (hasScene && scene.toString().length() > 2L * maxProgramCharacters))
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated visual exceeds the code/artwork budget");
         if (!code.isEmpty() && (!code.startsWith("async function") || !code.contains("update")))
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "Generated PixiJS program must be an async function(PIXI, app, api) returning {update}");
+            throw new ApiException(HttpStatus.BAD_GATEWAY,
+                    "Generated PixiJS program must be an async function(PIXI, app, api) returning {update}");
         ObjectNode spec = (ObjectNode) brief.deepCopy();
         spec.remove("scene");
         spec.set("visualProgram", program);
         spec.set("solverTimeline", computed.path("solverTimeline"));
         spec.set("solverFieldMeta", fieldMeta);
-        if (program.path("design").isObject()) spec.set("visualDesign", program.path("design"));
+        if (program.path("design").isObject())
+            spec.set("visualDesign", program.path("design"));
         spec.put("runtimeKind", "SVG_PIXI");
         ObjectNode response = json.createObjectNode();
         response.put("sessionId", request.path("sessionId").asText(UUID.randomUUID().toString()));
@@ -225,7 +237,8 @@ public class SimulationUnderstandingController {
     public ObjectNode compute(@RequestBody JsonNode request) {
         requireSignedPlan(request);
         SchemaVersion schema = selectedSchema(request);
-        ObjectNode result = equations.compute(schema.getDefinition(), request.path("simulationSpec"), request.path("parameters"));
+        ObjectNode result = equations.compute(schema.getDefinition(), request.path("simulationSpec"),
+                request.path("parameters"));
         ((ObjectNode) result.path("validation")).put("topicVersion", schema.getVersion());
         return result;
     }
@@ -234,7 +247,8 @@ public class SimulationUnderstandingController {
     public LibraryItemResponse save(@Valid @RequestBody SaveGeneratedSimulationRequest request) {
         requireSignedPlan(request.simulation());
         SchemaVersion schema = selectedSchema(request.simulation());
-        ObjectNode computed = equations.compute(schema.getDefinition(), request.simulation().path("simulationSpec"), request.parameters());
+        ObjectNode computed = equations.compute(schema.getDefinition(), request.simulation().path("simulationSpec"),
+                request.parameters());
         ((ObjectNode) computed.path("validation")).put("topicVersion", schema.getVersion());
         return storage.save(request, schema, computed);
     }
@@ -251,13 +265,15 @@ public class SimulationUnderstandingController {
     }
 
     private SchemaVersion selectedSchema(JsonNode request) {
-        return schemas.requireCurrentApproved(request.path("schemaId").asText(), request.path("schemaVersion").asText());
+        return schemas.requireCurrentApproved(request.path("schemaId").asText(),
+                request.path("schemaVersion").asText());
     }
 
     private String signPlan(JsonNode request) {
         ObjectNode contract = json.createObjectNode();
         JsonNode spec = request.path("simulationSpec");
-        for (String field : java.util.List.of("durationSeconds", "durationParameter", "parameters", "physicsModels", "physicsCoverage"))
+        for (String field : java.util.List.of("durationSeconds", "durationParameter", "parameters", "physicsModels",
+                "physicsCoverage"))
             contract.set(field, spec.path(field));
         String payload = "physlive-simulation-plan-v1\n" + request.path("schemaId").asText() + "\n"
                 + request.path("schemaVersion").asText() + "\n" + request.path("description").asText() + "\n"
@@ -265,14 +281,19 @@ public class SimulationUnderstandingController {
         try {
             javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
             mac.init(new javax.crypto.spec.SecretKeySpec(signingKey, "HmacSHA256"));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
-        } catch (java.security.GeneralSecurityException ex) { throw new IllegalStateException("Cannot sign simulation plan", ex); }
+            return Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
+        } catch (java.security.GeneralSecurityException ex) {
+            throw new IllegalStateException("Cannot sign simulation plan", ex);
+        }
     }
 
     private void requireSignedPlan(JsonNode request) {
         String actual = request.path("planSignature").asText();
-        if (!java.security.MessageDigest.isEqual(signPlan(request).getBytes(StandardCharsets.UTF_8), actual.getBytes(StandardCharsets.UTF_8)))
-            throw new ApiException(HttpStatus.CONFLICT, "The simulation plan changed; submit the revised description for understanding first");
+        if (!java.security.MessageDigest.isEqual(signPlan(request).getBytes(StandardCharsets.UTF_8),
+                actual.getBytes(StandardCharsets.UTF_8)))
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "The simulation plan changed; submit the revised description for understanding first");
     }
 
     @PostMapping(path = "/understand", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -310,7 +331,8 @@ public class SimulationUnderstandingController {
             user.put("role", "user");
             var content = user.putArray("content");
             content.addObject().put("type", "text").put("text",
-                    text == null || text.isBlank() ? "Transcribe the image." : "Transcribe the image. User context, only to help read unclear symbols: " + text);
+                    text == null || text.isBlank() ? "Transcribe the image."
+                            : "Transcribe the image. User context, only to help read unclear symbols: " + text);
             ObjectNode image = content.addObject();
             image.put("type", "image_url");
             image.putObject("image_url").put("url", dataUrl);
@@ -326,10 +348,12 @@ public class SimulationUnderstandingController {
             result.put("displayText", recognized);
             result.put("sourceMode", "IMAGE");
             result.putNull("confidence");
-            if (recognized.isEmpty()) result.put("message", "Không nhận diện được nội dung rõ ràng từ ảnh.");
+            if (recognized.isEmpty())
+                result.put("message", "Không nhận diện được nội dung rõ ràng từ ảnh.");
             return result;
         } catch (IOException ex) {
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "Vision provider returned an invalid transcription response");
+            throw new ApiException(HttpStatus.BAD_GATEWAY,
+                    "Vision provider returned an invalid transcription response");
         }
     }
 
@@ -379,10 +403,13 @@ public class SimulationUnderstandingController {
         double confidence = answer.path("confidence").asDouble(0);
         double margin = margin(answer.path("probabilities"), selectedId);
         SchemaVersion selected = byId.get(selectedId);
-        // Topic schemas follow the curriculum strands and deliberately share capabilities
-        // (e.g. free fall is taught in both kinematics and dynamics), so a narrow margin between
+        // Topic schemas follow the curriculum strands and deliberately share
+        // capabilities
+        // (e.g. free fall is taught in both kinematics and dynamics), so a narrow
+        // margin between
         // two real topics is not ambiguity. Only a narrow margin against NO_MATCH is.
-        boolean ambiguousWithNoMatch = margin < jev.minimumMargin() && NO_MATCH.equals(runnerUp(answer.path("probabilities"), selectedId));
+        boolean ambiguousWithNoMatch = margin < jev.minimumMargin()
+                && NO_MATCH.equals(runnerUp(answer.path("probabilities"), selectedId));
         if (selectedId.isBlank() || NO_MATCH.equals(selectedId) || selected == null
                 || confidence < jev.minimumConfidence() || ambiguousWithNoMatch) {
             ObjectNode clarify = json.createObjectNode();
@@ -411,6 +438,7 @@ public class SimulationUnderstandingController {
             ((ObjectNode) spec).put("topic", selected.getTopic());
             ((ObjectNode) spec).put("topicVersion", selected.getVersion());
             if (response.path("stage").asText().equals("EXPLAIN")) {
+                reconcileParticipantCount(description, selected, response);
                 ObjectNode preview = previewWithRepair(description, selected, response);
                 response.set("validation", preview.path("validation"));
                 response.put("planSignature", signPlan(response));
@@ -444,7 +472,8 @@ public class SimulationUnderstandingController {
     private ObjectNode previewWithRepair(String description, SchemaVersion selected, ObjectNode response) {
         normalizePlan((ObjectNode) response.path("simulationSpec"));
         try {
-            return equations.compute(selected.getDefinition(), response.path("simulationSpec"), json.createObjectNode());
+            return equations.compute(selected.getDefinition(), response.path("simulationSpec"),
+                    json.createObjectNode());
         } catch (ApiException first) {
             ObjectNode feedback = json.createObjectNode();
             feedback.put("error", String.valueOf(first.getMessage()));
@@ -461,12 +490,51 @@ public class SimulationUnderstandingController {
             ObjectNode preview;
             try {
                 preview = equations.compute(selected.getDefinition(), fixed, json.createObjectNode());
-            } catch (ApiException second) { throw planFailure(second); }
+            } catch (ApiException second) {
+                throw planFailure(second);
+            }
             response.set("simulationSpec", fixed);
             for (String field : java.util.List.of("explanation", "defaults"))
-                if (retry.has(field)) response.set(field, retry.get(field));
+                if (retry.has(field))
+                    response.set(field, retry.get(field));
             return preview;
         }
+    }
+
+    /**
+     * The plan must contain every object the planner itself read from the description: the
+     * non-contextual requiredObjects (with their counts) are compared with the computed
+     * participants. Fewer participants than counted objects means objects would silently be
+     * missing from the simulation, so the planner gets one chance to add them (it may keep the
+     * plan when one capability computes several objects together).
+     */
+    private void reconcileParticipantCount(String description, SchemaVersion selected, ObjectNode response) {
+        JsonNode spec = response.path("simulationSpec");
+        int declared = 0;
+        for (JsonNode object : spec.path("requiredObjects"))
+            if (!object.path("contextual").asBoolean(false))
+                declared += Math.max(1, object.path("count").asInt(1));
+        int bound = spec.path("physicsModels").size();
+        if (bound == 0 || declared <= bound)
+            return;
+        ObjectNode feedback = json.createObjectNode();
+        feedback.put("error", "requiredObjects lists " + declared + " computed objects but physicsModels has only " + bound
+                + " participant(s). Give every counted object its own physicsModels entry (distinct id and label, shared"
+                + " parameters are fine) unless one capability computes several of them together, and update the explanation.");
+        feedback.set("previousPlan", spec);
+        JsonNode retry = askLlm(description, selected, feedback);
+        JsonNode fixed = retry.path("simulationSpec");
+        if (!fixed.isObject() || !"EXPLAIN".equals(retry.path("status").asText(retry.path("stage").asText()))
+                || fixed.path("physicsModels").size() <= bound)
+            return;
+        ObjectNode copy = (ObjectNode) fixed.deepCopy();
+        copy.put("schemaId", selected.getSchemaId());
+        copy.put("topic", selected.getTopic());
+        copy.put("topicVersion", selected.getVersion());
+        response.set("simulationSpec", copy);
+        for (String field : java.util.List.of("explanation", "defaults"))
+            if (retry.has(field))
+                response.set(field, retry.get(field));
     }
 
     private ApiException planFailure(ApiException cause) {
@@ -475,36 +543,49 @@ public class SimulationUnderstandingController {
                         + cause.getMessage() + ")");
     }
 
-    /** Intent-preserving fixes for common plan inconsistencies (no topic knowledge involved). */
+    /**
+     * Intent-preserving fixes for common plan inconsistencies (no topic knowledge
+     * involved).
+     */
     private void normalizePlan(ObjectNode spec) {
-        if (spec == null || spec.isMissingNode()) return;
+        if (spec == null || spec.isMissingNode())
+            return;
         Map<String, ObjectNode> parameters = new LinkedHashMap<>();
         for (JsonNode parameter : spec.path("parameters")) {
-            if (!(parameter instanceof ObjectNode p)) continue;
+            if (!(parameter instanceof ObjectNode p))
+                continue;
             parameters.put(p.path("name").asText(), p);
             double value = p.path("value").asDouble(Double.NaN);
             if (Double.isFinite(value)) {
-                if (p.has("min") && p.path("min").asDouble() > value) p.put("min", value);
-                if (p.has("max") && p.path("max").asDouble() < value) p.put("max", value);
+                if (p.has("min") && p.path("min").asDouble() > value)
+                    p.put("min", value);
+                if (p.has("max") && p.path("max").asDouble() < value)
+                    p.put("max", value);
             }
         }
         double duration = spec.path("durationSeconds").asDouble(Double.NaN);
         String key = spec.path("durationParameter").asText("");
-        if (spec.has("durationParameter") && (spec.path("durationParameter").isNull() || key.isBlank())) spec.remove("durationParameter");
+        if (spec.has("durationParameter") && (spec.path("durationParameter").isNull() || key.isBlank()))
+            spec.remove("durationParameter");
         else if (!key.isBlank()) {
             ObjectNode named = parameters.get(key);
             if (named == null || !"s".equals(named.path("unit").asText())) {
                 ObjectNode match = null;
                 for (ObjectNode p : parameters.values())
-                    if ("s".equals(p.path("unit").asText()) && p.path("value").asDouble(Double.NaN) == duration) match = p;
-                if (match != null) spec.put("durationParameter", match.path("name").asText());
-                else spec.remove("durationParameter");
+                    if ("s".equals(p.path("unit").asText()) && p.path("value").asDouble(Double.NaN) == duration)
+                        match = p;
+                if (match != null)
+                    spec.put("durationParameter", match.path("name").asText());
+                else
+                    spec.remove("durationParameter");
             } else if (!Double.isFinite(duration) || duration <= 0) {
                 spec.put("durationSeconds", named.path("value").asDouble());
             } else if (named.path("value").asDouble() != duration) {
                 named.put("value", duration);
-                if (named.path("max").asDouble(Double.MAX_VALUE) < duration) named.put("max", duration);
-                if (named.path("min").asDouble(0) > duration) named.put("min", duration);
+                if (named.path("max").asDouble(Double.MAX_VALUE) < duration)
+                    named.put("max", duration);
+                if (named.path("min").asDouble(0) > duration)
+                    named.put("min", duration);
             }
         }
     }
@@ -515,14 +596,19 @@ public class SimulationUnderstandingController {
 
     /**
      * What the planner needs from a schema: vocabulary, laws and each capability's
-     * inputs/outputs/equations/assumptions. Executable ASTs and verification data stay
-     * server-side (they are executed, never interpreted by the model), which keeps the
+     * inputs/outputs/equations/assumptions. Executable ASTs and verification data
+     * stay
+     * server-side (they are executed, never interpreted by the model), which keeps
+     * the
      * prompt small for rate-limited providers.
      */
     /**
-     * The planner sees only the selected topic, and only what it needs to bind a plan:
-     * capability contracts (inputs/outputs/equations/assumptions) plus a key → label map.
-     * Laws, relations, unit catalog and curriculum are derivable or irrelevant, so they are dropped.
+     * The planner sees only the selected topic, and only what it needs to bind a
+     * plan:
+     * capability contracts (inputs/outputs/equations/assumptions) plus a key →
+     * label map.
+     * Laws, relations, unit catalog and curriculum are derivable or irrelevant, so
+     * they are dropped.
      */
     private JsonNode planningView(JsonNode definition) {
         ObjectNode view = (ObjectNode) definition.deepCopy();
@@ -534,10 +620,12 @@ public class SimulationUnderstandingController {
             labels.put(quantity.path("key").asText(), quantity.path("label").asText());
         view.set("quantityDefinitions", labels);
         for (JsonNode type : view.path("objectTypes"))
-            if (type instanceof ObjectNode t) t.remove("description");
+            if (type instanceof ObjectNode t)
+                t.remove("description");
         for (JsonNode capability : view.path("capabilities")) {
             if (capability instanceof ObjectNode c)
-                for (String field : java.util.List.of("execution", "validation", "rendererBindings", "validityDomain", "applicability"))
+                for (String field : java.util.List.of("execution", "validation", "rendererBindings", "validityDomain",
+                        "applicability"))
                     c.remove(field);
         }
         return view;
@@ -560,7 +648,8 @@ public class SimulationUnderstandingController {
             ObjectNode input = json.createObjectNode();
             input.put("description", description);
             input.set("selectedSchema", planningView(selected.getDefinition()));
-            if (planFeedback != null) input.set("planFeedback", planFeedback);
+            if (planFeedback != null)
+                input.set("planFeedback", planFeedback);
             user.put("content", json.writeValueAsString(input));
             body.set("response_format", json.createObjectNode().put("type", "json_object"));
             JsonNode completion = post(endpoint(llmBaseUrl, "chat/completions"), llmApiKey, body, llmTimeout);
@@ -578,18 +667,25 @@ public class SimulationUnderstandingController {
     }
 
     private String resource(String path) {
-        try { return new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8); }
-        catch (IOException ex) { throw new IllegalStateException("Required simulation contract is unavailable: " + path, ex); }
+        try {
+            return new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Required simulation contract is unavailable: " + path, ex);
+        }
     }
 
     private JsonNode jsonResource(String path) {
-        try { return json.readTree(resource(path)); }
-        catch (IOException ex) { throw new IllegalStateException("Invalid simulation response contract: " + path, ex); }
+        try {
+            return json.readTree(resource(path));
+        } catch (IOException ex) {
+            throw new IllegalStateException("Invalid simulation response contract: " + path, ex);
+        }
     }
 
     private JsonNode askCompletion(JsonNode input, String system, JsonNode contract) {
         if (visualApiKey == null || visualApiKey.isBlank())
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Visual AI API key is not configured; set AI_VISUAL_API_KEY in env.local");
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Visual AI API key is not configured; set AI_VISUAL_API_KEY in env.local");
         if ("gemini_interactions".equalsIgnoreCase(visualProvider)) {
             return askGeminiInteraction(input, system, contract);
         }
@@ -598,14 +694,19 @@ public class SimulationUnderstandingController {
             ObjectNode body = json.createObjectNode();
             body.put("model", visualModel);
             body.put("temperature", visualTemperature);
-            // OpenRouter normalises max_tokens across providers; reasoning tokens count toward it.
+            // OpenRouter normalises max_tokens across providers; reasoning tokens count
+            // toward it.
             body.put(openRouter ? "max_tokens" : "max_completion_tokens", maxCompletionTokens);
             if (!visualReasoningEffort.isEmpty()) {
-                if (openRouter) body.putObject("reasoning").put("effort", visualReasoningEffort).put("exclude", true);
-                else body.put("reasoning_effort", visualReasoningEffort);
+                if (openRouter)
+                    body.putObject("reasoning").put("effort", visualReasoningEffort).put("exclude", true);
+                else
+                    body.put("reasoning_effort", visualReasoningEffort);
             }
-            // The JSON contract is written into the prompt only for requests where the provider
-            // does not enforce it (json_object / plain fallback); strict json_schema requests carry
+            // The JSON contract is written into the prompt only for requests where the
+            // provider
+            // does not enforce it (json_object / plain fallback); strict json_schema
+            // requests carry
             // it once, in response_format, instead of twice.
             String withContract = system + "\n\nRESPONSE CONTRACT (JSON Schema):\n" + contract;
             String user = json.writeValueAsString(input);
@@ -623,17 +724,23 @@ public class SimulationUnderstandingController {
                     strictMessages.addObject().put("role", "system").put("content", system);
                     strictMessages.addObject().put("role", "user").put("content", user);
                     format.put("type", "json_schema");
-                    format.putObject("json_schema").put("name", "simulation_visual").put("strict", true).set("schema", contract);
-                } else format.put("type", "json_object");
-                // Route only to endpoints that honour structured output (free models have many hosts).
-                if (openRouter) structured.putObject("provider").put("require_parameters", true);
+                    format.putObject("json_schema").put("name", "simulation_visual").put("strict", true).set("schema",
+                            contract);
+                } else
+                    format.put("type", "json_object");
+                // Route only to endpoints that honour structured output (free models have many
+                // hosts).
+                if (openRouter)
+                    structured.putObject("provider").put("require_parameters", true);
                 try {
-                    completion = post(endpoint(visualBaseUrl, "chat/completions"), visualApiKey, structured, visualTimeout);
+                    completion = post(endpoint(visualBaseUrl, "chat/completions"), visualApiKey, structured,
+                            visualTimeout);
                 } catch (ApiException ex) {
                     // No endpoint accepts the structured-output parameters: fall back to the
                     // prompt-level contract, which is still parsed and validated below.
                     String message = String.valueOf(ex.getMessage());
-                    if (!(message.contains("HTTP 400") || message.contains("HTTP 404") || message.contains("HTTP 422"))) throw ex;
+                    if (!(message.contains("HTTP 400") || message.contains("HTTP 404") || message.contains("HTTP 422")))
+                        throw ex;
                     completion = post(endpoint(visualBaseUrl, "chat/completions"), visualApiKey, body, visualTimeout);
                 }
             } else {
@@ -645,21 +752,27 @@ public class SimulationUnderstandingController {
                         "Visual AI output was truncated; increase AI_VISUAL_MAX_COMPLETION_TOKENS or lower AI_VISUAL_REASONING_EFFORT");
             if (completion.has("error") && choice.isMissingNode())
                 throw new ApiException(HttpStatus.BAD_GATEWAY, "Visual AI provider error: "
-                        + completion.path("error").path("message").asText("unknown").replace(visualApiKey, "[redacted]"));
+                        + completion.path("error").path("message").asText("unknown").replace(visualApiKey,
+                                "[redacted]"));
             JsonNode result = parseModelJson(choice.path("message").path("content"));
-            if (result == null || !result.isObject()) throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response must be an object");
+            if (result == null || !result.isObject())
+                throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response must be an object");
             return result;
         } catch (IOException ex) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM returned invalid visual program JSON");
         }
     }
 
-    /** Decode the documented OpenAI-compatible message content and parse its JSON contract. */
+    /**
+     * Decode the documented OpenAI-compatible message content and parse its JSON
+     * contract.
+     */
     private JsonNode parseModelJson(JsonNode content) throws IOException {
         if (content == null || content.isNull())
             throw new IOException("Provider returned empty message content");
         String text;
-        if (content.isTextual()) text = content.textValue();
+        if (content.isTextual())
+            text = content.textValue();
         else if (content.isArray()) {
             StringBuilder joined = new StringBuilder();
             for (JsonNode part : content) {
@@ -668,7 +781,8 @@ public class SimulationUnderstandingController {
                 joined.append(part.path("text").textValue());
             }
             text = joined.toString();
-        } else throw new IOException("Provider returned unsupported message content");
+        } else
+            throw new IOException("Provider returned unsupported message content");
         return parseJsonObject(text);
     }
 
@@ -685,7 +799,8 @@ public class SimulationUnderstandingController {
             result = json.readTree(trimmed);
         } catch (IOException direct) {
             int first = trimmed.indexOf('{'), last = trimmed.lastIndexOf('}');
-            if (first < 0 || last <= first) throw direct;
+            if (first < 0 || last <= first)
+                throw direct;
             result = json.readTree(trimmed.substring(first, last + 1));
         }
         if (result == null || !result.isObject())
@@ -694,9 +809,11 @@ public class SimulationUnderstandingController {
     }
 
     /**
-     * Semantic description of each solver field ("participant.output") taken from the
+     * Semantic description of each solver field ("participant.output") taken from
+     * the
      * approved schema: capability output units, quantity labels and renderer roles.
-     * Generic over the signed physicsModels; no lesson- or object-specific branches.
+     * Generic over the signed physicsModels; no lesson- or object-specific
+     * branches.
      */
     private ObjectNode solverFieldMeta(JsonNode definition, JsonNode brief) {
         ObjectNode result = json.createObjectNode();
@@ -707,8 +824,10 @@ public class SimulationUnderstandingController {
             String id = model.path("id").asText();
             JsonNode capability = null;
             for (JsonNode candidate : definition.path("capabilities"))
-                if (candidate.path("capabilityId").asText().equals(model.path("capabilityId").asText())) capability = candidate;
-            if (id.isBlank() || capability == null) continue;
+                if (candidate.path("capabilityId").asText().equals(model.path("capabilityId").asText()))
+                    capability = candidate;
+            if (id.isBlank() || capability == null)
+                continue;
             Map<String, String> roles = new LinkedHashMap<>();
             for (JsonNode binding : capability.path("rendererBindings")) {
                 String source = binding.path("source").asText();
@@ -722,9 +841,11 @@ public class SimulationUnderstandingController {
                 field.put("quantity", key);
                 field.put("unit", output.path("unit").asText(""));
                 JsonNode quantity = quantities.get(key);
-                if (quantity != null) field.put("label", quantity.path("label").asText(key));
+                if (quantity != null)
+                    field.put("label", quantity.path("label").asText(key));
                 String role = roles.get(key);
-                if (role != null) field.put("rendererRole", role);
+                if (role != null)
+                    field.put("rendererRole", role);
             }
         }
         return result;
@@ -742,7 +863,8 @@ public class SimulationUnderstandingController {
             format.set("schema", contract);
             JsonNode completion = postGeminiInteraction(visualBaseUrl, visualApiKey, body, visualTimeout);
             JsonNode result = parseJsonObject(geminiInteractionText(completion));
-            if (result == null || !result.isObject()) throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response must be an object");
+            if (result == null || !result.isObject())
+                throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response must be an object");
             return result;
         } catch (IOException ex) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM returned invalid visual program JSON");
@@ -753,17 +875,21 @@ public class SimulationUnderstandingController {
         JsonNode steps = completion.path("steps");
         if (steps.isArray()) {
             for (JsonNode step : steps) {
-                if (!"model_output".equals(step.path("type").asText())) continue;
+                if (!"model_output".equals(step.path("type").asText()))
+                    continue;
                 JsonNode content = step.path("content");
-                if (!content.isArray()) continue;
+                if (!content.isArray())
+                    continue;
                 for (JsonNode part : content) {
                     String text = part.path("text").asText("");
-                    if (!text.isBlank()) return text;
+                    if (!text.isBlank())
+                        return text;
                 }
             }
         }
         String output = completion.path("output_text").asText("");
-        if (!output.isBlank()) return output;
+        if (!output.isBlank())
+            return output;
         throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM response did not include output text");
     }
 
@@ -781,8 +907,10 @@ public class SimulationUnderstandingController {
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 String detail = "";
                 try {
-                    String message = json.readTree(response.body()).path("error").path("message").asText("").replace(apiKey, "[redacted]");
-                    if (!message.isBlank()) detail = ": " + message.substring(0, Math.min(400, message.length()));
+                    String message = json.readTree(response.body()).path("error").path("message").asText("")
+                            .replace(apiKey, "[redacted]");
+                    if (!message.isBlank())
+                        detail = ": " + message.substring(0, Math.min(400, message.length()));
                 } catch (IOException ignored) {
                     // Provider errors need not be JSON; never return the raw response body.
                 }
@@ -811,8 +939,10 @@ public class SimulationUnderstandingController {
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 String detail = "";
                 try {
-                    String message = json.readTree(response.body()).path("error").path("message").asText("").replace(apiKey, "[redacted]");
-                    if (!message.isBlank()) detail = ": " + message.substring(0, Math.min(400, message.length()));
+                    String message = json.readTree(response.body()).path("error").path("message").asText("")
+                            .replace(apiKey, "[redacted]");
+                    if (!message.isBlank())
+                        detail = ": " + message.substring(0, Math.min(400, message.length()));
                 } catch (IOException ignored) {
                     // Provider errors need not be JSON; never return the raw response body.
                 }
@@ -829,9 +959,12 @@ public class SimulationUnderstandingController {
     }
 
     /**
-     * Which value feeds each input of the law, derived from the signed plan itself (not from model
-     * prose): the quantity name comes from the approved vocabulary, the source is the slider the value
-     * is read from, a fixed number, or the law's own default. Lets the teacher see a wrong binding
+     * Which value feeds each input of the law, derived from the signed plan itself
+     * (not from model
+     * prose): the quantity name comes from the approved vocabulary, the source is
+     * the slider the value
+     * is read from, a fixed number, or the law's own default. Lets the teacher see
+     * a wrong binding
      * (e.g. a "half-life" slider feeding a decay constant) before confirming.
      */
     private ArrayNode formulaBindings(JsonNode definition, JsonNode capability, JsonNode model, JsonNode spec) {
@@ -839,7 +972,8 @@ public class SimulationUnderstandingController {
         for (JsonNode quantity : definition.path("quantityDefinitions"))
             labels.put(quantity.path("key").asText(), quantity.path("label").asText());
         Map<String, JsonNode> parameters = new LinkedHashMap<>();
-        for (JsonNode parameter : spec.path("parameters")) parameters.put(parameter.path("name").asText(), parameter);
+        for (JsonNode parameter : spec.path("parameters"))
+            parameters.put(parameter.path("name").asText(), parameter);
         ArrayNode rows = json.createArrayNode();
         for (JsonNode input : capability.path("canonicalInputs")) {
             String key = input.path("key").asText();
@@ -865,7 +999,10 @@ public class SimulationUnderstandingController {
         return rows;
     }
 
-    /** What the illustrator needs from the signed plan: participants, adjustable parameters, duration. */
+    /**
+     * What the illustrator needs from the signed plan: participants, adjustable
+     * parameters, duration.
+     */
     private ObjectNode visualBrief(JsonNode brief) {
         ObjectNode result = json.createObjectNode();
         result.set("durationSeconds", brief.path("durationSeconds"));
@@ -879,27 +1016,33 @@ public class SimulationUnderstandingController {
         for (JsonNode parameter : brief.path("parameters")) {
             ObjectNode item = parameters.addObject();
             for (String field : java.util.List.of("name", "label", "value", "unit", "min", "max"))
-                if (parameter.has(field)) item.set(field, parameter.get(field));
+                if (parameter.has(field))
+                    item.set(field, parameter.get(field));
         }
         return result;
     }
 
     /**
-     * One entry per solver field: meaning (label, unit, participant, renderer role) plus its first
-     * value and range over the run. Keys are exactly those the program reads from frame.fields.
+     * One entry per solver field: meaning (label, unit, participant, renderer role)
+     * plus its first
+     * value and range over the run. Keys are exactly those the program reads from
+     * frame.fields.
      */
     private ObjectNode visualFields(ObjectNode fieldMeta, JsonNode frames) {
         ObjectNode result = json.createObjectNode();
         for (JsonNode frame : frames) {
             frame.path("values").fields().forEachRemaining(value -> {
-                ObjectNode field = result.has(value.getKey()) ? (ObjectNode) result.get(value.getKey()) : result.putObject(value.getKey());
+                ObjectNode field = result.has(value.getKey()) ? (ObjectNode) result.get(value.getKey())
+                        : result.putObject(value.getKey());
                 if (!field.has("label") && fieldMeta.has(value.getKey())) {
                     fieldMeta.get(value.getKey()).fields().forEachRemaining(meta -> {
-                        if (!meta.getKey().equals("quantity") && !meta.getKey().equals("participantLabel")) field.set(meta.getKey(), meta.getValue());
+                        if (!meta.getKey().equals("quantity") && !meta.getKey().equals("participantLabel"))
+                            field.set(meta.getKey(), meta.getValue());
                     });
                 }
                 double v = value.getValue().asDouble();
-                if (!field.has("start")) field.put("start", v);
+                if (!field.has("start"))
+                    field.put("start", v);
                 field.put("min", Math.min(field.path("min").asDouble(v), v));
                 field.put("max", Math.max(field.path("max").asDouble(v), v));
             });
@@ -908,21 +1051,31 @@ public class SimulationUnderstandingController {
     }
 
     /**
-     * Participants whose solver fields nothing on stage reads: no scene body and no reference to
-     * "<id>." in the program. Programs that iterate api.scene.participants bind every participant.
+     * Participants nothing on stage illustrates: no scene body, no scene instrument
+     * on one of its fields
+     * and no reference to "<id>" in the program. Programs that iterate
+     * api.scene.participants bind every participant.
      */
     private static java.util.List<String> unboundParticipants(JsonNode program, JsonNode brief) {
         String code = program.path("code").asText("");
         java.util.Set<String> bodies = new java.util.HashSet<>();
         program.path("scene").path("bodies").forEach(body -> {
-            if (!body.path("svg").asText("").isBlank()) bodies.add(body.path("id").asText());
+            if (!body.path("svg").asText("").isBlank())
+                bodies.add(body.path("id").asText());
+        });
+        program.path("scene").path("instruments").forEach(instrument -> {
+            String field = instrument.path("field").asText("");
+            if (field.indexOf('.') > 0 && !instrument.path("svg").asText("").isBlank())
+                bodies.add(field.substring(0, field.indexOf('.')));
         });
         boolean generic = code.contains(".participants");
         java.util.List<String> unbound = new java.util.ArrayList<>();
         for (JsonNode model : brief.path("physicsModels")) {
             String id = model.path("id").asText();
-            if (id.isBlank() || bodies.contains(id) || generic) continue;
-            if (!code.contains("'" + id + ".") && !code.contains("\"" + id + ".") && !code.contains("`" + id + "."))
+            if (id.isBlank() || bodies.contains(id) || generic)
+                continue;
+            if (!code.contains("'" + id + ".") && !code.contains("\"" + id + ".") && !code.contains("`" + id + ".")
+                    && !code.contains("'" + id + "'") && !code.contains("\"" + id + "\""))
                 unbound.add(id);
         }
         return unbound;
@@ -933,30 +1086,38 @@ public class SimulationUnderstandingController {
     }
 
     /**
-     * Routing needs only what distinguishes one topic from another: its name, grade, the
-     * curriculum description written for routing, the curriculum contents and the titles of
-     * the laws it can compute. Equation ASTs, units and vocabulary never reach the router.
+     * Routing needs only what distinguishes one topic from another: its name,
+     * grade, the
+     * curriculum description written for routing, the curriculum contents and the
+     * titles of
+     * the laws it can compute. Equation ASTs, units and vocabulary never reach the
+     * router.
      */
     private String schemaDescription(SchemaVersion schema, int characterBudget) {
         JsonNode definition = schema.getDefinition();
         StringBuilder summary = new StringBuilder();
         appendBounded(summary, schema.getName(), characterBudget);
-        if (definition.hasNonNull("grade")) appendBounded(summary, "(lớp " + definition.path("grade").asText() + ").", characterBudget);
+        if (definition.hasNonNull("grade"))
+            appendBounded(summary, "(lớp " + definition.path("grade").asText() + ").", characterBudget);
         appendBounded(summary, definition.path("description").asText(""), characterBudget);
         for (JsonNode content : definition.path("curriculum"))
-            appendBounded(summary, content.path("name").asText("") + ": " + content.path("summary").asText(""), characterBudget);
+            appendBounded(summary, content.path("name").asText("") + ": " + content.path("summary").asText(""),
+                    characterBudget);
         StringBuilder laws = new StringBuilder();
         for (JsonNode capability : definition.path("capabilities")) {
             String title = capability.path("title").asText("");
-            if (!title.isBlank()) laws.append(laws.isEmpty() ? "Tính được: " : "; ").append(title);
+            if (!title.isBlank())
+                laws.append(laws.isEmpty() ? "Tính được: " : "; ").append(title);
         }
         appendBounded(summary, laws.toString(), characterBudget);
         return summary.toString();
     }
 
     private void appendBounded(StringBuilder target, String value, int characterBudget) {
-        if (value == null || value.isBlank() || target.length() >= characterBudget) return;
-        if (!target.isEmpty()) target.append(' ');
+        if (value == null || value.isBlank() || target.length() >= characterBudget)
+            return;
+        if (!target.isEmpty())
+            target.append(' ');
         int remaining = characterBudget - target.length();
         target.append(value, 0, Math.min(value.length(), remaining));
     }

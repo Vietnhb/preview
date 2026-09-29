@@ -20,7 +20,16 @@ export const ILLUSTRATED_SCENE_CODE = "async function(PIXI, app, api) { return a
 
 // A terminable worker in an opaque-origin iframe cannot access the host or network.
 const WORKER = String.raw`
-let app, lifecycle, data, kit, playing = true, loop = false, speed = 1, t = 0, last = performance.now(), nextAsset = 0;
+let app, lifecycle, data, kit, stage = null, playing = true, loop = false, speed = 1, t = 0, last = performance.now(), nextAsset = 0;
+const kitScenes = [];
+// Irregular fractions of the run so periodic motion cannot hide between samples.
+const VERIFY_TIMES = [0, 0.137, 0.291, 0.463, 0.618, 0.779, 0.912, 1];
+// The visual cross-check: every changing visual must be placed by the kit from the verified solver
+// timeline. Generated code only supplies artwork and static decoration.
+const KIT_GUIDE = ' Build the stage with api.kit.illustratedScene(api.sceneSpec) (or api.kit.standardScene()) and hand every changing visual to it:'
+  + ' moving bodies -> scene.bodies / base.attach(id, sprite); things riding on a body -> base.follow(id, item, {dx, dy});'
+  + ' ropes, wires, rods between bodies or fixed points -> scene.links / base.link(a, b); any changing state (a needle, a liquid level, a glow,'
+  + ' moving charges …) -> scene.instruments / base.instrument({field, art, part, drive}) with your own mapping. Your own objects must stay static (add them to base.props).';
 let frames = 0, lastSent = -1;
 const assets = new Map(), textureIds = new WeakMap(), textureLuma = new WeakMap();
 const QUIET_KEYS = new Set(['toJSON', 'then', 'asymmetricMatch', 'nodeType', '$$typeof']);
@@ -43,11 +52,14 @@ function strictFields(values) {
     return target[key];
   }});
 }
-function frame(dt = 0) {
-  return Object.freeze({t, dt, fields: strictFields(sampleTimeline(data.timeline, t)),
+function frame(dt = 0) { return frameAt(t, dt); }
+function frameAt(time, dt = 0) {
+  return Object.freeze({t: time, dt, fields: strictFields(sampleTimeline(data.timeline, time)),
     parameters: Object.freeze({...data.parameters}), width: app.screen.width,
     height: app.screen.height, theme: data.theme, verificationStatus: data.verificationStatus, scene: data.scene});
 }
+// Generated update first, then the kit re-applies every solver-bound placement (positions, instruments).
+function step(f) { stage.begin(); lifecycle.update(f); stage.finish(f); }
 function textureFrom(bitmap, resolution) {
   if (resolution > 1 && PIXI.ImageSource) return new PIXI.Texture({source: new PIXI.ImageSource({resource: bitmap, resolution})});
   return PIXI.Texture.from(bitmap);
@@ -87,7 +99,8 @@ async function start(message) {
   };
   kit = createStageKit(PIXI, app, {data: () => data, sample: time => sampleTimeline(data.timeline, time),
     svg: svgTexture, release: releaseTexture, luma: texture => textureLuma.get(texture),
-    fail: message => { send('error', {message: String(message)}); close(); }});
+    fail: message => { send('error', {message: String(message)}); close(); },
+    register: scene => { kitScenes.push(scene); }});
   const api = Object.freeze({
     get width() { return app.screen.width; }, get height() { return app.screen.height; },
     get scene() { return data.scene; },
@@ -124,7 +137,13 @@ async function start(message) {
   });
   lifecycle = await mount(compatiblePIXI, app, api);
   if (!lifecycle || typeof lifecycle.update !== 'function') throw Error('PixiJS code must return update(frame).');
-  lifecycle.update(frame(0)); app.render();
+  if (!kitScenes.length) throw Error('Visual cross-check: the program draws its own stage, so nothing on it can be checked against the verified solver data.' + KIT_GUIDE);
+  if (kitScenes.length > 1) throw Error('Visual cross-check: build exactly one kit scene (found ' + kitScenes.length + ').');
+  stage = kitScenes[0];
+  const duration = data.timeline.durationSeconds;
+  const issues = stage.verify(time => step(frameAt(time)), VERIFY_TIMES.map(k => k * duration));
+  if (issues.length) throw Error('Visual cross-check against the verified solver data failed:\n- ' + issues.join('\n- ') + '\n' + KIT_GUIDE);
+  step(frame(0)); app.render();
   send('ready', {t}); last = performance.now();
   setInterval(() => {
     try {
@@ -136,7 +155,7 @@ async function start(message) {
           if (loop) t = 0; else { t = duration; playing = false; send('ended', {t}); }
         }
       }
-      lifecycle.update(frame(dt)); app.render(); frames++;
+      step(frame(dt)); app.render(); frames++;
       if (frames === 20) checkVisible();
       if (t !== lastSent && (frames % 2 === 0 || !playing)) { lastSent = t; send('tick', {t}); }
       else if (frames % 30 === 0) send('tick', {t});
@@ -154,8 +173,8 @@ onmessage = async ({data: message}) => {
       case 'data':
         data = {...data, ...message}; data.ranges = ranges(data.timeline);
         t = Math.min(t, data.timeline.durationSeconds);
-        lifecycle?.setData?.(); lifecycle?.resize?.(app.screen.width, app.screen.height); break;
-      case 'theme': data.theme = message.theme; lifecycle?.setData?.(); lifecycle?.resize?.(app.screen.width, app.screen.height); break;
+        stage?.refresh(); lifecycle?.setData?.(); lifecycle?.resize?.(app.screen.width, app.screen.height); break;
+      case 'theme': data.theme = message.theme; stage?.refresh(); lifecycle?.setData?.(); lifecycle?.resize?.(app.screen.width, app.screen.height); break;
       case 'play':
         if (message.playing && t >= data.timeline.durationSeconds) t = 0;
         playing = message.playing; break;
@@ -296,7 +315,7 @@ addEventListener('message', ({source, data}) => {
         texturePixels = Math.max(0, texturePixels - (assetPixels.get(result.id) || 0)); assetPixels.delete(result.id);
       } else if (['tick','ready','ended'].includes(result.type)) {
         lastHeartbeat = Date.now(); send(result.type, {t: result.t});
-      } else if (result.type === 'error') stop(String(result.message).slice(0,1000));
+      } else if (result.type === 'error') stop(String(result.message).slice(0,2400));
     };
     worker.onerror = event => stop(event.message || 'PixiJS worker failed.');
     lastHeartbeat = Date.now();

@@ -9,6 +9,14 @@ const worker = source.match(/const WORKER = String.raw`([\s\S]*?)`;/)[1];
 const timeline = {durationSeconds: 1, frames: [
   {t: 0, values: {'arbitrary.position': 0}}, {t: 1, values: {'arbitrary.position': 10}},
 ]};
+// Minimal kit stand-in: standardScene() registers trusted internals with the runtime, like the real kit.
+const KIT = `const createStageKit = (PIXI, app, host) => ({palette: () => ({ink: "#123456"}), format: (value, unit) => value + " " + unit,
+standardScene() {
+  const calls = globalThis.kitCalls = {begin: 0, finish: 0};
+  host.register({root: {}, begin() { calls.begin++; }, finish() { calls.finish++; }, refresh() {},
+    verify: (run, times) => { for (const time of times) run(time); return globalThis.kitIssues || []; }});
+  return {update() {}};
+}});`;
 function runtime() {
   const messages = []; let tick;
   const app = {screen: {width: 600, height: 400}, stage: {children: [], addChild(item) {this.children.push(item);}},
@@ -16,12 +24,12 @@ function runtime() {
   const context = vm.createContext({Proxy, PIXI: {Application: function() {return app;}, Texture: {from: bitmap => bitmap}},
     performance: {now: () => 0}, postMessage: message => messages.push(message), close() {},
     setInterval: callback => {tick = callback;}});
-  vm.runInContext(sampleTimeline.toString() + '\nconst createStageKit = () => ({palette: () => ({ink: "#123456"}), format: (value, unit) => value + " " + unit});\n' + vm.runInNewContext('String.raw`' + worker + '`'), context);
-  return {app, messages, send: data => context.onmessage({data}), tick: () => tick()};
+  vm.runInContext(sampleTimeline.toString() + '\n' + KIT + '\n' + vm.runInNewContext('String.raw`' + worker + '`'), context);
+  return {app, messages, context, send: data => context.onmessage({data}), tick: () => tick()};
 }
 test('runs generated PixiJS functions without a predefined object or scene inventory', async () => {
   const host = runtime();
-  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) { api.kit.standardScene();
     const visuals = []; for (let i = 0; i < 7; i++) {const item = {i}; visuals.push(item); app.stage.addChild(item);}
     return {update(frame) { for (const item of visuals) item.x = frame.fields['arbitrary.position'] + item.i; }};
   }`});
@@ -33,7 +41,7 @@ test('runs generated PixiJS functions without a predefined object or scene inven
 
 test('generated code can use top-level palette and a detached format alias', async () => {
   const host = runtime();
-  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) { api.kit.standardScene();
     const item = {colour: api.palette().ink}; app.stage.addChild(item);
     const fmt = api.format;
     return {update(frame) { item.text = fmt(frame.fields['arbitrary.position'], 'm'); }};
@@ -47,7 +55,7 @@ test('generated code can use top-level palette and a detached format alias', asy
 });
 test('parameter edits replace backend fields and ranges without regenerating visual code', async () => {
   const host = runtime();
-  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) { api.kit.standardScene();
     const item = {}; app.stage.addChild(item);
     return {update(frame) {item.x = frame.fields['arbitrary.position']; item.range = api.getFieldRanges()['arbitrary.position'].max;},
       resize() {item.layoutRange = api.getFieldRanges()['arbitrary.position'].max;}};
@@ -61,7 +69,7 @@ test('parameter edits replace backend fields and ranges without regenerating vis
 
 test('generated scenes can convert HSV colours through the legacy Pixi utils API', async () => {
   const host = runtime();
-  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app) {
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) { api.kit.standardScene();
     const marker = {}; app.stage.addChild(marker);
     return {update(frame) {
       marker.colour = PIXI.utils.rgb2hex(PIXI.utils.hsv2rgb([frame.t / 3, 1, 1]));
@@ -93,7 +101,7 @@ test('runtime isolates code with an opaque iframe, blocked network and worker wa
 });
 test('unknown solver field keys fail loudly instead of silently drawing nothing', async () => {
   const host = runtime();
-  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) { api.kit.standardScene();
     return {update(frame) { app.stage.x = frame.fields['motion1.position']; }};
   }`});
   assert.equal(host.messages.at(-1).type, 'error');
@@ -101,7 +109,7 @@ test('unknown solver field keys fail loudly instead of silently drawing nothing'
 });
 test('playback stops at the end of the backend timeline and restarts on play', async () => {
   const host = runtime();
-  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) { api.kit.standardScene();
     return {update(frame) { app.stage.t = frame.t; }};
   }`});
   await host.send({type: 'seek', t: 0.5}); host.tick();
@@ -110,4 +118,35 @@ test('playback stops at the end of the backend timeline and restarts on play', a
   assert.equal(host.messages.some(item => item.type === 'ended'), true);
   await host.send({type: 'play', playing: true}); host.tick();
   assert.equal(host.app.stage.t, 0);
+});
+test('programs that draw their own stage are rejected: nothing on it can be cross-checked with the solver', async () => {
+  const host = runtime();
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) {
+    const item = {}; app.stage.addChild(item);
+    return {update(frame) { item.x = frame.fields['arbitrary.position']; }};
+  }`});
+  assert.equal(host.messages.at(-1).type, 'error');
+  assert.match(host.messages.at(-1).message, /Visual cross-check/);
+  assert.match(host.messages.at(-1).message, /illustratedScene/);
+  assert.equal(host.messages.some(item => item.type === 'ready'), false);
+});
+test('visual cross-check problems reported by the kit block the program before it is shown', async () => {
+  const host = runtime();
+  host.context.kitIssues = ['Graphics near (40, 60) moves by 120 px between t = 0 s and t = 0.5 s'];
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) { api.kit.standardScene();
+    return {update() {}};
+  }`});
+  assert.equal(host.messages.at(-1).type, 'error');
+  assert.match(host.messages.at(-1).message, /cross-check against the verified solver data failed[\s\S]*moves by 120 px/);
+});
+test('the kit re-applies solver-bound placements after every generated update', async () => {
+  const host = runtime();
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) { api.kit.standardScene();
+    return {update() {}};
+  }`});
+  assert.equal(host.messages.at(-1).type, 'ready');
+  const before = host.context.kitCalls.finish;
+  host.tick(); host.tick();
+  assert.equal(host.context.kitCalls.finish, before + 2);
+  assert.equal(host.context.kitCalls.begin, host.context.kitCalls.finish);
 });

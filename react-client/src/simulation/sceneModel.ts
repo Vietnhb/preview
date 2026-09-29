@@ -15,7 +15,9 @@ export type QuantityKind =
   | "force" | "energy" | "scalar";
 export type QuantityAxis = "x" | "y" | "along" | "none";
 export type QuantityInfo = { kind: QuantityKind; axis: QuantityAxis; label: string; symbol: string; unit: string };
-export type FieldMeta = QuantityInfo & { key: string; participantId: string; quantity: string; min: number; max: number };
+export type FieldMeta = QuantityInfo & { key: string; participantId: string; quantity: string; min: number; max: number;
+  /** Renderer role declared by the approved capability (state_value, position …), when the backend supplied it. */
+  role?: string };
 /** Optional per-field metadata from the backend (units/labels taken from the approved schema). */
 export type BackendFieldMeta = Record<string, { unit?: string; label?: string; quantity?: string; rendererRole?: string }>;
 /** Input names that mean "uniform gravitational field" (not the gravitational constant). */
@@ -139,7 +141,8 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
     const info = quantityInfo(quantity), supplied = backendMeta[key];
     fields[key] = { ...info, key, participantId, quantity, min, max,
       unit: supplied?.unit ? prettyUnit(supplied.unit) : info.unit,
-      label: info.kind === "scalar" && supplied?.label ? supplied.label.charAt(0).toUpperCase() + supplied.label.slice(1) : info.label };
+      label: info.kind === "scalar" && supplied?.label ? supplied.label.charAt(0).toUpperCase() + supplied.label.slice(1) : info.label,
+      ...(supplied?.rendererRole ? { role: supplied.rendererRole } : {}) };
   }
   const participants: SceneParticipant[] = [];
   for (const id of order) {
@@ -163,7 +166,10 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
     const dims: 0 | 1 | 2 = f.x && f.y ? 2 : f.position ? 1 : 0;
     const inputs = Object.keys(model?.inputs ?? {});
     const positionMeta = f.position ? fields[f.position] : undefined;
-    const vertical = dims === 1 && (positionMeta?.axis === "y" || inputs.some(name => GRAVITY_INPUT.test(name)));
+    /* the approved capability declares the axis (renderer role); the input-name pattern is only a fallback without backend metadata */
+    const role = f.position ? backendMeta[f.position]?.rendererRole : undefined;
+    const vertical = dims === 1 && (positionMeta?.axis === "y" || /vertical/.test(role ?? "")
+      || (role === undefined && inputs.some(name => GRAVITY_INPUT.test(name))));
     let link: SceneParticipant["link"] = null;
     if (dims === 2 && f.angle) {
       const radii = series[f.x!].map((x, i) => Math.hypot(x, series[f.y!][i]));
@@ -207,9 +213,13 @@ export function niceStep(span: number, targetTicks = 6) {
   return nice * power;
 }
 
-export function formatNumber(value: number, significant = 4) {
+/**
+ * scale: typical magnitude of the quantity (range or tick step). Only values negligible against it
+ * print as 0, so 5×10⁻²⁹ kg (a mass defect) or 1.6×10⁻¹⁹ C are shown, while rounding noise at a zero tick is not.
+ */
+export function formatNumber(value: number, significant = 4, scale = 0) {
   if (!Number.isFinite(value)) return "—";
-  if (value === 0 || Math.abs(value) < 1e-12) return "0";
+  if (value === 0 || Math.abs(value) < (scale > 0 ? scale * 1e-9 : 1e-300)) return "0";
   const magnitude = Math.abs(value);
   if (magnitude >= 1e5 || magnitude < 1e-3) {
     const [mantissa, exponent] = value.toExponential(2).split("e");

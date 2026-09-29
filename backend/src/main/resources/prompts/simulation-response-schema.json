@@ -51,7 +51,7 @@
                   },
                   "representation": {
                     "type": "string",
-                    "description": "How it looks and which solver fields drive which visible property."
+                    "description": "How it looks and which kit binding shows its solver fields (body moved along its position, or an instrument: its moving part and the drive mapping from the field)."
                   }
                 }
               }
@@ -84,6 +84,8 @@
             "support",
             "connector",
             "bodies",
+            "instruments",
+            "links",
             "overlay"
           ],
           "properties": {
@@ -163,6 +165,171 @@
                 }
               }
             },
+            "instruments": {
+              "type": "array",
+              "description": "One instrument per state quantity to show (temperature, current, voltage, charge, pressure, nuclei count, coil angle …) and, with drive.property 'none', a static picture of a participant that does not move. You draw the static body and, separately, the moving part; you declare how the solver field moves the part. The kit applies that mapping every frame, adds scale marks and prints the verified value.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "field",
+                  "label",
+                  "svg",
+                  "part",
+                  "drive"
+                ],
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "description": "Exact solver field key '<participantId>.<quantity>' that drives the part."
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "Short caption in the user's language ('' = the quantity name)."
+                  },
+                  "svg": {
+                    "type": "string",
+                    "description": "Complete SVG of the static body only (case, dial face, tube, lamp housing, circuit…): nothing that should move or change, no numbers."
+                  },
+                  "part": {
+                    "type": "string",
+                    "description": "Complete SVG of the moving part only (needle, liquid column at FULL level, glow, electron, piston, coil…), drawn in the SAME viewBox coordinate system as svg so it sits in place. '' when drive.property is 'none'."
+                  },
+                  "drive": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "property",
+                      "pivot",
+                      "path",
+                      "from",
+                      "to",
+                      "copies",
+                      "useFieldAngle",
+                      "min",
+                      "max"
+                    ],
+                    "description": "Mapping from the field to the part. The field's scale runs from min to max (null = the kit uses the solver range); its low end gives 'from', its high end gives 'to', linearly in between. All points in the body's viewBox units.",
+                    "properties": {
+                      "property": {
+                        "type": "string",
+                        "enum": [
+                          "rotate",
+                          "translate",
+                          "scale",
+                          "reveal",
+                          "opacity",
+                          "travel",
+                          "none"
+                        ],
+                        "description": "rotate: part turns about pivot, from/to = angles in degrees clockwise from the drawing (a needle, a lever); translate: part slides along path, from/to = fractions 0…1 of the path (piston, pointer); reveal: part is shown from path[0] towards the last path point up to fraction from/to (liquid column, bar, charge level); scale: part scales about pivot by factor from/to (balloon); opacity: part alpha from/to (glow, brightness); travel: 'copies' copies of part (drawn at path[0]) circulate along path at a speed proportional to the field, 'to' = laps over the run at the peak value (charges in a wire; close the path by repeating the first point for a loop); none: static picture."
+                      },
+                      "pivot": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "x",
+                          "y"
+                        ],
+                        "properties": {
+                          "x": {
+                            "type": "number"
+                          },
+                          "y": {
+                            "type": "number"
+                          }
+                        },
+                        "description": "Centre for rotate / scale."
+                      },
+                      "path": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "properties": {
+                            "x": {
+                              "type": "number"
+                            },
+                            "y": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "description": "Points for translate / reveal / travel (at least 2); [] otherwise."
+                      },
+                      "from": {
+                        "type": "number"
+                      },
+                      "to": {
+                        "type": "number"
+                      },
+                      "copies": {
+                        "type": "number",
+                        "description": "travel: number of copies (1-60); 1 otherwise."
+                      },
+                      "useFieldAngle": {
+                        "type": "boolean",
+                        "description": "rotate only: turn by the field's own angle (the field is an angle, e.g. a rotating coil) instead of from/to."
+                      },
+                      "min": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "description": "Low end of the field scale in its unit, or null for the solver range."
+                      },
+                      "max": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "description": "High end of the field scale in its unit, or null for the solver range."
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "links": {
+              "type": "array",
+              "description": "Straight solver-bound connections redrawn every frame: a rope over a pulley, a wire from a charge to a probe, a rod between two bodies. Empty if none.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "from",
+                  "to",
+                  "color",
+                  "width",
+                  "dashed"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "description": "A moving participant id, or a fixed world point 'x,y' in metres."
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "A moving participant id, or a fixed world point 'x,y' in metres."
+                  },
+                  "color": {
+                    "type": "string",
+                    "description": "CSS colour ('' = kit default)."
+                  },
+                  "width": {
+                    "type": "number",
+                    "description": "Line width in px (1-12)."
+                  },
+                  "dashed": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
             "overlay": {
               "type": "object",
               "additionalProperties": false,
@@ -202,11 +369,11 @@
               }
             }
           },
-          "description": "Optional shortcut for the kit's SVG illustrator (bodies moved along solver positions). Use empty strings, -1 and [] when you draw everything in code."
+          "description": "The stage the kit assembles and keeps bound to the verified solver data: environment and surface art (static), one SVG body per moving participant (moved by the kit), instruments for state quantities (driven by the kit) and links. Every changing visual must come from here or from the kit calls in code."
         },
         "code": {
           "type": "string",
-          "description": "The PixiJS v8 program async function(PIXI, app, api) { … return { update(frame), resize(), setData() } } that draws the stage; may be empty only when the scene shortcut alone shows every changing field."
+          "description": "Optional PixiJS v8 program async function(PIXI, app, api) { const base = await api.kit.illustratedScene(api.sceneSpec); … return { update(frame) { base.update(frame); … }, resize() { base.resize(); }, setData() { base.setData(); } } } that extends the kit stage with static props, base.follow / base.link / base.instrument / base.attach. Empty string when the scene alone is enough (preferred)."
         }
       }
     }

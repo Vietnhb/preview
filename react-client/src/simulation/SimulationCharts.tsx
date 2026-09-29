@@ -71,18 +71,20 @@ function Chart({ group, duration, time, onSeek }: Readonly<{ group: Group; durat
   const layout = useMemo(() => {
     let min = 0, max = 0;
     for (const series of group.series) for (const [, v] of series.points) if (Number.isFinite(v)) { min = Math.min(min, v); max = Math.max(max, v); }
-    if (max - min < 1e-12) { max += 1; min -= 1; }
+    /* flat or tiny-valued series (10⁻²⁹ kg, 10⁻¹⁹ C): pad relative to the data, not by ±1 */
+    const magnitude = Math.max(Math.abs(min), Math.abs(max));
+    if (!(max - min > magnitude * 1e-9)) { const d = magnitude > 0 ? magnitude * 0.5 : 1; max += d; min -= d; }
     const pad = (max - min) * 0.08;
     min -= min < 0 ? pad : 0; max += pad;
     const yStep = niceStep(max - min, 5), xStep = niceStep(duration, Math.max(3, Math.round(plotW / 90)));
     const x = (t: number) => m.l + (duration > 0 ? t / duration : 0) * plotW;
     const y = (v: number) => m.t + plotH - (v - min) / (max - min) * plotH;
     const yTicks: number[] = [], xTicks: number[] = [];
-    for (let v = Math.ceil(min / yStep) * yStep; v <= max + 1e-9; v += yStep) yTicks.push(Number(v.toPrecision(12)));
+    for (let v = Math.ceil(min / yStep) * yStep; v <= max + yStep * 1e-9; v += yStep) yTicks.push(Number(v.toPrecision(12)));
     for (let t = 0; t <= duration + 1e-9; t += xStep) xTicks.push(Number(t.toPrecision(12)));
     const paths = group.series.map(series => series.points
       .map(([t, v], i) => (i ? "L" : "M") + x(t).toFixed(1) + " " + y(v).toFixed(1)).join(""));
-    return { x, y, yTicks, xTicks, paths };
+    return { x, y, yTicks, xTicks, paths, yStep, xStep };
   }, [group, duration, plotW, plotH, m.l, m.t]);
   const seekFrom = (event: PointerEvent<SVGSVGElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
@@ -95,12 +97,12 @@ function Chart({ group, duration, time, onSeek }: Readonly<{ group: Group; durat
       onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); seekFrom(event); }}
       onPointerMove={event => { if (event.buttons) seekFrom(event); }}>
       {layout.yTicks.map(v => <g key={"y" + v}>
-        <line x1={m.l} x2={m.l + plotW} y1={layout.y(v)} y2={layout.y(v)} className={Math.abs(v) < 1e-12 ? "sim-chart__zero" : "sim-chart__grid"} />
-        <text x={m.l - 8} y={layout.y(v)} className="sim-chart__tick" textAnchor="end" dominantBaseline="middle">{formatNumber(v)}</text>
+        <line x1={m.l} x2={m.l + plotW} y1={layout.y(v)} y2={layout.y(v)} className={Math.abs(v) < layout.yStep * 1e-6 ? "sim-chart__zero" : "sim-chart__grid"} />
+        <text x={m.l - 8} y={layout.y(v)} className="sim-chart__tick" textAnchor="end" dominantBaseline="middle">{formatNumber(v, 4, layout.yStep)}</text>
       </g>)}
       {layout.xTicks.map(t => <g key={"x" + t}>
         <line x1={layout.x(t)} x2={layout.x(t)} y1={m.t} y2={m.t + plotH} className="sim-chart__grid" />
-        <text x={layout.x(t)} y={m.t + plotH + 16} className="sim-chart__tick" textAnchor="middle">{formatNumber(t)}</text>
+        <text x={layout.x(t)} y={m.t + plotH + 16} className="sim-chart__tick" textAnchor="middle">{formatNumber(t, 4, layout.xStep)}</text>
       </g>)}
       <line x1={m.l} x2={m.l} y1={m.t} y2={m.t + plotH} className="sim-chart__axis" />
       <line x1={m.l} x2={m.l + plotW} y1={m.t + plotH} y2={m.t + plotH} className="sim-chart__axis" />
@@ -152,7 +154,7 @@ export default function SimulationCharts({ scene, timeline, time, theme, onSeek 
           const shown = displayValue(series.meta, values[series.key]);
           return <span key={series.key} className="sim-legend__item">
             <i style={{ background: series.color }} data-dashed={series.dashed || undefined} />
-            {series.name}<b>{formatNumber(shown.value)} {shown.unit}</b>
+            {series.name}<b>{formatNumber(shown.value, 4, Math.max(Math.abs(series.meta.min), Math.abs(series.meta.max)))} {shown.unit}</b>
           </span>;
         })}
       </div>
@@ -163,12 +165,13 @@ export default function SimulationCharts({ scene, timeline, time, theme, onSeek 
         <thead><tr><th>Đối tượng</th><th>Đại lượng</th><th>Tại t = {time.toFixed(2)} s</th><th>Nhỏ nhất</th><th>Lớn nhất</th></tr></thead>
         <tbody>{Object.values(scene.fields).map(meta => {
           const now = displayValue(meta, values[meta.key]), low = displayValue(meta, meta.min), high = displayValue(meta, meta.max);
+          const scale = Math.max(Math.abs(low.value), Math.abs(high.value));
           return <tr key={meta.key}>
             <td>{labelOf.get(meta.participantId) ?? meta.participantId}</td>
             <td>{meta.label} <span className="sim-muted">({meta.symbol})</span></td>
-            <td className="sim-num">{formatNumber(now.value)} {now.unit}</td>
-            <td className="sim-num">{formatNumber(low.value)} {low.unit}</td>
-            <td className="sim-num">{formatNumber(high.value)} {high.unit}</td>
+            <td className="sim-num">{formatNumber(now.value, 4, scale)} {now.unit}</td>
+            <td className="sim-num">{formatNumber(low.value, 4, scale)} {low.unit}</td>
+            <td className="sim-num">{formatNumber(high.value, 4, scale)} {high.unit}</td>
           </tr>;
         })}</tbody>
       </table>

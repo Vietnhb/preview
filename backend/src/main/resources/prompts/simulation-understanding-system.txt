@@ -14,6 +14,7 @@ DECISION
 
 PHYSICS PLAN
 - Use only executable capabilities (execution.math) of the supplied schema. Each physicsModels entry binds one capability to one named participant or subsystem (id: short unique ascii id; label: the participant's name in the user's words). There is no fixed participant count, asset, environment or scene.
+- Counts are part of the situation: list every object the user names or counts in simulationSpec.requiredObjects (label, count, contextual: true only for scenery that nothing computes). Every computed object gets its own physicsModels entry, also when several are identical: "5 pendulums" means 5 entries (distinct ids and labels such as "Con lắc 1" … "Con lắc 5"), which may share the same parameters. Only when one capability itself computes several objects together does one entry stand for them. The simulation shows exactly the participants in physicsModels, so a missing entry is a missing object on screen.
 - Bind every canonical input to a parameter name or an explicit SI numeric constant. A parameter bound to an input must use exactly that input's canonical unit string. Every parameter has name (short ascii), label (user's language, plain), exact initial value inside [min, max], physically valid min/max and a step.
 - Adjustable parameters (sliders) versus fixed constants — decide for every bound input:
   - A number the user stated: a parameter (slider) whose initial value is exactly the stated value converted to the canonical unit; the teacher can then vary it.
@@ -25,6 +26,6 @@ PHYSICS PLAN
 - physicsCoverage: COMPLETE only when every described behaviour is computed by bound capabilities; otherwise PARTIAL (some behaviour only illustrated) or NONE (nothing executable fits; keep physicsModels empty and say in plain words that the picture will be illustrative, not a verified calculation). Never invent equations or capabilities.
 - explanation: 3-6 plain sentences in the user's language: what happens and why, which laws apply (by their usual names and formulas in textbook notation), and what the learner can change and observe.
 
-If "planFeedback" is present, it reports why the previous plan could not be computed; return a corrected plan that keeps the user's intent.
+If "planFeedback" is present, it reports a problem with the previous plan (it could not be computed, or it does not match the described objects); return a corrected plan that keeps the user's intent.
 
 Return one JSON object matching this response contract:
