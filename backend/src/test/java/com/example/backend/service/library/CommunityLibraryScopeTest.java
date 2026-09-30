@@ -76,9 +76,29 @@ class CommunityLibraryScopeTest {
     }
 
     private void query(User viewer, String topic, List<LibraryItem> results) {
-        when(currentUser.requireCurrentUser()).thenReturn(viewer);
+        when(currentUser.currentUserOrNull()).thenReturn(viewer);
         when(items.findSearchVisibleItems(viewer.getId(), viewer.getInstitutionId(),
                 Visibility.PERSONAL, Visibility.PUBLIC, PUBLISHED, topic)).thenReturn(results);
+    }
+
+    @Test
+    void anonymousCommunityContainsOnlyActivePublishedSystemResources() {
+        User owner = user(1, UUID.randomUUID());
+        LibraryItem system = item("System", Visibility.PUBLIC, owner);
+        LibraryItem featured = item("Featured", Visibility.PUBLIC, owner);
+        featured.setModerationStatus(LibraryModerationStatus.FEATURED);
+        LibraryItem school = item("School", Visibility.SHARED, owner);
+        LibraryItem personal = item("Personal", Visibility.PERSONAL, owner);
+        LibraryItem pending = item("Pending", Visibility.PUBLIC, owner);
+        pending.setModerationStatus(LibraryModerationStatus.PENDING);
+        LibraryItem inactive = item("Inactive", Visibility.PUBLIC, owner);
+        inactive.setActive(false);
+        when(items.findCommunityItems(Visibility.PUBLIC, PUBLISHED, "Vật lý"))
+                .thenReturn(List.of(system, featured, school, personal, pending, inactive));
+
+        assertEquals(List.of("System", "Featured"), service.community("  Vật lý  ")
+                .stream().map(value -> value.title()).toList());
+        verify(items).findCommunityItems(Visibility.PUBLIC, PUBLISHED, "Vật lý");
     }
 
     private User user(int id, UUID schoolId) {

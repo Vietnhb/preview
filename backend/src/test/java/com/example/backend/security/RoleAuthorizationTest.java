@@ -82,6 +82,16 @@ class RoleAuthorizationTest {
         @Bean ProbeController probe() { return new ProbeController(); }
     }
 
+    @ParameterizedTest
+    @CsvSource({
+        "GET,/api/library/community,200", "GET,/api/simulations/shared/123,200", "GET,/api/curriculum,200",
+        "POST,/api/library/community,401", "GET,/api/library,401",
+        "GET,/api/reviewer/library,401", "GET,/api/admin/users,401"
+    })
+    void anonymousCommunityAccessDoesNotOpenPrivateEndpoints(String method, String path, int expected) throws Exception {
+        mvc.perform(request(HttpMethod.valueOf(method), path)).andExpect(status().is(expected));
+    }
+
     @RestController static class ProbeController {
         @RequestMapping("/api/**") String ok() { return "ok"; }
     }

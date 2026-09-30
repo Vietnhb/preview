@@ -31,7 +31,7 @@ export function useCommunityLibrary() {
       setItems(itemsResult.value);
       setCurriculum(catalogResult.status === "fulfilled" ? catalogResult.value : null);
     } catch {
-      if (requestId === listRequestRef.current) setError("Vui lòng kiểm tra kết nối hoặc đăng nhập lại.");
+      if (requestId === listRequestRef.current) setError("Không tải được thư viện. Vui lòng thử lại.");
     } finally {
       if (requestId === listRequestRef.current) setLoading(false);
     }

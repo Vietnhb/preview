@@ -197,6 +197,6 @@ public class LibraryService {
     }
 
     private String normalizedTopic(String topic) {
-        return topic == null || topic.isBlank() ? null : topic;
+        return topic == null || topic.isBlank() ? null : topic.trim();
     }
 }

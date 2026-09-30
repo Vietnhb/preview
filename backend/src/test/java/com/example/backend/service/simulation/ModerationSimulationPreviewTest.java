@@ -48,7 +48,7 @@ class ModerationSimulationPreviewTest {
     @Test void reviewerWithReviewCapabilityPreviewsPendingPublicWithoutAnArbitraryPersonalClone() {
         User actor = user("REVIEWER", null); actor.setReviewerCanEdit(false); actor.setReviewerCanReview(true);
         LibraryItem item = item(Visibility.PUBLIC, UUID.randomUUID());
-        when(current.requireCurrentUser()).thenReturn(actor);
+        when(current.currentUserOrNull()).thenReturn(actor);
         when(library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(item.getSimulation().getId(), Visibility.PUBLIC)).thenReturn(List.of(item));
         assertNotNull(service.getShared(item.getSimulation().getId()));
         verify(library, never()).findFirstBySimulationId(any());
@@ -57,7 +57,7 @@ class ModerationSimulationPreviewTest {
 
     @Test void editOnlyReviewerCannotPreviewPendingContent() {
         User actor = user("REVIEWER", null); actor.setReviewerCanEdit(true); actor.setReviewerCanReview(false);
-        when(current.requireCurrentUser()).thenReturn(actor); UUID id = UUID.randomUUID();
+        when(current.currentUserOrNull()).thenReturn(actor); UUID id = UUID.randomUUID();
         assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class, () -> service.getShared(id)).getStatus());
         verify(library, never()).findBySimulationIdAndVisibilityOrderByCreatedAtDesc(any(), any());
         expectPublishedLookup(id, null); verifyNoInteractions(runs);
@@ -66,7 +66,7 @@ class ModerationSimulationPreviewTest {
     @Test void departmentHeadPreviewsLegacyBlankScopeOnlyWithinOwnSchool() {
         UUID school = UUID.randomUUID(); User actor = user("STAFF", school); actor.setStaffType("DEPARTMENT_HEAD");
         LibraryItem own = item(Visibility.SHARED, school); own.setSharedInstitutionId(" ");
-        when(current.requireCurrentUser()).thenReturn(actor);
+        when(current.currentUserOrNull()).thenReturn(actor);
         when(library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(own.getSimulation().getId(), Visibility.SHARED)).thenReturn(List.of(own));
         assertNotNull(service.getShared(own.getSimulation().getId()));
         own.getOwner().getSchool().setId(UUID.randomUUID());
@@ -77,7 +77,7 @@ class ModerationSimulationPreviewTest {
     @Test void headCannotPreviewContentExplicitlySharedToAnotherSchoolOrPublicPending() {
         UUID school = UUID.randomUUID(); User actor = user("STAFF", school); actor.setStaffType("DEPARTMENT_HEAD");
         LibraryItem item = item(Visibility.SHARED, school); item.setSharedInstitutionId(UUID.randomUUID().toString());
-        when(current.requireCurrentUser()).thenReturn(actor);
+        when(current.currentUserOrNull()).thenReturn(actor);
         when(library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(item.getSimulation().getId(), Visibility.SHARED)).thenReturn(List.of(item));
         assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class, () -> service.getShared(item.getSimulation().getId())).getStatus());
         verify(library, never()).findBySimulationIdAndVisibilityOrderByCreatedAtDesc(any(), eq(Visibility.PUBLIC));
@@ -86,10 +86,31 @@ class ModerationSimulationPreviewTest {
 
     @Test void withdrawnPendingContentIsUnavailableButModeratorsCanInspectRemovedContent() {
         User actor = user("REVIEWER", null); LibraryItem item = item(Visibility.PUBLIC, null); item.setActive(false);
-        when(current.requireCurrentUser()).thenReturn(actor);
+        when(current.currentUserOrNull()).thenReturn(actor);
         when(library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(item.getSimulation().getId(), Visibility.PUBLIC)).thenReturn(List.of(item));
         assertThrows(ApiException.class, () -> service.getShared(item.getSimulation().getId()));
         item.setModerationStatus(LibraryModerationStatus.REMOVED);
         assertNotNull(service.getShared(item.getSimulation().getId()));
+    }
+
+    @Test void anonymousViewerCanOpenOnlyPublishedPublicSimulations() {
+        LibraryItem item = item(Visibility.PUBLIC, UUID.randomUUID());
+        item.setModerationStatus(LibraryModerationStatus.APPROVED);
+        UUID id = item.getSimulation().getId();
+        when(library.findVisiblePublishedSimulation(id, Set.of(Visibility.PUBLIC), Visibility.PUBLIC,
+                Set.of(LibraryModerationStatus.APPROVED, LibraryModerationStatus.FEATURED), null))
+                .thenReturn(Optional.of(item));
+        assertNotNull(service.getShared(id));
+        verify(library, never()).findBySimulationIdAndVisibilityOrderByCreatedAtDesc(any(), any());
+        verify(runs).findFirstBySimulationIdOrderByCreatedAtDesc(id);
+    }
+
+    @Test void anonymousViewerCannotPreviewPrivateOrUnpublishedSimulations() {
+        UUID id = UUID.randomUUID();
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class, () -> service.getShared(id)).getStatus());
+        verify(library).findVisiblePublishedSimulation(id, Set.of(Visibility.PUBLIC), Visibility.PUBLIC,
+                Set.of(LibraryModerationStatus.APPROVED, LibraryModerationStatus.FEATURED), null);
+        verify(library, never()).findBySimulationIdAndVisibilityOrderByCreatedAtDesc(any(), any());
+        verifyNoInteractions(runs);
     }
 }

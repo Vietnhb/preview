@@ -4,6 +4,8 @@ import com.example.backend.dto.curriculum.CurriculumTreeResponse;
 import com.example.backend.dto.curriculum.CurriculumTreeResponse.TopicItem;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.service.curriculum.CurriculumService;
+import com.example.backend.service.account.CurrentUserService;
+import com.example.backend.entity.account.User;
 import com.example.backend.service.problem.SchemaDefinitionService;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +26,7 @@ class CurriculumControllerTest {
         var motion = new TopicItem(UUID.randomUUID(), "KINEMATICS", "kinematics", true, 0, List.of());
         when(curriculum.getActiveTreeForTopic("KINEMATICS")).thenReturn(new CurriculumTreeResponse(List.of(motion)));
 
-        var result = new CurriculumController(curriculum, schemas).getTree(true, "thpt_kinematics", "1.0");
+        var result = new CurriculumController(curriculum, schemas, mock(CurrentUserService.class)).getTree(true, "thpt_kinematics", "1.0");
 
         assertEquals(List.of(motion), result.topics());
         verify(curriculum).getActiveTreeForTopic("KINEMATICS");
@@ -38,8 +40,22 @@ class CurriculumControllerTest {
         var schemas = mock(SchemaDefinitionService.class);
         var tree = new CurriculumTreeResponse(List.of());
         when(curriculum.getTree(true)).thenReturn(tree);
+        var current = mock(CurrentUserService.class);
+        when(current.currentUserOrNull()).thenReturn(new User());
 
-        assertEquals(tree, new CurriculumController(curriculum, schemas).getTree(true, null, null));
+        assertEquals(tree, new CurriculumController(curriculum, schemas, current).getTree(true, null, null));
+        verifyNoInteractions(schemas);
+    }
+
+    @Test
+    void anonymousRequestCannotIncludeInactiveCurriculum() {
+        var curriculum = mock(CurriculumService.class);
+        var schemas = mock(SchemaDefinitionService.class);
+        var tree = new CurriculumTreeResponse(List.of());
+        when(curriculum.getTree(false)).thenReturn(tree);
+        assertEquals(tree, new CurriculumController(curriculum, schemas, mock(CurrentUserService.class))
+                .getTree(true, null, null));
+        verify(curriculum).getTree(false);
         verifyNoInteractions(schemas);
     }
 }
