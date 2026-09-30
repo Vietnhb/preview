@@ -64,20 +64,31 @@ public class JwtFilter extends OncePerRequestFilter {
             }
             if (currentUser.isPresent() && currentUser.get().getRole() != null) {
                 var user = currentUser.get();
-                String role = user.getRole().getName();
+                RoleName currentRole = RoleName.from(user.getRole().getName()).orElse(null);
+                if (currentRole == null) {
+                    writeForbidden(response, "Account role is not configured");
+                    return;
+                }
+                String role = currentRole.name();
                 boolean schoolRole = RoleName.from(role).map(RoleName::isSchoolRole).orElse(false);
                 boolean write = !List.of("GET", "HEAD", "OPTIONS").contains(request.getMethod());
                 String path = request.getRequestURI().substring(request.getContextPath().length());
+                boolean passwordLifecyclePath = isPasswordLifecyclePath(request.getMethod(), path);
+                if (user.isMustChangePassword() && !passwordLifecyclePath) {
+                    SecurityContextHolder.clearContext();
+                    writePasswordChangeRequired(response);
+                    return;
+                }
                 boolean licenseActive = licenseCheckService.isLicenseActive(user);
-                if ((RoleName.TEACHER.matches(role) || RoleName.STUDENT.matches(role)) && !licenseActive) {
+                if (!passwordLifecyclePath && (RoleName.STAFF.matches(role) || RoleName.STUDENT.matches(role)) && !licenseActive) {
                     writeForbidden(response, LICENSE_REQUIRED_MESSAGE);
                     return;
                 }
-                if (RoleName.SCHOOL_MANAGER.matches(role) && !licenseActive && !isManagerBillingPath(path)) {
+                if (!passwordLifecyclePath && RoleName.SCHOOL.matches(role) && !licenseActive && !isManagerBillingPath(path)) {
                     writeForbidden(response, "Vui lòng mua hoặc gia hạn gói để tiếp tục sử dụng PhysLive.");
                     return;
                 }
-                boolean managerRenewalRequest = RoleName.SCHOOL_MANAGER.matches(role)
+                boolean managerRenewalRequest = RoleName.SCHOOL.matches(role)
                         && "POST".equals(request.getMethod())
                         && ("/api/school/billing/quote".equals(path)
                                 || "/api/school/billing/checkout".equals(path));
@@ -92,7 +103,7 @@ public class JwtFilter extends OncePerRequestFilter {
                             HttpServletResponse.SC_FORBIDDEN, "School license does not allow writes"));
                     return;
                 }
-                String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+                String authority = currentRole.authority();
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(email, null,
                                 List.of(new SimpleGrantedAuthority(authority)));
@@ -108,6 +119,20 @@ public class JwtFilter extends OncePerRequestFilter {
                 || "/api/user/me/license".equals(path)
                 || "/api/school/billing".equals(path)
                 || path.startsWith("/api/school/billing/");
+    }
+
+    private static boolean isPasswordLifecyclePath(String method, String path) {
+        return "GET".equals(method) && "/api/user/me".equals(path)
+                || "PUT".equals(method) && "/api/user/me/password".equals(path)
+                || "POST".equals(method) && "/api/auth/logout".equals(path);
+    }
+
+    private void writePasswordChangeRequired(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        objectMapper.writeValue(response.getOutputStream(), new ErrorResponse(HttpServletResponse.SC_FORBIDDEN,
+                "Vui lòng đổi mật khẩu khởi tạo trước khi sử dụng hệ thống.", "PASSWORD_CHANGE_REQUIRED", null));
     }
 
     private void writeForbidden(HttpServletResponse response, String message) throws IOException {

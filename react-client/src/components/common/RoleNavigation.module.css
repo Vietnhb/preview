@@ -1,0 +1,11 @@
+.nav { background:var(--color-panel-solid); border-bottom:1px solid var(--gray-5); position:sticky; top:0; z-index:30; }
+.inner { max-width:1600px; min-height:72px; margin:0 auto; padding:0 32px; display:flex; align-items:center; gap:40px; }
+.brand { display:flex; align-items:center; gap:10px; color:var(--gray-12); font-size:22px; font-weight:700; letter-spacing:-.045em; text-decoration:none; }
+.brand img { width:34px; height:34px; border-radius:9px; }
+.links { align-self:stretch; box-shadow:none; }
+.links a { display:flex; gap:9px; align-items:center; font-size:14px; }
+.account { margin-left:auto; }
+.profile span:last-child { max-width:180px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.nav .mobile { display:none; }
+@media(max-width:820px) { .inner { min-height:64px; padding:0 20px; gap:20px; } .profile span:last-child { display:none; } }
+@media(max-width:600px) { .inner { padding:0 16px; } .nav .links,.nav .account { display:none; } .nav .mobile { display:inline-flex; margin-left:auto; } }

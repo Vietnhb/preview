@@ -21,7 +21,7 @@ import lombok.Data;
 
 /**
  * Student enrollment in a class.
- * SCHOOL_MANAGER creates class with students already assigned.
+ * SCHOOL creates class with students already assigned.
  * 
  * Business Rules:
  * - 1 student can only be in 1 ACTIVE class per school year (UNIQUE constraint)

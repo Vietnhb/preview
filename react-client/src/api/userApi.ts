@@ -21,7 +21,8 @@ export const updateAvatar = async (avatarUrl: string) => {
 };
 
 export const changePassword = async (currentPassword: string, newPassword: string) => {
-    await axiosClient.put("/user/me/password", { currentPassword, newPassword });
+    const res = await axiosClient.put<User>("/user/me/password", { currentPassword, newPassword });
+    return res.data;
 };
 
 export type LicenseStatus = {

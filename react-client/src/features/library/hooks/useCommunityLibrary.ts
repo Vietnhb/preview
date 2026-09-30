@@ -42,7 +42,7 @@ export function useCommunityLibrary() {
     return () => { listRequestRef.current += 1; requestRef.current += 1; };
   }, [load]);
 
-  const close = () => {
+  const close = useCallback(() => {
     requestRef.current += 1;
     setSelectedItem(null);
     setSimulation(null);
@@ -51,7 +51,7 @@ export function useCommunityLibrary() {
     setFrame(0);
     setTime(0);
     setPlaying(false);
-  };
+  }, []);
 
   const open = async (item: LibraryItem) => {
     const requestId = ++requestRef.current;

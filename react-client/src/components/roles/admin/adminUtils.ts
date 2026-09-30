@@ -1,11 +1,9 @@
-import axios from "axios";
 import type { CurriculumTree } from "../../../api/adminApi";
 export type CurriculumKind = "topic" | "module" | "level" | "lesson";
 
-export const roleLabels: Record<string, string> = { ADMIN: "Quản trị viên", TEACHER: "Giáo viên", STUDENT: "Học sinh", REVIEWER: "Reviewer", SCHOOL_MANAGER: "Quản lý trường" };
+export { ROLE_LABELS as roleLabels } from "../../../types/roles";
 
-export const apiMessage = (error: unknown, fallback: string) => axios.isAxiosError<{ message?: string }>(error)
-  ? error.response?.data?.message ?? fallback : fallback;
+export { apiMessage } from "../../../utils/apiError";
 
 export function curriculumPath(kind: CurriculumKind, parentId: string) {
   if (kind === "topic") return "topics";

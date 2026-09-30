@@ -21,7 +21,7 @@ import lombok.Data;
  * Business Rules:
  * - License expires: users can login but read-only access + renewal banner
  * - AI quota: monthly allocation for simulation generation
- * - Only 1 SCHOOL_MANAGER per school (enforced via UNIQUE constraint on users table)
+ * - Only 1 SCHOOL per school (enforced via UNIQUE constraint on users table)
  */
 @Entity
 @Table(name = "schools")

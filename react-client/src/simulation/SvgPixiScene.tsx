@@ -3,7 +3,7 @@ import pixiBundle from "../../node_modules/pixi.js/dist/webworker.min.js?raw";
 import purifierBundle from "../../node_modules/dompurify/dist/purify.min.js?raw";
 import Icon from "../components/common/LearningIcon";
 import { sampleTimeline, type SolverTimeline, type PixiVisualProgram } from "./svgScene";
-import { describeScene, formatNumber, formatTime, presentationRate, type BackendFieldMeta, type SimulationModelRef } from "./sceneModel";
+import { describeScene, formatNumber, formatTime, presentationRate, replayTooFast, type BackendFieldMeta, type SimulationModelRef } from "./sceneModel";
 import { createStageKit } from "./stageKit";
 import SimulationCharts from "./SimulationCharts";
 import { useWorkspaceTheme } from "./useWorkspaceTheme";
@@ -29,7 +29,8 @@ const VERIFY_TIMES = [0, 0.137, 0.291, 0.463, 0.618, 0.779, 0.912, 1];
 const KIT_GUIDE = ' Build the stage with api.kit.illustratedScene(api.sceneSpec) (or api.kit.standardScene()) and hand every changing visual to it:'
   + ' moving bodies -> scene.bodies / base.attach(id, sprite); things riding on a body -> base.follow(id, item, {dx, dy});'
   + ' ropes, wires, rods between bodies or fixed points -> scene.links / base.link(a, b); any changing state (a needle, a liquid level, a glow,'
-  + ' moving charges …) -> scene.instruments / base.instrument({field, art, part, drive}) with your own mapping. Your own objects must stay static (add them to base.props).';
+  + ' moving charges …) -> scene.instruments / base.instrument({field, art, part, drive}) with your own mapping; things standing at a physical place'
+  + ' (wall, stop, fixed charge) -> scene.fixtures / base.fixture(sprite, {x, y, anchor, solid}). Your own objects must stay static (add them to base.props).';
 let frames = 0, lastSent = -1;
 const assets = new Map(), textureIds = new WeakMap(), textureLuma = new WeakMap();
 const QUIET_KEYS = new Set(['toJSON', 'then', 'asymmetricMatch', 'nodeType', '$$typeof']);
@@ -60,6 +61,13 @@ function frameAt(time, dt = 0) {
 }
 // Generated update first, then the kit re-applies every solver-bound placement (positions, instruments).
 function step(f) { stage.begin(); lifecycle.update(f); stage.finish(f); }
+// Render at several times of the CURRENT solver timeline and compare the stage with it. Runs when the
+// program starts and again whenever the backend recomputes the timeline (parameter edits).
+function crossCheck() {
+  const duration = data.timeline.durationSeconds;
+  const issues = stage.verify(time => step(frameAt(time)), VERIFY_TIMES.map(k => k * duration));
+  if (issues.length) throw Error('Visual cross-check against the verified solver data failed:\n- ' + issues.join('\n- ') + '\n' + KIT_GUIDE);
+}
 function textureFrom(bitmap, resolution) {
   if (resolution > 1 && PIXI.ImageSource) return new PIXI.Texture({source: new PIXI.ImageSource({resource: bitmap, resolution})});
   return PIXI.Texture.from(bitmap);
@@ -140,9 +148,7 @@ async function start(message) {
   if (!kitScenes.length) throw Error('Visual cross-check: the program draws its own stage, so nothing on it can be checked against the verified solver data.' + KIT_GUIDE);
   if (kitScenes.length > 1) throw Error('Visual cross-check: build exactly one kit scene (found ' + kitScenes.length + ').');
   stage = kitScenes[0];
-  const duration = data.timeline.durationSeconds;
-  const issues = stage.verify(time => step(frameAt(time)), VERIFY_TIMES.map(k => k * duration));
-  if (issues.length) throw Error('Visual cross-check against the verified solver data failed:\n- ' + issues.join('\n- ') + '\n' + KIT_GUIDE);
+  crossCheck();
   step(frame(0)); app.render();
   send('ready', {t}); last = performance.now();
   setInterval(() => {
@@ -173,7 +179,9 @@ onmessage = async ({data: message}) => {
       case 'data':
         data = {...data, ...message}; data.ranges = ranges(data.timeline);
         t = Math.min(t, data.timeline.durationSeconds);
-        stage?.refresh(); lifecycle?.setData?.(); lifecycle?.resize?.(app.screen.width, app.screen.height); break;
+        stage?.refresh(); lifecycle?.setData?.(); lifecycle?.resize?.(app.screen.width, app.screen.height);
+        if (stage) { crossCheck(); step(frame(0)); app.render(); }
+        break;
       case 'theme': data.theme = message.theme; stage?.refresh(); lifecycle?.setData?.(); lifecycle?.resize?.(app.screen.width, app.screen.height); break;
       case 'play':
         if (message.playing && t >= data.timeline.durationSeconds) t = 0;
@@ -358,8 +366,10 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
   /* simulated seconds per real second at 1× (nanosecond and year-long runs stay watchable) */
-  const rate = presentationRate(timeline.durationSeconds);
-  const rateNote = rate > 1.5 ? "Tua nhanh ×" + formatRate(rate) : rate < 1 / 1.5 ? "Chiếu chậm ×" + formatRate(1 / rate) : "";
+  const rate = useMemo(() => presentationRate(timeline.durationSeconds, timeline), [timeline]);
+  const tooFast = useMemo(() => replayTooFast(timeline), [timeline]);
+  const rateNote = (rate > 1.5 ? "Tua nhanh ×" + formatRate(rate) : rate < 1 / 1.5 ? "Chiếu chậm ×" + formatRate(1 / rate) : "")
+    + (tooFast ? " · dao động quá nhanh để hiện hết, xem đồ thị" : "");
   const [loop, setLoop] = useState(false);
   const [run, setRun] = useState(0);
   const iframe = useRef<HTMLIFrameElement>(null);

@@ -1,4 +1,7 @@
+import { Avatar, Badge, Button, Card, Heading, Spinner, Text } from "@radix-ui/themes";
+import { motion, useReducedMotion } from "motion/react";
 import type { StudentClassSummary } from "../../../api/schoolApi";
+import LearningIcon from "../../common/LearningIcon";
 
 type Props = {
   studentName: string;
@@ -12,39 +15,26 @@ type Props = {
 };
 
 export function StudentClassOverview({ studentName, schoolName, classes, loading, pendingAssignments, completedAssignments, sharedResources, onExplore }: Readonly<Props>) {
-  const firstName = studentName.trim().split(/\s+/).at(-1) || studentName;
-  return <>
-    <section className="student-home-hero">
-      <div className="student-home-copy">
-        <span className="student-home-kicker">KHÔNG GIAN HỌC TẬP</span>
-        <h1>Chào {firstName}, hôm nay mình khám phá gì?</h1>
-        <p>{schoolName ? `${schoolName} · ` : ""}Theo dõi bài tập, lớp học và thử các mô phỏng do giáo viên chia sẻ.</p>
-        <button type="button" className="student-explore-button" onClick={onExplore}>Khám phá mô phỏng <span aria-hidden="true">→</span></button>
-      </div>
-      <div className="student-home-orbit" aria-hidden="true"><span /><span /><span /><div>F = ma</div></div>
+  const reducedMotion = useReducedMotion();
+  const stats = [
+    { label: "Bài cần hoàn thành", value: pendingAssignments, color: "amber", icon: "file" },
+    { label: "Bài đã nộp", value: completedAssignments, color: "cyan", icon: "check" },
+    { label: "Lớp học", value: loading ? "—" : classes.length, color: "indigo", icon: "users" },
+  ] as const;
+  return <motion.div initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .18 }}>
+    <header className="student-page-heading">
+      <div><Heading as="h1" size="7">Học tập</Heading><Text as="p" size="3" color="gray">{studentName}{schoolName && <><span aria-hidden="true"> · </span>{schoolName}</>}</Text></div>
+      <Button type="button" size="2" onClick={onExplore}><LearningIcon name="book" />Cộng đồng<Badge color="gray" variant="soft">{sharedResources}</Badge></Button>
+    </header>
+    <section className="student-summary" aria-label="Tổng quan học tập">{stats.map(stat => <Card asChild key={stat.label} className={`student-summary-card student-stat-${stat.color}`} size="3"><motion.article whileHover={reducedMotion ? undefined : { y: -3 }} transition={{ duration: .18 }}><span className="student-stat-tile"><LearningIcon name={stat.icon} /></span><div><Text as="div" size="2" color="gray">{stat.label}</Text><Heading as="h2" size="8">{stat.value}</Heading></div></motion.article></Card>)}</section>
+    <section className="student-classes" aria-labelledby="student-classes-title">
+      <div className="student-section-title"><Heading as="h2" size="4" id="student-classes-title">Lớp của tôi</Heading><Badge color="indigo" variant="soft">{loading ? "Đang tải…" : `${classes.length} lớp`}</Badge></div>
+      {loading ? <Card className="student-quiet-state"><Spinner size="2" /><Text color="gray">Đang tải thông tin lớp…</Text></Card> : classes.length === 0 ? <Card className="student-quiet-state"><Text color="gray">Chưa được xếp vào lớp học.</Text></Card> :
+        <div className="student-class-list">{classes.map(item => <Card asChild className="student-class-card" key={item.id} size="3"><motion.article whileHover={reducedMotion ? undefined : { y: -2 }} transition={{ duration: .18 }}>
+          <div className="student-class-code"><Heading as="h3" size="5">{item.name}</Heading></div>
+          <div className="student-class-heading"><Badge color="indigo" variant="soft" size="2">Lớp {item.gradeLevel}</Badge><Text as="p" size="3" weight="medium">{item.subject || "Vật lý"}</Text><Text size="1" color="gray">{item.schoolYear}</Text></div>
+          <div className="student-class-teacher"><Avatar size="2" color="cyan" radius="full" fallback={item.teachers[0]?.fullName.trim().charAt(0) || "GV"} /><Text size="2">{item.teachers.length ? item.teachers.map(teacher => teacher.fullName).join(", ") : "Chưa phân công giáo viên"}</Text><Text size="1" color="gray" className="student-class-size">{item.classmateCount} bạn cùng lớp</Text></div>
+        </motion.article></Card>)}</div>}
     </section>
-
-    <section className="student-home-stats" aria-label="Tổng quan học tập">
-      <article><span className="student-stat-icon pending">!</span><div><strong>{pendingAssignments}</strong><span>Bài cần hoàn thành</span></div></article>
-      <article><span className="student-stat-icon completed">✓</span><div><strong>{completedAssignments}</strong><span>Bài đã gửi</span></div></article>
-      <article><span className="student-stat-icon resource">◇</span><div><strong>{sharedResources}</strong><span>Mô phỏng để khám phá</span></div></article>
-    </section>
-
-    <section className="student-class-section">
-      <div className="student-section-heading"><div><span className="student-home-kicker">LỚP CỦA TÔI</span><h2>Nơi bạn đang học</h2></div></div>
-      {loading ? <div className="student-class-skeleton" aria-label="Đang tải thông tin lớp" /> : classes.length === 0 ?
-        <div className="student-class-empty"><strong>Chưa có lớp học đang hoạt động</strong><span>Khi nhà trường xếp lớp, thông tin giáo viên và bạn học sẽ xuất hiện tại đây.</span></div> :
-        <div className="student-class-grid">{classes.map(item => <article className="student-class-card" key={item.id}>
-          <div className="student-class-grade">{item.gradeLevel}</div>
-          <div className="student-class-content">
-            <div className="student-class-title"><div><span>{item.subject || "Vật lý"}</span><h3>{item.name}</h3></div><span className="student-class-year">{item.schoolYear}</span></div>
-            <p className="student-class-school">{item.schoolName}</p>
-            <div className="student-class-people">
-              <div className="student-avatar-stack" aria-hidden="true">{item.teachers.slice(0, 3).map(teacher => <span key={teacher.id}>{teacher.fullName.trim().charAt(0).toUpperCase()}</span>)}</div>
-              <p>{item.teachers.length ? item.teachers.map(teacher => teacher.fullName).join(", ") : "Chưa phân công giáo viên"}<small>{item.classmateCount} bạn cùng lớp</small></p>
-            </div>
-          </div>
-        </article>)}</div>}
-    </section>
-  </>;
+  </motion.div>;
 }

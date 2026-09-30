@@ -58,18 +58,25 @@ public class LibraryService {
         }
         LibraryItem item = libraryRepository.findBySimulationIdAndOwnerId(simulation.getId(), user.getId())
                 .orElseGet(LibraryItem::new);
-        boolean publishingPersonalItem = item.getId() != null && item.getVisibility() == Visibility.PERSONAL
-                && request.visibility() != null && request.visibility() != Visibility.PERSONAL;
+        Visibility nextVisibility = request.visibility() == null ? Visibility.PERSONAL : request.visibility();
+        if (nextVisibility == Visibility.SHARED && (user.getInstitutionId() == null || user.getInstitutionId().isBlank()))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Chia sẻ cấp trường cần tài khoản thuộc một trường.");
+        boolean publishingPersonalItem = item.getId() != null && item.getVisibility() != nextVisibility
+                && nextVisibility != Visibility.PERSONAL;
         item.setSimulation(simulation);
         item.setFolder(folder);
         item.setLesson(lesson);
         item.setSpecification(specification);
         item.setOwner(user);
         item.setTitle(request.title().trim());
-        item.setVisibility(request.visibility() == null ? Visibility.PERSONAL : request.visibility());
+        item.setVisibility(nextVisibility);
         item.setSharedInstitutionId(item.getVisibility() == Visibility.SHARED ? user.getInstitutionId() : null);
-        if (item.getVisibility() != Visibility.PERSONAL && (item.getId() == null || publishingPersonalItem))
+        if (item.getVisibility() != Visibility.PERSONAL && (item.getId() == null || publishingPersonalItem)) {
             item.setModerationStatus(LibraryModerationStatus.PENDING);
+            item.setModerationComment(null);
+            item.setModeratedAt(null);
+            item.setModeratedBy(null);
+        }
         if (item.getVisibility() == Visibility.PERSONAL) item.setModerationStatus(LibraryModerationStatus.APPROVED);
         if (item.getVisibility() != Visibility.PERSONAL && item.getModerationStatus() == LibraryModerationStatus.REJECTED)
             item.setModerationStatus(LibraryModerationStatus.PENDING);
@@ -106,8 +113,27 @@ public class LibraryService {
 
     @Transactional(readOnly = true)
     public List<LibraryItemResponse> community(String topic) {
-        return libraryRepository.findCommunityItems(Visibility.PUBLIC, PUBLISHED_STATUSES, normalizedTopic(topic))
-                .stream().map(this::toResponse).toList();
+        User user = currentUserService.currentUserOrNull();
+        if (user == null) return libraryRepository.findCommunityItems(Visibility.PUBLIC, PUBLISHED_STATUSES, normalizedTopic(topic))
+                .stream().filter(item -> item.isActive() && item.getVisibility() == Visibility.PUBLIC
+                        && PUBLISHED_STATUSES.contains(item.getModerationStatus())).map(this::toResponse).toList();
+        return libraryRepository.findSearchVisibleItems(user.getId(), user.getInstitutionId(),
+                        Visibility.PERSONAL, Visibility.PUBLIC, PUBLISHED_STATUSES, normalizedTopic(topic))
+                .stream()
+                .filter(item -> item.isActive() && PUBLISHED_STATUSES.contains(item.getModerationStatus()))
+                .filter(item -> item.getVisibility() == Visibility.PUBLIC
+                        || item.getVisibility() == Visibility.SHARED && sharedWithSchool(user, item))
+                .map(this::toResponse).toList();
+    }
+
+    private boolean sharedWithSchool(User user, LibraryItem item) {
+        String institutionId = user.getInstitutionId();
+        if (institutionId == null || institutionId.isBlank()) return false;
+        String scope = item.getSharedInstitutionId();
+        if ((scope == null || scope.isBlank()) && item.getOwner() != null) {
+            scope = item.getOwner().getInstitutionId();
+        }
+        return institutionId.equals(scope);
     }
 
     @Transactional(readOnly = true)
@@ -167,8 +193,7 @@ public class LibraryService {
 
     private boolean visibleTo(User user, LibraryItem item) {
         if (item.getVisibility() == Visibility.PUBLIC) return true;
-        String scope = item.getSharedInstitutionId();
-        return scope == null || scope.isBlank() || scope.equals(user.getInstitutionId());
+        return item.getVisibility() == Visibility.SHARED && sharedWithSchool(user, item);
     }
 
     private String normalizedTopic(String topic) {

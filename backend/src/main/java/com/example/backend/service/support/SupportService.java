@@ -73,7 +73,7 @@ public class SupportService {
     @Transactional
     public SupportView update(UUID id, UpdateSupportRequest request) {
         User admin = currentUser.requireCurrentUser();
-        if (admin.getRole() == null || !RoleName.ADMIN.matches(admin.getRole().getName()))
+        if (admin.getRole() == null || !RoleName.MANAGER.matches(admin.getRole().getName()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can update support items");
         if (request == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Support update is required");

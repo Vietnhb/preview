@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Avatar, Button, IconButton } from "@radix-ui/themes";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import LearningIcon from "../../components/common/LearningIcon";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
@@ -42,7 +43,7 @@ export default function SchoolLayout() {
     <aside className="admin-sidebar school-sidebar">
       <NavLink to={schoolHome} className="admin-brand" aria-label="Mở cổng quản lý trường">
         <img src="/favicon.ico" alt="" />
-        <span className="admin-brand-copy"><strong>PhysLive</strong><small>Cổng quản lý trường</small></span>
+        <span className="admin-brand-copy"><strong>PhysLive</strong><small>SCHOOL</small></span>
       </NavLink>
       <p className="admin-sidebar-label">Không gian trường</p>
       <nav className="admin-nav" aria-label="Điều hướng quản lý trường">
@@ -51,22 +52,22 @@ export default function SchoolLayout() {
         </NavLink>)}
       </nav>
       <div className="admin-sidebar-footer">
-        <div className="admin-sidebar-user"><span className="admin-user-avatar">{initials}</span><span className="admin-sidebar-user-copy"><strong>{user?.fullName || "Quản lý trường"}</strong><small>{user?.email || ""}</small></span></div>
+        <div className="admin-sidebar-user"><Avatar size="2" radius="full" color="cyan" src={user?.avatarUrl || undefined} fallback={initials} /><span className="admin-sidebar-user-copy"><strong>{user?.fullName || "Quản lý trường"}</strong><small>{user?.email || ""}</small></span></div>
         {!user?.billingRequired && <Link className="admin-back-button" to="/"><LearningIcon name="back" />Về trang PhysLive</Link>}
-        <button type="button" className="admin-back-button" onClick={logout}><LearningIcon name="logout" />Đăng xuất</button>
+        <Button variant="ghost" color="gray" onClick={logout}><LearningIcon name="logout" />Đăng xuất</Button>
       </div>
     </aside>
     <main className="admin-main">
       <header className="admin-topbar school-topbar">
         <div className="admin-page-topbar-copy">
           <div className="admin-page-title-line"><strong>{meta.title}</strong><span className="admin-role-pill"><LearningIcon name="shield" />Quản lý trường</span></div>
-          <span>{meta.description}</span>
+
         </div>
         <div className="admin-topbar-actions school-topbar-actions">
           {user?.billingRequired
-            ? <span className="admin-topbar-user school-profile-link"><span className="admin-user-avatar">{initials}</span><span>{user?.email || "Tài khoản trường"}</span></span>
-            : <Link to="/profile" className="admin-topbar-user school-profile-link"><span className="admin-user-avatar">{initials}</span><span>{user?.email || "Tài khoản trường"}</span></Link>}
-          <button type="button" className="admin-icon-button school-topbar-logout" aria-label="Đăng xuất" title="Đăng xuất" onClick={logout}><LearningIcon name="logout" /></button>
+            ? <span className="admin-topbar-user school-profile-link"><Avatar size="2" radius="full" color="cyan" src={user?.avatarUrl || undefined} fallback={initials} /><span>{user?.email || "Tài khoản trường"}</span></span>
+            : <Link to="/profile" className="admin-topbar-user school-profile-link"><Avatar size="2" radius="full" color="cyan" src={user?.avatarUrl || undefined} fallback={initials} /><span>{user?.email || "Tài khoản trường"}</span></Link>}
+          <IconButton variant="soft" color="gray" aria-label="Đăng xuất" onClick={logout}><LearningIcon name="logout" /></IconButton>
         </div>
       </header>
       <nav className="admin-mobile-nav" aria-label="Điều hướng quản lý trường">

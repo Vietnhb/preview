@@ -2,7 +2,8 @@ package com.example.backend.controller.reviewer;
 
 import com.example.backend.dto.reviewer.SchemaRequest;
 import com.example.backend.entity.enums.LifecycleStatus;
-import com.example.backend.entity.enums.RoleName;
+import com.example.backend.service.account.AccountAccessService;
+import com.example.backend.service.account.CurrentUserService;
 import com.example.backend.entity.problem.SchemaVersion;
 import com.example.backend.service.problem.SchemaService;
 import jakarta.validation.Valid;
@@ -26,13 +27,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SchemaController {
     private final SchemaService schemaService;
+    private final AccountAccessService access;
+    private final CurrentUserService currentUser;
 
     @GetMapping
     public List<SchemaVersion> list(@RequestParam(defaultValue = "false") boolean enabledOnly,
                                    org.springframework.security.core.Authentication authentication) {
-        boolean privileged = authentication.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals(RoleName.ADMIN.authority())
-                        || a.getAuthority().equals(RoleName.REVIEWER.authority()));
+        boolean privileged = access.canEditContext(currentUser.requireCurrentUser());
         return schemaService.list(enabledOnly).stream().filter(s -> privileged
                 || s.getLifecycleStatus() == LifecycleStatus.APPROVED).toList();
     }

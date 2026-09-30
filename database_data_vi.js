@@ -1,10 +1,11 @@
 // Data cho 38 bảng database PhysLive - Tiếng Việt với Ví dụ và Luồng
 
 const roleLabels = {
-    'admin': 'Quản trị viên',
+    'admin': 'ADMIN — Xem user và tạo manager',
+    'manager': 'Quản trị viên',
     'reviewer': 'Chuyên gia',
-    'manager': 'Quản lý trường',
-    'teacher': 'Giáo viên',
+    'school': 'Quản lý trường',
+    'staff': 'Giáo viên',
     'student': 'Học sinh',
     'system': 'Hệ thống'
 };
@@ -16,14 +17,14 @@ const tables = [
         dbName: "users",
         category: "auth",
         categoryName: "Xác thực & Phân quyền",
-        purpose: "Tài khoản người dùng cho tất cả 5 vai trò (Admin, Chuyên gia, Quản lý trường, Giáo viên, Học sinh)",
-        roles: ["admin", "reviewer", "manager", "teacher", "student"],
+        purpose: "Tài khoản người dùng cho 6 vai trò (ADMIN, MANAGER, REVIEWER, SCHOOL, STAFF, STUDENT)",
+        roles: ["admin", "manager", "reviewer", "school", "staff", "student"],
         columns: [
             { name: "id", type: "SERIAL PRIMARY KEY", description: "ID tự động tăng" },
             { name: "email", type: "VARCHAR(255) UNIQUE", description: "Email đăng nhập" },
             { name: "password", type: "VARCHAR(255)", description: "Mật khẩu (Bcrypt hash)" },
             { name: "full_name", type: "VARCHAR(255)", description: "Họ và tên" },
-            { name: "role_id", type: "INTEGER FK", description: "Vai trò (1-5)" },
+            { name: "role_id", type: "INTEGER FK", description: "Vai trò (1-6)" },
             { name: "school_id", type: "UUID FK", description: "NULL cho vai trò platform, NOT NULL cho vai trò trường" },
             { name: "active", type: "BOOLEAN", description: "Cờ xóa mềm (soft delete)" }
         ],
@@ -31,11 +32,11 @@ const tables = [
 
 | id  | email                | full_name          | role_id | school_id | active |
 |-----|----------------------|--------------------|---------|-----------|--------|
-| 1   | admin@physlive.vn    | Admin PhysLive     | 1 (ADMIN)| NULL     | true   |
-| 2   | reviewer@physlive.vn | Thầy Hùng          | 2 (REVIEWER)| NULL  | true   |
-| 101 | hieu.ql@lhp.edu.vn   | Ông Nguyễn Văn Hiếu| 3 (MANAGER)| uuid-lhp| true   |
-| 102 | minh.gv@lhp.edu.vn   | Thầy Nguyễn Văn Minh| 4 (TEACHER)| uuid-lhp| true   |
-| 201 | hung.hs@lhp.edu.vn   | Em Trần Văn Hùng   | 5 (STUDENT)| uuid-lhp| true   |`,
+| 1   | admin@physlive.vn    | Admin PhysLive     | 2 (MANAGER)| NULL     | true   |
+| 2   | reviewer@physlive.vn | Thầy Hùng          | 3 (REVIEWER)| NULL  | true   |
+| 101 | hieu.ql@lhp.edu.vn   | Ông Nguyễn Văn Hiếu| 4 (SCHOOL)| uuid-lhp| true   |
+| 102 | minh.gv@lhp.edu.vn   | Thầy Nguyễn Văn Minh| 5 (STAFF)| uuid-lhp| true   |
+| 201 | hung.hs@lhp.edu.vn   | Em Trần Văn Hùng   | 6 (STUDENT)| uuid-lhp| true   |`,
         flow: [
             { step: 1, desc: "User mở trình duyệt, nhập email/password" },
             { step: 2, desc: "Hệ thống query bảng 'users' WHERE email = ?" },
@@ -45,10 +46,10 @@ const tables = [
             { step: 6, desc: "User đăng nhập thành công" }
         ],
         businessRules: [
-            "Vai trò Platform (ADMIN, REVIEWER): school_id PHẢI NULL",
-            "Vai trò Trường (MANAGER, TEACHER, STUDENT): school_id KHÔNG NULL",
+            "Vai trò Platform (ADMIN, MANAGER, REVIEWER): school_id PHẢI NULL",
+            "Vai trò Trường (SCHOOL, STAFF, STUDENT): school_id KHÔNG NULL",
             "Chỉ soft delete (active = false), KHÔNG xóa cứng",
-            "Mỗi trường CHỈ có 1 SCHOOL_MANAGER active"
+            "Mỗi trường CHỈ có 1 SCHOOL active"
         ]
     },
     
@@ -58,7 +59,7 @@ const tables = [
         category: "auth",
         categoryName: "Xác thực & Phân quyền",
         purpose: "Khách hàng B2B (trường học) với license và AI quota management",
-        roles: ["admin", "manager", "teacher", "student"],
+        roles: ["manager", "school", "staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "School ID" },
             { name: "name", type: "VARCHAR(255) UNIQUE", description: "Tên trường" },
@@ -96,7 +97,7 @@ const tables = [
         category: "teaching",
         categoryName: "Giảng dạy & Học tập",
         purpose: "Metadata của mô phỏng (được tạo bởi Teacher/Admin) với visibility và review status",
-        roles: ["admin", "reviewer", "teacher", "student"],
+        roles: ["manager", "reviewer", "staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Simulation ID" },
             { name: "title", type: "VARCHAR(255)", description: "Tiêu đề mô phỏng" },
@@ -134,7 +135,7 @@ const tables = [
         category: "teaching",
         categoryName: "Giảng dạy & Học tập",
         purpose: "Bài tập được giao bởi Teacher cho Class",
-        roles: ["teacher", "student"],
+        roles: ["staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Assignment ID" },
             { name: "title", type: "VARCHAR(255)", description: "Tiêu đề bài tập" },
@@ -192,7 +193,7 @@ WHERE class_id = 'uuid-class-10a1' AND status = 'ACTIVE';
         category: "teaching",
         categoryName: "Giảng dạy & Học tập",
         purpose: "Bài nộp của học sinh cho assignments",
-        roles: ["teacher", "student"],
+        roles: ["staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Submission ID" },
             { name: "assignment_id", type: "UUID FK", description: "Assignment reference" },
@@ -258,7 +259,7 @@ WHERE id = ...;`,
         category: "library",
         categoryName: "Thư viện",
         purpose: "Thư mục cá nhân của Teacher để tổ chức simulations (giống Google Drive)",
-        roles: ["teacher"],
+        roles: ["staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Folder ID" },
             { name: "owner_id", type: "INTEGER FK", description: "Teacher sở hữu" },
@@ -307,7 +308,7 @@ VALUES
         category: "library",
         categoryName: "Thư viện",
         purpose: "Link simulations vào folders + quản lý Shared Library",
-        roles: ["reviewer", "teacher"],
+        roles: ["reviewer", "staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Item ID" },
             { name: "folder_id", type: "UUID FK", description: "Thuộc folder nào" },
@@ -375,7 +376,7 @@ WHERE id = 'uuid-item-123';
         category: "school",
         categoryName: "Quản lý Trường học",
         purpose: "Các lớp học trong trường (10A1, 11B2, v.v.)",
-        roles: ["manager", "teacher", "student"],
+        roles: ["school", "staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Class ID" },
             { name: "school_id", type: "UUID FK", description: "Trường học" },
@@ -383,7 +384,7 @@ WHERE id = 'uuid-item-123';
             { name: "grade", type: "INTEGER", description: "Khối (10, 11, 12)" },
             { name: "school_year", type: "VARCHAR(20)", description: "Năm học" }
         ],
-        example: `VÍ DỤ - SCHOOL_MANAGER tạo lớp:
+        example: `VÍ DỤ - SCHOOL tạo lớp:
 
 INSERT INTO school_classes (id, school_id, name, grade, school_year, created_by)
 VALUES 
@@ -396,15 +397,15 @@ Sau đó enroll students:
 -- Lớp 10A2 có 38 học sinh
 -- Lớp 11B1 có 40 học sinh`,
         flow: [
-            { step: 1, desc: "SCHOOL_MANAGER tạo lớp mới" },
+            { step: 1, desc: "SCHOOL tạo lớp mới" },
             { step: 2, desc: "INSERT INTO school_classes" },
-            { step: 3, desc: "SCHOOL_MANAGER enroll students (import CSV hoặc thủ công)" },
+            { step: 3, desc: "SCHOOL enroll students (import CSV hoặc thủ công)" },
             { step: 4, desc: "INSERT INTO class_enrollments cho từng student" },
-            { step: 5, desc: "SCHOOL_MANAGER assign teachers" },
+            { step: 5, desc: "SCHOOL assign teachers" },
             { step: 6, desc: "INSERT INTO class_teacher_assignments" }
         ],
         businessRules: [
-            "Tạo bởi SCHOOL_MANAGER",
+            "Tạo bởi SCHOOL",
             "Max 45 students per class (có thể config)",
             "1 class thuộc 1 school",
             "Lớp có danh sách students sẵn"
@@ -417,7 +418,7 @@ Sau đó enroll students:
         category: "school",
         categoryName: "Quản lý Trường học",
         purpose: "Map học sinh vào lớp (1 học sinh = 1 lớp/năm học)",
-        roles: ["manager", "teacher", "student"],
+        roles: ["school", "staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Enrollment ID" },
             { name: "class_id", type: "UUID FK", description: "Lớp học" },
@@ -443,7 +444,7 @@ WHERE student_id = 201 AND class_id = 'uuid-10a1';
 INSERT INTO class_enrollments (class_id, student_id, school_year, status)
 VALUES ('uuid-10a2', 201, '2026-2027', 'ACTIVE');`,
         flow: [
-            { step: 1, desc: "SCHOOL_MANAGER enroll student vào class" },
+            { step: 1, desc: "SCHOOL enroll student vào class" },
             { step: 2, desc: "Check: Student đã có enrollment ACTIVE chưa?" },
             { step: 3, desc: "If yes: Block (1 student = 1 class)" },
             { step: 4, desc: "If no: INSERT INTO class_enrollments" },
@@ -463,32 +464,33 @@ VALUES ('uuid-10a2', 201, '2026-2027', 'ACTIVE');`,
         dbName: "roles",
         category: "auth",
         categoryName: "Xác thực & Phân quyền",
-        purpose: "5 vai trò trong hệ thống (ADMIN, REVIEWER, SCHOOL_MANAGER, TEACHER, STUDENT)",
-        roles: ["admin"],
+        purpose: "6 vai trò trong hệ thống (ADMIN, MANAGER, REVIEWER, SCHOOL, STAFF, STUDENT)",
+        roles: ["manager"],
         columns: [
-            { name: "id", type: "SERIAL PRIMARY KEY", description: "1-5" },
+            { name: "id", type: "SERIAL PRIMARY KEY", description: "1-6" },
             { name: "name", type: "VARCHAR(50) UNIQUE", description: "Tên vai trò" }
         ],
         example: `VÍ DỤ DỮ LIỆU:
 
 | id | name               | description                           |
 |----|--------------------|---------------------------------------|
-| 1  | ADMIN              | Platform admin - Quản trị toàn hệ thống |
-| 2  | REVIEWER   | Chuyên gia kiểm duyệt nội dung physics |
-| 3  | SCHOOL_MANAGER     | Quản lý trường - 1 người/trường        |
-| 4  | TEACHER            | Giáo viên - Nhiều người/trường         |
-| 5  | STUDENT            | Học sinh                               |`,
+| 1  | ADMIN              | Xem user, tạo MANAGER                   |
+| 2  | MANAGER              | Platform admin - Quản trị toàn hệ thống |
+| 3  | REVIEWER   | Chuyên gia kiểm duyệt nội dung physics |
+| 4  | SCHOOL     | Quản lý trường - 1 người/trường        |
+| 5  | STAFF            | Giáo viên - Nhiều người/trường         |
+| 6  | STUDENT            | Học sinh                               |`,
         flow: [
-            { step: 1, desc: "Hệ thống khởi tạo: INSERT 5 roles cố định" },
-            { step: 2, desc: "User signup → chọn role_id (3, 4, hoặc 5)" },
-            { step: 3, desc: "Admin tạo user → chọn bất kỳ role_id nào (1-5)" },
-            { step: 4, desc: "JWT token chứa role_id để authorization" }
+            { step: 1, desc: "Hệ thống khởi tạo: INSERT 6 roles cố định" },
+            { step: 2, desc: "Đăng ký trường → tài khoản SCHOOL (4)" },
+            { step: 3, desc: "ADMIN chỉ tạo MANAGER (2); MANAGER tạo REVIEWER, SCHOOL, STAFF, STUDENT" },
+            { step: 4, desc: "Backend lấy role hiện tại từ database khi xác thực JWT" }
         ],
         businessRules: [
-            "5 roles HARD-CODED, không thêm/xóa/sửa",
-            "Platform roles (1-2): school_id = NULL",
-            "School roles (3-5): school_id NOT NULL",
-            "1 trường CHỈ có 1 SCHOOL_MANAGER active"
+            "6 roles HARD-CODED, không thêm/xóa/sửa",
+            "Platform roles (1-3): school_id = NULL",
+            "School roles (4-6): school_id NOT NULL",
+            "1 trường CHỈ có 1 SCHOOL active"
         ]
     },
 
@@ -498,7 +500,7 @@ VALUES ('uuid-10a2', 201, '2026-2027', 'ACTIVE');`,
         category: "auth",
         categoryName: "Xác thực & Phân quyền",
         purpose: "JWT sessions - track active logins cho revoke token",
-        roles: ["admin", "reviewer", "manager", "teacher", "student"],
+        roles: ["manager", "reviewer", "school", "staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Session ID" },
             { name: "user_id", type: "INTEGER FK", description: "User đăng nhập" },
@@ -538,7 +540,7 @@ Bước 4: User phải login lại`,
         category: "school",
         categoryName: "Quản lý Trường học",
         purpose: "Các gói license B2B (Basic, Pro, Enterprise) cho trường mua",
-        roles: ["admin", "manager"],
+        roles: ["manager", "school"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Plan ID" },
             { name: "name", type: "VARCHAR(100)", description: "Tên gói" },
@@ -556,7 +558,7 @@ Bước 4: User phải login lại`,
 | Enterprise | 150,000,000 | 25,000      | 100          | 5,000        |
 
 WORKFLOW MUA LICENSE:
-1. SCHOOL_MANAGER chọn plan (VD: Pro)
+1. SCHOOL chọn plan (VD: Pro)
 2. Click "Thanh toán VNPay"
 3. Redirect VNPay → Quét QR → Thanh toán 50tr
 4. VNPay callback → UPDATE schools SET license_plan_id = 'pro', license_end = NOW() + 1 year
@@ -582,7 +584,7 @@ WORKFLOW MUA LICENSE:
         category: "school",
         categoryName: "Quản lý Trường học",
         purpose: "Lịch sử thanh toán license của trường (VNPay integration)",
-        roles: ["admin", "manager"],
+        roles: ["manager", "school"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Payment ID" },
             { name: "school_id", type: "UUID FK", description: "Trường thanh toán" },
@@ -602,7 +604,7 @@ WORKFLOW MUA LICENSE:
 
 → Row p004: THPT LHP renew license sau 1 năm`,
         flow: [
-            { step: 1, desc: "SCHOOL_MANAGER click 'Mua/Renew License'" },
+            { step: 1, desc: "SCHOOL click 'Mua/Renew License'" },
             { step: 2, desc: "INSERT school_payments (status='PENDING')" },
             { step: 3, desc: "Redirect VNPay với payment_id" },
             { step: 4, desc: "User thanh toán trên VNPay" },
@@ -623,7 +625,7 @@ WORKFLOW MUA LICENSE:
         category: "school",
         categoryName: "Quản lý Trường học",
         purpose: "Phân công giáo viên dạy lớp (M-N: 1 teacher nhiều lớp, 1 lớp nhiều teachers)",
-        roles: ["manager", "teacher"],
+        roles: ["school", "staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Assignment ID" },
             { name: "class_id", type: "UUID FK", description: "Lớp học" },
@@ -631,7 +633,7 @@ WORKFLOW MUA LICENSE:
             { name: "subject", type: "VARCHAR(50)", description: "Môn học (Vật lý, Toán, ...)" },
             { name: "active", type: "BOOLEAN", description: "Còn dạy không" }
         ],
-        example: `VÍ DỤ - SCHOOL_MANAGER phân công:
+        example: `VÍ DỤ - SCHOOL phân công:
 
 Thầy Minh (teacher_id=102) dạy:
 - Lớp 10A1: Vật lý
@@ -651,8 +653,8 @@ VALUES
   ('uuid-10a1', 103, 'Toán', '2026-2027'),
   ('uuid-10a2', 103, 'Toán', '2026-2027');`,
         flow: [
-            { step: 1, desc: "SCHOOL_MANAGER tạo lớp mới (10A1)" },
-            { step: 2, desc: "SCHOOL_MANAGER assign teachers cho lớp" },
+            { step: 1, desc: "SCHOOL tạo lớp mới (10A1)" },
+            { step: 2, desc: "SCHOOL assign teachers cho lớp" },
             { step: 3, desc: "INSERT class_teacher_assignments" },
             { step: 4, desc: "Teachers login → Thấy classes được assigned" },
             { step: 5, desc: "Teacher chỉ thấy students trong classes của mình" }
@@ -671,7 +673,7 @@ VALUES
         category: "school",
         categoryName: "Quản lý Trường học",
         purpose: "Khối lớp (10, 11, 12) - Reference data cho phân loại nội dung",
-        roles: ["admin", "reviewer", "teacher", "student"],
+        roles: ["manager", "reviewer", "staff", "student"],
         columns: [
             { name: "id", type: "SERIAL PRIMARY KEY", description: "1, 2, 3" },
             { name: "grade", type: "INTEGER UNIQUE", description: "10, 11, 12" },
@@ -709,7 +711,7 @@ DÙNG CHO:
         category: "teaching",
         categoryName: "Giảng dạy & Học tập",
         purpose: "Log mỗi lần chạy simulation (input/output) - cho grading và analytics",
-        roles: ["teacher", "student"],
+        roles: ["staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Run ID" },
             { name: "simulation_id", type: "UUID FK", description: "Simulation nào" },
@@ -760,7 +762,7 @@ VALUES ('uuid-sim1', 201, '{"v0":10,"h0":20}', '{"t_flight":2.02,"range":20.2}')
         category: "teaching",
         categoryName: "Giảng dạy & Học tập",
         purpose: "Physics problem specs (parsed từ text/image) - input cho solver",
-        roles: ["admin", "reviewer", "teacher"],
+        roles: ["manager", "reviewer", "staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Spec ID" },
             { name: "problem_submission_id", type: "UUID FK", description: "Bài toán gốc" },
@@ -809,7 +811,7 @@ EXTRACTED (AI parsing):
         category: "curriculum",
         categoryName: "Curriculum & Nội dung",
         purpose: "Các chủ đề physics theo SGK (Chuyển động học, Động lực học, ...)",
-        roles: ["admin", "reviewer", "teacher", "student"],
+        roles: ["manager", "reviewer", "staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Topic ID" },
             { name: "name", type: "VARCHAR(120)", description: "Tên chủ đề" },
@@ -841,7 +843,7 @@ VALUES
   ('Động lực học', 'dong-luc-hoc', 1, 2),
   ('Sóng cơ', 'song-co', 2, 1);`,
         flow: [
-            { step: 1, desc: "ADMIN/REVIEWER tạo topics theo SGK" },
+            { step: 1, desc: "MANAGER/REVIEWER tạo topics theo SGK" },
             { step: 2, desc: "Topics có thứ tự (display_order)" },
             { step: 3, desc: "Content modules link vào topics" },
             { step: 4, desc: "Students browse theo topics" },
@@ -849,7 +851,7 @@ VALUES
         ],
         businessRules: [
             "Follow SGK THPT Vietnam (Bộ GD&ĐT)",
-            "Tạo bởi ADMIN/REVIEWER only",
+            "Tạo bởi MANAGER/REVIEWER only",
             "Slug dùng cho URL (VD: /topics/chuyen-dong-hoc)",
             "Display order để sort trong UI"
         ]
@@ -861,7 +863,7 @@ VALUES
         category: "curriculum",
         categoryName: "Curriculum & Nội dung",
         purpose: "Module nội dung (1 topic có nhiều modules, VD: Topic 'Chuyển động' → Module 'Ném ngang')",
-        roles: ["admin", "reviewer", "teacher", "student"],
+        roles: ["manager", "reviewer", "staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Module ID" },
             { name: "name", type: "VARCHAR(120)", description: "Tên module" },
@@ -906,7 +908,7 @@ VALUES
         category: "curriculum",
         categoryName: "Curriculum & Nội dung",
         purpose: "Bài học cụ thể (1 module → nhiều lessons theo chương trình)",
-        roles: ["admin", "reviewer", "teacher", "student"],
+        roles: ["manager", "reviewer", "staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Lesson ID" },
             { name: "module_id", type: "UUID FK", description: "Thuộc module nào" },
@@ -947,7 +949,7 @@ Lesson 3: "Thực hành simulation"
         category: "curriculum",
         categoryName: "Curriculum & Nội dung",
         purpose: "Version releases của modules (giống git tags) - tracking content changes",
-        roles: ["admin", "reviewer"],
+        roles: ["manager", "reviewer"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Release ID" },
             { name: "topic", type: "VARCHAR(80)", description: "Topic name" },
@@ -967,7 +969,7 @@ v2.0 (2026-09-01): Published - Thêm 3 simulations mới
         flow: [
             { step: 1, desc: "REVIEWER tạo/sửa module → status = DRAFT" },
             { step: 2, desc: "REVIEWER review nội dung → APPROVED" },
-            { step: 3, desc: "ADMIN publish → PUBLISHED" },
+            { step: 3, desc: "MANAGER publish → PUBLISHED" },
             { step: 4, desc: "Schools nhận update tự động" },
             { step: 5, desc: "Old versions archived (không xóa)" }
         ],
@@ -985,7 +987,7 @@ v2.0 (2026-09-01): Published - Thêm 3 simulations mới
         category: "curriculum",
         categoryName: "Curriculum & Nội dung",
         purpose: "Schema definitions cho physics problems (template cho parsing AI)",
-        roles: ["admin", "reviewer"],
+        roles: ["manager", "reviewer"],
         columns: [
             { name: "id", type: "VARCHAR(80) PRIMARY KEY", description: "Schema ID" },
             { name: "major", type: "INTEGER", description: "Major version" },
@@ -1015,7 +1017,7 @@ v2.0 (2026-09-01): Published - Thêm 3 simulations mới
   }
 }`,
         flow: [
-            { step: 1, desc: "ADMIN define schema cho problem type mới" },
+            { step: 1, desc: "MANAGER define schema cho problem type mới" },
             { step: 2, desc: "AI parsing sử dụng schema để validate" },
             { step: 3, desc: "Version bump khi có breaking changes" },
             { step: 4, desc: "Old versions vẫn support (backward compat)" }
@@ -1035,7 +1037,7 @@ v2.0 (2026-09-01): Published - Thêm 3 simulations mới
         category: "curriculum",
         categoryName: "Curriculum & Nội dung",
         purpose: "Physics solver versions (numerical solver algorithms)",
-        roles: ["admin", "reviewer"],
+        roles: ["manager", "reviewer"],
         columns: [
             { name: "id", type: "VARCHAR(24) PRIMARY KEY", description: "Solver ID" },
             { name: "archetype", type: "VARCHAR(40)", description: "Problem type" },
@@ -1056,7 +1058,7 @@ v2.0 (2026-09-01): Published - Thêm 3 simulations mới
 
 → Simulations chọn solver version phù hợp`,
         flow: [
-            { step: 1, desc: "ADMIN deploy solver algorithm mới" },
+            { step: 1, desc: "MANAGER deploy solver algorithm mới" },
             { step: 2, desc: "INSERT solver_versions" },
             { step: 3, desc: "Simulations reference solver_version_id" },
             { step: 4, desc: "Run simulation → Gọi solver tương ứng" }
@@ -1075,7 +1077,7 @@ v2.0 (2026-09-01): Published - Thêm 3 simulations mới
         category: "benchmark",
         categoryName: "Benchmark & Quality",
         purpose: "Bộ đề chuẩn để test AI parsing accuracy (gold standard)",
-        roles: ["admin", "reviewer"],
+        roles: ["manager", "reviewer"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Problem ID" },
             { name: "problem_text", type: "TEXT", description: "Đề bài text" },
@@ -1119,7 +1121,7 @@ Hard (20 problems):
         category: "benchmark",
         categoryName: "Benchmark & Quality",
         purpose: "Ground truth annotations cho benchmark problems (do REVIEWER tạo thủ công)",
-        roles: ["admin", "reviewer"],
+        roles: ["manager", "reviewer"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Annotation ID" },
             { name: "benchmark_problem_id", type: "UUID FK", description: "Problem reference" },
@@ -1167,7 +1169,7 @@ Notes: "Đề rõ ràng, không cần clarification"
         category: "benchmark",
         categoryName: "Benchmark & Quality",
         purpose: "Chạy đánh giá AI parsing accuracy trên benchmark set",
-        roles: ["admin", "reviewer"],
+        roles: ["manager", "reviewer"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Run ID" },
             { name: "run_name", type: "VARCHAR(120)", description: "Tên đợt eval" },
@@ -1186,7 +1188,7 @@ Notes: "Đề rõ ràng, không cần clarification"
 
 → Track AI improvement over time`,
         flow: [
-            { step: 1, desc: "ADMIN trigger evaluation run" },
+            { step: 1, desc: "MANAGER trigger evaluation run" },
             { step: 2, desc: "Loop: Parse all 100 benchmark problems" },
             { step: 3, desc: "Compare AI results vs gold_annotations" },
             { step: 4, desc: "Calculate metrics (accuracy, F1, precision, recall)" },
@@ -1206,7 +1208,7 @@ Notes: "Đề rõ ràng, không cần clarification"
         category: "benchmark",
         categoryName: "Benchmark & Quality",
         purpose: "Giải quyết conflicts khi 2 REVIEWER disagree trên gold annotation",
-        roles: ["admin", "reviewer"],
+        roles: ["manager", "reviewer"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Adjudication ID" },
             { name: "benchmark_problem_id", type: "UUID FK", description: "Problem bị tranh cãi" },
@@ -1230,17 +1232,17 @@ REVIEWER 2 annotate:
   "t": 2
 }
 
-→ CONFLICT! ADMIN adjudicate:
+→ CONFLICT! MANAGER adjudicate:
 Final annotation: Follow REVIEWER 2 (h0 có thể suy ra)`,
         flow: [
             { step: 1, desc: "2 REVIEWER annotate independently" },
             { step: 2, desc: "System detect disagreement (JSON diff)" },
             { step: 3, desc: "INSERT adjudications (status=PENDING)" },
-            { step: 4, desc: "ADMIN review → Choose final annotation" },
+            { step: 4, desc: "MANAGER review → Choose final annotation" },
             { step: 5, desc: "UPDATE adjudications (status=RESOLVED)" }
         ],
         businessRules: [
-            "ADMIN làm tie-breaker (quyết định cuối cùng)",
+            "MANAGER làm tie-breaker (quyết định cuối cùng)",
             "Final annotation = ground truth",
             "Update gold_annotations với final result",
             "Conflict rate target: < 10%"
@@ -1253,7 +1255,7 @@ Final annotation: Follow REVIEWER 2 (h0 có thể suy ra)`,
         category: "ambiguity",
         categoryName: "Ambiguity Handling",
         purpose: "Log các trường hợp đề bài ambiguous (thiếu thông tin, mơ hồ)",
-        roles: ["reviewer", "teacher"],
+        roles: ["reviewer", "staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Case ID" },
             { name: "problem_submission_id", type: "UUID FK", description: "Problem gốc" },
@@ -1338,7 +1340,7 @@ REVIEWER Decision:
         category: "extraction",
         categoryName: "Text/Image Extraction",
         purpose: "Log extraction attempts (OCR + AI parsing) từ text/image → JSON",
-        roles: ["reviewer", "teacher"],
+        roles: ["reviewer", "staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Run ID" },
             { name: "problem_submission_id", type: "UUID FK", description: "Problem input" },
@@ -1384,7 +1386,7 @@ Attempt 3: RULE_BASED (regex parsing)
         category: "extraction",
         categoryName: "Text/Image Extraction",
         purpose: "Lưu trữ text/image gốc của problems (before extraction)",
-        roles: ["reviewer", "teacher"],
+        roles: ["reviewer", "staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Asset ID" },
             { name: "problem_submission_id", type: "UUID FK", description: "Problem reference" },
@@ -1430,7 +1432,7 @@ Asset 2 (IMAGE):
         category: "extraction",
         categoryName: "Text/Image Extraction",
         purpose: "Snapshot của extracted parameters (immutable history)",
-        roles: ["reviewer", "teacher"],
+        roles: ["reviewer", "staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Snapshot ID" },
             { name: "specification_id", type: "UUID FK", description: "Spec reference" },
@@ -1479,7 +1481,7 @@ Snapshot 3 (2026-01-01 10:10):
         category: "support",
         categoryName: "Hỗ trợ & Feedback",
         purpose: "Support tickets + feedback từ users (bug reports, feature requests)",
-        roles: ["admin", "reviewer", "teacher", "student"],
+        roles: ["manager", "reviewer", "staff", "student"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Item ID" },
             { name: "user_id", type: "INTEGER FK", description: "User gửi" },
@@ -1505,8 +1507,8 @@ Ticket #2 (MESSAGE):
             { step: 1, desc: "User click 'Support' → Open form" },
             { step: 2, desc: "Fill title + content + kind" },
             { step: 3, desc: "INSERT support_items (status=OPEN)" },
-            { step: 4, desc: "ADMIN nhận notification" },
-            { step: 5, desc: "ADMIN reply → UPDATE status=RESOLVED" }
+            { step: 4, desc: "MANAGER nhận notification" },
+            { step: 5, desc: "MANAGER reply → UPDATE status=RESOLVED" }
         ],
         businessRules: [
             "FEEDBACK: Bug reports, feature requests",
@@ -1522,7 +1524,7 @@ Ticket #2 (MESSAGE):
         category: "support",
         categoryName: "Hỗ trợ & Feedback",
         purpose: "Log hành động của students để analytics và troubleshooting",
-        roles: ["admin", "teacher", "student"],
+        roles: ["manager", "staff", "student"],
         columns: [
             { name: "id", type: "BIGSERIAL PRIMARY KEY", description: "Log ID" },
             { name: "student_id", type: "INTEGER FK", description: "Student ID" },
@@ -1560,7 +1562,7 @@ Ticket #2 (MESSAGE):
         category: "misc",
         categoryName: "Khác",
         purpose: "Track AI token usage per school (billing + quota management)",
-        roles: ["admin", "manager"],
+        roles: ["manager", "school"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Audit ID" },
             { name: "school_id", type: "UUID FK", description: "Trường sử dụng" },
@@ -1600,7 +1602,7 @@ Ticket #2 (MESSAGE):
         category: "misc",
         categoryName: "Khác",
         purpose: "Validation runs để verify physics accuracy của simulations",
-        roles: ["admin", "reviewer", "teacher"],
+        roles: ["manager", "reviewer", "staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Run ID" },
             { name: "simulation_id", type: "UUID FK", description: "Simulation cần validate" },
@@ -1644,7 +1646,7 @@ VALIDATION CHECKS:
         category: "misc",
         categoryName: "Khác",
         purpose: "Submissions của problems từ teachers (text/image input) cho AI parsing",
-        roles: ["reviewer", "teacher"],
+        roles: ["reviewer", "staff"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Submission ID" },
             { name: "submitter_id", type: "INTEGER FK", description: "Teacher ID" },
@@ -1691,7 +1693,7 @@ Step 4: Publish
         category: "library",
         categoryName: "Thư viện",
         purpose: "Audit trail cho moderation actions (REVIEWER approve/reject library items)",
-        roles: ["admin", "reviewer"],
+        roles: ["manager", "reviewer"],
         columns: [
             { name: "id", type: "UUID PRIMARY KEY", description: "Audit ID" },
             { name: "library_item_id", type: "UUID FK", description: "Item bị review" },

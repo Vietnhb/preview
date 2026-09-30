@@ -1,3 +1,5 @@
+> Role update 30/09/2026: the role names and permissions in this historical plan are superseded by [ROLES_FINAL.md](ROLES_FINAL.md). Use the six-role contract there for implementation.
+
 # Checklist triển khai PhysLive B2B
 
 **Cập nhật:** 19/09/2026  

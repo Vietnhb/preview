@@ -52,7 +52,7 @@ public class SchoolService {
         licenseCheckService.requireWriteAccess(actor);
         if (actor.getSchool() == null)
             return providerCall.get();
-        if (actor.getRole() == null || !RoleName.TEACHER.matches(actor.getRole().getName()))
+        if (actor.getRole() == null || !RoleName.STAFF.matches(actor.getRole().getName()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Only teachers can use school AI tokens");
         School school = schoolRepository.findByIdForUpdate(actor.getSchool().getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "School not found"));

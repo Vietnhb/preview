@@ -1,3 +1,5 @@
+> Role update 30/09/2026: the role names and permissions in this historical plan are superseded by [ROLES_FINAL.md](ROLES_FINAL.md). Use the six-role contract there for implementation.
+
 # PhysLive: Hoàn thiện Reviewer Console và quy trình kiểm duyệt chuẩn production
 
 ## 1. Vai trò và nhiệm vụ

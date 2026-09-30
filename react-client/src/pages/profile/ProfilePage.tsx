@@ -6,6 +6,7 @@ import type { User } from "../../types/physlive";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import LearningIcon from "../../components/common/LearningIcon";
 import "../../styles/profile.css";
+import { getRoleLabel } from "../../types/roles";
 
 function ProfileContent({ user }: Readonly<{ user: User }>) {
   const setUser = usePhysliveStore((state) => state.setUser);
@@ -67,7 +68,7 @@ function ProfileContent({ user }: Readonly<{ user: User }>) {
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleAvatar} />
               <h2>{fullName || "User"}</h2><p>{user.email}</p>
-              <span className="profile-role"><LearningIcon name="settings" />{user.role}</span>
+              <span className="profile-role"><LearningIcon name="settings" />{getRoleLabel(user.role)}</span>
             </div>
           </section>
           <section className="profile-card profile-note"><LearningIcon name="bulb" /><div><strong>Hồ sơ PhysLive</strong><p>Thông tin của bạn được dùng để cá nhân hóa workspace và lịch sử mô phỏng.</p></div></section>
@@ -80,7 +81,7 @@ function ProfileContent({ user }: Readonly<{ user: User }>) {
             <form onSubmit={handlePasswordSubmit} className="profile-form profile-password-form"><label>Mật khẩu hiện tại<input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></label><label>Mật khẩu mới<input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength={8} required /></label><label>Xác nhận mật khẩu<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={8} required /></label><button type="submit" className="profile-outline-button" disabled={savingPassword}>{savingPassword ? "Đang cập nhật…" : "Đổi mật khẩu"}</button></form>
           </section>
           {(message || error) && <div className={error ? "profile-alert error" : "profile-alert success"}>{error || message}</div>}
-          <div className="profile-account-meta"><div><span>Vai trò</span><strong>{user.role}</strong></div><div><span>Mã người dùng</span><strong>#{user.id}</strong></div></div>
+          <div className="profile-account-meta"><div><span>Vai trò</span><strong>{getRoleLabel(user.role)}</strong></div><div><span>Mã người dùng</span><strong>#{user.id}</strong></div></div>
         </main>
       </div>
     </div>

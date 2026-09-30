@@ -1,5 +1,7 @@
+import { Heading, IconButton, Text, TextField } from "@radix-ui/themes";
 import { clampControlValue, hasValidControlBounds, isWithinControlBounds, type LearningControl } from "../../../utils/learningModel";
 import LearningIcon from "../../common/LearningIcon";
+import { StudentSlider } from "./StudentSlider";
 
 type StudentParameterPanelProps = {
   controls: LearningControl[];
@@ -10,109 +12,27 @@ type StudentParameterPanelProps = {
   onReset: () => void;
 };
 
-export function StudentParameterPanel({
-  controls,
-  initialValues,
-  draft,
-  error,
-  onChange,
-  onReset,
-}: Readonly<StudentParameterPanelProps>) {
+export function StudentParameterPanel({ controls, initialValues, draft, error, onChange, onReset }: Readonly<StudentParameterPanelProps>) {
   if (controls.length === 0) return null;
-  const dirty = controls.some(
-    (control) =>
-      draft[control.key] !== undefined &&
-      (draft[control.key].trim() === "" ||
-      Number(draft[control.key]) !== initialValues[control.key]),
-  );
-
-  return (
-    <section
-      className="student-parameter-panel"
-      aria-label="Điều chỉnh thông số mô phỏng"
-    >
-      <div className="student-parameter-heading">
-        <div>
-          <span className="student-parameter-kicker">THỬ NGHIỆM</span>
-          <h3>Điều chỉnh thông số</h3>
-        </div>
-        <button
-          type="button"
-          className="student-parameter-reset"
-          aria-label="Hoàn tác thông số"
-          title="Đặt lại thông số ban đầu"
-          disabled={!dirty}
-          onClick={onReset}
-        >
-          <LearningIcon name="reset" />
-        </button>
-      </div>
-      <p className="student-parameter-note">
-        Kéo thanh trượt hoặc nhập số để xem mô phỏng thay đổi ngay.
-      </p>
-      <div className="student-parameters">
-        {controls.map((control) => {
-          const draftValue = draft[control.key] ?? "";
-          const numericValue = Number(draftValue);
-          const validBounds = hasValidControlBounds(control);
-          const initialValue = Number.isFinite(initialValues[control.key])
-            ? initialValues[control.key]
-            : control.min;
-          const validValue = isWithinControlBounds(control, numericValue);
-          const rangeValue = clampControlValue(control, validValue ? numericValue : initialValue);
-          const invalid = draftValue.trim() === "" || !validValue;
-          return (
-            <div className="student-parameter" key={control.key}>
-              <div className="student-parameter-label">
-                <span className="student-variable">{control.symbol}</span>
-                <label htmlFor={`student-parameter-${control.key}`}>
-                  {control.label}
-                </label>
-              </div>
-              <div className="student-parameter-value">
-                <input
-                  id={`student-parameter-${control.key}`}
-                  aria-invalid={invalid}
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  min={control.min}
-                  max={control.max}
-                  value={draftValue}
-                  onChange={(event) =>
-                    onChange(control.key, event.target.value)
-                  }
-                  disabled={!validBounds}
-                />
-                <span>{control.unit}</span>
-              </div>
-              <input
-                className="student-parameter-range"
-                aria-label={`Điều chỉnh ${control.label.toLowerCase()}`}
-                type="range"
-                min={control.min}
-                max={control.max}
-                step={control.step}
-                value={rangeValue}
-                disabled={!validBounds}
-                onChange={(event) => onChange(control.key, event.target.value)}
-              />
-              <div className="student-parameter-range-labels">
-                <span>{control.min}</span>
-                <span>
-                  {control.max} {control.unit}
-                </span>
-              </div>
-              {invalid && <p className="student-parameter-error">Nhập giá trị từ {control.min} đến {control.max} {control.unit}.</p>}
-            </div>
-          );
-        })}
-      </div>
-      {error && (
-        <p className="student-parameter-error" role="alert">
-          {error}
-        </p>
-      )}
-    </section>
-  );
+  const dirty = controls.some(control => draft[control.key] !== undefined && (draft[control.key].trim() === "" || Number(draft[control.key]) !== initialValues[control.key]));
+  return <section className="student-lab-controls" aria-label="Điều chỉnh thông số mô phỏng">
+    <div className="student-lab-heading"><Heading as="h2" size="4">Thông số mô phỏng</Heading><IconButton type="button" variant="soft" size="1" aria-label="Hoàn tác thông số" title="Đặt lại thông số ban đầu" disabled={!dirty} onClick={onReset}><LearningIcon name="reset" /></IconButton></div>
+    <div className="student-lab-fields">{controls.map(control => {
+      const draftValue = draft[control.key] ?? "";
+      const numericValue = Number(draftValue);
+      const validBounds = hasValidControlBounds(control);
+      const initialValue = Number.isFinite(initialValues[control.key]) ? initialValues[control.key] : control.min;
+      const validValue = isWithinControlBounds(control, numericValue);
+      const rangeValue = clampControlValue(control, validValue ? numericValue : initialValue);
+      const invalid = draftValue.trim() === "" || !validValue;
+      return <div className="student-lab-control" key={control.key}>
+        <div className="student-lab-label"><span className="student-lab-symbol">{control.symbol}</span><Text as="label" size="2" htmlFor={`student-parameter-${control.key}`}>{control.label}</Text></div>
+        <TextField.Root className="student-lab-value" id={`student-parameter-${control.key}`} size="1" aria-invalid={invalid} type="number" inputMode="decimal" step="any" min={control.min} max={control.max} value={draftValue} onChange={event => onChange(control.key, event.target.value)} disabled={!validBounds}><TextField.Slot side="right"><Text size="1" color="gray">{control.unit}</Text></TextField.Slot></TextField.Root>
+        <StudentSlider className="student-lab-range" size="1" label={`Điều chỉnh ${control.label.toLowerCase()}`} min={validBounds ? control.min : 0} max={validBounds && control.max > control.min ? control.max : validBounds ? control.min + 1 : 1} step={control.step > 0 ? control.step : .1} value={[rangeValue]} disabled={!validBounds || control.min === control.max} onValueChange={values => onChange(control.key, String(values[0]))} />
+        <div className="student-lab-range-labels"><Text size="1" color="gray">{control.min}</Text><Text size="1" color="gray">{control.max} {control.unit}</Text></div>
+        {invalid && <Text as="p" size="1" color="red" className="student-lab-error">Nhập giá trị từ {control.min} đến {control.max} {control.unit}.</Text>}
+      </div>;
+    })}</div>
+    {error && <Text as="p" size="2" color="red" role="alert">{error}</Text>}
+  </section>;
 }

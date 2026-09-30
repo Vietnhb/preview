@@ -99,7 +99,7 @@ export interface ClassTeacherAssignment {
 }
 
 /**
- * School Statistics (for SCHOOL_MANAGER dashboard)
+ * School Statistics (for SCHOOL dashboard)
  */
 export interface SchoolStats {
   totalStudents: number;
@@ -121,6 +121,7 @@ export interface SchoolBilling {
   monthlyTokenQuota: number | null;
   tokensUsed: number;
   payments: { id: string; planCode: string; purpose: string; amountVnd: number; status: string; createdAt: string; paidAt: string | null }[];
+  planChoices: { planCode: string; allowed: boolean; purpose: "UPGRADE" | "RENEWAL" | null; reason: string | null }[];
 }
 export interface PlanQuote {
   planCode: string;

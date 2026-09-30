@@ -5,17 +5,22 @@ import java.util.Optional;
 
 /** Roles supported by the authorization and school-membership model. */
 public enum RoleName {
-    ADMIN(Scope.PLATFORM),
-    REVIEWER(Scope.PLATFORM),
-    SCHOOL_MANAGER(Scope.SCHOOL),
-    TEACHER(Scope.SCHOOL),
-    STUDENT(Scope.SCHOOL);
+    ADMIN(1, Scope.PLATFORM),
+    MANAGER(2, Scope.PLATFORM),
+    REVIEWER(3, Scope.PLATFORM),
+    SCHOOL(4, Scope.SCHOOL),
+    STAFF(5, Scope.SCHOOL),
+    STUDENT(6, Scope.SCHOOL);
 
+    private final int id;
     private final Scope scope;
 
-    RoleName(Scope scope) {
+    RoleName(int id, Scope scope) {
+        this.id = id;
         this.scope = scope;
     }
+
+    public int id() { return id; }
 
     public boolean matches(String value) {
         return value != null && name().equalsIgnoreCase(value.trim());

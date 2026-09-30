@@ -4,7 +4,8 @@ import "../../styles/NavBar.css";
 import { clearToken } from "../../utils/token";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import LearningIcon from "./LearningIcon";
-import { canManageLearning, canReviewContent, isAdminRole, isStudentRole, ROLE_NAMES } from "../../types/roles";
+import RoleNavigation from "./RoleNavigation";
+import { canManageLearning, canReviewContent, canViewUsers, isAdminRole, isStudentRole, ROLE_NAMES, roleHome } from "../../types/roles";
 
 type NavItem = {
   to: string;
@@ -24,6 +25,7 @@ type NavItem = {
 
 const publicNavItems: NavItem[] = [
   { to: "/", label: "Trang chủ", icon: "grid" },
+  { to: "/community", label: "Cộng đồng", icon: "play" },
   { to: "/about", label: "Giới thiệu", icon: "folder" },
   { to: "/terms", label: "Điều khoản", icon: "book" },
 ];
@@ -74,7 +76,7 @@ export default function NavBar() {
   const navigate = useNavigate();
   const user = usePhysliveStore((state) => state.user);
   const setUser = usePhysliveStore((state) => state.setUser);
-  const isAdmin = isAdminRole(user?.role);
+  const isAdmin = canViewUsers(user?.role);
   const [themeOpen, setThemeOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const logout = () => {
@@ -83,22 +85,30 @@ export default function NavBar() {
     setMobileOpen(false);
     navigate("/login");
   };
-  const visibleItems = [...publicNavItems];
+  const compactNavigation = Boolean(user && user.role !== ROLE_NAMES.STAFF);
+  const visibleItems = compactNavigation ? [] : [...publicNavItems];
   if (!isAdmin && canManageLearning(user?.role)) {
     visibleItems.push({ to: "/workspace", label: "Workspace", icon: "grid" });
   }
   if (isStudentRole(user?.role)) visibleItems.push(studentNavItem);
-  if (user) visibleItems.push({ to: "/community", label: "Cộng đồng", icon: "play" });
-  if (user?.role === ROLE_NAMES.SCHOOL_MANAGER) {
+  if (user?.role === ROLE_NAMES.STAFF && user.staffType === "DEPARTMENT_HEAD") {
+    visibleItems.push({ to: "/department", label: "Quản lý chuyên môn", icon: "settings" });
+  }
+  if (user?.role === ROLE_NAMES.SCHOOL) {
     visibleItems.push({ to: "/school", label: "Quản lý trường", icon: "settings" });
   }
+  if (compactNavigation && canReviewContent(user?.role) && !isAdmin) visibleItems.push({ to: "/reviewer", label: "Kiểm duyệt", icon: "settings" });
+  if (compactNavigation && canViewUsers(user?.role)) visibleItems.push({ to: roleHome(user?.role), label: isAdminRole(user?.role) ? "Tài khoản" : "Vận hành", icon: "settings" });
+  if (user && compactNavigation && !isAdminRole(user.role)) visibleItems.push({ to: "/community", label: "Cộng đồng", icon: "play" });
+
+  if (user && compactNavigation) return <RoleNavigation user={user} items={visibleItems} onLogout={logout} />;
 
   return (
     <nav className="learning-navbar">
       <div className="learning-nav-container">
         <div className="learning-nav-inner">
           <Link
-            to="/"
+            to={compactNavigation ? roleHome(user?.role) : "/"}
             className="learning-brand"
             onClick={() => setMobileOpen(false)}
           >
@@ -109,14 +119,14 @@ export default function NavBar() {
             {visibleItems.map((item) => (
               <NavItemLink key={item.to} item={item} />
             ))}
-            {canReviewContent(user?.role) && !isAdmin && (
+            {!compactNavigation && canReviewContent(user?.role) && !isAdmin && (
               <NavItemLink
                 item={{ to: "/reviewer", label: "Kiểm duyệt", icon: "settings" }}
               />
             )}
-            {isAdminRole(user?.role) && (
+            {!compactNavigation && canViewUsers(user?.role) && (
               <NavItemLink
-                item={{ to: "/admin", label: "Quản trị", icon: "settings" }}
+                item={{ to: roleHome(user?.role), label: isAdminRole(user?.role) ? "Tài khoản" : "Vận hành", icon: "settings" }}
               />
             )}
             <div className="learning-theme-anchor">
@@ -139,7 +149,7 @@ export default function NavBar() {
                 <div className="learning-auth-user">
                   <Link to="/profile" className="learning-profile-link">
                     <span className="learning-avatar">
-                      {user.fullName?.slice(0, 1).toUpperCase() || "U"}
+{user.avatarUrl ? <img src={user.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} /> : user.fullName?.slice(0, 1).toUpperCase() || "U"}
                     </span>
                     <span className="learning-profile-name">
                       {user.fullName}
@@ -207,15 +217,15 @@ export default function NavBar() {
               onClick={() => setMobileOpen(false)}
             />
           ))}
-          {canReviewContent(user?.role) && !isAdmin ? (
+          {!compactNavigation && canReviewContent(user?.role) && !isAdmin ? (
             <NavItemLink
               item={{ to: "/reviewer", label: "Kiểm duyệt", icon: "settings" }}
               onClick={() => setMobileOpen(false)}
             />
           ) : null}
-          {isAdminRole(user?.role) ? (
+          {!compactNavigation && canViewUsers(user?.role) ? (
             <NavItemLink
-              item={{ to: "/admin", label: "Quản trị", icon: "settings" }}
+              item={{ to: roleHome(user?.role), label: isAdminRole(user?.role) ? "Tài khoản" : "Vận hành", icon: "settings" }}
               onClick={() => setMobileOpen(false)}
             />
           ) : null}

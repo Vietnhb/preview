@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Badge, SegmentedControl } from "@radix-ui/themes";
 import {
   adjustAssignedSimulation,
   assignedSimulation,
@@ -9,16 +10,17 @@ import {
 } from "../../api/assignmentApi";
 import { createSimulationAdjustment } from "../../utils/simulationAdjustment";
 import { getSharedSimulation } from "../../api/simulationApi";
-import { library } from "../../api/libraryApi";
+import { communityLibrary } from "../../api/libraryApi";
+import { curriculum } from "../../api/curriculumApi";
 import { studentClasses, type StudentClassSummary } from "../../api/schoolApi";
-import type { Assignment, AssignmentActivityType, LibraryItem, Simulation } from "../../types/physlive";
+import type { Assignment, AssignmentActivityType, Curriculum, LibraryItem, Simulation } from "../../types/physlive";
 import { controlValue, indexAtTime, isWithinControlBounds, type LearningControl } from "../../utils/learningModel";
 import { AssignmentList } from "../../components/roles/student/StudentAssignmentList";
 import { StudentClassOverview } from "../../components/roles/student/StudentClassOverview";
 import { ResourceDiscovery as StudentDiscovery } from "../../features/library/components/ResourceDiscovery";
 import { AssignmentWorkbench } from "../../components/roles/student/StudentAssignmentWorkbench";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
-import "../../styles/assignment-flow.css";
+import "./student-workspace.css";
 
 interface PredictionPayload {
   answerText: string;
@@ -95,6 +97,8 @@ export default function StudentAssignments({
   // Class / Shared Library state
   const [sharedItems, setSharedItems] = useState<LibraryItem[]>([]);
   const [sharedLoading, setSharedLoading] = useState(false);
+  const [sharedError, setSharedError] = useState("");
+  const [catalog, setCatalog] = useState<Curriculum | null>(null);
   const [classes, setClasses] = useState<StudentClassSummary[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [selectedSharedItem, setSelectedSharedItem] =
@@ -124,11 +128,13 @@ export default function StudentAssignments({
 
   const loadSharedLibrary = useCallback(async () => {
     setSharedLoading(true);
+    setSharedError("");
     try {
-      const data = await library();
+      const [data, loadedCurriculum] = await Promise.all([communityLibrary(), curriculum()]);
       setSharedItems(data.filter((item) => item.visibility === "SHARED" || item.visibility === "PUBLIC"));
+      setCatalog(loadedCurriculum);
     } catch {
-      // ignore
+      setSharedError("Không thể tải tài nguyên cộng đồng.");
     } finally {
       setSharedLoading(false);
     }
@@ -451,7 +457,7 @@ export default function StudentAssignments({
   }, [selectedAssignment]);
 
   return (
-    <div className={`main student-main student-layout-${activeTab}`}>
+    <div className={`main student-main student-workspace student-layout-${activeTab}`}>
       <div className="modern-container">
         {selectedAssignment === null && activeTab === "assigned" && <StudentClassOverview
           studentName={user?.fullName || "bạn"}
@@ -465,29 +471,11 @@ export default function StudentAssignments({
         />}
 
         {/* Tabs */}
-        <div className="modern-tabs">
-          <button
-            className={`modern-tab-btn ${activeTab === "assigned" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("assigned");
-              closeAssignment();
-              closeSharedSimulation();
-            }}
-          >
-            <span>Bài tập được giao</span>
-            <span className="modern-tab-badge">{assignments.length}</span>
-          </button>
-          <button
-            className={`modern-tab-btn ${activeTab === "library" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("library");
-              closeAssignment();
-            }}
-          >
-            <span>Khám phá mô phỏng</span>
-            <span className="modern-tab-badge">{sharedItems.length}</span>
-          </button>
-        </div>
+        {selectedAssignment === null && <div className="student-page-tabs"><SegmentedControl.Root size="3" value={activeTab} aria-label="Khu vực học tập" onValueChange={value => {
+          setActiveTab(value as "assigned" | "library");
+          closeAssignment();
+          closeSharedSimulation();
+        }}><SegmentedControl.Item value="assigned">Bài tập được giao<Badge variant="soft">{assignments.length}</Badge></SegmentedControl.Item><SegmentedControl.Item value="library">Cộng đồng<Badge color="cyan" variant="soft">{sharedItems.length}</Badge></SegmentedControl.Item></SegmentedControl.Root></div>}
 
         {/* TAB 1: ASSIGNED SIMULATIONS */}
         {activeTab === "assigned" && (
@@ -518,7 +506,7 @@ export default function StudentAssignments({
                 reasoningInput={reasoningInput}
                 isSubmittingPrediction={isSubmittingPrediction}
                 predictionError={predictionError}
-                assignmentSubmitted={Boolean(selectedAssignment.submissionCompleted)}
+                assignmentSubmitted={Boolean(selectedAssignment.submissionCompleted && !selectedAssignment.retryAllowed)}
                 conclusionInput={conclusionInput}
                 isSubmittingAssignment={isSubmittingAssignment}
                 submissionError={submissionError}
@@ -597,7 +585,10 @@ export default function StudentAssignments({
         {activeTab === "library" && (
           <StudentDiscovery
             items={sharedItems}
+            curriculum={catalog}
             loading={sharedLoading}
+            error={sharedError}
+            onRetry={() => void loadSharedLibrary()}
             selectedItem={selectedSharedItem}
             simulation={sharedSimulation}
             time={sharedTime}

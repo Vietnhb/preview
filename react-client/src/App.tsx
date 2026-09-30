@@ -4,6 +4,7 @@ import AppShell from "./app/AppShell";
 import { useSessionBootstrap } from "./app/useSessionBootstrap";
 import { usePhysliveStore } from "./store/usePhysliveStore";
 import { useRealtimeRevision } from "./realtime/useRealtimeRevision";
+import { isAdminRole } from "./types/roles";
 import { getMe } from "./api/userApi";
 
 export default function App() {
@@ -11,7 +12,7 @@ export default function App() {
   const user = usePhysliveStore(state => state.user);
   const setUser = usePhysliveStore(state => state.setUser);
   const hasUser = user !== null;
-  const realtimeRevision = useRealtimeRevision(authReady && hasUser);
+  const realtimeRevision = useRealtimeRevision(authReady && hasUser && !user?.mustChangePassword && !isAdminRole(user?.role));
   useEffect(() => {
     if (realtimeRevision === 0 || !hasUser) return;
     let active = true;

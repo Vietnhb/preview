@@ -5,3 +5,10 @@
 @import './app-refresh.css';
 @import './modern-roles.css';
 @import './admin-console.css';
+@import '@radix-ui/themes/styles.css';
+
+:where(.radix-themes) {
+  --default-font-family: "Segoe UI", Inter, Arial, sans-serif;
+  --heading-font-family: var(--default-font-family);
+  --cursor-button: pointer;
+}

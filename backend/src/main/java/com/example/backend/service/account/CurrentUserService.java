@@ -17,6 +17,13 @@ public class CurrentUserService {
 
     private final UserRepository userRepository;
 
+    public User currentUserOrNull() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) return null;
+        return userRepository.findByEmail(authentication.getName()).orElse(null);
+    }
+
     public User requireCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {

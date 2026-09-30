@@ -86,6 +86,7 @@
             "bodies",
             "instruments",
             "links",
+            "fixtures",
             "overlay"
           ],
           "properties": {
@@ -120,7 +121,9 @@
                   "facing",
                   "rotate",
                   "anchor",
-                  "sizeMeters"
+                  "sizeMeters",
+                  "line",
+                  "solid"
                 ],
                 "properties": {
                   "id": {
@@ -161,6 +164,14 @@
                   "sizeMeters": {
                     "type": "number",
                     "description": "Real-world size of the body's largest dimension in metres (0 = let the kit choose a readable size)."
+                  },
+                  "line": {
+                    "type": "string",
+                    "description": "Name of the road/track/line the body moves on: bodies given the same name share one line (a car and the wall it hits, wagons of one train). '' = let the kit decide from the motion (bodies that touch share a line, bodies that pass each other get separate lines)."
+                  },
+                  "solid": {
+                    "type": "boolean",
+                    "description": "A rigid body that nothing solid on its line may pass through (car, block, wall, ball). The renderer checks this against the solver motion of every pair."
                   }
                 }
               }
@@ -326,6 +337,100 @@
                   },
                   "dashed": {
                     "type": "boolean"
+                  }
+                }
+              }
+            },
+            "fixtures": {
+              "type": "array",
+              "description": "Things that do not move but stand at a physical place (wall, stop, barrier, pulley block, fixed charge, platform, target…). The kit places each at its position in metres on the same measured frame as the moving bodies, and moves it when a slider changes that position. [] if none.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "svg",
+                  "x",
+                  "xParameter",
+                  "y",
+                  "yParameter",
+                  "anchor",
+                  "sizeMeters",
+                  "solid",
+                  "angle",
+                  "angleParameter",
+                  "angleScale",
+                  "flipBy"
+                ],
+                "properties": {
+                  "svg": {
+                    "type": "string",
+                    "description": "Complete SVG of the fixture only."
+                  },
+                  "x": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Horizontal position in metres (null when xParameter is used or it does not matter)."
+                  },
+                  "xParameter": {
+                    "type": "string",
+                    "description": "Name of the plan parameter that holds the horizontal position (e.g. the position of the obstacle the solver uses); '' if x is a number."
+                  },
+                  "y": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Vertical position (height) in metres, or null."
+                  },
+                  "yParameter": {
+                    "type": "string",
+                    "description": "Name of the plan parameter that holds the height; '' if unused."
+                  },
+                  "anchor": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "x",
+                      "y"
+                    ],
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "description": "Point of the SVG (viewBox units) that sits exactly at the position, e.g. the contact face of a wall at ground level."
+                  },
+                  "sizeMeters": {
+                    "type": "number",
+                    "description": "Real size of its largest dimension in metres (0 = readable default)."
+                  },
+                  "solid": {
+                    "type": "boolean",
+                    "description": "true when moving bodies must not pass through it (a wall, a floor, a barrier); the renderer then checks this against the solver motion."
+                  },
+                  "angle": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Rotation in screen degrees, clockwise (null = as drawn)."
+                  },
+                  "angleParameter": {
+                    "type": "string",
+                    "description": "Plan parameter that gives the rotation instead (e.g. an incline angle); '' if unused."
+                  },
+                  "angleScale": {
+                    "type": "number",
+                    "description": "Multiplier from the angle (or parameter) to screen degrees clockwise, e.g. -57.2958 for a counter-clockwise angle in radians; 1 for plain degrees."
+                  },
+                  "flipBy": {
+                    "type": "string",
+                    "description": "Plan parameter whose NEGATIVE value mirrors the drawing horizontally: the sense of a field, a polarity, a current direction drawn pointing +x. '' if unused."
                   }
                 }
               }

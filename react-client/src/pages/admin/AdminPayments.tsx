@@ -58,7 +58,7 @@ export default function AdminPayments() {
       </section>}
       {error && <div className="admin-error-banner">{error}</div>}
       <section className="admin-panel">
-        <div className="admin-panel-heading"><div><h2>Giao dịch trường</h2><p className="admin-panel-description">Đối soát các giao dịch VNPAY đang chờ hoặc cần kiểm tra.</p></div><button type="button" className="admin-secondary-button" onClick={() => void load()}>Làm mới</button></div>
+        <div className="admin-panel-heading"><div><h2>Giao dịch trường</h2></div><button type="button" className="admin-secondary-button" onClick={() => void load()}>Làm mới</button></div>
         <div className="admin-table-scroll"><table className="admin-table">
           <thead><tr><th>Trường</th><th>Quản lý</th><th>Gói</th><th>Số tiền</th><th>Trạng thái</th><th>Thời gian</th><th /></tr></thead>
           <tbody>{items.length === 0 ? <tr><td colSpan={7}>Chưa có giao dịch.</td></tr> : items.map((item) => <tr key={item.id}>

@@ -1,0 +1,95 @@
+package com.example.backend.service.simulation;
+
+import com.example.backend.entity.account.Role;
+import com.example.backend.entity.account.User;
+import com.example.backend.entity.enums.LibraryModerationStatus;
+import com.example.backend.entity.enums.Visibility;
+import com.example.backend.entity.library.LibraryItem;
+import com.example.backend.entity.problem.Specification;
+import com.example.backend.entity.school.School;
+import com.example.backend.entity.simulation.Simulation;
+import com.example.backend.exception.ApiException;
+import com.example.backend.repository.library.LibraryItemRepository;
+import com.example.backend.repository.simulation.SimulationRepository;
+import com.example.backend.repository.simulation.SimulationRunRepository;
+import com.example.backend.service.account.AccountAccessService;
+import com.example.backend.service.account.CurrentUserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class ModerationSimulationPreviewTest {
+    private final LibraryItemRepository library = mock(LibraryItemRepository.class);
+    private final CurrentUserService current = mock(CurrentUserService.class);
+    private final SimulationRunRepository runs = mock(SimulationRunRepository.class);
+    private final SimulationService service = new SimulationService(mock(SimulationRepository.class), runs, library, current, new ObjectMapper(), new AccountAccessService());
+    private User user(String role, UUID schoolId) {
+        User user = new User(); user.setId(1); Role accountRole = new Role(); accountRole.setName(role); user.setRole(accountRole);
+        if (schoolId != null) { School school = new School(); school.setId(schoolId); user.setSchool(school); }
+        return user;
+    }
+    private LibraryItem item(Visibility visibility, UUID schoolId) {
+        Specification specification = new Specification(); specification.setId(UUID.randomUUID());
+        Simulation simulation = new Simulation(); simulation.setId(UUID.randomUUID()); simulation.setSpecification(specification);
+        LibraryItem item = new LibraryItem(); item.setSimulation(simulation); item.setVisibility(visibility);
+        item.setOwner(user("STAFF", schoolId)); item.setModerationStatus(LibraryModerationStatus.PENDING); return item;
+    }
+    private void expectPublishedLookup(UUID simulationId, String schoolId) {
+        verify(library).findVisiblePublishedSimulation(simulationId, Set.of(Visibility.PUBLIC, Visibility.SHARED), Visibility.PUBLIC,
+            Set.of(LibraryModerationStatus.APPROVED, LibraryModerationStatus.FEATURED), schoolId);
+    }
+
+    @Test void reviewerWithReviewCapabilityPreviewsPendingPublicWithoutAnArbitraryPersonalClone() {
+        User actor = user("REVIEWER", null); actor.setReviewerCanEdit(false); actor.setReviewerCanReview(true);
+        LibraryItem item = item(Visibility.PUBLIC, UUID.randomUUID());
+        when(current.requireCurrentUser()).thenReturn(actor);
+        when(library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(item.getSimulation().getId(), Visibility.PUBLIC)).thenReturn(List.of(item));
+        assertNotNull(service.getShared(item.getSimulation().getId()));
+        verify(library, never()).findFirstBySimulationId(any());
+        verify(runs).findFirstBySimulationIdOrderByCreatedAtDesc(item.getSimulation().getId());
+    }
+
+    @Test void editOnlyReviewerCannotPreviewPendingContent() {
+        User actor = user("REVIEWER", null); actor.setReviewerCanEdit(true); actor.setReviewerCanReview(false);
+        when(current.requireCurrentUser()).thenReturn(actor); UUID id = UUID.randomUUID();
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class, () -> service.getShared(id)).getStatus());
+        verify(library, never()).findBySimulationIdAndVisibilityOrderByCreatedAtDesc(any(), any());
+        expectPublishedLookup(id, null); verifyNoInteractions(runs);
+    }
+
+    @Test void departmentHeadPreviewsLegacyBlankScopeOnlyWithinOwnSchool() {
+        UUID school = UUID.randomUUID(); User actor = user("STAFF", school); actor.setStaffType("DEPARTMENT_HEAD");
+        LibraryItem own = item(Visibility.SHARED, school); own.setSharedInstitutionId(" ");
+        when(current.requireCurrentUser()).thenReturn(actor);
+        when(library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(own.getSimulation().getId(), Visibility.SHARED)).thenReturn(List.of(own));
+        assertNotNull(service.getShared(own.getSimulation().getId()));
+        own.getOwner().getSchool().setId(UUID.randomUUID());
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class, () -> service.getShared(own.getSimulation().getId())).getStatus());
+        expectPublishedLookup(own.getSimulation().getId(), actor.getInstitutionId());
+    }
+
+    @Test void headCannotPreviewContentExplicitlySharedToAnotherSchoolOrPublicPending() {
+        UUID school = UUID.randomUUID(); User actor = user("STAFF", school); actor.setStaffType("DEPARTMENT_HEAD");
+        LibraryItem item = item(Visibility.SHARED, school); item.setSharedInstitutionId(UUID.randomUUID().toString());
+        when(current.requireCurrentUser()).thenReturn(actor);
+        when(library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(item.getSimulation().getId(), Visibility.SHARED)).thenReturn(List.of(item));
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ApiException.class, () -> service.getShared(item.getSimulation().getId())).getStatus());
+        verify(library, never()).findBySimulationIdAndVisibilityOrderByCreatedAtDesc(any(), eq(Visibility.PUBLIC));
+        verifyNoInteractions(runs);
+    }
+
+    @Test void withdrawnPendingContentIsUnavailableButModeratorsCanInspectRemovedContent() {
+        User actor = user("REVIEWER", null); LibraryItem item = item(Visibility.PUBLIC, null); item.setActive(false);
+        when(current.requireCurrentUser()).thenReturn(actor);
+        when(library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(item.getSimulation().getId(), Visibility.PUBLIC)).thenReturn(List.of(item));
+        assertThrows(ApiException.class, () -> service.getShared(item.getSimulation().getId()));
+        item.setModerationStatus(LibraryModerationStatus.REMOVED);
+        assertNotNull(service.getShared(item.getSimulation().getId()));
+    }
+}

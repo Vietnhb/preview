@@ -22,6 +22,13 @@ axiosClient.interceptors.response.use(response => response, async (error: unknow
     if (!axios.isAxiosError(error) || axios.isCancel(error)) throw error;
     const config = error.config as ReadRetryConfig | undefined;
     const status = error.response?.status;
+    if (status === 403 && error.response?.data?.code === "PASSWORD_CHANGE_REQUIRED" && config) {
+        const currentToken = getToken();
+        const store = usePhysliveStore.getState();
+        if (currentToken && config.headers.Authorization === `Bearer ${currentToken}` && store.user) {
+            store.setUser({ ...store.user, mustChangePassword: true });
+        }
+    }
     if (status === 401 && config) {
         const requestAuthorization = config.headers.Authorization;
         const currentToken = getToken();

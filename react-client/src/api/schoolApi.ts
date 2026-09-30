@@ -22,13 +22,11 @@ export type StudentClassSummary = { id: string; name: string; gradeLevel: number
 export const studentClasses = () => axiosClient.get<StudentClassSummary[]>("/student/classes").then(r => r.data);
 export type SchoolReportSummary = { schoolId: string; schoolName: string; students: number; teachers: number; managers: number; activeClasses: number; enrolledStudents: number; usedTokens: number; tokenQuota: number | null; licenseEnd: string | null };
 export type SchoolReportClass = { id: string; name: string; gradeLevel: number; schoolYear: string; teachers: number; students: number };
-export type SchoolImportResult = { total: number; imported: number; failed: number; rows: { row: number; email: string; status: string; message: string }[] };
 export type SchoolTokenAudit = { userEmail: string; tokens: number; operation: string; usageMonth: string; recordedAt: string };
 const reportPath = (schoolId: string) => `/schools/${schoolId}/reports`;
 export const schoolReportSummary = (schoolId: string) => axiosClient.get<SchoolReportSummary>(`${reportPath(schoolId)}/summary`).then(r => r.data);
 export const schoolReportClasses = (schoolId: string) => axiosClient.get<SchoolReportClass[]>(`${reportPath(schoolId)}/classes`).then(r => r.data);
 export const schoolReportTokenAudit = (schoolId: string) => axiosClient.get<SchoolTokenAudit[]>(`${reportPath(schoolId)}/token-audit`).then(r => r.data);
-export const importSchoolUsers = (schoolId: string, file: File) => { const form = new FormData(); form.append("file", file); return axiosClient.post<SchoolImportResult>(`${reportPath(schoolId)}/users/import`, form).then(r => r.data); };
 export const downloadSchoolClassesCsv = async (schoolId: string) => {
   const response = await axiosClient.get<Blob>(`${reportPath(schoolId)}/classes.csv`, { responseType: "blob" });
   const url = URL.createObjectURL(response.data);

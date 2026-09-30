@@ -19,7 +19,7 @@ import lombok.Data;
 
 /**
  * Many-to-Many: Teacher <-> Class assignment.
- * SCHOOL_MANAGER assigns teachers to classes.
+ * SCHOOL assigns teachers to classes.
  * 1 teacher can teach multiple classes.
  */
 @Entity

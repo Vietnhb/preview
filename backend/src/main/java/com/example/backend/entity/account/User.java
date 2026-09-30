@@ -39,8 +39,8 @@ public class User {
      * School the user belongs to (nullable for platform roles).
      *
      * Business Rules (enforced via database constraint in the database bootstrap SQL):
-     * - Platform roles (ADMIN, REVIEWER): school_id MUST be NULL
-     * - School roles (SCHOOL_MANAGER, TEACHER, STUDENT): school_id MUST be NOT NULL
+     * - Platform roles (ADMIN, MANAGER, REVIEWER): school_id MUST be NULL
+     * - School roles (SCHOOL, STAFF, STUDENT): school_id MUST be NOT NULL
      */
     @ManyToOne
     @JoinColumn(name = "school_id")
@@ -77,4 +77,16 @@ public class User {
 
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
+
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
+    @Column(name = "staff_type", length = 32)
+    private String staffType = "TEACHER";
+
+    @Column(name = "reviewer_can_edit", nullable = false)
+    private Boolean reviewerCanEdit = true;
+
+    @Column(name = "reviewer_can_review", nullable = false)
+    private Boolean reviewerCanReview = true;
 }

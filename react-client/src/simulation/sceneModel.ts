@@ -44,6 +44,8 @@ export type SceneParticipant = {
   link: { radius: number } | null;
   /** Inferred from data: force ≈ −k · displacement over the whole run. */
   spring: { stiffness: number } | null;
+  /** Has a place in space that never changes during the run (a probe, a fixed source, an obstacle). */
+  stationary: boolean;
 };
 export type SceneDescriptor = {
   participants: SceneParticipant[];
@@ -149,9 +151,22 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
     const own = Object.values(fields).filter(field => field.participantId === id);
     if (!own.length) continue;
     const model = models.find(item => item.id === id);
-    const find = (...names: string[]) => names.map(name => own.find(field => field.quantity === name)?.key).find(Boolean);
+    /* The approved capability's renderer roles are the authority on what is a place in space: a field it
+       declares as something else (e.g. an elongation shown as a state value) is never drawn as motion, and a
+       field it declares as a position is used even if its name is not in the shared vocabulary. */
+    const roleOf = (key: string) => backendMeta[key]?.rendererRole;
+    const SPATIAL = /position|trajectory|displacement/;
+    /* when every role the capability declares for this participant is a plain state value, nothing of it is drawn as motion */
+    const declared = own.map(field => roleOf(field.key)).filter((role): role is string => !!role);
+    const noPlace = declared.length > 0 && declared.every(role => role === "state_value");
+    const placeable = noPlace ? [] : own.filter(field => { const role = roleOf(field.key); return !role || SPATIAL.test(role); });
+    const findIn = (pool: FieldMeta[], ...names: string[]) => names.map(name => pool.find(field => field.quantity === name)?.key).find(Boolean);
+    const find = (...names: string[]) => findIn(own, ...names);
+    const findPlace = (...names: string[]) => findIn(placeable, ...names);
+    const byRole = (pattern: RegExp) => placeable.find(field => pattern.test(roleOf(field.key) ?? ""))?.key;
     const f: SceneParticipant["fields"] = {
-      x: find("x"), y: find("y"), position: find("position", "displacement", "height", "elongation"),
+      x: findPlace("x") ?? byRole(/horizontal_position|trajectory_x/), y: findPlace("y") ?? byRole(/vertical_position|trajectory_y/),
+      position: findPlace("position", "displacement", "height", "elongation") ?? byRole(/^(position|displacement|trajectory)$/),
       velocity: find("velocity"), vx: find("vx"), vy: find("vy"),
       acceleration: find("acceleration"), ax: find("ax"), ay: find("ay"),
       angle: find("angle"), angularVelocity: find("angular_velocity"), force: find("force"),
@@ -189,7 +204,9 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
         if (sxx > 0) spring = { stiffness: -sxf / sxx };
       }
     }
-    participants.push({ id, label: model?.label?.trim() || id, colorIndex: participants.length, dims, vertical, fields: f, link, spring });
+    const still = (key?: string) => !key || (fields[key] && fields[key].max - fields[key].min <= 1e-12 * Math.max(1, Math.abs(fields[key].max), Math.abs(fields[key].min)));
+    const stationary = dims > 0 && still(f.x) && still(f.y) && still(f.position);
+    participants.push({ id, label: model?.label?.trim() || id, colorIndex: participants.length, dims, vertical, fields: f, link, spring, stationary });
   }
   return { participants, fields, durationSeconds: timeline.durationSeconds };
 }
@@ -241,9 +258,41 @@ export function displayValue(meta: Pick<FieldMeta, "kind" | "unit">, value: numb
  * Physical runs last from nanoseconds to years; playback maps the whole run onto a
  * watchable 4–30 s. Returns simulated seconds per real second at 1× speed.
  */
-export function presentationRate(durationSeconds: number) {
+export function presentationRate(durationSeconds: number, timeline?: SolverTimeline) {
   if (!(durationSeconds > 0)) return 1;
-  return durationSeconds / Math.min(30, Math.max(4, durationSeconds));
+  const rate = durationSeconds / Math.min(30, Math.max(4, durationSeconds));
+  /* never replay an oscillation faster than the eye (and a 60 fps screen) can follow: at most
+     MAX_SCREEN_HZ cycles per real second, unless that would make the replay longer than MAX_REPLAY_SECONDS */
+  const frequency = timeline ? fastestOscillation(timeline) : 0;
+  if (!(frequency * rate > MAX_SCREEN_HZ)) return rate;
+  return Math.max(MAX_SCREEN_HZ / frequency, durationSeconds / MAX_REPLAY_SECONDS);
+}
+const MAX_SCREEN_HZ = 2, MAX_REPLAY_SECONDS = 120;
+/** Highest oscillation frequency (Hz, simulated time) among the solver fields, from sign changes about each field's mean. */
+export function fastestOscillation(timeline: SolverTimeline) {
+  const frames = timeline.frames, duration = timeline.durationSeconds;
+  if (frames.length < 3 || !(duration > 0)) return 0;
+  let fastest = 0;
+  for (const key of Object.keys(frames[0].values)) {
+    if (key === "t") continue;
+    let min = Infinity, max = -Infinity, sum = 0;
+    for (const frame of frames) { const v = frame.values[key]; min = Math.min(min, v); max = Math.max(max, v); sum += v; }
+    if (!(max - min > 1e-9 * Math.max(Math.abs(max), Math.abs(min)))) continue;
+    const mean = sum / frames.length, band = (max - min) * 0.05;
+    let side = 0, changes = 0;
+    for (const frame of frames) {
+      const d = frame.values[key] - mean;
+      const s = d > band ? 1 : d < -band ? -1 : 0;
+      if (s && side && s !== side) changes++;
+      if (s) side = s;
+    }
+    fastest = Math.max(fastest, changes / 2 / duration);
+  }
+  return fastest;
+}
+/** True when even the slowed replay shows an oscillation too fast to follow (the charts then carry the detail). */
+export function replayTooFast(timeline: SolverTimeline) {
+  return fastestOscillation(timeline) * presentationRate(timeline.durationSeconds, timeline) > 3 * MAX_SCREEN_HZ;
 }
 
 const TIME_UNITS: Array<[number, string]> = [[31557600, "năm"], [86400, "ngày"], [3600, "h"], [60, "min"], [1, "s"],

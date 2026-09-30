@@ -150,3 +150,15 @@ test('the kit re-applies solver-bound placements after every generated update', 
   assert.equal(host.context.kitCalls.finish, before + 2);
   assert.equal(host.context.kitCalls.begin, host.context.kitCalls.finish);
 });
+test('a recomputed solver timeline (parameter edit) is cross-checked again before it is shown', async () => {
+  const host = runtime();
+  await host.send({type: 'start', timeline, parameters: {}, code: `async function(PIXI, app, api) { api.kit.standardScene();
+    return {update() {}};
+  }`});
+  assert.equal(host.messages.at(-1).type, 'ready');
+  host.context.kitIssues = ['p1: drawn at p1.position = 3 but the solver gives 4 at t = 0.5 s.'];
+  const revised = {durationSeconds: 1, frames: [{t: 0, values: {'arbitrary.position': 20}}, {t: 1, values: {'arbitrary.position': 40}}]};
+  await host.send({type: 'data', timeline: revised, parameters: {any: 3}});
+  assert.equal(host.messages.at(-1).type, 'error');
+  assert.match(host.messages.at(-1).message, /cross-check against the verified solver data failed[\s\S]*solver gives 4/);
+});

@@ -20,20 +20,20 @@ body {
   margin: 0;
   min-width: 320px;
 }
-button,
-input,
-textarea,
-select {
+button:where(:not(.rt-reset)),
+input:where(:not(.rt-reset)),
+textarea:where(:not(.rt-reset)),
+select:where(:not(.rt-reset)) {
   font: inherit;
 }
-button,
+button:where(:not(.rt-reset)),
 .secondary {
   transition:
     background-color 0.18s ease,
     box-shadow 0.18s ease,
     transform 0.18s ease;
 }
-button {
+button:where(:not(.rt-reset)) {
   min-height: 40px;
   border: 0;
   border-radius: 8px;
@@ -43,33 +43,33 @@ button {
   color: #fff;
   font-weight: 700;
 }
-button:hover:not(:disabled) {
+button:where(:not(.rt-reset)):hover:not(:disabled) {
   background: #1765cc;
   box-shadow: 0 2px 5px #1a73e833;
 }
-button:active:not(:disabled) {
+button:where(:not(.rt-reset)):active:not(:disabled) {
   transform: translateY(1px);
 }
-button:disabled {
+button:where(:not(.rt-reset)):disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
-button.secondary,
+button:where(:not(.rt-reset)).secondary,
 .secondary {
   background: #eef3fe;
   color: #174ea6;
 }
-button.secondary:hover:not(:disabled),
+button:where(:not(.rt-reset)).secondary:hover:not(:disabled),
 .secondary:hover {
   background: #e2ebfd;
 }
-button.danger {
+button:where(:not(.rt-reset)).danger {
   background: #d93025;
 }
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
+button:where(:not(.rt-reset)):focus-visible,
+input:where(:not(.rt-reset)):focus-visible,
+textarea:where(:not(.rt-reset)):focus-visible,
+select:where(:not(.rt-reset)):focus-visible,
 a:focus-visible {
   outline: 3px solid #8ab4f8;
   outline-offset: 2px;
@@ -100,19 +100,19 @@ a:focus-visible {
   font-size: 11px;
   font-weight: 800;
 }
-h1 {
+h1:where(:not(.rt-Heading)) {
   max-width: 720px;
   font-size: clamp(32px, 4vw, 52px);
   letter-spacing: -0.045em;
   line-height: 1.08;
   margin: 10px 0 14px;
 }
-h2 {
+h2:where(:not(.rt-Heading)) {
   font-size: 20px;
   letter-spacing: -0.02em;
   margin: 0 0 18px;
 }
-h3 {
+h3:where(:not(.rt-Heading)) {
   font-size: 16px;
   margin: 0 0 10px;
 }
@@ -157,9 +157,9 @@ p {
   font-weight: 700;
   color: #3c4043;
 }
-textarea,
-input,
-select {
+textarea:where(:not(.rt-reset)),
+input:where(:not(.rt-reset)),
+select:where(:not(.rt-reset)) {
   width: 100%;
   border: 1px solid #bdc1c6;
   border-radius: 8px;
@@ -167,14 +167,14 @@ select {
   background: #fff;
   color: #202124;
 }
-textarea {
+textarea:where(:not(.rt-reset)) {
   min-height: 172px;
   resize: vertical;
   line-height: 1.55;
 }
-textarea:hover,
-input:hover,
-select:hover {
+textarea:where(:not(.rt-reset)):hover,
+input:where(:not(.rt-reset)):hover,
+select:where(:not(.rt-reset)):hover {
   border-color: #80868b;
 }
 .actions {
@@ -2029,18 +2029,18 @@ input[type="range"] {
 .table-wrap {
   overflow-x: auto;
 }
-table {
+table:where(:not(.rt-TableRootTable)) {
   width: 100%;
   border-collapse: collapse;
 }
-th,
-td {
+th:where(:not(.rt-TableCell)),
+td:where(:not(.rt-TableCell)) {
   text-align: left;
   padding: 12px;
   border-bottom: 1px solid #edf0f2;
   font-size: 14px;
 }
-th {
+th:where(:not(.rt-TableCell)) {
   color: #5f6368;
   font-size: 12px;
   text-transform: uppercase;

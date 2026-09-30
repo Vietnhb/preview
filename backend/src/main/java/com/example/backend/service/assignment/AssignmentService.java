@@ -131,7 +131,7 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Due date must be in the future");
         if (request.maxScore() != null && request.maxScore().signum() <= 0)
             throw new ApiException(HttpStatus.BAD_REQUEST, "Maximum score must be positive");
-        if (RoleName.TEACHER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
+        if (RoleName.STAFF.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
                 && request.classId() == null)
             throw new ApiException(HttpStatus.BAD_REQUEST, "Select a class before assigning this activity");
         String activityType = activityType(request.questions());
@@ -159,7 +159,7 @@ public class AssignmentService {
         SchoolClass targetClass = null;
         if (request.classId() != null) {
             if (classTeacherAssignments == null || classEnrollments == null
-                    || (!RoleName.ADMIN.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
+                    || (!RoleName.MANAGER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
                     && !classTeacherAssignments.existsBySchoolClassIdAndTeacherIdAndIsActiveTrue(request.classId(), teacher.getId())))
                 throw new ApiException(HttpStatus.FORBIDDEN, "Teacher is not assigned to the selected class");
             targetClass = classTeacherAssignments.findByClassIdAndIsActiveTrue(request.classId()).stream()
@@ -219,7 +219,7 @@ public class AssignmentService {
     private void validateTeacherClassAccess(User teacher, User student) {
         if (classEnrollments == null || classTeacherAssignments == null)
             throw new IllegalStateException("Class authorization repositories are not configured");
-        if (teacher.getRole() != null && RoleName.ADMIN.matches(teacher.getRole().getName())) return;
+        if (teacher.getRole() != null && RoleName.MANAGER.matches(teacher.getRole().getName())) return;
         if (teacher.getSchool() == null || student.getSchool() == null
                 || !teacher.getSchool().getId().equals(student.getSchool().getId()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Teacher and student must belong to the same school");
@@ -407,7 +407,7 @@ public class AssignmentService {
         User teacher = currentUserService.requireCurrentUser();
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
-        if (!RoleName.ADMIN.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
+        if (!RoleName.MANAGER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
                 && !assignment.getTeacher().getId().equals(teacher.getId()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the assignment teacher can grade submissions");
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
@@ -428,7 +428,7 @@ public class AssignmentService {
         User teacher = currentUserService.requireCurrentUser();
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
-        if (!RoleName.ADMIN.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
+        if (!RoleName.MANAGER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
                 && !assignment.getTeacher().getId().equals(teacher.getId()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the assignment teacher can reopen submissions");
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
@@ -445,7 +445,7 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
         if (!assignment.getTeacher().getId().equals(teacher.getId())
-                && !RoleName.ADMIN.matches(teacher.getRole() == null ? null : teacher.getRole().getName())) {
+                && !RoleName.MANAGER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the teacher can view submissions");
         }
         return submissionRepository.findByAssignmentIdOrderBySubmittedAtDesc(assignmentId).stream().map(this::toSubmission).toList();
@@ -456,7 +456,7 @@ public class AssignmentService {
         User teacher = currentUserService.requireCurrentUser();
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND));
-        boolean admin = teacher.getRole() != null && RoleName.ADMIN.matches(teacher.getRole().getName());
+        boolean admin = teacher.getRole() != null && RoleName.MANAGER.matches(teacher.getRole().getName());
         if (!admin && !assignment.getTeacher().getId().equals(teacher.getId()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the assignment teacher can view reports");
         List<AssignmentSubmission> rows = submissionRepository.findByAssignmentIdOrderBySubmittedAtDesc(assignmentId);

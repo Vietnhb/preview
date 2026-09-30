@@ -12,6 +12,7 @@ import com.example.backend.repository.school.LicensePlanRepository;
 import com.example.backend.repository.school.SchoolPaymentRepository;
 import com.example.backend.repository.school.SchoolRepository;
 import com.example.backend.service.account.CurrentUserService;
+import com.example.backend.service.account.AccountAccessService;
 import com.example.backend.service.realtime.RealtimeEventService;
 
 import com.example.backend.entity.enums.RoleName;
@@ -63,6 +64,7 @@ public class SchoolPaymentService {
     private final RoleRepository roles;
     private final PasswordEncoder passwords;
     private final CurrentUserService currentUser;
+    private final AccountAccessService accountAccess;
     private final LicenseCheckService licenseCheck;
     private final jakarta.persistence.EntityManager entityManager;
     private final VnpayProperties vnpay;
@@ -76,8 +78,10 @@ public class SchoolPaymentService {
     public record PaymentRow(UUID id, String planCode, String purpose, Long amountVnd, String status, Instant createdAt, Instant paidAt) { }
     public record AdminPaymentRow(UUID id, String schoolName, String managerEmail, String planCode, String purpose, Long amountVnd, String status, Instant createdAt, Instant paidAt) { }
     public record RevenueSummary(long paidTransactions, long pendingTransactions, long reviewTransactions, long grossPaidVnd) { }
+    public record PlanChoice(String planCode, boolean allowed, String purpose, String reason) { }
     public record Billing(String planCode, String nextPlanCode, LocalDate licenseStart, LocalDate licenseEnd,
-        Integer studentQuota, long studentsUsed, Integer monthlyTokenQuota, long tokensUsed, List<PaymentRow> payments) { }
+        Integer studentQuota, long studentsUsed, Integer monthlyTokenQuota, long tokensUsed, List<PaymentRow> payments,
+        List<PlanChoice> planChoices) { }
 
     @Transactional
     public Checkout checkout(SchoolRegistrationRequest request, String ip) {
@@ -195,6 +199,7 @@ public class SchoolPaymentService {
         var school = lockedSchool(payment.getSchool().getId());
         if ((REGISTRATION.equals(payment.getPurpose()) && school.getPlanCode() != null)
             || (!REGISTRATION.equals(payment.getPurpose()) && !Objects.equals(school.getPlanCode(), payment.getPreviousPlanCode()))
+            || (!REGISTRATION.equals(payment.getPurpose()) && !matchesCurrentEntitlement(school, payment))
             || (payment.getStudentQuota() != null && users.countActiveStudents(school.getId()) > payment.getStudentQuota())) {
             payment.setStatus(REQUIRES_REVIEW); payment.setPaidAt(Instant.now()); payment.setProviderTransactionNo(transactionNo); return;
         }
@@ -208,6 +213,30 @@ public class SchoolPaymentService {
         school.setPlanCode(payment.getPlanCode()); school.setAnnualPriceVnd(payment.getAnnualPriceVnd() == null ? payment.getAmountVnd() : payment.getAnnualPriceVnd());
         school.setNextPlanCode(null);
         payment.setStatus("PAID"); payment.setPaidAt(Instant.now()); payment.setProviderTransactionNo(transactionNo);
+    }
+
+    private boolean matchesCurrentEntitlement(School school, SchoolPayment payment) {
+        LocalDate today = LocalDate.now(vnpay.zoneId());
+        if ("UPGRADE".equals(payment.getPurpose())) {
+            return school.getLicenseStart() != null && school.getLicenseEnd() != null
+                    && !school.getLicenseStart().isAfter(today) && !school.getLicenseEnd().isBefore(today)
+                    && Objects.equals(school.getLicenseStart(), payment.getLicenseStart())
+                    && Objects.equals(school.getLicenseEnd(), payment.getLicenseEnd())
+                    && school.getAnnualPriceVnd() != null && payment.getAnnualPriceVnd() != null
+                    && payment.getAnnualPriceVnd() > school.getAnnualPriceVnd()
+                    && quotaAtLeast(payment.getStudentQuota(), school.getStudentQuota())
+                    && quotaAtLeast(payment.getMonthlyTokenQuota(), school.getMonthlyTokenQuota());
+        }
+        if (!"RENEWAL".equals(payment.getPurpose())) return false;
+        if (school.getLicenseEnd() == null || school.getLicenseEnd().isBefore(today)) {
+            return payment.getLicenseStart() != null && payment.getLicenseEnd() != null
+                    && !payment.getLicenseEnd().isBefore(today);
+        }
+        // An active same-plan renewal extends exactly the period quoted. A
+        // concurrent renewal or a manager's entitlement edit requires review.
+        return Objects.equals(school.getPlanCode(), payment.getPlanCode())
+                && Objects.equals(school.getLicenseStart(), payment.getLicenseStart())
+                && Objects.equals(school.getLicenseEnd().plusYears(1), payment.getLicenseEnd());
     }
 
     private void createPaidRegistration(SchoolPayment payment, String transactionNo) {
@@ -232,8 +261,10 @@ public class SchoolPaymentService {
 
         User manager = new User(); manager.setEmail(email); manager.setFullName(payment.getRegistrationManagerName());
         manager.setPassword(payment.getRegistrationPasswordHash()); manager.setSchool(school); manager.setActive(true);
-        manager.setRole(roles.findByName(RoleName.SCHOOL_MANAGER.name()).orElseThrow(() ->
+        manager.setRole(roles.findByName(RoleName.SCHOOL.name()).orElseThrow(() ->
             new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Role quản lý trường chưa được cấu hình.")));
+        manager.setMustChangePassword(true);
+        accountAccess.applyPermissions(manager, RoleName.SCHOOL.name(), null, null, null);
         users.save(manager);
         payment.setSchool(school); payment.setManager(manager);
         payment.setRegistrationPasswordHash(null);
@@ -256,7 +287,7 @@ public class SchoolPaymentService {
         var user = users.findByEmail(email)
             .filter(u -> passwords.matches(credentials.password(), u.getPassword()))
             .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không đúng."));
-        if (user.getSchool() == null || user.getRole() == null || !RoleName.SCHOOL_MANAGER.matches(user.getRole().getName()))
+        if (user.getSchool() == null || user.getRole() == null || !RoleName.SCHOOL.matches(user.getRole().getName()))
             throw new ApiException(HttpStatus.FORBIDDEN, "Tài khoản không có đăng ký trường cần thanh toán.");
         lockedSchool(user.getSchool().getId());
         var latest = payments.findFirstByManagerIdOrderByCreatedAtDesc(user.getId())
@@ -398,7 +429,7 @@ public class SchoolPaymentService {
     private User manager() {
         var user = currentUser.requireCurrentUser();
         if (user.getSchool() == null || user.getRole() == null
-                || !RoleName.SCHOOL_MANAGER.matches(user.getRole().getName()) || !user.getSchool().isActive())
+                || !RoleName.SCHOOL.matches(user.getRole().getName()) || !user.getSchool().isActive())
             throw new ApiException(HttpStatus.FORBIDDEN, "Chỉ quản lý trường đang hoạt động được quản lý gói.");
         return user;
     }
@@ -414,10 +445,19 @@ public class SchoolPaymentService {
 
     private Billing billing(School school) {
         long used = LocalDate.now(vnpay.zoneId()).withDayOfMonth(1).equals(school.getTokenUsageMonth()) && school.getUsedTokens() != null ? school.getUsedTokens() : 0;
-        return new Billing(school.getPlanCode(), school.getNextPlanCode(), school.getLicenseStart(), school.getLicenseEnd(),
-            school.getStudentQuota(), users.countActiveStudents(school.getId()), school.getMonthlyTokenQuota(), used,
+        long studentsUsed = users.countActiveStudents(school.getId());
+        List<PlanChoice> choices = plans.findByActiveTrueOrderByAnnualPriceVndAsc().stream().map(plan -> {
+            try {
+                Quote quote = quote(school, plan, studentsUsed);
+                return new PlanChoice(plan.getCode(), true, quote.purpose(), null);
+            } catch (ApiException ex) {
+                return new PlanChoice(plan.getCode(), false, null, ex.getMessage());
+            }
+        }).toList();
+        return new Billing(school.getPlanCode(), null, school.getLicenseStart(), school.getLicenseEnd(),
+            school.getStudentQuota(), studentsUsed, school.getMonthlyTokenQuota(), used,
             payments.findBySchoolIdOrderByCreatedAtDesc(school.getId()).stream().map(p -> new PaymentRow(p.getId(), p.getPlanCode(), p.getPurpose(), p.getAmountVnd(),
-                PENDING.equals(p.getStatus()) && p.getCreatedAt().plusSeconds(900).isBefore(Instant.now()) ? "EXPIRED" : p.getStatus(), p.getCreatedAt(), p.getPaidAt())).toList());
+                PENDING.equals(p.getStatus()) && p.getCreatedAt().plusSeconds(900).isBefore(Instant.now()) ? "EXPIRED" : p.getStatus(), p.getCreatedAt(), p.getPaidAt())).toList(), choices);
     }
 
     private LicensePlan availablePlan(String code) {
@@ -428,22 +468,36 @@ public class SchoolPaymentService {
     public Quote quote(String code) { return quote(manager().getSchool(), availablePlan(code)); }
 
     private Quote quote(School school, LicensePlan plan) {
+        return quote(school, plan, users.countActiveStudents(school.getId()));
+    }
+
+    private Quote quote(School school, LicensePlan plan, long studentsUsed) {
         LocalDate today = LocalDate.now(vnpay.zoneId());
-        if (plan.getStudentQuota() < users.countActiveStudents(school.getId()))
+        if (plan.getStudentQuota() != null && plan.getStudentQuota() < studentsUsed)
             throw new ApiException(HttpStatus.CONFLICT, "Số học sinh đang hoạt động vượt quota gói này. Vui lòng giảm số tài khoản trước khi đổi gói.");
         if (school.getLicenseEnd() == null || school.getLicenseEnd().isBefore(today))
             return new Quote(plan.getCode(), "RENEWAL", plan.getAnnualPriceVnd(), today, today.plusYears(1).minusDays(1));
         if (school.getLicenseStart() == null || school.getLicenseStart().isAfter(today) || school.getAnnualPriceVnd() == null || school.getPlanCode() == null)
             throw new ApiException(HttpStatus.CONFLICT, "Gói hiện tại cần admin xác nhận thông tin trước khi đổi gói.");
         if (school.getPlanCode().equals(plan.getCode()))
-            throw new ApiException(HttpStatus.CONFLICT, "Trường đang dùng gói này. Bạn có thể chọn gói kỳ tiếp theo hoặc gia hạn khi hết hạn.");
+            return new Quote(plan.getCode(), "RENEWAL", plan.getAnnualPriceVnd(), school.getLicenseStart(), school.getLicenseEnd().plusYears(1));
         long difference = plan.getAnnualPriceVnd() - school.getAnnualPriceVnd();
-        if (difference <= 0) throw new ApiException(HttpStatus.CONFLICT, "Hạ gói chỉ áp dụng ở kỳ tiếp theo. Vui lòng chọn gói cho kỳ sau.");
+        if (difference <= 0) throw new ApiException(HttpStatus.CONFLICT, "Không thể hạ gói khi gói hiện tại còn hiệu lực. Chỉ có thể gia hạn gói hiện tại hoặc nâng lên gói lớn hơn.");
+        if (!quotaAtLeast(plan.getStudentQuota(), school.getStudentQuota())
+                || !quotaAtLeast(plan.getMonthlyTokenQuota(), school.getMonthlyTokenQuota()))
+            throw new ApiException(HttpStatus.CONFLICT, "Gói này giảm hạn mức học sinh hoặc token hiện tại nên không thể nâng cấp.");
         long remaining = ChronoUnit.DAYS.between(today, school.getLicenseEnd()) + 1;
-        long duration = ChronoUnit.DAYS.between(school.getLicenseStart(), school.getLicenseEnd()) + 1;
+        // Renewal can extend a license beyond a year. Price the remaining days
+        // against an annual term instead of diluting the upgrade across the
+        // complete historical license span.
+        long duration = ChronoUnit.DAYS.between(school.getLicenseEnd().minusYears(1), school.getLicenseEnd());
         long amount = BigDecimal.valueOf(difference).multiply(BigDecimal.valueOf(remaining))
             .divide(BigDecimal.valueOf(duration), 0, RoundingMode.CEILING).longValueExact();
         return new Quote(plan.getCode(), "UPGRADE", amount, school.getLicenseStart(), school.getLicenseEnd());
+    }
+
+    private static boolean quotaAtLeast(Integer requested, Integer current) {
+        return requested == null || current != null && requested >= current;
     }
 
     @Transactional
@@ -473,11 +527,8 @@ public class SchoolPaymentService {
 
     @Transactional
     public Billing nextPlan(String code) {
-        var manager = manager();
-        licenseCheck.requireWriteAccess(manager);
-        var school = lockedSchool(manager.getSchool().getId());
-        availablePlan(code); school.setNextPlanCode(code.equals(school.getPlanCode()) ? null : code);
-        return billing(school);
+        manager();
+        throw new ApiException(HttpStatus.CONFLICT, "Không hỗ trợ lưu gói cho kỳ sau. Hãy lấy báo giá để nâng gói hoặc gia hạn trực tiếp.");
     }
 
     @Transactional(readOnly=true)

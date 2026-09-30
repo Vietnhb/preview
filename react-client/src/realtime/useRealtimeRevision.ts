@@ -8,7 +8,7 @@ const clientId = globalThis.crypto?.randomUUID?.() ?? `client-${Date.now()}-${Ma
 type ChangeEvent = { revision: number; path: string; clientId: string | null };
 
 const relevant = (page: string, api: string) => {
-  if (page.startsWith("/admin")) return true;
+  if (page.startsWith("/admin") || page.startsWith("/manager")) return true;
   if (page.startsWith("/school"))
     return /\/(schools|school|assignments|student|user|auth\/payments|simulations|problems)/.test(api);
   if (page.startsWith("/reviewer"))

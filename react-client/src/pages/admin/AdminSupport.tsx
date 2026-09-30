@@ -39,7 +39,7 @@ export default function AdminSupport({ kind }: Readonly<{ kind: SupportKind }>) 
 
   return <div className="admin-content">
     <section className="admin-panel">
-      <div className="admin-panel-heading"><div><h2>{kind === "FEEDBACK" ? "Feedback" : "Messages"}</h2><p className="admin-panel-description">Theo dõi, phản hồi và đóng yêu cầu từ người dùng.</p></div><button className="admin-secondary-button" type="button" onClick={() => void load()}>Làm mới</button></div>
+      <div className="admin-panel-heading"><div><h2>{kind === "FEEDBACK" ? "Phản hồi" : "Tin nhắn"}</h2></div><button className="admin-secondary-button" type="button" onClick={() => void load()}>Làm mới</button></div>
       {error && <p className="admin-error-banner" role="alert">{error}</p>}
       {loading ? <p role="status">Đang tải…</p> : <div className="admin-table-scroll"><table className="admin-table">
         <thead><tr><th>Người gửi</th><th>Tiêu đề</th><th>Trạng thái</th><th>Ngày tạo</th><th /></tr></thead>

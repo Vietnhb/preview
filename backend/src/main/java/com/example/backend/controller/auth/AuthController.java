@@ -39,4 +39,10 @@ public class AuthController {
         authService.signup(request);
         return ResponseEntity.ok("Signup Thanh Cong");
     }
+
+    @PostMapping("logout")
+    public ResponseEntity<Void> logout() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        return ResponseEntity.noContent().build();
+    }
 }

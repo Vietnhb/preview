@@ -15,6 +15,7 @@ import com.example.backend.repository.library.LibraryItemRepository;
 import com.example.backend.repository.simulation.SimulationRepository;
 import com.example.backend.repository.simulation.SimulationRunRepository;
 import com.example.backend.service.account.CurrentUserService;
+import com.example.backend.service.account.AccountAccessService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.PageRequest;
@@ -36,14 +37,16 @@ public class SimulationService {
     private final LibraryItemRepository library;
     private final CurrentUserService currentUser;
     private final ObjectMapper json;
+    private final AccountAccessService access;
 
     public SimulationService(SimulationRepository simulations, SimulationRunRepository runs,
-            LibraryItemRepository library, CurrentUserService currentUser, ObjectMapper json) {
+            LibraryItemRepository library, CurrentUserService currentUser, ObjectMapper json, AccountAccessService access) {
         this.simulations = simulations;
         this.runs = runs;
         this.library = library;
         this.currentUser = currentUser;
         this.json = json;
+        this.access = access;
     }
 
     @Transactional(readOnly = true)
@@ -80,12 +83,31 @@ public class SimulationService {
 
     @Transactional(readOnly = true)
     public SimulationResponse getShared(UUID id) {
-        User user = currentUser.requireCurrentUser();
+        User user = currentUser.currentUserOrNull();
+        LibraryItem reviewItem = null;
+        if (access.canReviewPublic(user)) {
+            reviewItem = library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(id, Visibility.PUBLIC).stream()
+                    .filter(this::canPreviewModerationItem).findFirst().orElse(null);
+        } else if (access.isDepartmentHead(user) && user.getSchool() != null) {
+            reviewItem = library.findBySimulationIdAndVisibilityOrderByCreatedAtDesc(id, Visibility.SHARED).stream()
+                    .filter(this::canPreviewModerationItem)
+                    .filter(item -> item.getOwner() != null && item.getOwner().getSchool() != null
+                            && user.getSchool().getId().equals(item.getOwner().getSchool().getId())
+                            && (item.getSharedInstitutionId() == null || item.getSharedInstitutionId().isBlank()
+                                || user.getInstitutionId().equals(item.getSharedInstitutionId())))
+                    .findFirst().orElse(null);
+        }
+        if (reviewItem != null)
+            return latestResponse(reviewItem.getSimulation());
         LibraryItem item = library.findVisiblePublishedSimulation(id,
-                Set.of(Visibility.SHARED, Visibility.PUBLIC), Visibility.PUBLIC,
-                Set.of(LibraryModerationStatus.APPROVED, LibraryModerationStatus.FEATURED), user.getInstitutionId())
+                user == null ? Set.of(Visibility.PUBLIC) : Set.of(Visibility.SHARED, Visibility.PUBLIC), Visibility.PUBLIC,
+                Set.of(LibraryModerationStatus.APPROVED, LibraryModerationStatus.FEATURED), user == null ? null : user.getInstitutionId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shared simulation not found"));
         return latestResponse(item.getSimulation());
+    }
+
+    private boolean canPreviewModerationItem(LibraryItem item) {
+        return item.getSimulation() != null && (item.isActive() || item.getModerationStatus() == LibraryModerationStatus.REMOVED);
     }
 
     @Transactional(readOnly = true)

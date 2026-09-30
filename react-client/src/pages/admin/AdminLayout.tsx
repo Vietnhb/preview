@@ -1,39 +1,44 @@
 import { useEffect, useState } from "react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { Avatar, Button, DropdownMenu, IconButton } from "@radix-ui/themes";
 import { paymentNotifications, type PaymentNotification } from "../../api/adminApi";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import LearningIcon from "../../components/common/LearningIcon";
 import { usePhysliveStore } from "../../store/usePhysliveStore";
 import { clearToken } from "../../utils/token";
 
+import { getRoleLabel } from "../../types/roles";
+
 type AdminNavItem = { label: string; path: string; icon: "grid" | "users" | "message" | "book" | "activity" };
 
 const navigation: AdminNavItem[] = [
-  { label: "Dashboard", path: "/admin", icon: "grid" },
-  { label: "Users", path: "/admin/users", icon: "users" },
-  { label: "Feedback", path: "/admin/feedback", icon: "message" },
-  { label: "Messages", path: "/admin/messages", icon: "message" },
-  { label: "Schools", path: "/admin/schools", icon: "book" },
-  { label: "Plans", path: "/admin/plans", icon: "book" },
-  { label: "Payments", path: "/admin/payments", icon: "activity" },
-  { label: "Curriculum", path: "/admin/curriculum", icon: "book" },
-  { label: "Validation", path: "/admin/validation", icon: "activity" },
+  { label: "Tổng quan", path: "/manager", icon: "grid" },
+  { label: "Người dùng", path: "/manager/users", icon: "users" },
+  { label: "Phản hồi", path: "/manager/feedback", icon: "message" },
+  { label: "Tin nhắn", path: "/manager/messages", icon: "message" },
+  { label: "Trường học", path: "/manager/schools", icon: "book" },
+  { label: "Gói dịch vụ", path: "/manager/plans", icon: "book" },
+  { label: "Thanh toán", path: "/manager/payments", icon: "activity" },
+  { label: "Chương trình học", path: "/manager/curriculum", icon: "book" },
+  { label: "Kiểm định", path: "/manager/validation", icon: "activity" },
+  { label: "Kiểm duyệt vật lý", path: "/reviewer", icon: "book" },
+  { label: "Mô phỏng", path: "/workspace", icon: "grid" },
 ];
 
 const pageMeta: Record<string, { title: string; description: string }> = {
-  "/admin": { title: "Dashboard", description: "Welcome to your admin dashboard" },
-  "/admin/users": { title: "User Management", description: "Manage all users and their roles" },
-  "/admin/feedback": { title: "Feedback", description: "Review feedback from PhysLive users" },
-  "/admin/messages": { title: "Messages", description: "Manage conversations with users" },
-  "/admin/schools": { title: "Schools", description: "Manage schools and their accounts" },
-  "/admin/plans": { title: "Subscription Plans", description: "Manage published prices and school quotas" },
-  "/admin/payments": { title: "Payments", description: "Review and reconcile school payments" },
-  "/admin/curriculum": { title: "Curriculum", description: "Manage the PhysLive curriculum" },
-  "/admin/validation": { title: "Validation", description: "Review solver validation runs" },
+  "/manager": { title: "Tổng quan", description: "Theo dõi và vận hành nền tảng PhysLive" },
+  "/manager/users": { title: "Quản lý người dùng", description: "Quản lý tài khoản và phân quyền người dùng" },
+  "/manager/feedback": { title: "Phản hồi", description: "Tiếp nhận phản hồi từ người dùng" },
+  "/manager/messages": { title: "Tin nhắn", description: "Trao đổi và hỗ trợ người dùng" },
+  "/manager/schools": { title: "Trường học", description: "Quản lý trường học và tài khoản liên quan" },
+  "/manager/plans": { title: "Gói dịch vụ", description: "Quản lý giá và hạn mức của trường" },
+  "/manager/payments": { title: "Thanh toán", description: "Theo dõi và đối soát thanh toán" },
+  "/manager/curriculum": { title: "Chương trình học", description: "Quản lý nội dung chương trình học" },
+  "/manager/validation": { title: "Kiểm định", description: "Theo dõi kết quả kiểm định mô phỏng" },
 };
 
 export default function AdminLayout() {
   const user = usePhysliveStore(state => state.user);
+  const visibleNavigation = navigation;
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -45,7 +50,7 @@ export default function AdminLayout() {
     load(); const timer = window.setInterval(load, 30000);
     return () => { active = false; window.clearInterval(timer); };
   }, []);
-  const meta = pageMeta[pathname] ?? pageMeta["/admin"];
+  const meta = pageMeta[pathname] ?? pageMeta["/manager"];
   const initials = user?.fullName?.trim().slice(0, 1).toUpperCase() || "A";
 
   const logout = () => {
@@ -56,46 +61,41 @@ export default function AdminLayout() {
 
   return <div className="admin-shell">
     <aside className="admin-sidebar">
-      <NavLink to="/admin" className="admin-brand" aria-label="Open admin dashboard">
+      <NavLink to="/manager" className="admin-brand" aria-label="Mở khu vực MANAGER">
         <LearningIcon name="settings" />
-        <span className="admin-brand-copy"><strong>Admin Panel</strong><small>PhysLive</small></span>
+        <span className="admin-brand-copy"><strong>PhysLive</strong><small>MANAGER</small></span>
       </NavLink>
-      <nav className="admin-nav" aria-label="Admin navigation">
-        {navigation.map(item => <NavLink key={item.path} to={item.path} end={item.path === "/admin"} className={({ isActive }) => `admin-nav-item ${isActive ? "active" : ""}`}>
+      <nav className="admin-nav" aria-label="Điều hướng MANAGER">
+        {visibleNavigation.map(item => <NavLink key={item.path} to={item.path} end={item.path === "/manager"} className={({ isActive }) => `admin-nav-item ${isActive ? "active" : ""}`}>
           <LearningIcon name={item.icon} /><span>{item.label}</span>
         </NavLink>)}
       </nav>
       <div className="admin-sidebar-footer">
-        <div className="admin-sidebar-user"><span className="admin-user-avatar">{initials}</span><span className="admin-sidebar-user-copy"><strong>{user?.fullName || "Administrator"}</strong><small>{user?.email || ""}</small></span></div>
-        <button type="button" className="admin-back-button" onClick={() => navigate("/")}><LearningIcon name="back" />Back to Site</button>
+        <div className="admin-sidebar-user"><Avatar size="2" radius="full" src={user?.avatarUrl || undefined} fallback={initials} /><span className="admin-sidebar-user-copy"><strong>{user?.fullName || "MANAGER"}</strong><small>{user?.email || ""}</small></span></div>
+        <Button variant="ghost" color="gray" onClick={() => navigate("/")}><LearningIcon name="back" />Về trang chủ</Button>
       </div>
     </aside>
     <main className="admin-main">
       <header className="admin-topbar">
         <div className="admin-page-topbar-copy">
-          <div className="admin-page-title-line"><strong>{meta.title}</strong><span className="admin-role-pill"><LearningIcon name="shield" />Admin</span></div>
-          <span>{meta.description}</span>
+          <div className="admin-page-title-line"><strong>{meta.title}</strong><span className="admin-role-pill"><LearningIcon name="shield" />{getRoleLabel(user?.role ?? "")}</span></div>
+
         </div>
         <div className="admin-topbar-actions">
-          <DropdownMenu.Root><DropdownMenu.Trigger asChild><button type="button" className="admin-notification-button" aria-label="Thông báo trường đăng ký gói"><LearningIcon name="bell" /></button></DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content align="end" sideOffset={8} className="admin-payment-notifications">
+          <DropdownMenu.Root><DropdownMenu.Trigger><IconButton variant="soft" color="gray" aria-label="Thông báo trường đăng ký gói"><LearningIcon name="bell" /></IconButton></DropdownMenu.Trigger><DropdownMenu.Content align="end" sideOffset={8}>
             <DropdownMenu.Label>Đăng ký & thanh toán của trường</DropdownMenu.Label><DropdownMenu.Separator />
-            {notificationError ? <p>Không thể tải thông báo.</p> : notifications.length === 0 ? <p>Chưa có đăng ký đã thanh toán.</p> : notifications.map(item => <DropdownMenu.Item key={item.id} onSelect={() => navigate("/admin/schools")}><strong>{item.schoolName}</strong><span>{item.planCode} · {item.amountVnd.toLocaleString("vi-VN")} ₫{item.status === "REQUIRES_REVIEW" ? " · Cần đối soát" : ""}</span><small>{new Date(item.paidAt).toLocaleString("vi-VN")}</small></DropdownMenu.Item>)}
-          </DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root>
+            {notificationError ? <p>Không thể tải thông báo.</p> : notifications.length === 0 ? <p>Chưa có đăng ký đã thanh toán.</p> : notifications.map(item => <DropdownMenu.Item key={item.id} onSelect={() => navigate("/manager/schools")}><strong>{item.schoolName}</strong><span>{item.planCode} · {item.amountVnd.toLocaleString("vi-VN")} ₫{item.status === "REQUIRES_REVIEW" ? " · Cần đối soát" : ""}</span><small>{new Date(item.paidAt).toLocaleString("vi-VN")}</small></DropdownMenu.Item>)}
+          </DropdownMenu.Content></DropdownMenu.Root>
           <div className="admin-profile-wrap">
-            <button type="button" className="admin-topbar-user" aria-expanded={profileOpen} onClick={() => setProfileOpen(value => !value)}>
-              <span className="admin-user-avatar">{initials}</span><span>{user?.email || "admin@physlive.local"}</span><span className="admin-user-chevron">⌄</span>
-            </button>
-            {profileOpen && <div className="admin-profile-menu" role="menu">
-              <strong>Admin account</strong>
-              <button type="button" onClick={() => navigate("/profile")}>Profile</button>
-              <button type="button" onClick={() => navigate("/")}>Back to site</button>
-              <button type="button" className="danger" onClick={logout}>Sign out</button>
-            </div>}
+            <DropdownMenu.Root open={profileOpen} onOpenChange={setProfileOpen}>
+              <DropdownMenu.Trigger><Button variant="ghost" color="gray"><Avatar size="2" radius="full" src={user?.avatarUrl || undefined} fallback={initials} /><span>{user?.email || "MANAGER"}</span></Button></DropdownMenu.Trigger>
+              <DropdownMenu.Content align="end"><DropdownMenu.Label>{getRoleLabel(user?.role ?? "")}</DropdownMenu.Label><DropdownMenu.Item onSelect={() => navigate("/profile")}>Hồ sơ cá nhân</DropdownMenu.Item><DropdownMenu.Item onSelect={() => navigate("/")}>Về trang chủ</DropdownMenu.Item><DropdownMenu.Separator /><DropdownMenu.Item color="red" onSelect={logout}>Đăng xuất</DropdownMenu.Item></DropdownMenu.Content>
+            </DropdownMenu.Root>
           </div>
         </div>
       </header>
-      <nav className="admin-mobile-nav" aria-label="Admin navigation mobile">
-        {navigation.map(item => <NavLink key={item.path} to={item.path} end={item.path === "/admin"} className={({ isActive }) => `admin-nav-item ${isActive ? "active" : ""}`}>
+      <nav className="admin-mobile-nav" aria-label="Điều hướng MANAGER mobile">
+        {visibleNavigation.map(item => <NavLink key={item.path} to={item.path} end={item.path === "/manager"} className={({ isActive }) => `admin-nav-item ${isActive ? "active" : ""}`}>
           <LearningIcon name={item.icon} /><span>{item.label}</span>
         </NavLink>)}
       </nav>

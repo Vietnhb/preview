@@ -1,3 +1,5 @@
+> Role update 30/09/2026: the role names and permissions in this historical plan are superseded by [ROLES_FINAL.md](ROLES_FINAL.md). Use the six-role contract there for implementation.
+
 # B2B Role System - Implementation Summary
 
 **Status**: B2B account/license, school class management, reporting, payment reconciliation, assignment grading and shared-library moderation are implemented in code. External Supabase/VNPAY credentials and production QA remain environment-dependent.

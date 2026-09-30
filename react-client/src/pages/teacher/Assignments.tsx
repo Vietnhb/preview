@@ -51,7 +51,7 @@ export default function Assignments({
 
   const isStudent = isStudentRole(user?.role);
 
-  // TEACHER ASSIGNMENT STUDIO & SUBMISSIONS MANAGEMENT
+  // STAFF ASSIGNMENT STUDIO & SUBMISSIONS MANAGEMENT
   const [items, setItems] = useState<Assignment[]>([]);
   const [saved, setSaved] = useState<LibraryItem[]>([]);
   const [view, setView] = useState<"create" | "history">(() => workspaceLayout ? "create" : "history");

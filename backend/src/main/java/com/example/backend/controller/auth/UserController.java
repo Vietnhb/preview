@@ -55,9 +55,8 @@ public class UserController {
     }
 
     @PutMapping("me/password")
-    public ResponseEntity<Void> changePassword(Authentication authentication, @jakarta.validation.Valid @RequestBody ChangePasswordRequest request) {
-        userService.changePassword(authentication.getName(), request.currentPassword(), request.newPassword(), passwordEncoder);
-        return ResponseEntity.noContent().build();
+    public UserResponse changePassword(Authentication authentication, @jakarta.validation.Valid @RequestBody ChangePasswordRequest request) {
+        return userService.changePassword(authentication.getName(), request.currentPassword(), request.newPassword(), passwordEncoder);
     }
 
     @PutMapping("me/avatar")

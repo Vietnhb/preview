@@ -17,11 +17,11 @@ import lombok.Data;
 
 /**
  * School class (e.g., "Lớp 10A1", "Lớp 11 Lý 2").
- * Created by SCHOOL_MANAGER, assigned to teachers.
+ * Created by SCHOOL, assigned to teachers.
  * 
  * Business Rules:
- * - SCHOOL_MANAGER creates class and assigns students initially
- * - SCHOOL_MANAGER assigns teachers to classes
+ * - SCHOOL creates class and assigns students initially
+ * - SCHOOL assigns teachers to classes
  * - 1 teacher can manage multiple classes
  * - Students are added via ClassEnrollment (1 student = 1 class per school year)
  */

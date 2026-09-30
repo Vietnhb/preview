@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Badge, Button, Card, Spinner, Table } from "@radix-ui/themes";
+import { motion, useReducedMotion } from "motion/react";
 import { getRegistrationPlans, type LicensePlan } from "../../api/authApi";
 import {
   purchaseSchoolPlan,
   quoteSchoolPlan,
   schoolBilling,
-  setNextSchoolPlan,
 } from "../../api/schoolApi";
 import { getLicenseStatus } from "../../api/userApi";
 import type { PlanQuote, SchoolBilling as Billing } from "../../types/school";
@@ -33,6 +34,7 @@ const purposes: Record<string, string> = {
 };
 
 export default function SchoolBilling() {
+  const reducedMotion = useReducedMotion();
   const navigate = useNavigate();
   const user = usePhysliveStore((state) => state.user);
   const setUser = usePhysliveStore((state) => state.setUser);
@@ -44,7 +46,6 @@ export default function SchoolBilling() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -57,7 +58,8 @@ export default function SchoolBilling() {
       setBilling(next);
       setPlans(catalog);
       setLicenseWritable(license?.canPerformWriteOperations ?? null);
-      setSelected(next.nextPlanCode || next.planCode || "");
+      const currentChoice = next.planChoices?.find(choice => choice.planCode === next.planCode && choice.allowed);
+      setSelected(currentChoice?.planCode || next.planChoices?.find(choice => choice.allowed)?.planCode || "");
       setQuote(null);
       if (
         user &&
@@ -82,27 +84,10 @@ export default function SchoolBilling() {
     setBusy(true);
     setError("");
     setQuote(null);
-    setNotice("");
     try {
       setQuote(await quoteSchoolPlan(selected));
     } catch (err) {
       setError(apiMessage(err, "Không thể lấy báo giá."));
-    } finally {
-      setBusy(false);
-    }
-  };
-  const schedule = async () => {
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      setBilling(await setNextSchoolPlan(selected));
-      setQuote(null);
-      setNotice(
-        "Đã lưu lựa chọn kỳ sau. Gói hiện tại giữ nguyên; bạn cần xác nhận thanh toán khi gia hạn.",
-      );
-    } catch (err) {
-      setError(apiMessage(err, "Không thể lưu gói kỳ sau."));
     } finally {
       setBusy(false);
     }
@@ -125,227 +110,35 @@ export default function SchoolBilling() {
       setBusy(false);
     }
   };
-  return (
-    <div className={`admin-content ${s.billing}`}>
-      {user?.billingRequired && (
-        <div className="admin-error-banner" role="status">
-          Trường chưa có gói còn hiệu lực. Hãy chọn gói và hoàn tất thanh toán
-          để mở các chức năng quản lý.
-        </div>
-      )}
-      {error && (
-        <div className="admin-error-banner" role="alert">
-          {error}
-          <button className="admin-inline-button" onClick={() => void load()}>
-            Tải lại
-          </button>
-        </div>
-      )}
-      {notice && (
-        <p className={s.notice} role="status">
-          {notice}
-        </p>
-      )}
-      {loading ? (
-        <p role="status">Đang tải thông tin gói…</p>
-      ) : (
-        billing && (
-          <>
-            <section
-              className={`admin-panel school-billing-plan-panel ${s.planPanel}`}
-            >
-              <div className={`school-signup-section-heading ${s.planHeading}`}>
-                <div>
-                  <h2>
-                    {user?.billingRequired
-                      ? "Chọn gói để bắt đầu"
-                      : "Nâng gói hoặc gia hạn"}
-                  </h2>
-                  <p>
-                    Nâng gói thu chênh lệch theo số ngày còn lại, giữ ngày hết
-                    hạn. Hạ gói áp dụng kỳ sau. Gia hạn mở khi gói hết hạn.
-                  </p>
-                </div>
-                <span className="school-signup-billing">GÓI NĂM</span>
-              </div>
-              {licenseWritable === false && (
-                <p className="school-license-unavailable" role="status">
-                  License đã hết hạn hoặc chưa hiệu lực. Hãy lấy báo giá để gia
-                  hạn; không thể lưu gói cho kỳ sau.
-                </p>
-              )}
-              {licenseWritable === null && (
-                <p className="school-license-unavailable" role="status">
-                  Chưa xác minh được license. Hãy tải lại trang trước khi lưu
-                  gói kỳ sau.
-                </p>
-              )}
-              {plans.length === 0 ? (
-                <p className={s.emptyState}>Chưa có gói đăng ký khả dụng.</p>
-              ) : (
-                <div
-                  className="school-signup-plans school-billing-plans"
-                  role="radiogroup"
-                  aria-label="Gói đăng ký"
-                >
-                  {plans.map((plan) => (
-                    <PlanCard
-                      key={plan.code}
-                      plan={plan}
-                      name="school-plan"
-                      selected={selected === plan.code}
-                      disabled={busy}
-                      current={billing.planCode === plan.code}
-                      onSelect={(code) => {
-                        setSelected(code);
-                        setQuote(null);
-                        setError("");
-                        setNotice("");
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-              <div className="school-billing-plan-actions">
-                <button
-                  className="admin-secondary-button"
-                  disabled={!selected || busy || licenseWritable !== true}
-                  title={
-                    licenseWritable === false
-                      ? "Chỉ có thể chọn gói kỳ sau khi license còn hiệu lực."
-                      : undefined
-                  }
-                  onClick={() => void schedule()}
-                >
-                  Lưu lựa chọn kỳ sau
-                </button>
-                <button
-                  className="admin-primary-button"
-                  disabled={!selected || busy}
-                  onClick={() => void getQuote()}
-                >
-                  Lấy báo giá
-                </button>
-              </div>
-              {quote && (
-                <div className={`admin-billing-quote ${s.quote}`}>
-                  <h3>{purposes[quote.purpose]}</h3>
-                  <p>
-                    Thời hạn: {date(quote.licenseStart)} —{" "}
-                    {date(quote.licenseEnd)}
-                  </p>
-                  <p>
-                    Tổng thanh toán: <strong>{money(quote.amountVnd)}</strong>
-                  </p>
-                  <button
-                    className="admin-primary-button"
-                    disabled={busy}
-                    onClick={() => void pay()}
-                  >
-                    {busy
-                      ? "Đang xử lý…"
-                      : "Xác nhận & thanh toán qua VNPAY Sandbox"}
-                  </button>
-                </div>
-              )}
-            </section>
-            <section
-              className={`admin-panel ${s.currentPanel}`}
-              aria-label="Gói hiện tại và mức sử dụng"
-            >
-              <div className="admin-panel-heading">
-                <div>
-                  <p className={s.eyebrow}>GÓI HIỆN TẠI / MỨC SỬ DỤNG</p>
-                  <h2>
-                    {plans.find((plan) => plan.code === billing.planCode)
-                      ?.name ||
-                      billing.planCode ||
-                      "License do admin cấp"}
-                  </h2>
-                  <p className="admin-panel-description">
-                    {date(billing.licenseStart)} — {date(billing.licenseEnd)}
-                  </p>
-                </div>
-              </div>
-              <div className="admin-stats-grid">
-                <article className="admin-stat-card">
-                  <p>Học sinh đang hoạt động</p>
-                  <strong>
-                    {billing.studentsUsed.toLocaleString("vi-VN")} /{" "}
-                    {billing.studentQuota == null
-                      ? "Không giới hạn"
-                      : billing.studentQuota.toLocaleString("vi-VN")}
-                  </strong>
-                </article>
-                <article className="admin-stat-card">
-                  <p>Token AI tháng này</p>
-                  <strong>
-                    {billing.tokensUsed.toLocaleString("vi-VN")} /{" "}
-                    {billing.monthlyTokenQuota == null
-                      ? "Không giới hạn"
-                      : billing.monthlyTokenQuota.toLocaleString("vi-VN")}
-                  </strong>
-                </article>
-              </div>
-              {billing.nextPlanCode && (
-                <p>
-                  Gói dự kiến kỳ sau: <strong>{billing.nextPlanCode}</strong>.
-                  Chưa thanh toán hoặc tự động chuyển gói.
-                </p>
-              )}
-            </section>
-            <section className={`admin-panel ${s.historyPanel}`}>
-              <div className="admin-panel-heading">
-                <h2>Lịch sử thanh toán</h2>
-              </div>
-              <div className="admin-table-scroll">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Thời gian</th>
-                      <th>Gói</th>
-                      <th>Nội dung</th>
-                      <th>Số tiền</th>
-                      <th>Trạng thái</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {billing.payments.length === 0 ? (
-                      <tr>
-                        <td colSpan={6}>Chưa có giao dịch.</td>
-                      </tr>
-                    ) : (
-                      billing.payments.map((payment) => (
-                        <tr key={payment.id}>
-                          <td>
-                            {new Date(payment.createdAt).toLocaleString(
-                              "vi-VN",
-                            )}
-                          </td>
-                          <td>{payment.planCode}</td>
-                          <td>
-                            {purposes[payment.purpose] || payment.purpose}
-                          </td>
-                          <td>{money(payment.amountVnd)}</td>
-                          <td>{statuses[payment.status] || payment.status}</td>
-                          <td>
-                            <Link
-                              to={`/signup/payment-result?vnp_TxnRef=${encodeURIComponent(payment.id)}`}
-                            >
-                              Xem giao dịch
-                            </Link>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </>
-        )
-      )}
-    </div>
-  );
+  const selectedChoice = billing?.planChoices?.find(choice => choice.planCode === selected);
+  return <motion.div className={`admin-content ${s.billing}`} initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reducedMotion ? 0 : .18 }}>
+    <header className="admin-content-header"><h1 className="admin-content-title">Gói và thanh toán</h1></header>
+    {user?.billingRequired && <div className="admin-error-banner" role="status">Trường chưa có gói còn hiệu lực. Hãy chọn gói và hoàn tất thanh toán để mở các chức năng quản lý.</div>}
+    {error && <div className="admin-error-banner" role="alert">{error}<Button variant="soft" color="red" onClick={() => void load()}>Tải lại</Button></div>}
+    {loading ? <p role="status"><Spinner /> Đang tải thông tin gói…</p> : billing && <>
+      <Card asChild size="3"><section className={`admin-panel school-billing-plan-panel ${s.planPanel}`}>
+        <div className={`school-signup-section-heading ${s.planHeading}`}><div><h2>{user?.billingRequired ? "Chọn gói để bắt đầu" : "Nâng gói hoặc gia hạn"}</h2></div><Badge size="2" color="indigo">Gói năm</Badge></div>
+        <p style={{ margin: "0 0 18px", color: "var(--gray-11)", fontSize: 14 }}>Nâng gói có hiệu lực ngay sau khi thanh toán, thu chênh lệch theo thời hạn còn lại. Gia hạn gói hiện tại thêm một năm. Khi gói còn hiệu lực, không thể chuyển sang gói nhỏ hơn.</p>
+        {licenseWritable === false && <p className="school-license-unavailable" role="status">Gói đã hết hạn hoặc chưa hiệu lực. Chọn gói phù hợp với số học sinh để gia hạn.</p>}
+        {licenseWritable === null && <p className="school-license-unavailable" role="status">Chưa xác minh được trạng thái license. Danh sách gói khả dụng được kiểm tra khi lấy báo giá.</p>}
+        {plans.length === 0 ? <p className={s.emptyState}>Chưa có gói đăng ký khả dụng.</p> : <div className="school-signup-plans school-billing-plans" role="radiogroup" aria-label="Gói đăng ký">
+          {plans.map(plan => {
+            const choice = billing.planChoices?.find(entry => entry.planCode === plan.code);
+            return <div key={plan.code} style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}><PlanCard plan={plan} name="school-plan" selected={selected === plan.code} disabled={busy || choice?.allowed !== true} current={billing.planCode === plan.code} onSelect={code => { setSelected(code); setQuote(null); setError(""); }} />
+              <p style={{ margin: 0, color: choice?.allowed ? "var(--indigo-11)" : "var(--gray-11)", fontSize: 13, lineHeight: 1.6 }} role={choice?.allowed ? undefined : "note"}>{choice?.allowed ? choice.purpose === "UPGRADE" ? "Nâng cấp ngay sau thanh toán" : "Gia hạn thêm một năm" : choice?.reason || "Chưa xác minh được gói khả dụng."}</p>
+            </div>;
+          })}
+        </div>}
+        <div className="school-billing-plan-actions"><Button disabled={!selected || busy || selectedChoice?.allowed !== true} loading={busy && !quote} onClick={() => void getQuote()}>Lấy báo giá</Button></div>
+        {quote && <div className={`admin-billing-quote ${s.quote}`}><div><h3>{purposes[quote.purpose]}</h3><p>Thời hạn: {date(quote.licenseStart)} — {date(quote.licenseEnd)}</p><p>Tổng thanh toán: <strong>{money(quote.amountVnd)}</strong></p>{quote.purpose === "UPGRADE" && <p>Gói mới thay thế gói hiện tại ngay khi thanh toán thành công.</p>}</div><Button disabled={busy} loading={busy} onClick={() => void pay()}>Xác nhận và thanh toán qua VNPAY Sandbox</Button></div>}
+      </section></Card>
+      <Card asChild size="3"><section className={`admin-panel ${s.currentPanel}`} aria-label="Gói hiện tại và mức sử dụng">
+        <div className="admin-panel-heading"><div><h2>{plans.find(plan => plan.code === billing.planCode)?.name || billing.planCode || "License do quản lý cấp"}</h2><p className="admin-panel-description">{date(billing.licenseStart)} — {date(billing.licenseEnd)}</p></div><Badge color={licenseWritable ? "green" : "orange"}>{licenseWritable ? "Đang hiệu lực" : licenseWritable === false ? "Chưa hiệu lực" : "Chưa xác minh"}</Badge></div>
+        <div className="admin-stats-grid"><Card size="3" asChild><article className="admin-stat-card"><p>Học sinh đang hoạt động</p><strong>{billing.studentsUsed.toLocaleString("vi-VN")} / {billing.studentQuota == null ? "Không giới hạn" : billing.studentQuota.toLocaleString("vi-VN")}</strong></article></Card><Card size="3" asChild><article className="admin-stat-card"><p>Token AI tháng này</p><strong>{billing.tokensUsed.toLocaleString("vi-VN")} / {billing.monthlyTokenQuota == null ? "Không giới hạn" : billing.monthlyTokenQuota.toLocaleString("vi-VN")}</strong></article></Card></div>
+      </section></Card>
+      <Card asChild size="3"><section className={`admin-panel ${s.historyPanel}`}><div className="admin-panel-heading"><h2>Lịch sử thanh toán</h2></div><div className="admin-table-scroll"><Table.Root variant="surface" size="2"><Table.Header><Table.Row><Table.ColumnHeaderCell>Thời gian</Table.ColumnHeaderCell><Table.ColumnHeaderCell>Gói</Table.ColumnHeaderCell><Table.ColumnHeaderCell>Nội dung</Table.ColumnHeaderCell><Table.ColumnHeaderCell>Số tiền</Table.ColumnHeaderCell><Table.ColumnHeaderCell>Trạng thái</Table.ColumnHeaderCell><Table.ColumnHeaderCell>Giao dịch</Table.ColumnHeaderCell></Table.Row></Table.Header><Table.Body>
+        {billing.payments.length === 0 ? <Table.Row><Table.Cell colSpan={6}>Chưa có giao dịch.</Table.Cell></Table.Row> : billing.payments.map(payment => <Table.Row key={payment.id}><Table.Cell>{new Date(payment.createdAt).toLocaleString("vi-VN")}</Table.Cell><Table.Cell>{plans.find(plan => plan.code === payment.planCode)?.name || payment.planCode}</Table.Cell><Table.Cell>{purposes[payment.purpose] || payment.purpose}</Table.Cell><Table.Cell>{money(payment.amountVnd)}</Table.Cell><Table.Cell><Badge color={payment.status === "PAID" ? "green" : payment.status === "PENDING" ? "amber" : "red"}>{statuses[payment.status] || payment.status}</Badge></Table.Cell><Table.Cell><Button asChild variant="ghost" size="1"><Link to={`/signup/payment-result?vnp_TxnRef=${encodeURIComponent(payment.id)}`}>Xem giao dịch</Link></Button></Table.Cell></Table.Row>)}
+      </Table.Body></Table.Root></div></section></Card>
+    </>}
+  </motion.div>;
 }

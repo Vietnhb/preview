@@ -13,6 +13,8 @@ The backend has already verified every solver number. The stage is cross-checked
 1. Moving participants (any participant with a position, x/y, height, displacement or elongation field): one SVG body each in scene.bodies. A body for a participant without such a field is shown as a static picture next to its instruments. The kit places it at the exact solver position every frame (measured frame fitted to the whole run, rescaled on resize), mirrors/rotates it as declared, and draws axes, trails, vectors and labels.
 2. State quantities (participants without spatial motion — temperature, current, voltage, charge, pressure, flux, nuclei count, signal, coil angle …): an instrument each in scene.instruments. There are no built-in instrument shapes: you invent the instrument (thermometer, dial, gauge, tank, lamp, piston, coil, circuit with moving charges, balance…), draw its static body and its moving part separately, and declare the mapping (drive) from the field to the part: rotate, translate, reveal, scale, opacity or travel, with pivot/path and the values at both ends of the scale. The kit applies that mapping from the solver field every frame, places scale marks where the mapping puts them and prints the verified value. A participant with no instrument gets a plain kit meter card; a picture of a non-moving participant is an instrument with drive.property "none" (or a body in scene.bodies).
 3. Ropes, wires, rods whose ends move: scene.links (participant ids or fixed world points "x,y" in metres).
+1b. Bodies that interact along a line (a collision, a push, fragments separating, a body hitting a wall that is itself a participant) are drawn on one line so they really meet; the kit finds this from the motion (bodies that touch share a line and are drawn face to face at the contact point), and you may name lines explicitly with body.line. Mark rigid bodies solid: solid bodies on one line must never pass through each other, and the renderer checks that against the solver motion.
+3b. Things that stand still at a physical place (a wall, a stop, a barrier, a fixed charge, a pulley block, a platform…): scene.fixtures with their position in metres — preferably the name of the plan parameter that holds it (confirmedBrief.parameters), so the fixture sits exactly where the physics puts the obstacle and follows the sliders. Mark it solid when bodies must not pass through it; the renderer checks that against the solver motion. Its orientation and sense may also come from the plan: angleParameter (e.g. an incline angle) and flipBy (a parameter whose negative value mirrors the drawing: field direction, polarity, current sense), so arrows, poles and slopes always agree with the computed physics.
 4. Everything you draw yourself (environment, surface, support, props, decorations) is STATIC. Anything of yours that moves, grows, appears or disappears over time is rejected by the cross-check ("… moves by N px … not driven by the kit"). Never compute physics yourself.
 5. The program runs in the sandbox and stays readable when the stage is resized or the theme changes.
 The runtime renders the stage at several times of the run and compares it with the solver timeline; failures come back to you as renderDiagnostics.
@@ -27,9 +29,10 @@ HOW TO THINK (write the result into "design" first)
 "scene" (the main output)
 - environment: full backdrop SVG (~16:9), environmentAnchorY: viewBox y of the line that must sit on the physical reference line (-1 if none). Static.
 - surface / support / connector: optional artwork for what bodies move on, what they hang from, and a stretched link between them ("" if unused). Placed and stretched by the kit.
-- bodies: SVG per moving participant id, with facing, rotate, anchor, sizeMeters.
+- bodies: SVG per participant id, with facing, rotate, anchor, sizeMeters, line, solid.
 - instruments: {field, label, svg (static body), part (moving part, same viewBox), drive (mapping)} per state quantity; see the response contract.
 - links: {from, to, color, width, dashed}.
+- fixtures: {svg, x | xParameter, y | yParameter, anchor, sizeMeters, solid, angle | angleParameter, angleScale, flipBy} for things that stand still at a physical place.
 - overlay: which measurement layers the kit adds.
 
 PROGRAM ("code", optional — leave "" when the scene is enough)
@@ -38,7 +41,7 @@ async function(PIXI, app, api) {
   const base = await api.kit.illustratedScene(api.sceneSpec);
   /* static props: base.props.addChild(new PIXI.Sprite(await api.svgTexture(svg))) */
   /* riders that move WITH a body (label, passenger, flag): base.follow(id, displayObject, {dx, dy}) */
-  /* extra bindings: base.attach(id, sprite, {facing, rotate, anchor, sizeMeters}); base.link(idOr[x,y], idOr[x,y], {color, width, dashed});
+  /* extra bindings: base.attach(id, sprite, {facing, rotate, anchor, sizeMeters}); base.link(idOr[x,y], idOr[x,y], {color, width, dashed}); base.fixture(sprite, {x: metresOrParameterName, y, anchor, sizeMeters, solid, angle: degreesOrParameterName, angleScale, flipBy: parameterName}); base.attach(id, sprite, {…, line, solid});
      base.instrument({field, art: bodySprite, part: partSprite, drive: {property, pivot, path, from, to, copies, useFieldAngle, min, max} in the art's pixels, label}) */
   return { update(frame) { base.update(frame); }, resize() { base.resize(); }, setData() { base.setData(); } };
 }

@@ -39,10 +39,13 @@ export type CurriculumModule = { id: string; name: string; slug: string; active:
 export type CurriculumTopic = { id: string; name: string; slug: string; enabled: boolean; sortOrder: number; modules: CurriculumModule[] };
 export type CurriculumTree = { topics: CurriculumTopic[] };
 
-export const createManagedUser = (payload: { email: string; password: string; fullName: string; role: string; institutionId?: string }, schoolId?: string) =>
+export type ManagedUserDetails = { fullName: string; role: string; institutionId?: string; dateOfBirth?: string | null; avatarUrl?: string | null; staffType?: 'TEACHER' | 'DEPARTMENT_HEAD'; reviewerCanEdit?: boolean; reviewerCanReview?: boolean };
+export const createManagedUser = (payload: ManagedUserDetails & { email: string; password: string }, schoolId?: string) =>
   axiosClient.post<User>(usersPath(schoolId), payload).then(r => r.data);
-export const updateManagedUser = (id: number, payload: { fullName: string; role: string; institutionId?: string }, schoolId?: string) =>
+export const updateManagedUser = (id: number, payload: ManagedUserDetails, schoolId?: string) =>
   axiosClient.put<User>(`${usersPath(schoolId)}/${id}`, payload).then(r => r.data);
+export const resetManagedUserPassword = (id: number, newPassword: string, schoolId?: string) =>
+  axiosClient.post<User>(`${usersPath(schoolId)}/${id}/reset-password`, { newPassword }).then(r => r.data);
 export const setManagedUserActive = (id: number, active: boolean, schoolId?: string) =>
   axiosClient.put<User>(schoolId ? `${usersPath(schoolId)}/${id}/${active ? "restore" : "suspend"}` : `/admin/users/${id}/${active ? "restore" : "suspend"}`).then(r => r.data);
 export const adminSchools = () => axiosClient.get<ManagedSchool[]>("/admin/schools").then(r => r.data);

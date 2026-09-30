@@ -1,6 +1,9 @@
 import axios from "axios";
 import { API_URL } from "../config/api";
 import type { LoginResponse, User } from "../types/auth";
+import axiosClient from "./axios";
+
+export const logout = () => axiosClient.post<void>("/auth/logout");
 
 export type LicensePlan = {
     code: string; name: string; description: string; annualPriceVnd: number;

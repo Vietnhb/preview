@@ -1,3 +1,56 @@
+# PhysLive account roles
+
+Confirmed 01/10/2026. This is the current role contract for the database, backend and frontend.
+
+## Canonical database identities
+
+1. `ADMIN`: view all user account information; create, edit, suspend/restore and reset passwords for `MANAGER` accounts.
+2. `MANAGER`: operate the platform, manage schools and accounts, curriculum, licenses, payments, support and validation. Inherits the former platform administrator's operational permissions.
+3. `REVIEWER`: per-account edit permission manages physics contexts, schemas, reference solvers, modules and benchmarks; per-account review permission moderates PUBLIC simulations. An account may have either permission or both, and must have at least one.
+4. `SCHOOL`: manage staff, students, classes, school reports and billing within its own school.
+5. `STAFF`: teacher; create simulations, manage the personal library, assign and assess learning activities. `staff_type=DEPARTMENT_HEAD` adds own-school teacher/student assignments, school assignment overview and SHARED content moderation. `staff_alias` in the database is generated as `Trưởng bộ môn`; regular `TEACHER` staff receive `Giáo viên`.
+6. `STUDENT`: access assigned learning activities, predictions, submissions and shared class content.
+
+Role names are uppercase. IDs are fixed from 1 to 6. No legacy role aliases are accepted by application authorization.
+
+## Account and permission boundaries
+
+`ADMIN`, `MANAGER` and `REVIEWER` are platform accounts with no school. `SCHOOL`, `STAFF` and `STUDENT` require a school. At most one active `SCHOOL` account may belong to each school.
+
+`ADMIN` has no platform-operation, review, teaching or billing permissions. It retains access to its own profile and password. Its management interface lists all users and manages MANAGER accounts only.
+
+Only `ADMIN` creates `MANAGER` accounts. `MANAGER` cannot create or promote an account to `ADMIN` or promote another role to `MANAGER`, and cannot edit or suspend an `ADMIN`. Managers may maintain existing managers. A user cannot change their own role or suspend their own account.
+
+Role checks are enforced by backend request authorization and account-service validation. Frontend routes, navigation and form choices mirror those checks. School-scoped operations still validate the target school and the current license.
+
+Only `SCHOOL` creates classes. Department heads can assign teachers and students to existing classes in their school and inspect school assignments. They cannot create or reset accounts, moderate PUBLIC content, review another school or approve their own simulations. REVIEWER moderation is limited to PUBLIC content. Switching a simulation between school and public sharing requires fresh moderation.
+
+Created/imported/reset accounts have `must_change_password=true`. Until a new password is saved, the backend permits only current-user read, password change and logout. Initial credentials may be handed over as CSV, while database passwords remain hashes. Existing users retain their passwords and are not forced to change by the migration. User profiles and managed-user forms support date of birth and avatar URL.
+
+School bulk imports cover users, classes, enrollments and teacher assignments. Preview validates the entire file; rows may be edited and revalidated before an atomic commit. Identical name and birth date produce a warning and remain valid when email differs. Repeated email is rejected. See `docs/implementation/school-imports.md`.
+
+Active licenses may renew the same plan or immediately upgrade to a configured plan with no lower entitlement quotas and a higher annual price. Paid upgrades replace the current plan and clear any former queued plan. Downgrades and incomparable active plan changes are rejected. Eligibility and reasons come from the server; plan codes do not define a hardcoded rank.
+
+## Migration and deployment
+
+Flyway `V37__replace_account_roles.sql` replaces the old role catalog and updates user foreign keys in one transaction. Existing platform administrators become `MANAGER`; former school managers become `SCHOOL`; former teachers become `STAFF`. Reviewers and students retain their responsibilities with the new IDs. User IDs, school associations and all other user fields are preserved.
+
+The migration updates the role-school validation function, its trigger, the single-school-account index and the fixed role ID/name constraint. Existing Flyway migrations remain unchanged to preserve their recorded checksums. The bootstrap SQL uses the same canonical catalog.
+
+After V37, the confirmed account assignment restores the two original administrator accounts (user IDs 1 and 17) to `ADMIN` (role ID 1). They keep their existing credentials and can create new `MANAGER` accounts. This account-data correction does not change the applied migration or its checksum. No other account data or role assignments are changed; currently no account has the `MANAGER` role.
+
+Migration `V38__account_capabilities_and_initial_password.sql` adds account capabilities, generated staff aliases and the first-login password flag. It gives existing REVIEWER accounts both permissions and existing STAFF accounts the ordinary teacher type. V38 was applied and validated on the configured database on 01/10/2026; the two ADMIN accounts remain unchanged.
+
+Deploy the updated backend and frontend together through migration V38. Existing JWT claims do not override a user's new role: the backend resolves the current role from the database on each authenticated request. Reload the frontend after deployment so its session profile and navigation use the new role.
+
+## Verification
+
+Backend tests cover the six-role API authorization matrix and restrictions on manager creation, role promotion and ADMIN account changes. Frontend role tests cover IDs, permissions, form options and rejection of obsolete role names. The database migration can be rehearsed in a transaction and rolled back to verify every user's mapping and unchanged non-role fields.
+
+## Retained implementation details
+
+The earlier implementation notes below are retained for their school and learning workflows. The canonical IDs and ADMIN/MANAGER account-management restrictions above take precedence over earlier plans.
+
 # ROLES & PERMISSIONS - PHYSLIVE B2B (FINAL VERSION)
 
 > Confirmed 19/09/2026: school accounts are provisioned by managers (no public signup). AI quota is actual provider tokens; finish and charge an in-flight call fully, then block subsequent calls when exhausted. See B2B_IMPLEMENTATION_SUMMARY.md for implemented scope and verification limits.
@@ -8,17 +61,17 @@
 
 ---
 
-## 🎯 **5 ROLES - FINAL**
+## 🎯 **6 ROLES - FINAL**
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │              PLATFORM LEVEL                             │
 │                                                         │
-│  1. ADMIN               (Quản trị viên platform)        │
+│  2. MANAGER               (Quản trị viên platform)        │
 │     • school_id = NULL                                  │
 │     • Quản lý toàn platform                             │
 │                                                         │
-│  2. REVIEWER    (Chuyên gia nội dung & Kiểm duyệt)  │
+│  3. REVIEWER    (Chuyên gia nội dung & Kiểm duyệt)  │
 │     • school_id = NULL                                  │
 │     • Curriculum Expert - Curriculum Designer           │
 │     • TẠO topic schema (FR-REV-01)                     │
@@ -42,7 +95,7 @@
 ┌─────────────────────────────────────────────────────────┐
 │              SCHOOL LEVEL                               │
 │                                                         │
-│  3. SCHOOL_MANAGER      (Quản lý trường)                │
+│  4. SCHOOL      (Quản lý trường)                │
 │     • school_id = <UUID>                                │
 │     • CHỈ 1 người/trường                                │
 │     • Quản lý users & classes                           │
@@ -50,13 +103,13 @@
 │     • Phân giáo viên vào lớp                            │
 │     • Lớp có SẴN học sinh tương ứng                    │
 │                                                         │
-│  4. TEACHER             (Giáo viên)                     │
+│  5. STAFF             (Giáo viên)                     │
 │     • school_id = <UUID>                                │
 │     • 1 GV đảm nhiệm NHIỀU LỚP                         │
-│     • SCHOOL_MANAGER cho phép vào lớp                  │
+│     • SCHOOL cho phép vào lớp                  │
 │     • Tạo simulations & giao bài                        │
 │                                                         │
-│  5. STUDENT             (Học sinh)                      │
+│  6. STUDENT             (Học sinh)                      │
 │     • school_id = <UUID>                                │
 │     • MỖI LẦN chỉ ở 1 LỚP                              │
 │     • Làm bài & xem điểm                                │
@@ -68,7 +121,7 @@
 
 ## 📊 **PERMISSION MATRIX (CORRECTED)**
 
-| Tính năng | ADMIN | REVIEWER | SCHOOL_MGR | TEACHER | STUDENT |
+| Tính năng | MANAGER | REVIEWER | SCHOOL | STAFF | STUDENT |
 |-----------|:-----:|:--------:|:----------:|:-------:|:-------:|
 | **Platform Management** |
 | Quản lý schools | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -123,9 +176,9 @@ AFTER:
   ✅ CHỈ review & approve Shared Library
 ```
 
-### ✅ **Fix 3: SCHOOL_MANAGER - Aggregate Reports Only**
+### ✅ **Fix 3: SCHOOL - Aggregate Reports Only**
 ```
-SCHOOL_MANAGER xem:
+SCHOOL xem:
   ✅ Báo cáo tổng hợp:
      - Điểm trung bình lớp
      - Tỷ lệ hoàn thành
@@ -140,12 +193,12 @@ SCHOOL_MANAGER xem:
 ```
 WORKFLOW:
 
-[1] SCHOOL_MANAGER tạo lớp
+[1] SCHOOL tạo lớp
     • Tên lớp: 10A1
     • Khối: 10
     • Danh sách học sinh: [HS1, HS2, HS3, ...]
     ↓
-[2] SCHOOL_MANAGER phân giáo viên
+[2] SCHOOL phân giáo viên
     • Chọn Teacher X
     • Assign vào lớp 10A1
     ↓
@@ -188,7 +241,7 @@ KHI LICENSE HẾT HẠN:
 
 PERMISSIONS (Read-only mode):
   
-SCHOOL_MANAGER:
+SCHOOL:
   ✅ Login
   ✅ Xem data (reports, users)
   ✅ Export data
@@ -196,7 +249,7 @@ SCHOOL_MANAGER:
   ❌ Tạo lớp mới
   → Show "Renew License" banner
 
-TEACHER:
+STAFF:
   ✅ Login
   ✅ Xem bài cũ & điểm
   ❌ Tạo simulation mới
@@ -210,16 +263,16 @@ STUDENT:
   → Show "Your school's license has expired"
 ```
 
-### ✅ **Fix 8: Only 1 SCHOOL_MANAGER**
+### ✅ **Fix 8: Only 1 SCHOOL**
 ```sql
 -- Database constraint
 CREATE UNIQUE INDEX idx_one_school_manager_per_school
 ON users(school_id)
-WHERE role = 'SCHOOL_MANAGER' AND is_active = true;
+WHERE role = 'SCHOOL' AND is_active = true;
 
--- Nếu cần thay đổi SCHOOL_MANAGER:
--- 1. Deactivate current SCHOOL_MANAGER
--- 2. Promote another user to SCHOOL_MANAGER
+-- Nếu cần thay đổi SCHOOL:
+-- 1. Deactivate current SCHOOL
+-- 2. Promote another user to SCHOOL
 ```
 
 ### ✅ **Fix 9: Student in ONE Class at a Time**
@@ -249,8 +302,8 @@ OLD NAMES:
   SCHOOL_ADMIN  → confusing
 
 NEW NAMES:
-  ADMIN          → Platform admin (clear)
-  SCHOOL_MANAGER → School-level manager (clear)
+  MANAGER          → Platform admin (clear)
+  SCHOOL → School-level manager (clear)
 ```
 
 ---
@@ -271,12 +324,12 @@ CREATE TABLE users (
     
     -- Role
     role VARCHAR(20) NOT NULL,
-    -- 'ADMIN' | 'REVIEWER' | 'SCHOOL_MANAGER' | 'TEACHER' | 'STUDENT'
+    -- 'MANAGER' | 'REVIEWER' | 'SCHOOL' | 'STAFF' | 'STUDENT'
     
     -- School association
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-    -- NULL for ADMIN and REVIEWER
-    -- NOT NULL for SCHOOL_MANAGER, TEACHER, STUDENT
+    -- NULL for MANAGER and REVIEWER
+    -- NOT NULL for SCHOOL, STAFF, STUDENT
     
     -- Soft delete
     is_active BOOLEAN DEFAULT true,
@@ -307,16 +360,16 @@ CREATE TABLE users (
     -- ⭐ CONSTRAINTS
     CONSTRAINT check_role_school_consistency 
         CHECK (
-            (role IN ('ADMIN', 'REVIEWER') AND school_id IS NULL)
+            (role IN ('MANAGER', 'REVIEWER') AND school_id IS NULL)
             OR
-            (role IN ('SCHOOL_MANAGER', 'TEACHER', 'STUDENT') AND school_id IS NOT NULL)
+            (role IN ('SCHOOL', 'STAFF', 'STUDENT') AND school_id IS NOT NULL)
         )
 );
 
--- ⭐ Only 1 active SCHOOL_MANAGER per school
+-- ⭐ Only 1 active SCHOOL per school
 CREATE UNIQUE INDEX idx_one_school_manager_per_school
 ON users(school_id)
-WHERE role = 'SCHOOL_MANAGER' AND is_active = true;
+WHERE role = 'SCHOOL' AND is_active = true;
 
 -- =====================================================
 -- CLASSES & ENROLLMENTS với constraints đã fix
@@ -334,7 +387,7 @@ CREATE TABLE classes (
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
-    created_by UUID REFERENCES users(id) -- SCHOOL_MANAGER
+    created_by UUID REFERENCES users(id) -- SCHOOL
 );
 
 CREATE TABLE class_teachers (
@@ -342,7 +395,7 @@ CREATE TABLE class_teachers (
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
     teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
     assigned_at TIMESTAMP DEFAULT NOW(),
-    assigned_by UUID REFERENCES users(id), -- SCHOOL_MANAGER
+    assigned_by UUID REFERENCES users(id), -- SCHOOL
     
     UNIQUE(class_id, teacher_id)
 );
@@ -374,8 +427,8 @@ CREATE TABLE simulations (
     -- Ownership
     created_by UUID REFERENCES users(id),
     school_id UUID REFERENCES schools(id),
-    -- NULL nếu created_by là ADMIN (official content)
-    -- NOT NULL nếu created_by là TEACHER
+    -- NULL nếu created_by là MANAGER (official content)
+    -- NOT NULL nếu created_by là STAFF
     
     -- Visibility
     visibility VARCHAR(20) DEFAULT 'PERSONAL',
@@ -413,27 +466,27 @@ CREATE INDEX idx_simulations_visibility ON simulations(visibility, review_status
 ```
 [1] Trường đăng ký online
     ↓
-[2] ADMIN verify & approve
+[2] MANAGER verify & approve
     ↓
-[3] ADMIN activate license
+[3] MANAGER activate license
     ↓
-[4] System TỰ ĐỘNG tạo 1 SCHOOL_MANAGER account
+[4] System TỰ ĐỘNG tạo 1 SCHOOL account
     • Email: email đăng ký
     • Password: random → send email
     ↓
-[5] SCHOOL_MANAGER login lần đầu
+[5] SCHOOL login lần đầu
     • Đổi password
     • Setup profile
     ↓
-[6] SCHOOL_MANAGER import users (CSV)
+[6] SCHOOL import users (CSV)
     • Teachers: email, name, subject
     • Students: email, name, grade
     ↓
-[7] SCHOOL_MANAGER tạo classes
+[7] SCHOOL tạo classes
     • 10A1: [Student1, Student2, ...]
     • 10A2: [Student3, Student4, ...]
     ↓
-[8] SCHOOL_MANAGER phân giáo viên
+[8] SCHOOL phân giáo viên
     • Teacher X → 10A1, 10A2
     • Teacher Y → 11B1
     ↓
@@ -497,18 +550,18 @@ CREATE INDEX idx_simulations_visibility ON simulations(visibility, review_status
 
 ### **Backend:**
 - [ ] Update `users` table with constraints
-- [ ] Create UNIQUE index for SCHOOL_MANAGER
+- [ ] Create UNIQUE index for SCHOOL
 - [ ] Add soft delete columns
 - [ ] Create `class_teachers` table
 - [ ] Update `class_enrollments` with UNIQUE constraint
 - [ ] Update `simulations` table with review_status
 - [ ] Implement license expired check middleware
-- [ ] API: Aggregate reports for SCHOOL_MANAGER
+- [ ] API: Aggregate reports for SCHOOL
 
 ### **Frontend:**
-- [ ] Rename roles in UI (ADMIN, SCHOOL_MANAGER)
+- [ ] Rename roles in UI (MANAGER, SCHOOL)
 - [ ] REVIEWER Console: Remove "Create" & "Assign" features
-- [ ] SCHOOL_MANAGER Portal:
+- [ ] SCHOOL Portal:
   - [ ] User management (with soft delete)
   - [ ] Class creation (with pre-assigned students)
   - [ ] Teacher assignment
@@ -519,7 +572,7 @@ CREATE INDEX idx_simulations_visibility ON simulations(visibility, review_status
 ### **Business Logic:**
 - [ ] Prevent REVIEWER from creating simulations
 - [ ] Prevent hard delete users
-- [ ] Enforce 1 SCHOOL_MANAGER per school
+- [ ] Enforce 1 SCHOOL per school
 - [ ] Enforce 1 student per class per year
 - [ ] Grace period when license expires
 
@@ -529,10 +582,10 @@ CREATE INDEX idx_simulations_visibility ON simulations(visibility, review_status
 
 | Role | Count/School | school_id | Can Create Sim | Can Assign | Can Review |
 |------|--------------|-----------|----------------|------------|------------|
-| ADMIN | N/A | NULL | ✅ | ✅ | ✅ |
+| MANAGER | N/A | NULL | ✅ | ✅ | ✅ |
 | REVIEWER | N/A | NULL | ❌ | ❌ | ✅ |
-| SCHOOL_MANAGER | **1** | UUID | ❌ | ❌ | ❌ |
-| TEACHER | 10-50 | UUID | ✅ | ✅ | ❌ |
+| SCHOOL | **1** | UUID | ❌ | ❌ | ❌ |
+| STAFF | 10-50 | UUID | ✅ | ✅ | ❌ |
 | STUDENT | 500-5000 | UUID | ❌ | ❌ | ❌ |
 
 ---

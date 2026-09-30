@@ -9,6 +9,12 @@ export interface User {
     schoolName?: string | null;
     dateOfBirth?: string | null;
     avatarUrl?: string | null;
+    billingRequired?: boolean;
+    mustChangePassword?: boolean;
+    active?: boolean;
+    staffType?: 'TEACHER' | 'DEPARTMENT_HEAD' | null;
+    reviewerCanEdit?: boolean;
+    reviewerCanReview?: boolean;
     isActive?: boolean;
     lastLogin?: string | null;
 }

@@ -5,6 +5,7 @@ import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.dto.user.UserResponse;
 import com.example.backend.dto.school.StudentOptionResponse;
@@ -41,13 +42,19 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
-    public void changePassword(String email, String currentPassword, String newPassword, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+    @Transactional
+    public UserResponse changePassword(String email, String currentPassword, String newPassword, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         User user = findCurrent(email);
         if (!matchesPassword(currentPassword, user.getPassword(), passwordEncoder)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại không đúng");
         }
+        PasswordPolicy.requireValid(newPassword);
+        if (matchesPassword(newPassword, user.getPassword(), passwordEncoder)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu mới phải khác mật khẩu hiện tại");
+        }
         user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+        user.setMustChangePassword(false);
+        return toResponse(userRepository.save(user));
     }
 
     public UserResponse updateAvatar(String email, String avatarUrl) {
@@ -63,10 +70,9 @@ public class UserService {
 
     private UserResponse toResponse(User user) {
         String role = user.getRole() == null ? "UNKNOWN" : user.getRole().getName();
-        boolean billingRequired = RoleName.SCHOOL_MANAGER.matches(role)
+        boolean billingRequired = RoleName.SCHOOL.matches(role)
                 && (user.getSchool() == null || !user.getSchool().isLicenseActive());
-        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), role, user.getDateOfBirth(),
-                user.getAvatarUrl(), user.getSchool() == null ? null : user.getSchool().getId(), billingRequired);
+        return UserResponse.from(user, billingRequired);
     }
 
     private static String normalizeEmail(String email) {
@@ -89,7 +95,7 @@ public class UserService {
 
     public List<StudentOptionResponse> getAssignableStudents() {
         User requester = currentUserService.requireCurrentUser();
-        if (requester.getRole() != null && RoleName.ADMIN.matches(requester.getRole().getName())) {
+        if (requester.getRole() != null && RoleName.MANAGER.matches(requester.getRole().getName())) {
             return getActiveStudents();
         }
         return userRepository.findActiveStudentsAssignableByTeacher(requester.getId()).stream()

@@ -1,3 +1,5 @@
+> Role update 30/09/2026: the role names and permissions in this historical plan are superseded by [ROLES_FINAL.md](ROLES_FINAL.md). Use the six-role contract there for implementation.
+
 # THIẾT KẾ HỆ THỐNG B2B - PHYSLIVE (V2 - UPDATED)
 
 > Updated 19/09/2026: schools may self-register a SCHOOL_MANAGER account and choose a plan. Activate only after verified VNPAY Sandbox payment, then notify platform admins. Teachers/students are still provisioned by school managers. AI quota is actual provider tokens; finish and charge an in-flight call fully, then block subsequent calls when exhausted. See B2B_IMPLEMENTATION_SUMMARY.md for implemented scope and verification limits.

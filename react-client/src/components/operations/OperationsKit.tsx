@@ -8,12 +8,12 @@ export function Access({ reviewer = false, children }: Readonly<{ reviewer?: boo
   const user = usePhysliveStore((state) => state.user);
   if (!getToken()) return <main className="main ops"><h1>Cần đăng nhập</h1><Link to="/login">Đăng nhập để tiếp tục</Link></main>;
   if (!user) return <main className="main ops"><output>Đang xác thực tài khoản…</output></main>;
-  if (user.role !== "ADMIN" && !(reviewer && user.role === "REVIEWER")) return <main className="main ops"><h1>Không có quyền truy cập</h1><Link to="/workspace">Về workspace</Link></main>;
+  if (user.role !== "MANAGER" && !(reviewer && user.role === "REVIEWER")) return <main className="main ops"><h1>Không có quyền truy cập</h1><Link to="/workspace">Về workspace</Link></main>;
   return children;
 }
 
 export function Shell({ reviewer, tab, setTab, tabs, children }: Readonly<{ reviewer?: boolean; tab: string; setTab: (tab: string) => void; tabs: { id: string; label: string; detail: string }[]; children: ReactNode }>) {
-  return <main className={`main ops ${reviewer ? "ops-reviewer" : ""}`}><header className="ops-hero"><div><span className="ops-kicker">PHYSLIVE / {reviewer ? "CONTENT QUALITY" : "OPERATIONS"}</span><h1>{reviewer ? "Kiểm duyệt nội dung" : "Quản trị nền tảng"}</h1><p>{reviewer ? "Từ dữ kiện đáng tin cậy đến mô hình sẵn sàng cho lớp học." : "Con người, chương trình học và chất lượng mô phỏng trong một nơi."}</p></div><span className="ops-role">{reviewer ? "Physics Content Reviewer" : "Administrator"}</span></header><nav className="ops-tabs" aria-label="Khu vực tác vụ">{tabs.map((item, index) => <button key={item.id} type="button" aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "selected" : ""} onClick={() => setTab(item.id)}><span className="ops-tab-index">0{index + 1}</span><span><strong>{item.label}</strong><small>{item.detail}</small></span></button>)}</nav>{children}</main>;
+  return <main className={`main ops ${reviewer ? "ops-reviewer" : ""}`}><header className="ops-hero"><div><span className="ops-kicker">PHYSLIVE / {reviewer ? "CONTENT QUALITY" : "OPERATIONS"}</span><h1>{reviewer ? "Kiểm duyệt nội dung" : "Quản trị nền tảng"}</h1><p>{reviewer ? "Từ dữ kiện đáng tin cậy đến mô hình sẵn sàng cho lớp học." : "Con người, chương trình học và chất lượng mô phỏng trong một nơi."}</p></div><span className="ops-role">{reviewer ? "Physics Content Reviewer" : "Manager"}</span></header><nav className="ops-tabs" aria-label="Khu vực tác vụ">{tabs.map((item, index) => <button key={item.id} type="button" aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "selected" : ""} onClick={() => setTab(item.id)}><span className="ops-tab-index">0{index + 1}</span><span><strong>{item.label}</strong><small>{item.detail}</small></span></button>)}</nav>{children}</main>;
 }
 
 export function LoadState({ loading, error, refresh }: Readonly<{ loading: boolean; error?: string; refresh: () => void }>) {

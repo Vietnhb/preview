@@ -13,6 +13,7 @@ import com.example.backend.entity.account.User;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
+    Optional<User> findFirstByEmailIgnoreCase(String email);
     List<User> findBySchoolId(UUID schoolId);
 
     @Query("select count(u) from User u where u.school.id = :schoolId and u.role.name = 'STUDENT' and (u.active = true or u.active is null)")
@@ -28,7 +29,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     /**
      * Count users by school, role, and active status.
-     * Used to enforce "1 SCHOOL_MANAGER per school" constraint.
+     * Used to enforce "1 SCHOOL per school" constraint.
      */
     @Query("SELECT COUNT(u) FROM User u JOIN u.role r WHERE u.school.id = :schoolId AND r.name = :roleName AND u.active = :active")
     long countBySchoolIdAndRoleNameAndActive(

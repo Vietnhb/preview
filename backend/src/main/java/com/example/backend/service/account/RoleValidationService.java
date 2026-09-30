@@ -16,9 +16,9 @@ import lombok.RequiredArgsConstructor;
 /**
  * Service for validating role-school consistency rules.
  * Enforces business logic:
- * - Platform roles (ADMIN, REVIEWER) must have school_id = NULL
- * - School roles (SCHOOL_MANAGER, TEACHER, STUDENT) must have school_id NOT NULL
- * - Only 1 SCHOOL_MANAGER per school
+ * - Platform roles (ADMIN, MANAGER, REVIEWER) must have school_id = NULL
+ * - School roles (SCHOOL, STAFF, STUDENT) must have school_id NOT NULL
+ * - Only 1 SCHOOL per school
  */
 @Service
 @RequiredArgsConstructor
@@ -51,7 +51,7 @@ public class RoleValidationService {
     }
     
     /**
-     * Validate that only 1 SCHOOL_MANAGER exists per school.
+     * Validate that only 1 SCHOOL exists per school.
      * Throws ApiException if another active manager exists.
      * 
      * @param schoolId School to check
@@ -64,7 +64,7 @@ public class RoleValidationService {
         
         long managerCount = userRepository.countBySchoolIdAndRoleNameAndActive(
             schoolId,
-            RoleName.SCHOOL_MANAGER.name(),
+            RoleName.SCHOOL.name(),
             true
         );
         
@@ -75,7 +75,7 @@ public class RoleValidationService {
                 && existingUser.getSchool() != null 
                 && existingUser.getSchool().getId().equals(schoolId)
                 && existingUser.getRole() != null
-                && RoleName.SCHOOL_MANAGER.matches(existingUser.getRole().getName())
+                && RoleName.SCHOOL.matches(existingUser.getRole().getName())
                 && Boolean.TRUE.equals(existingUser.getActive())) {
                 managerCount--;
             }
@@ -84,7 +84,7 @@ public class RoleValidationService {
         if (managerCount > 0) {
             throw new ApiException(
                 HttpStatus.BAD_REQUEST,
-                "This school already has an active SCHOOL_MANAGER. Only 1 manager per school is allowed."
+                "This school already has an active SCHOOL. Only 1 manager per school is allowed."
             );
         }
     }
@@ -99,13 +99,13 @@ public class RoleValidationService {
         
         String roleName = user.getRole() != null ? user.getRole().getName() : null;
         
-        // ADMIN can manage all schools
-        if (RoleName.ADMIN.matches(roleName)) {
+        // MANAGER can manage all schools
+        if (RoleName.MANAGER.matches(roleName)) {
             return true;
         }
         
-        // SCHOOL_MANAGER can only manage their own school
-        if (RoleName.SCHOOL_MANAGER.matches(roleName)) {
+        // SCHOOL can only manage their own school
+        if (RoleName.SCHOOL.matches(roleName)) {
             return user.getSchool() != null && user.getSchool().getId().equals(targetSchoolId);
         }
         

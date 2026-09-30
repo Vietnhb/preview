@@ -17,7 +17,7 @@ import type { FieldMeta, SceneDescriptor, SceneParticipant } from "./sceneModel"
  */
 export type StageHost = {
   data(): { timeline: { durationSeconds: number; frames: Array<{ t: number; values: Record<string, number> }> };
-    scene: SceneDescriptor; theme: "LIGHT" | "DARK"; verificationStatus: string };
+    scene: SceneDescriptor; theme: "LIGHT" | "DARK"; verificationStatus: string; parameters?: Record<string, number> };
   sample(t: number): Record<string, number>;
   /** Rasterise SVG markup into a texture (bridge-side sanitising); `screen` = viewport-sized art. */
   svg?(markup: string, options?: { screen?: boolean; width?: number; height?: number }): Promise<PixiNS.Texture>;
@@ -197,22 +197,26 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     const staticLayer = new PIXI.Graphics(), dynamicLayer = new PIXI.Graphics(), bodyLayer = new PIXI.Graphics();
     const staticText = new PIXI.Container(), dynamicText = new PIXI.Container(), artLayer = new PIXI.Container();
     const decorLayer = new PIXI.Container(), connectorLayer = new PIXI.Container(), gaugeLayer = new PIXI.Container();
-    const followLayer = new PIXI.Container(), instrumentLayer = new PIXI.Container();
-    root.addChild(backdropLayer, decorLayer, staticLayer, propLayer, connectorLayer, dynamicLayer, bodyLayer, artLayer, followLayer,
+    const followLayer = new PIXI.Container(), instrumentLayer = new PIXI.Container(), fixtureLayer = new PIXI.Container();
+    root.addChild(backdropLayer, decorLayer, staticLayer, propLayer, fixtureLayer, connectorLayer, dynamicLayer, bodyLayer, artLayer, followLayer,
       gaugeLayer, instrumentLayer, hudPanel, staticText, dynamicText);
     /* Everything in these layers is placed by the kit from solver data (propLayer holds static generated props). */
-    const kitLayers: PixiNS.Container[] = [backdropLayer, decorLayer, staticLayer, propLayer, connectorLayer, dynamicLayer, bodyLayer,
+    const kitLayers: PixiNS.Container[] = [backdropLayer, decorLayer, staticLayer, propLayer, fixtureLayer, connectorLayer, dynamicLayer, bodyLayer,
       artLayer, followLayer, gaugeLayer, instrumentLayer, hudPanel, staticText, dynamicText];
     /** Generated SVG textures for the physical roles the kit infers from solver data. */
     const decor: { surface?: PixiNS.Texture; support?: PixiNS.Texture; connector?: PixiNS.Texture } = {};
     const connectors = new Map<string, PixiNS.Sprite>();
     type ArtOptions = { size?: number; sizeMeters?: number; autoScale?: boolean; facing?: "right" | "left" | "none";
-      rotate?: "none" | "velocity" | "link"; anchor?: "bottom" | "center" };
+      rotate?: "none" | "velocity" | "link"; anchor?: "bottom" | "center";
+      /** Name of the track/road/line the body moves on: bodies with the same name share one line. */
+      line?: string;
+      /** A rigid body: nothing solid may pass through it (checked against the solver motion). */
+      solid?: boolean };
     /** Participant artwork supplied by generated code, positioned by the kit. */
     const attached = new Map<string, { item: PixiNS.Container; options: ArtOptions; baseW: number; baseH: number; direction: number;
       bounds: { x: number; y: number; width: number; height: number };
       /** Solver point (screen) and the exact transform the kit gave the artwork in the last update. */
-      point?: Pt; placed?: { x: number; y: number; sx: number; sy: number; rotation: number; pivotY: number } }>();
+      point?: Pt; placed?: { x: number; y: number; sx: number; sy: number; rotation: number; pivotY: number; pivotX: number } }>();
     /** Generated display objects that ride along with a participant (labels, riders, attached decorations). */
     const followers = new Map<PixiNS.Container, { id: string; dx: number; dy: number; placed?: Pt }>();
     /** Solver-driven straight connections (ropes, wires, rods) between participants and/or fixed world points. */
@@ -234,6 +238,20 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       flow: { t: number[]; q: number[]; norm: number } | null;
       shown: { t: number; value: number; fraction: number } | null };
     let instruments: Instrument[] = [];
+    /**
+     * Fixtures: generated artwork of things that do not move (wall, stop, pulley block, fixed charge, platform…)
+     * placed by the kit at a world position in metres — a number or the name of a plan parameter, so the
+     * artwork follows parameter edits. A solid fixture is also a physical claim that the cross-check verifies:
+     * no moving participant may pass through it.
+     */
+    type Coordinate = number | string | null;
+    /* Orientation and sense can come from the plan too: rotation (screen degrees, clockwise) = angleScale × angle,
+       where angle is a number or a parameter (e.g. an incline angle, a field direction), and a parameter in flipBy
+       mirrors the art when its value is negative (field direction, polarity, current sense). */
+    type Fixture = { item: PixiNS.Container; x: Coordinate; y: Coordinate; anchor: Pt; sizeMeters: number; solid: boolean;
+      angle: Coordinate; angleScale: number; flipBy: string;
+      baseW: number; baseH: number; world: Pt | null; screen: Pt | null; k: number; rotation: number; mirror: number };
+    let fixtures: Fixture[] = [];
     /** Participants whose non-spatial state is visible on stage (instrument or meter card), rebuilt by build(). */
     let meterCovered = new Set<string>();
     let updatedThisFrame = false;
@@ -249,7 +267,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
 
     type Track = { p: SceneParticipant; color: string; lane: number;
       screen: (values: Record<string, number>) => Pt | null; path: Array<Pt & { t: number }>; strobe: Array<Pt & { t: number }>;
-      monotonic: boolean; originX: number; quiet?: boolean; label?: PixiNS.Text; vectorLabels: Partial<Record<Kind, PixiNS.Text>>; angleLabel?: PixiNS.Text; wallX?: number };
+      monotonic: boolean; originX: number; quiet?: boolean;
+      /** Line the body moves on (bodies on the same line can touch) and the side (±1 along it) of the body it touches. */
+      lineKey?: string | null; along?: "x" | "y" | null; contact?: number; label?: PixiNS.Text; vectorLabels: Partial<Record<Kind, PixiNS.Text>>; angleLabel?: PixiNS.Text; wallX?: number };
     let tracks: Track[] = [];
     let medium: Track[] = [];
     /** Instrument panel for state quantities (no spatial motion): one meter per solver field. */
@@ -291,6 +311,15 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     }
 
     // ---------------------------------------------------------------- instruments
+    /** Readable number of meter cards beside a moving scene; beyond it the values stay in the data table. */
+    const METER_STRIP_MAX = 8;
+    /** A participant whose changing state is not shown by motion: no place in space, or a fixed place (probe, source). */
+    function needsMeter(participant: SceneParticipant) {
+      if (participant.dims === 0) return true;
+      if (!participant.stationary) return false;
+      return Object.values(host.data().scene.fields).some(meta => meta.participantId === participant.id
+        && meta.max - meta.min > 1e-12 * Math.max(1, Math.abs(meta.max), Math.abs(meta.min)));
+    }
     /** Meter-card fields for state-only participants that have no instrument (the declared state_value first). */
     function meterKeys(stateOnly: SceneParticipant[], max: number): FieldMeta[] {
       const scene = host.data().scene, out: FieldMeta[] = [];
@@ -506,6 +535,133 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       build();
       return inner;
     }
+    function coordinate(value: Coordinate): number | null {
+      if (typeof value === "number") return Number.isFinite(value) ? value : null;
+      if (typeof value === "string" && value) {
+        const parameters = host.data().parameters ?? {};
+        return Number.isFinite(parameters[value]) ? parameters[value] : null;
+      }
+      return null;
+    }
+    /** null when a named parameter is missing (never guess a position) */
+    function fixtureWorld(f: Fixture): Pt | null {
+      const x = coordinate(f.x), y = coordinate(f.y);
+      if ((typeof f.x === "string" && f.x && x === null) || (typeof f.y === "string" && f.y && y === null)) return null;
+      return { x: x ?? 0, y: y ?? 0 };
+    }
+    /** Register static artwork at a world position (metres or a parameter name); anchor = the art's point that sits there. */
+    function fixture(item: PixiNS.Container, spec: { x?: Coordinate; y?: Coordinate; anchor?: Partial<Pt>; sizeMeters?: number; solid?: boolean;
+      angle?: Coordinate; angleScale?: number; flipBy?: string } = {}) {
+      if (!item || typeof item.getLocalBounds !== "function") throw Error("fixture(): pass a PIXI display object.");
+      const parameters = host.data().parameters ?? {};
+      for (const value of [spec.x, spec.y, spec.angle, spec.flipBy]) if (typeof value === "string" && value && !(value in parameters))
+        throw Error('fixture(): unknown parameter "' + value + '". Parameters: ' + Object.keys(parameters).join(", "));
+      item.removeFromParent(); item.scale.set(1); item.rotation = 0;
+      const b = item.getLocalBounds();
+      const anchor = { x: Number.isFinite(Number(spec.anchor?.x)) ? Number(spec.anchor!.x) : b.x + b.width / 2,
+        y: Number.isFinite(Number(spec.anchor?.y)) ? Number(spec.anchor!.y) : b.y + b.height };
+      fixtureLayer.addChild(item);
+      fixtures.push({ item, x: spec.x ?? null, y: spec.y ?? null, anchor, sizeMeters: Number(spec.sizeMeters) > 0 ? Number(spec.sizeMeters) : 0,
+        solid: !!spec.solid, angle: spec.angle ?? null, angleScale: Number.isFinite(Number(spec.angleScale)) && spec.angleScale !== 0 ? Number(spec.angleScale) : 1,
+        flipBy: typeof spec.flipBy === "string" ? spec.flipBy : "",
+        baseW: Math.max(1, b.width), baseH: Math.max(1, b.height), world: null, screen: null, k: 1, rotation: 0, mirror: 1 });
+      build();
+      return item;
+    }
+    function placeFixtures() {
+      const c = cam, W = app.screen.width, H = app.screen.height;
+      for (const f of fixtures) {
+        f.world = null; f.screen = null;
+        f.item.visible = !!c;
+        const w = fixtureWorld(f);
+        if (!c || !w) continue;
+        let at: Pt;
+        if (mode === "lanes") {
+          const roads = tracks.filter(track => track.p.dims > 0).map(track => laneY(track.lane) + 15);
+          at = { x: c.toScreen(w.x, 0).x, y: roads.length ? Math.max(...roads) : c.view.y + c.view.h };
+        } else if (mode === "columns") {
+          const columns = tracks.filter(track => track.p.dims > 0).map(track => columnX(track.lane));
+          at = { x: columns.length ? columns.reduce((a, b) => a + b, 0) / columns.length : c.view.x + c.view.w / 2, y: c.toScreen(0, w.y).y };
+        } else at = c.toScreen(w.x, w.y);
+        const perMetre = mode === "columns" ? c.sy : mode === "lanes" ? c.sx : Math.min(c.sx, c.sy);
+        const readable = Math.max(40, Math.min(W, H) * 0.14);
+        const target = f.sizeMeters > 0 ? Math.max(24, Math.min(Math.min(W, H) * 0.6, f.sizeMeters * perMetre)) : readable;
+        f.k = target / Math.max(f.baseW, f.baseH);
+        const angle = coordinate(f.angle);
+        f.rotation = angle === null ? 0 : angle * f.angleScale * Math.PI / 180;
+        const sense = f.flipBy ? coordinate(f.flipBy) : null;
+        f.mirror = sense !== null && sense < 0 ? -1 : 1;
+        f.world = w; f.screen = at;
+      }
+    }
+    /**
+     * Which bodies share a line on screen and which of them touch (from the solver data, never from names):
+     * lanes / columns by lane; in the plane, 1-D bodies on their axis and planar bodies whose other coordinate
+     * never changes. A body touching something on one side is drawn with that face at its solver point.
+     */
+    function lineOf(track: Track): { key: string; along: "x" | "y" } | null {
+      const fields = host.data().scene.fields, f = track.p.fields;
+      const still = (key?: string) => { const m = key ? fields[key] : undefined; return !!m && m.max - m.min <= 1e-9 * Math.max(1, Math.abs(m.max), Math.abs(m.min)); };
+      if (track.p.dims === 0) return null;
+      if (mode === "lanes") return { key: "lane" + track.lane, along: "x" };
+      if (mode === "columns") return { key: "column" + track.lane, along: "y" };
+      if (track.p.dims === 1) return track.p.vertical ? { key: "v0", along: "y" } : { key: "h0", along: "x" };
+      if (still(f.y)) return { key: "h" + fields[f.y!].min.toPrecision(6), along: "x" };
+      if (still(f.x)) return { key: "v" + (fields[f.x!].min + track.originX).toPrecision(6), along: "y" };
+      return null;
+    }
+    function screenRelation(a: (values: Record<string, number>) => number | null, b: (values: Record<string, number>) => number | null) {
+      const frames = host.data().timeline.frames;
+      let pos = false, neg = false, closest = Infinity, step = 0, previous = NaN, firstCross: number | null = null;
+      for (const frame of frames) {
+        const va = a(frame.values), vb = b(frame.values);
+        if (va === null || vb === null) continue;
+        const d = vb - va;
+        if (d > 1.5) pos = true; else if (d < -1.5) neg = true;
+        if (pos && neg && firstCross === null) firstCross = frame.t;
+        closest = Math.min(closest, Math.abs(d));
+        if (Number.isFinite(previous)) step = Math.max(step, Math.abs(d - previous));
+        previous = d;
+      }
+      const cross = pos && neg;
+      return { cross, firstCross, contact: !cross && closest <= Math.max(1.5, step), side: pos ? 1 : neg ? -1 : 0 };
+    }
+    function findContacts() {
+      const spatialTracks = tracks.filter(track => track.p.dims > 0);
+      for (const track of spatialTracks) { const line = lineOf(track); track.lineKey = line?.key ?? null; track.along = line?.along ?? null; track.contact = 0; }
+      const coordinate = (track: Track) => (values: Record<string, number>) => { const q = track.screen(values); return q ? (track.along === "y" ? q.y : q.x) : null; };
+      const sides = new Map<Track, Set<number>>();
+      const note = (track: Track, side: number) => { if (side) (sides.get(track) ?? sides.set(track, new Set()).get(track)!).add(side); };
+      for (let i = 0; i < spatialTracks.length; i++) for (let j = i + 1; j < spatialTracks.length; j++) {
+        const a = spatialTracks[i], b = spatialTracks[j];
+        if (!a.lineKey || a.lineKey !== b.lineKey) continue;
+        const r = screenRelation(coordinate(a), coordinate(b));
+        if (r.contact) { note(a, r.side); note(b, -r.side); }
+      }
+      for (const f of fixtures) {
+        if (!f.solid || !f.screen) continue;
+        const box = f.item.getBounds();
+        for (const track of spatialTracks) {
+          if (!track.lineKey) continue;
+          const across = track.along === "x" ? track.path[0]?.y : track.path[0]?.x;
+          if (across === undefined || (track.along === "x" ? across < box.minY - 2 || across > box.maxY + 2 : across < box.minX - 2 || across > box.maxX + 2)) continue;
+          const face = track.along === "x" ? f.screen.x : f.screen.y;
+          const r = screenRelation(coordinate(track), () => face);
+          if (r.contact) note(track, r.side);
+        }
+      }
+      for (const [track, set] of sides) track.contact = set.size === 1 ? [...set][0] : 0;
+    }
+    function applyFixtures() {
+      for (const f of fixtures) {
+        if (!f.screen) { f.item.visible = false; continue; }
+        if (f.item.parent !== fixtureLayer) fixtureLayer.addChild(f.item);
+        f.item.pivot.set(f.anchor.x, f.anchor.y);
+        f.item.position.set(f.screen.x, f.screen.y);
+        f.item.scale.set(f.k * f.mirror, f.k); f.item.rotation = f.rotation;
+        f.item.visible = true; f.item.alpha = 1; f.item.renderable = true;
+      }
+    }
     /** Keep a generated display object at a participant's solver position (+dx, +dy px): labels, riders, decorations. */
     function follow(id: string, item: PixiNS.Container, options: { dx?: number; dy?: number } = {}) {
       const track = tracks.find(entry => entry.p.id === id);
@@ -549,8 +705,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       const legendRowH = compactLegend ? 19 : 36, legendRows = Math.min(scene.participants.length, compactLegend ? 6 : 3);
       const legendBottom = 12 + legendRows * legendRowH + (scene.participants.length > legendRows ? 16 : 0);
       /* instrument strip: meters for participants without spatial motion, when something else moves in space */
-      const stateOnly = scene.participants.filter(item => item.dims === 0);
-      const stripKeys = mode === "board" ? [] : meterKeys(stateOnly, 4);
+      const stateOnly = scene.participants.filter(needsMeter);
+      const stripKeys = mode === "board" ? [] : meterKeys(stateOnly, METER_STRIP_MAX);
       const stripCount = mode === "board" ? 0 : instruments.length + stripKeys.length;
       const stripH = stripCount ? Math.max(88, Math.min(170, H * 0.26)) : 0;
       const top = show.hud ? Math.max(68, legendBottom + 16) : 20, bottom = H - (show.axes ? 46 : 20) - (stripH ? stripH + 10 : 0);
@@ -559,7 +715,42 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       tracks = scene.participants.map(participant => ({ p: participant, color: color(participant.colorIndex), lane: 0,
         screen: () => null, path: [], strobe: [], vectorLabels: {}, monotonic: true, originX: 0 }));
       const spatialTracks = tracks.filter(track => track.p.dims > 0);
-      spatialTracks.forEach((track, index) => { track.lane = index; });
+      /* Lines from the data: bodies on one axis that come into contact without passing through each other
+         interact on the SAME line (a collision, a push, fragments separating); bodies that pass each other are on
+         different lines. The generator may also name lines explicitly (art option "line"). */
+      const along1D = (track: Track, values: Record<string, number>) => values[track.p.fields.position!];
+      const relation = (a: Track, b: Track) => {
+        let lo = Infinity, hi = -Infinity, pos = false, neg = false, closest = Infinity, step = 0, previous = NaN;
+        for (const frame of frames) {
+          const va = along1D(a, frame.values), vb = along1D(b, frame.values);
+          lo = Math.min(lo, va, vb); hi = Math.max(hi, va, vb);
+        }
+        const tol = Math.max(1e-12, (hi - lo) * 1e-3);
+        for (const frame of frames) {
+          const d = along1D(b, frame.values) - along1D(a, frame.values);
+          if (d > tol) pos = true; else if (d < -tol) neg = true;
+          closest = Math.min(closest, Math.abs(d));
+          if (Number.isFinite(previous)) step = Math.max(step, Math.abs(d - previous));
+          previous = d;
+        }
+        const cross = pos && neg;
+        return { cross, contact: !cross && closest <= Math.max(tol, step), side: pos ? 1 : neg ? -1 : 0 };
+      };
+      const oneAxis = spatialTracks.filter(track => track.p.dims === 1 && (mode === "lanes" || mode === "columns"));
+      const parent = new Map<Track, Track>(oneAxis.map(track => [track, track]));
+      const rootOf = (track: Track): Track => { let r = track; while (parent.get(r) !== r) r = parent.get(r)!; return r; };
+      const join = (a: Track, b: Track) => parent.set(rootOf(a), rootOf(b));
+      for (let i = 0; i < oneAxis.length; i++) for (let j = i + 1; j < oneAxis.length; j++) {
+        const a = oneAxis[i], b = oneAxis[j], la = attached.get(a.p.id)?.options.line, lb = attached.get(b.p.id)?.options.line;
+        if ((la && la === lb) || relation(a, b).contact) join(a, b);
+      }
+      const laneIndex = new Map<Track, number>();
+      spatialTracks.forEach(track => {
+        const key = parent.has(track) ? rootOf(track) : track;
+        if (!laneIndex.has(key)) laneIndex.set(key, laneIndex.size);
+        track.lane = laneIndex.get(key)!;
+      });
+      const laneCount = Math.max(1, laneIndex.size);
 
       // --- world bounds from the full solver timeline (not only initial inputs)
       const bounds: Bounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
@@ -609,6 +800,12 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           grow(track.wallX, NaN);
         }
       }
+      /* fixtures are part of the measured scene: the frame must include where they stand */
+      for (const f of fixtures) {
+        const w = fixtureWorld(f);
+        if (!w) continue;
+        if (mode === "plane") grow(w.x, w.y); else if (mode === "lanes") grow(w.x, NaN); else if (mode === "columns") grow(NaN, w.y);
+      }
       // padding + minimum spans so nothing touches the frame
       const padBounds = (minSpan: number, independentAxes = false) => {
         let spanX = bounds.maxX - bounds.minX, spanY = bounds.maxY - bounds.minY;
@@ -631,14 +828,14 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         cam = camera(view, bounds, !exaggerated);
       } else if (mode === "lanes") {
         padBounds(1e-6);
-        laneHeight = Math.min(104, view.h / Math.max(1, spatialTracks.length));
-        const blockTop = view.y + (view.h - laneHeight * spatialTracks.length) / 2 + 10;
+        laneHeight = Math.min(104, view.h / laneCount);
+        const blockTop = view.y + (view.h - laneHeight * laneCount) / 2 + 10;
         laneY = lane => blockTop + laneHeight * (lane + 0.5);
         cam = camera(view, { ...bounds, minY: 0, maxY: 1 }, false);
       } else if (mode === "columns") {
         padBounds(1e-6);
-        const columnWidth = Math.min(170, (view.w - legendWidth * 0.3) / Math.max(1, spatialTracks.length));
-        const blockLeft = view.x + (view.w - columnWidth * spatialTracks.length) / 2;
+        const columnWidth = Math.min(170, (view.w - legendWidth * 0.3) / laneCount);
+        const blockLeft = view.x + (view.w - columnWidth * laneCount) / 2;
         columnX = lane => blockLeft + columnWidth * (lane + 0.5);
         cam = camera(view, { ...bounds, minX: 0, maxX: 1 }, false);
       } else cam = null;
@@ -847,8 +1044,10 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       // Always shown in board mode: without it a non-spatial phenomenon would render an empty stage.
       let cardKeys: FieldMeta[] = [], cardRect: Rect = view;
       if (mode === "board") {
-        cardKeys = Object.values(scene.fields).filter(meta => !bound.has(meta.key) && (meta.kind !== "angle" || meta.unit !== "rad"))
-          .slice(0, instruments.length ? 6 : 12);
+        /* every participant's main quantity first, then the rest, so no participant is left without a meter */
+        const shown = Object.values(scene.fields).filter(meta => !bound.has(meta.key) && (meta.kind !== "angle" || meta.unit !== "rad"));
+        const primary = meterKeys(scene.participants.filter(item => !meterCovered.has(item.id)), Infinity);
+        cardKeys = [...primary, ...shown.filter(meta => !primary.includes(meta))].slice(0, Math.max(primary.length, instruments.length ? 6 : 12));
         if (instruments.length) {
           const cardRows = Math.ceil(cardKeys.length / 3), cardsH = cardKeys.length ? Math.min(view.h * 0.4, cardRows * 62 + (cardRows - 1) * 14 + 10) : 0;
           placeInstruments({ x: view.x, y: view.y, w: view.w, h: view.h - cardsH }, p);
@@ -921,6 +1120,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         dynamicText.addChild(hudBadge);
       }
       placeDecor();
+      placeFixtures(); applyFixtures();
+      findContacts();
       if (refreshBackdrop) scheduleBackdrop();
     }
 
@@ -1249,9 +1450,17 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           const baseY = mode === "lanes" ? point.y + 15 : point.y;
           art.item.position.set(point.x, bottom && mode !== "lanes" ? point.y + h / 2 : baseY);
           art.item.pivot.y = bottom ? art.bounds.y + art.bounds.height : art.bounds.y + art.bounds.height / 2;
+          /* touching another body or a solid fixture: the solver point is the contact face, not the centre,
+             so the drawings meet exactly where the point bodies meet (no overlap, no gap) */
+          let pivotX = art.bounds.x + art.bounds.width / 2;
+          if (track.contact && rotate === "none") {
+            if (track.along === "x") pivotX += track.contact * flip * art.bounds.width / 2;
+            else if (track.along === "y") { art.item.pivot.y = track.contact > 0 ? art.bounds.y + art.bounds.height : art.bounds.y; art.item.position.y = point.y; }
+          }
+          art.item.pivot.x = pivotX;
           art.item.visible = true;
           art.point = { x: point.x, y: point.y };
-          art.placed = { x: art.item.x, y: art.item.y, sx: k * flip, sy: k, rotation, pivotY: art.item.pivot.y };
+          art.placed = { x: art.item.x, y: art.item.y, sx: k * flip, sy: k, rotation, pivotY: art.item.pivot.y, pivotX };
           if (track.label) track.label.position.set(point.x, (mode === "lanes" ? baseY - h : point.y - h / 2) - 6);
         } else {
           if (show.bodies) body(bodyLayer, point.x, point.y, radius, track.color);
@@ -1335,9 +1544,10 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         art.item.position.set(art.placed.x, art.placed.y);
         art.item.scale.set(art.placed.sx, art.placed.sy);
         art.item.rotation = art.placed.rotation;
-        art.item.pivot.y = art.placed.pivotY;
+        art.item.pivot.y = art.placed.pivotY; art.item.pivot.x = art.placed.pivotX;
         art.item.visible = true; art.item.alpha = 1; art.item.renderable = true;
       }
+      applyFixtures();
       for (const [item, rider] of followers) {
         if (item.parent !== followLayer) followLayer.addChild(item);
         if (rider.placed) item.position.set(rider.placed.x, rider.placed.y);
@@ -1424,7 +1634,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           } else if (!show.bodies) add(track.p.id + ": moving participant has no visible body (attach artwork or keep the kit body marker).");
         }
         // 2. every state-only participant has a meter or instrument showing the verified value
-        for (const participant of scene.participants) if (participant.dims === 0 && !meterCovered.has(participant.id))
+        const metered = scene.participants.filter(needsMeter);
+        if (mode === "board" || metered.length <= METER_STRIP_MAX) for (const participant of metered) if (!meterCovered.has(participant.id))
           add(participant.id + ": its solver state is not shown on stage (add an instrument for one of its fields).");
         for (const ins of instruments) {
           const value = values[ins.key];
@@ -1451,6 +1662,48 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           nodes.set(node, { cx, cy, w, h, on, text: isText });
         }
         snaps.push({ t, nodes });
+      }
+      // 4. solid fixtures: over the WHOLE timeline no moving participant may pass through one
+      if (cam) for (const f of fixtures) {
+        if (!f.world || !f.screen) { add("a fixture's position parameter (" + [f.x, f.y].filter(v => typeof v === "string" && v).join(", ") + ") is not in the plan; use one of: "
+          + Object.keys(host.data().parameters ?? {}).join(", ") + "."); continue; }
+        if (!f.solid) continue;
+        const bounds = f.item.getBounds();
+        for (const track of tracks) {
+          if (track.p.dims === 0) continue;
+          const frames = host.data().timeline.frames, fields = host.data().scene.fields, pf = track.p.fields;
+          /* motion along a single axis (1-D, or planar data that never leaves one line) is checked as a side test */
+          const still = (key?: string) => { const m = key ? fields[key] : undefined; return !!m && m.max - m.min <= 1e-9 * Math.max(1, Math.abs(m.max), Math.abs(m.min)); };
+          const axis: "x" | "y" | null = track.p.dims === 1 ? (mode === "columns" || (mode === "plane" && track.p.vertical) ? "y" : "x")
+            : still(pf.y) ? "x" : still(pf.x) ? "y" : null;
+          let side = 0, flip: number | null = null, inside: number | null = null;
+          for (const frame of frames) {
+            const q = track.screen(frame.values);
+            if (!q) continue;
+            if (axis) {
+              /* one axis: the body must stay on one side of the fixture's anchor line */
+              const along = axis === "y" ? q.y - f.screen.y : q.x - f.screen.x;
+              const s = Math.abs(along) <= 1 ? 0 : Math.sign(along);
+              if (s && side && s !== side) { flip = frame.t; break; }
+              if (s) side = s;
+            } else if (q.x > bounds.minX + 2 && q.x < bounds.maxX - 2 && q.y > bounds.minY + 2 && q.y < bounds.maxY - 2) { inside = frame.t; break; }
+          }
+          const at = flip ?? inside;
+          if (at !== null) add(track.p.id + " passes through the solid fixture placed at (" + fmt(f.world.x) + " m, " + fmt(f.world.y) + " m) at t = " + fmt(at)
+            + " s: the fixture is not where the verified physics puts the obstacle. Place it with the plan parameter (or value) the solver uses.");
+        }
+      }
+      // 5. solid bodies on one line may touch but never pass through each other
+      {
+        const solid = tracks.filter(track => track.lineKey && attached.get(track.p.id)?.options.solid);
+        const coordinate = (track: Track) => (values: Record<string, number>) => { const q = track.screen(values); return q ? (track.along === "y" ? q.y : q.x) : null; };
+        for (let i = 0; i < solid.length; i++) for (let j = i + 1; j < solid.length; j++) {
+          const a = solid[i], b = solid[j];
+          if (a.lineKey !== b.lineKey) continue;
+          const r = screenRelation(coordinate(a), coordinate(b));
+          if (r.cross) add(a.p.id + " and " + b.p.id + " are solid bodies on the same line but pass through each other at t = " + fmt(r.firstCross ?? 0)
+            + " s: the plan's positions/velocities of the two do not describe the same interaction (or they are not on the same line — give them different \"line\" names).");
+        }
       }
       const W = app.screen.width, H = app.screen.height, tol = Math.max(2, 0.004 * Math.min(W, H));
       const first = snaps[0];
@@ -1505,6 +1758,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       artLayer.addChild(item);
       attached.set(id, { item, options, baseW: b.width, baseH: b.height, direction: 1,
         bounds: { x: b.x, y: b.y, width: b.width, height: b.height } });
+      /* line grouping and contact faces depend on the artwork's options */
+      build();
       return item;
     }
     /** Register viewport-sized environment artwork: (layout) => SVG markup (width/height = layout.width/height). */
@@ -1522,7 +1777,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       disposed = true;
       if (backdropTimer) clearTimeout(backdropTimer);
       if (backdropSprite) host.release?.(backdropSprite.texture);
-      attached.clear(); followers.clear(); instruments = []; links = []; root.destroy({ children: true });
+      attached.clear(); followers.clear(); instruments = []; links = []; fixtures = []; root.destroy({ children: true });
     }
     return {
       container: root,
@@ -1530,6 +1785,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       instrument,
       follow,
       link,
+      fixture,
       resize() { build(); },
       setData() { build(); },
       screenOf,
@@ -1549,14 +1805,16 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
   }
 
   type BodySpec = { id: string; svg: string; facing?: "right" | "left" | "none"; rotate?: "none" | "velocity" | "link";
-    anchor?: "auto" | "bottom" | "center"; sizeMeters?: number; size?: number };
+    anchor?: "auto" | "bottom" | "center"; sizeMeters?: number; size?: number; line?: string; solid?: boolean };
   type InstrumentSpec = { field: string; svg: string; part?: string; label?: string;
     drive?: { property?: string; pivot?: Pt; path?: Pt[]; from?: number; to?: number; copies?: number; useFieldAngle?: boolean;
       min?: number | null; max?: number | null } };
   type DriveName = "rotate" | "translate" | "scale" | "reveal" | "opacity" | "travel" | "none";
+  type FixtureSpec = { svg: string; x?: number | null; xParameter?: string; y?: number | null; yParameter?: string;
+    anchor?: Pt; sizeMeters?: number; solid?: boolean; angle?: number | null; angleParameter?: string; angleScale?: number; flipBy?: string };
   type LinkSpec = { from: string; to: string; color?: string; width?: number; dashed?: boolean };
   type IllustratedSpec = { environment?: string; environmentAnchorY?: number; surface?: string; support?: string; connector?: string; bodies?: BodySpec[];
-    instruments?: InstrumentSpec[]; links?: LinkSpec[];
+    instruments?: InstrumentSpec[]; links?: LinkSpec[]; fixtures?: FixtureSpec[];
     overlay?: { links?: boolean; axes?: boolean; grid?: boolean; trails?: boolean; strobe?: boolean; vectors?: boolean; labels?: boolean; angles?: boolean } };
   /**
    * Declarative illustrated scene: every visual comes from generated SVG, the kit
@@ -1590,7 +1848,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       }
       base.attach(body.id, sprite, { facing: body.facing, rotate: body.rotate,
         anchor: body.anchor === "bottom" || body.anchor === "center" ? body.anchor : undefined,
-        sizeMeters: Number(body.sizeMeters) > 0 ? Number(body.sizeMeters) : undefined, size: body.size });
+        sizeMeters: Number(body.sizeMeters) > 0 ? Number(body.sizeMeters) : undefined, size: body.size,
+        line: typeof body.line === "string" && body.line.trim() ? body.line.trim() : undefined, solid: !!body.solid });
     }
     /* instruments: pivot/path are given in the body's SVG viewBox units; the moving part is drawn in the same
        coordinate system (its own viewBox is placed where it lies in the body's) */
@@ -1620,6 +1879,19 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         drive: part ? { property: d.property as DriveName, pivot: toLocal(d.pivot), from: d.from, to: d.to, copies: d.copies,
           useFieldAngle: d.useFieldAngle, min: d.min ?? null, max: d.max ?? null,
           path: (Array.isArray(d.path) ? d.path : []).map(toLocal).filter((q): q is Pt => !!q) } : undefined });
+    }
+    /* fixtures: static art at a world position (number or plan parameter); anchor in the SVG viewBox */
+    for (const item of Array.isArray(spec.fixtures) ? spec.fixtures : []) {
+      if (!item || !text_(item.svg)) continue;
+      const sprite = new PIXI.Sprite(await host.svg!(item.svg));
+      const vb = viewBox(item.svg) ?? { x: 0, y: 0, w: sprite.texture.width, h: sprite.texture.height };
+      const sx = sprite.texture.width / vb.w, sy = sprite.texture.height / vb.h, a = item.anchor;
+      base.fixture(sprite, { x: text_(item.xParameter) ?? (Number.isFinite(Number(item.x)) && item.x !== null ? Number(item.x) : null),
+        y: text_(item.yParameter) ?? (Number.isFinite(Number(item.y)) && item.y !== null ? Number(item.y) : null),
+        anchor: a && Number.isFinite(Number(a.x)) && Number.isFinite(Number(a.y)) ? { x: (Number(a.x) - vb.x) * sx, y: (Number(a.y) - vb.y) * sy } : undefined,
+        sizeMeters: item.sizeMeters, solid: item.solid,
+        angle: text_(item.angleParameter) ?? (Number.isFinite(Number(item.angle)) && item.angle !== null ? Number(item.angle) : null),
+        angleScale: item.angleScale, flipBy: text_(item.flipBy) });
     }
     /* links: "<participant id>" or "x,y" (fixed world point in metres) */
     const end = (value: string): string | [number, number] => {

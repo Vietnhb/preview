@@ -29,30 +29,30 @@ body {
   );
   -webkit-font-smoothing: antialiased;
 }
-button,
-input,
-textarea,
-select {
+button:where(:not(.rt-reset)),
+input:where(:not(.rt-reset)),
+textarea:where(:not(.rt-reset)),
+select:where(:not(.rt-reset)) {
   color: var(--app-text);
 }
-button {
+button:where(:not(.rt-reset)) {
   min-height: 42px;
   border-radius: 10px;
   background: var(--app-accent);
   box-shadow: 0 1px 1px #00000012;
 }
-button:hover:not(:disabled) {
+button:where(:not(.rt-reset)):hover:not(:disabled) {
   background: var(--app-accent-hover);
   box-shadow: 0 6px 16px #0a66ff2e;
 }
-button.secondary,
+button:where(:not(.rt-reset)).secondary,
 .secondary {
   border: 1px solid var(--app-border);
   background: var(--app-surface-muted);
   color: var(--app-text-secondary);
   box-shadow: none;
 }
-button.secondary:hover:not(:disabled),
+button:where(:not(.rt-reset)).secondary:hover:not(:disabled),
 .secondary:hover {
   background: var(--app-surface-hover);
   color: var(--app-text);

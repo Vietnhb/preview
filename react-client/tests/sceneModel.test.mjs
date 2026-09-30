@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { describeScene, niceStep, formatNumber } from "../src/simulation/sceneModel.ts";
+import { describeScene, niceStep, formatNumber, presentationRate, fastestOscillation } from "../src/simulation/sceneModel.ts";
 
 const run = (duration, f, steps = 200) => ({ durationSeconds: duration, frames: Array.from({ length: steps + 1 }, (_, i) => {
   const t = duration * i / steps; return { t, values: { t, ...f(t) } };
@@ -49,4 +49,25 @@ test("the gravitational constant does not make motion vertical; uniform gravity 
   const line = run(2, t => ({ "p.position": 2 * t }));
   assert.equal(describeScene(line, [{ id: "p", inputs: { gravitational_constant: 6.67e-11 } }]).participants[0].vertical, false);
   assert.equal(describeScene(line, [{ id: "p", inputs: { gravitational_acceleration: "g" } }]).participants[0].vertical, true);
+});
+test("the capability's renderer roles decide what is a place in space", () => {
+  const stretch = run(5, t => ({ "s.elongation": 0.01 * t, "s.force": t }));
+  assert.equal(describeScene(stretch).participants[0].dims, 1);
+  assert.equal(describeScene(stretch, [], { "s.elongation": { rendererRole: "state_value" }, "s.force": { rendererRole: "state_value" } }).participants[0].dims, 0);
+  const probe = run(1, t => ({ "a.position": 1, "a.pressure": Math.sin(40 * t) }));
+  const scene = describeScene(probe);
+  assert.equal(scene.participants[0].dims, 1);
+  assert.equal(scene.participants[0].stationary, true);
+  assert.equal(describeScene(probe, [], { "a.pressure": { rendererRole: "state_value" } }).participants[0].dims, 0);
+});
+test("replay is slowed so an oscillation stays visible, never faster than the eye can follow", () => {
+  const ac = run(10, t => ({ "c.current": Math.sin(2 * Math.PI * 5 * t) }), 4000);
+  assert.ok(Math.abs(fastestOscillation(ac) - 5) < 0.2);
+  const rate = presentationRate(10, ac);
+  assert.ok(5 * rate <= 2.1, "on-screen frequency " + 5 * rate);
+  assert.equal(presentationRate(10), 10 / 10);
+});
+test("tiny SI values are shown instead of rounded to zero", () => {
+  assert.equal(formatNumber(5.04e-29, 4, 6e-29), "5.04×10⁻²⁹");
+  assert.equal(formatNumber(1e-17, 4, 2), "0");
 });

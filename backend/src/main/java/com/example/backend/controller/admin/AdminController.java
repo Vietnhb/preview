@@ -3,6 +3,7 @@ package com.example.backend.controller.admin;
 import com.example.backend.dto.admin.CreateManagedUserRequest;
 import com.example.backend.dto.admin.UpdateManagedUserRequest;
 import com.example.backend.dto.admin.UserStatusResponse;
+import com.example.backend.dto.admin.ResetManagedPasswordRequest;
 import com.example.backend.dto.admin.ValidationMetricsResponse;
 import com.example.backend.dto.admin.TopicStatusResponse;
 import com.example.backend.service.admin.AdminService;
@@ -38,6 +39,12 @@ public class AdminController {
     @PutMapping("/users/{id}")
     public UserStatusResponse updateUser(@PathVariable Integer id, @Valid @RequestBody UpdateManagedUserRequest request) {
         return adminService.updateUser(id, request);
+    }
+
+    @PostMapping("/users/{id}/reset-password")
+    public UserStatusResponse resetPassword(@PathVariable Integer id,
+                                           @Valid @RequestBody ResetManagedPasswordRequest request) {
+        return adminService.resetPassword(id, request.newPassword());
     }
 
     @PutMapping("/users/{id}/suspend")

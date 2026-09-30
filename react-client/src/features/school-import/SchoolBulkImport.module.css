@@ -1,0 +1,10 @@
+.dialog { max-height: min(90vh, 900px); overflow-y: auto; }
+:global(.school-bulk-tools) { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.guide { padding: 20px; border: 1px dashed var(--indigo-6); border-radius: 12px; background: var(--indigo-2); display: grid; gap: 8px; }
+.tableScroll { width: 100%; max-height: 52vh; overflow: auto; border: 1px solid var(--gray-6); border-radius: 10px; }
+.tableScroll th { white-space: nowrap; }
+.cell { min-width: 170px; vertical-align: top; }
+.validation { min-width: 260px; max-width: 330px; vertical-align: top; }
+.validation p + p { margin-top: 6px; }
+.success { display: grid; gap: 18px; justify-items: start; padding: 30px 0 10px; color: var(--green-11); }
+@media (max-width: 640px) { .cell { min-width: 150px; } .validation { min-width: 220px; } }

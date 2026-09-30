@@ -826,12 +826,12 @@
   font-weight: 700;
 }
 
-.admin-role-badge.admin {
+.admin-role-badge.manager {
   background: #f3e8fd;
   color: #7b1fa2;
 }
 
-.admin-role-badge.teacher {
+.admin-role-badge.staff {
   background: var(--admin-accent-soft);
   color: #174ea6;
 }
@@ -1005,12 +1005,12 @@
 }
 
 :root[data-theme-effective="dark"] .admin-stat-icon.purple,
-:root[data-theme-effective="dark"] .admin-role-badge.admin {
+:root[data-theme-effective="dark"] .admin-role-badge.manager {
   background: #3b2451;
   color: #d7aefb;
 }
 
-:root[data-theme-effective="dark"] .admin-role-badge.teacher {
+:root[data-theme-effective="dark"] .admin-role-badge.staff {
   color: #aecbfa;
 }
 

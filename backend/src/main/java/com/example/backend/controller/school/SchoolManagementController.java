@@ -3,6 +3,7 @@ package com.example.backend.controller.school;
 import com.example.backend.dto.admin.CreateManagedUserRequest;
 import com.example.backend.dto.admin.UpdateManagedUserRequest;
 import com.example.backend.dto.admin.UserStatusResponse;
+import com.example.backend.dto.admin.ResetManagedPasswordRequest;
 import com.example.backend.service.admin.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,8 @@ public class SchoolManagementController {
     public UserStatusResponse create(@PathVariable UUID schoolId,
                                      @Valid @RequestBody CreateManagedUserRequest request) {
         return adminService.createUser(new CreateManagedUserRequest(request.email(), request.password(),
-                request.fullName(), request.role(), schoolId.toString()));
+                request.fullName(), request.role(), schoolId.toString(), request.dateOfBirth(), request.avatarUrl(),
+                request.staffType(), request.reviewerCanEdit(), request.reviewerCanReview()));
     }
 
     @PutMapping("/{userId}")
@@ -40,7 +42,16 @@ public class SchoolManagementController {
                                      @Valid @RequestBody UpdateManagedUserRequest request) {
         adminService.requireUserInSchool(schoolId, userId);
         return adminService.updateUser(userId,
-                new UpdateManagedUserRequest(request.fullName(), request.role(), schoolId.toString()));
+                new UpdateManagedUserRequest(request.fullName(), request.role(), schoolId.toString(),
+                        request.dateOfBirth(), request.avatarUrl(), request.staffType(),
+                        request.reviewerCanEdit(), request.reviewerCanReview()));
+    }
+
+    @PostMapping("/{userId}/reset-password")
+    public UserStatusResponse resetPassword(@PathVariable UUID schoolId, @PathVariable Integer userId,
+                                           @Valid @RequestBody ResetManagedPasswordRequest request) {
+        adminService.requireUserInSchool(schoolId, userId);
+        return adminService.resetPassword(userId, request.newPassword());
     }
 
     @PutMapping("/{userId}/suspend")
