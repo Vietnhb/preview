@@ -1,4 +1,4 @@
-// Data cho 40 bảng database PhysLive - Tiếng Việt với Ví dụ và Luồng
+// Data cho 36 bảng database PhysLive - Tiếng Việt với Ví dụ và Luồng
 
 const roleLabels = {
     'admin': 'ADMIN — Xem user và tạo manager',
@@ -42,7 +42,7 @@ const tables = [
             { step: 2, desc: "Hệ thống query bảng 'users' WHERE email = ?" },
             { step: 3, desc: "Kiểm tra password hash, active = true" },
             { step: 4, desc: "JOIN 'schools' kiểm tra license còn hạn" },
-            { step: 5, desc: "Tạo JWT token → INSERT vào 'class_sessions'" },
+            { step: 5, desc: "Tạo JWT token và trả về cho trình duyệt (không lưu phiên trong database)" },
             { step: 6, desc: "User đăng nhập thành công" }
         ],
         businessRules: [
@@ -568,45 +568,6 @@ VALUES ('uuid-10a2', 201, '2026-2027', 'ACTIVE');`,
         ]
     },
 
-    {
-        name: "class_sessions",
-        dbName: "class_sessions",
-        category: "auth",
-        categoryName: "Xác thực & Phân quyền",
-        purpose: "JWT sessions - track active logins cho revoke token",
-        roles: ["manager", "reviewer", "school", "staff", "student"],
-        columns: [
-            { name: "id", type: "UUID PRIMARY KEY", description: "Session ID" },
-            { name: "user_id", type: "INTEGER FK", description: "User đăng nhập" },
-            { name: "token_hash", type: "VARCHAR(255)", description: "Hash của JWT" },
-            { name: "expires_at", type: "TIMESTAMP", description: "Thời gian hết hạn" },
-            { name: "revoked", type: "BOOLEAN", description: "Đã thu hồi chưa" }
-        ],
-        example: `VÍ DỤ - Force logout (revoke token):
-
-Bước 1: Admin phát hiện user vi phạm
-Bước 2: Admin click "Force Logout"
-UPDATE class_sessions SET revoked = true WHERE user_id = 102;
-
-Bước 3: User request API
-→ JwtFilter check: SELECT revoked FROM class_sessions WHERE token_hash = ?
-→ If revoked = true → Return 401 Unauthorized
-
-Bước 4: User phải login lại`,
-        flow: [
-            { step: 1, desc: "User login thành công → JWT token được tạo" },
-            { step: 2, desc: "INSERT vào class_sessions (token_hash, user_id, expires_at)" },
-            { step: 3, desc: "Mỗi API request → JwtFilter check revoked = false" },
-            { step: 4, desc: "Admin revoke → UPDATE revoked = true" },
-            { step: 5, desc: "Cronjob định kỳ: DELETE sessions WHERE expires_at < NOW()" }
-        ],
-        businessRules: [
-            "1 user có thể có nhiều sessions (nhiều thiết bị)",
-            "Revoke = soft logout (không cần database password change)",
-            "TTL mặc định: 7 ngày (configurable)",
-            "Cleanup job chạy hàng ngày xóa expired sessions"
-        ]
-    },
 
     {
         name: "license_plans",
@@ -1017,43 +978,6 @@ Lesson 3: "Thực hành simulation"
         ]
     },
 
-    {
-        name: "topic_module_releases",
-        dbName: "topic_module_releases",
-        category: "curriculum",
-        categoryName: "Curriculum & Nội dung",
-        purpose: "Version releases của modules (giống git tags) - tracking content changes",
-        roles: ["manager", "reviewer"],
-        columns: [
-            { name: "id", type: "UUID PRIMARY KEY", description: "Release ID" },
-            { name: "topic", type: "VARCHAR(80)", description: "Topic name" },
-            { name: "module_name", type: "VARCHAR(120)", description: "Module name" },
-            { name: "schema_id", type: "VARCHAR(80)", description: "Schema version" },
-            { name: "lifecycle_status", type: "VARCHAR(16)", description: "DRAFT, APPROVED, PUBLISHED" }
-        ],
-        example: `VÍ DỤ VERSION HISTORY:
-
-Module "Chuyển động ném ngang":
-v1.0 (2026-01-01): Draft - Nội dung ban đầu
-v1.1 (2026-02-15): Approved - REVIEWER kiểm duyệt
-v1.2 (2026-03-01): Published - Public cho schools
-v2.0 (2026-09-01): Published - Thêm 3 simulations mới
-
-→ Schools luôn dùng version PUBLISHED mới nhất`,
-        flow: [
-            { step: 1, desc: "REVIEWER tạo/sửa module → status = DRAFT" },
-            { step: 2, desc: "REVIEWER review nội dung → APPROVED" },
-            { step: 3, desc: "MANAGER publish → PUBLISHED" },
-            { step: 4, desc: "Schools nhận update tự động" },
-            { step: 5, desc: "Old versions archived (không xóa)" }
-        ],
-        businessRules: [
-            "DRAFT: Chỉ REVIEWER thấy",
-            "APPROVED: Ready to publish",
-            "PUBLISHED: Live for all schools",
-            "Không xóa old versions (audit trail)"
-        ]
-    },
 
     {
         name: "schema_versions",
@@ -1278,7 +1202,7 @@ Notes: "Đề rõ ràng, không cần clarification"
 
     {
         name: "adjudications",
-        dbName: "adjudications",
+        dbName: "benchmark_adjudications",
         category: "benchmark",
         categoryName: "Benchmark & Quality",
         purpose: "Giải quyết conflicts khi 2 REVIEWER disagree trên gold annotation",
@@ -1323,90 +1247,7 @@ Final annotation: Follow REVIEWER 2 (h0 có thể suy ra)`,
         ]
     },
 
-    {
-        name: "ambiguity_cases",
-        dbName: "ambiguity_cases",
-        category: "ambiguity",
-        categoryName: "Ambiguity Handling",
-        purpose: "Log các trường hợp đề bài ambiguous (thiếu thông tin, mơ hồ)",
-        roles: ["reviewer", "staff"],
-        columns: [
-            { name: "id", type: "UUID PRIMARY KEY", description: "Case ID" },
-            { name: "problem_submission_id", type: "UUID FK", description: "Problem gốc" },
-            { name: "specification_id", type: "UUID FK", description: "Parsed spec" },
-            { name: "ambiguity_description", type: "TEXT", description: "Mô tả ambiguity" },
-            { name: "status", type: "VARCHAR(20)", description: "OPEN, RESOLVED, ESCALATED" }
-        ],
-        example: `VÍ DỤ AMBIGUITY CASES:
 
-Case 1: "Vật ném từ tháp cao xuống đất"
-Ambiguity: Thiếu h0 (độ cao tháp)
-Status: OPEN → Teacher phải clarify
-
-Case 2: "Vật ném với vận tốc lớn"
-Ambiguity: "Lớn" là bao nhiêu? (v0 không rõ)
-Status: RESOLVED → Teacher sửa thành v0=20m/s
-
-Case 3: "Vật chuyển động trên mặt phẳng nghiêng"
-Ambiguity: Thiếu góc nghiêng α
-Status: ESCALATED → REVIEWER review`,
-        flow: [
-            { step: 1, desc: "AI detect ambiguity trong parsing" },
-            { step: 2, desc: "INSERT ambiguity_cases (status=OPEN)" },
-            { step: 3, desc: "Teacher receive notification" },
-            { step: 4, desc: "Teacher clarify → UPDATE status=RESOLVED" },
-            { step: 5, desc: "Nếu phức tạp → ESCALATED to REVIEWER" }
-        ],
-        businessRules: [
-            "Auto-detect bởi AI",
-            "Teacher phải resolve trong 48h",
-            "ESCALATED → REVIEWER intervene",
-            "Track ambiguity rate để improve AI"
-        ]
-    },
-
-    {
-        name: "reviewer_decisions",
-        dbName: "reviewer_decisions",
-        category: "ambiguity",
-        categoryName: "Ambiguity Handling",
-        purpose: "Quyết định của REVIEWER cho ambiguity cases (confirm/reject/edit)",
-        roles: ["reviewer"],
-        columns: [
-            { name: "id", type: "UUID PRIMARY KEY", description: "Decision ID" },
-            { name: "ambiguity_case_id", type: "UUID FK", description: "Case reference" },
-            { name: "reviewer_id", type: "INTEGER FK", description: "REVIEWER ID" },
-            { name: "decision", type: "VARCHAR(20)", description: "CONFIRM, REJECT, EDIT" },
-            { name: "edited_specification", type: "JSONB", description: "Spec sau khi sửa" }
-        ],
-        example: `VÍ DỤ REVIEWER DECISIONS:
-
-Case: "Vật ném từ tháp cao"
-
-REVIEWER Decision:
-{
-  "decision": "EDIT",
-  "edited_specification": {
-    "h0": {"value": 20, "unit": "m", "note": "Giả sử tháp cao 20m"}
-  },
-  "rationale": "Đề SGK lớp 10 thường dùng h0=20m"
-}
-
-→ Teacher nhận spec đã được REVIEWER fix`,
-        flow: [
-            { step: 1, desc: "REVIEWER nhận ambiguity case" },
-            { step: 2, desc: "REVIEWER analyze problem" },
-            { step: 3, desc: "REVIEWER decide: CONFIRM/REJECT/EDIT" },
-            { step: 4, desc: "INSERT reviewer_decisions" },
-            { step: 5, desc: "UPDATE ambiguity_cases status = RESOLVED" }
-        ],
-        businessRules: [
-            "CONFIRM: Spec đúng, không có ambiguity",
-            "REJECT: Đề sai hoàn toàn, không thể sửa",
-            "EDIT: Sửa spec → Ready to use",
-            "REVIEWER decisions immutable (audit trail)"
-        ]
-    },
 
     {
         name: "extraction_runs",
@@ -1454,100 +1295,7 @@ Attempt 3: RULE_BASED (regex parsing)
         ]
     },
 
-    {
-        name: "source_assets",
-        dbName: "source_assets",
-        category: "extraction",
-        categoryName: "Text/Image Extraction",
-        purpose: "Lưu trữ text/image gốc của problems (before extraction)",
-        roles: ["reviewer", "staff"],
-        columns: [
-            { name: "id", type: "UUID PRIMARY KEY", description: "Asset ID" },
-            { name: "problem_submission_id", type: "UUID FK", description: "Problem reference" },
-            { name: "asset_type", type: "VARCHAR(10)", description: "TEXT, IMAGE" },
-            { name: "original_text", type: "TEXT", description: "Raw text" },
-            { name: "image_url", type: "TEXT", description: "Image URL (S3)" },
-            { name: "ocr_status", type: "VARCHAR(20)", description: "NOT_REQUESTED, SUCCEEDED, FAILED" }
-        ],
-        example: `VÍ DỤ SOURCE ASSETS:
 
-Asset 1 (TEXT):
-{
-  "asset_type": "TEXT",
-  "original_text": "Vật ném ngang v0=10m/s từ h0=20m",
-  "ocr_status": "NOT_REQUESTED"
-}
-
-Asset 2 (IMAGE):
-{
-  "asset_type": "IMAGE",
-  "image_url": "s3://bucket/problem_123.jpg",
-  "ocr_text": "Vật ném ngang...",
-  "ocr_status": "SUCCEEDED"
-}`,
-        flow: [
-            { step: 1, desc: "Teacher upload text/image" },
-            { step: 2, desc: "INSERT source_assets" },
-            { step: 3, desc: "If IMAGE → Trigger OCR" },
-            { step: 4, desc: "UPDATE ocr_text, ocr_status" },
-            { step: 5, desc: "Pass to extraction pipeline" }
-        ],
-        businessRules: [
-            "TEXT: Direct parsing (no OCR)",
-            "IMAGE: OCR first → Then parse",
-            "OCR provider: OpenRouter Vision API",
-            "Store original assets (audit/debugging)"
-        ]
-    },
-
-    {
-        name: "parameter_snapshots",
-        dbName: "parameter_snapshots",
-        category: "extraction",
-        categoryName: "Text/Image Extraction",
-        purpose: "Snapshot của extracted parameters (immutable history)",
-        roles: ["reviewer", "staff"],
-        columns: [
-            { name: "id", type: "UUID PRIMARY KEY", description: "Snapshot ID" },
-            { name: "specification_id", type: "UUID FK", description: "Spec reference" },
-            { name: "snapshot_data", type: "JSONB", description: "Frozen JSON" },
-            { name: "created_at", type: "TIMESTAMP", description: "Snapshot time" }
-        ],
-        example: `VÍ DỤ PARAMETER SNAPSHOTS (version history):
-
-Snapshot 1 (2026-01-01 10:00):
-{
-  "v0": 10,
-  "h0": null  // Chưa có h0
-}
-
-Snapshot 2 (2026-01-01 10:05):
-{
-  "v0": 10,
-  "h0": 20  // REVIEWER thêm h0
-}
-
-Snapshot 3 (2026-01-01 10:10):
-{
-  "v0": 15,  // Teacher sửa v0
-  "h0": 20
-}
-
-→ Track changes qua thời gian`,
-        flow: [
-            { step: 1, desc: "Extraction complete → CREATE snapshot" },
-            { step: 2, desc: "INSERT parameter_snapshots (immutable)" },
-            { step: 3, desc: "REVIEWER edit spec → NEW snapshot" },
-            { step: 4, desc: "Teacher edit spec → NEW snapshot" },
-            { step: 5, desc: "Never UPDATE old snapshots (append-only)" }
-        ],
-        businessRules: [
-            "Immutable (never update/delete)",
-            "Every change = new snapshot",
-            "Used for audit trail",
-            "Can rollback to previous snapshot"
-        ]
-    },
 
     {
         name: "support_items",
@@ -1670,49 +1418,6 @@ Ticket #2 (MESSAGE):
         ]
     },
 
-    {
-        name: "validation_runs",
-        dbName: "validation_runs",
-        category: "misc",
-        categoryName: "Khác",
-        purpose: "Validation runs để verify physics accuracy của simulations",
-        roles: ["manager", "reviewer", "staff"],
-        columns: [
-            { name: "id", type: "UUID PRIMARY KEY", description: "Run ID" },
-            { name: "simulation_id", type: "UUID FK", description: "Simulation cần validate" },
-            { name: "specification_id", type: "UUID FK", description: "Spec reference" },
-            { name: "status", type: "VARCHAR(20)", description: "PENDING, RUNNING, PASSED, FAILED" },
-            { name: "validation_results", type: "JSONB", description: "Chi tiết kết quả" }
-        ],
-        example: `VÍ DỤ VALIDATION RUN:
-
-Simulation: "Chuyển động ném ngang"
-Specification: v0=10, h0=20, angle=0
-
-VALIDATION CHECKS:
-✅ Energy conservation: PASSED (ΔE < 0.01%)
-✅ Momentum conservation: PASSED
-✅ Trajectory shape: PASSED (parabola)
-✅ Landing time: PASSED (t = 2.02s ± 0.01)
-❌ Range accuracy: FAILED (expected 20.2m, got 19.8m)
-
-→ Status: FAILED
-→ Teacher phải fix simulation`,
-        flow: [
-            { step: 1, desc: "Teacher create simulation" },
-            { step: 2, desc: "System auto-trigger validation" },
-            { step: 3, desc: "INSERT validation_runs (status=PENDING)" },
-            { step: 4, desc: "Run validation suite (physics checks)" },
-            { step: 5, desc: "UPDATE status = PASSED/FAILED" },
-            { step: 6, desc: "If PASSED → simulation.status = READY" }
-        ],
-        businessRules: [
-            "Auto-validation khi tạo simulation mới",
-            "PASSED: Physics đúng → Ready to use",
-            "FAILED: Có lỗi → Teacher phải fix",
-            "Re-validate sau mỗi lần edit simulation"
-        ]
-    },
 
     {
         name: "problem_submissions",
@@ -1808,6 +1513,94 @@ Audit 3 (2026-12-01):
             "Every status change = new audit row",
             "REVIEWER comment required for REJECTED",
             "Used for compliance and debugging"
+        ]
+    },
+
+    {
+        name: "assignment_students",
+        dbName: "assignment_students",
+        category: "teaching",
+        categoryName: "Giảng dạy & Học tập",
+        purpose: "Danh sách học sinh được giao một bài (bảng trung gian N-N giữa assignments và users)",
+        roles: ["staff", "student"],
+        columns: [
+            { name: "assignment_id", type: "UUID FK", description: "Bài được giao (assignments.id)" },
+            { name: "student_id", type: "INTEGER FK", description: "Học sinh nhận bài (users.id)" }
+        ],
+        example: `VÍ DỤ DỮ LIỆU:
+
+| assignment_id | student_id |
+|---------------|------------|
+| uuid-bai-1    | 201        |
+| uuid-bai-1    | 202        |`,
+        flow: [
+            { step: 1, desc: "Giáo viên giao bài cho một lớp" },
+            { step: 2, desc: "Backend ghi một dòng cho mỗi học sinh đang học trong lớp" },
+            { step: 3, desc: "Học sinh chỉ thấy bài có dòng tương ứng với mình" }
+        ],
+        businessRules: [
+            "UNIQUE (assignment_id, student_id)",
+            "Có index (student_id, assignment_id) cho danh sách bài của học sinh"
+        ]
+    },
+
+    {
+        name: "library_comments",
+        dbName: "library_comments",
+        category: "library",
+        categoryName: "Thư viện",
+        purpose: "Bình luận của người dùng trên một mô phỏng trong thư viện",
+        roles: ["manager", "reviewer", "school", "staff", "student"],
+        columns: [
+            { name: "id", type: "UUID PRIMARY KEY", description: "ID bình luận" },
+            { name: "item_id", type: "UUID FK", description: "Mục thư viện (library_items.id), xóa theo mục" },
+            { name: "author_id", type: "INTEGER FK", description: "Người viết (users.id)" },
+            { name: "body", type: "TEXT", description: "Nội dung, không được rỗng" },
+            { name: "created_at", type: "TIMESTAMPTZ", description: "Thời điểm tạo" },
+            { name: "updated_at", type: "TIMESTAMPTZ", description: "Thời điểm sửa" }
+        ],
+        example: `VÍ DỤ DỮ LIỆU:
+
+| id     | item_id   | author_id | body                         |
+|--------|-----------|-----------|------------------------------|
+| uuid-1 | uuid-item | 201       | Mô phỏng dễ hiểu, cảm ơn cô! |`,
+        flow: [
+            { step: 1, desc: "Người dùng đã đăng nhập mở một mô phỏng được phép xem" },
+            { step: 2, desc: "Gửi bình luận → INSERT library_comments" },
+            { step: 3, desc: "Tác giả hoặc người kiểm duyệt đúng phạm vi có thể xóa" }
+        ],
+        businessRules: [
+            "Khách chỉ đọc, không viết",
+            "PUBLIC: người có quyền CONTENT_REVIEW được xóa; SHARED: tổ trưởng bộ môn cùng trường",
+            "Index (item_id, created_at DESC, id DESC) cho phân trang"
+        ]
+    },
+
+    {
+        name: "library_likes",
+        dbName: "library_likes",
+        category: "library",
+        categoryName: "Thư viện",
+        purpose: "Lượt thích mô phỏng (bảng trung gian N-N giữa library_items và users)",
+        roles: ["manager", "reviewer", "school", "staff", "student"],
+        columns: [
+            { name: "item_id", type: "UUID FK", description: "Mục thư viện (library_items.id) — thuộc khóa chính" },
+            { name: "user_id", type: "INTEGER FK", description: "Người thích (users.id) — thuộc khóa chính" }
+        ],
+        example: `VÍ DỤ DỮ LIỆU:
+
+| item_id   | user_id |
+|-----------|---------|
+| uuid-item | 201     |
+| uuid-item | 102     |`,
+        flow: [
+            { step: 1, desc: "Người dùng bấm thích → INSERT (bỏ qua nếu đã có)" },
+            { step: 2, desc: "Bấm lần nữa → DELETE" },
+            { step: 3, desc: "Số lượt thích = COUNT theo item_id" }
+        ],
+        businessRules: [
+            "Khóa chính (item_id, user_id): mỗi người thích một mục tối đa 1 lần",
+            "Xóa mục hoặc xóa user thì lượt thích bị xóa theo"
         ]
     }
 ];

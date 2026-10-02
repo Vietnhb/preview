@@ -14,9 +14,9 @@ export function reviewerAccess(user: User | null | undefined): ReviewerAccess {
   };
 }
 
-export type ReviewerView = "overview" | "moderation" | "questions" | "topics" | "benchmarks";
+export type ReviewerView = "overview" | "moderation" | "topics" | "benchmarks";
 
-export type ReviewerNavItem = { id: ReviewerView; label: string; hint: string; icon: "home" | "library" | "queue" | "schema" | "benchmark" };
+export type ReviewerNavItem = { id: ReviewerView; label: string; hint: string; icon: "home" | "library" | "schema" | "benchmark" };
 export type ReviewerNavGroup = { id: string; label: string; items: ReviewerNavItem[] };
 
 export function reviewerNavigation(access: ReviewerAccess): ReviewerNavGroup[] {
@@ -25,7 +25,6 @@ export function reviewerNavigation(access: ReviewerAccess): ReviewerNavGroup[] {
     { id: "moderation", label: "Mô phỏng chờ duyệt", hint: "Giáo viên chia sẻ lên thư viện công khai", icon: "library" },
   ] });
   if (access.canEdit) groups.push({ id: "edit", label: "Biên soạn dữ liệu chuẩn", items: [
-    { id: "questions", label: "Câu hỏi từ AI", hint: "Đề bài AI chưa hiểu chắc chắn", icon: "queue" },
     { id: "topics", label: "Chủ đề vật lý", hint: "Cấu trúc chủ đề, bộ giải, gói phát hành", icon: "schema" },
     { id: "benchmarks", label: "Đề kiểm thử AI", hint: "Đáp án chuẩn để đo độ chính xác", icon: "benchmark" },
   ] });

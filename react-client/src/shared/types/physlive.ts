@@ -20,7 +20,6 @@ export type ResolvedEnd = {
   conditionReached: boolean;
 };
 
-export type Ambiguity = { id?: string; code: string; fieldPath?: string; field?: string; question: string; options?: string[]; status?: string; resolution?: string; resolvedAt?: string };
 
 export type VisualizationControl = { key: string; label: string; symbol: string; unit: string; min: number; max: number; step: number };
 
@@ -161,7 +160,7 @@ export type Specification = {
   id?: string; schemaVersion?: string; schemaId?: string; topic?: string; confidence: number;
   objects: unknown[]; quantities: Quantity[]; relations: unknown[]; endCondition?: EndCondition | null; ambiguity?: unknown;
   endConditionCapabilities?: string[];
-  ambiguityCases?: Ambiguity[]; ambiguities?: Ambiguity[]; confirmationState: string; validationStatus?: string; validationResult?: unknown;
+  confirmationState: string; validationStatus?: string; validationResult?: unknown;
 };
 
 export type Validation = { passed: boolean; tolerance: number; checkpoints: { time: number; maxRelativeError: number; passed: boolean }[] };

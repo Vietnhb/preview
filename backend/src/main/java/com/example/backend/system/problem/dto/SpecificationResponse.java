@@ -20,7 +20,6 @@ public record SpecificationResponse(
         List<String> endConditionCapabilities,
         JsonNode ambiguity,
         ConfirmationState confirmationState,
-        List<AmbiguityContracts.Item> ambiguityCases,
         String schemaId,
         String validationStatus,
         JsonNode validationResult,

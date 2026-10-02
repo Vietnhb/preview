@@ -2,14 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, Card, Heading, Text } from "@radix-ui/themes";
 import api from "../../../shared/api/client";
 import type { ReviewerAccess, ReviewerView } from "../model/reviewerAccess";
-import type { Benchmark, ModuleRelease, ReviewItem, Version } from "../model/reviewerTypes";
+import type { Benchmark, ModuleRelease, Version } from "../model/reviewerTypes";
 import { timeAgo } from "../model/reviewerUtils";
 import { ReviewerIcon, ReviewerRefresh, type ReviewerIconName } from "./ReviewerKit";
 
 type PendingItem = { createdAt?: string };
 type Counts = {
   moderation?: { pending: number; oldest?: string };
-  questions?: { open: number; unclaimed: number };
   drafts?: { schemas: number; solvers: number; modules: number };
   benchmarks?: { annotate: number; adjudicate: number; draft: number };
 };
@@ -25,9 +24,8 @@ function useOverview(access: ReviewerAccess) {
   const [failed, setFailed] = useState(false);
   const load = useCallback(async () => {
     setLoading(true); setFailed(false);
-    const [library, questions, schemas, solvers, modules, benchmarks] = await Promise.all([
+    const [library, schemas, solvers, modules, benchmarks] = await Promise.all([
       access.canReview ? settle(api.get<PendingItem[]>("/reviewer/library", { params: { status: "PENDING" } })) : undefined,
-      access.canEdit ? settle(api.get<ReviewItem[]>("/reviewer/ambiguities")) : undefined,
       access.canEdit ? settle(api.get<Version[]>("/reviewer/schemas")) : undefined,
       access.canEdit ? settle(api.get<Version[]>("/reviewer/solvers")) : undefined,
       access.canEdit ? settle(api.get<ModuleRelease[]>("/reviewer/module-releases")) : undefined,
@@ -39,7 +37,6 @@ function useOverview(access: ReviewerAccess) {
       next.moderation = { pending: library.length, oldest };
     }
     if (access.canEdit) {
-      if (questions) next.questions = { open: questions.length, unclaimed: questions.filter(item => !item.claimedBy).length };
       next.drafts = {
         schemas: schemas?.filter(item => item.lifecycleStatus === "DRAFT").length ?? 0,
         solvers: solvers?.filter(item => item.lifecycleStatus === "DRAFT").length ?? 0,
@@ -52,7 +49,7 @@ function useOverview(access: ReviewerAccess) {
       };
     }
     const expected = (access.canReview ? 1 : 0) + (access.canEdit ? 1 : 0);
-    setFailed(expected > 0 && !library && !questions && !benchmarks);
+    setFailed(expected > 0 && !library && !benchmarks);
     setCounts(next); setLoading(false);
   }, [access.canEdit, access.canReview]);
   useEffect(() => { void load(); }, [load]);
@@ -63,7 +60,6 @@ export function ReviewerOverview({ access, name, onOpen }: Readonly<{ access: Re
   const { counts, loading, failed, refresh } = useOverview(access);
   const tasks: Task[] = [];
   if (counts.moderation) tasks.push({ id: "moderation", view: "moderation", icon: "library", count: counts.moderation.pending, title: "Mô phỏng chờ duyệt", detail: counts.moderation.pending ? `Giáo viên gửi lên thư viện công khai${counts.moderation.oldest ? ` · cũ nhất ${timeAgo(counts.moderation.oldest)}` : ""}.` : "Không có mô phỏng nào đang chờ.", action: "Bắt đầu duyệt" });
-  if (counts.questions) tasks.push({ id: "questions", view: "questions", icon: "queue", count: counts.questions.open, title: "Câu hỏi AI cần chuyên gia trả lời", detail: counts.questions.open ? `${counts.questions.unclaimed} câu chưa ai nhận xử lý.` : "AI đã hiểu hết các đề bài gần đây.", action: "Trả lời" });
   if (counts.benchmarks) {
     const work = counts.benchmarks.annotate + counts.benchmarks.adjudicate;
     tasks.push({ id: "benchmarks", view: "benchmarks", icon: "benchmark", count: work, title: "Đề kiểm thử cần bạn", detail: work ? `${counts.benchmarks.annotate} đề cần gán đáp án · ${counts.benchmarks.adjudicate} đề cần phân xử.` : "Không có đề nào đang chờ bạn.", action: "Mở danh sách đề" });
@@ -85,7 +81,7 @@ export function ReviewerOverview({ access, name, onOpen }: Readonly<{ access: Re
     </header>
     {failed && <div className="ops-alert" role="alert">Không tải được số liệu. Kiểm tra kết nối máy chủ rồi bấm “Làm mới”.</div>}
     <div className="reviewer-task-grid">
-      {loading && tasks.length === 0 && Array.from({ length: (access.canReview ? 1 : 0) + (access.canEdit ? 3 : 0) }, (_, index) => <Card key={index} size="3" className="reviewer-task reviewer-task-skeleton" aria-hidden="true"><span className="reviewer-task-icon" /><span className="reviewer-skeleton-line" /><span className="reviewer-skeleton-line short" /></Card>)}
+      {loading && tasks.length === 0 && Array.from({ length: (access.canReview ? 1 : 0) + (access.canEdit ? 2 : 0) }, (_, index) => <Card key={index} size="3" className="reviewer-task reviewer-task-skeleton" aria-hidden="true"><span className="reviewer-task-icon" /><span className="reviewer-skeleton-line" /><span className="reviewer-skeleton-line short" /></Card>)}
       {tasks.map(task => <Card key={task.id} size="3" className={`reviewer-task${task.count ? " has-work" : ""}`}>
         <div className="reviewer-task-top"><span className="reviewer-task-icon"><ReviewerIcon name={task.icon} size={22} /></span><span className="reviewer-task-count">{loading ? "—" : task.count}</span></div>
         <Heading as="h2" size="4" mt="3">{task.title}</Heading>
@@ -97,7 +93,7 @@ export function ReviewerOverview({ access, name, onOpen }: Readonly<{ access: Re
       <Heading as="h2" size="3">Quyền của bạn</Heading>
       <ul>
         {access.canReview && <li><ReviewerIcon name="eye" size={16} /><span><strong>Kiểm duyệt nội dung</strong> — xem mô phỏng giáo viên chia sẻ, phê duyệt, đánh dấu nổi bật, từ chối hoặc gỡ khỏi thư viện công khai.</span></li>}
-        {access.canEdit && <li><ReviewerIcon name="edit" size={16} /><span><strong>Biên soạn dữ liệu chuẩn</strong> — trả lời câu hỏi của AI, quản lý chủ đề vật lý, bộ giải và đề kiểm thử độ chính xác.</span></li>}
+        {access.canEdit && <li><ReviewerIcon name="edit" size={16} /><span><strong>Biên soạn dữ liệu chuẩn</strong> — quản lý chủ đề vật lý, bộ giải và đề kiểm thử độ chính xác.</span></li>}
       </ul>
       {!access.isManager && (!access.canEdit || !access.canReview) && <Text as="p" size="2" color="gray">Cần thêm quyền? Liên hệ bộ phận vận hành (Manager) để được cấp.</Text>}
     </Card>

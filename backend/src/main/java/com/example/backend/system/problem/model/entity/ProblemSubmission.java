@@ -54,16 +54,7 @@ public class ProblemSubmission extends AuditedEntity {
     private Specification currentSpecification;
 
     @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("createdAt ASC")
-    private List<SourceAsset> sourceAssets = new ArrayList<>();
-
-    @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt DESC")
     private List<ExtractionRun> extractionRuns = new ArrayList<>();
-
-    public void addSourceAsset(SourceAsset asset) {
-        sourceAssets.add(asset);
-        asset.setSubmission(this);
-    }
 
 }

@@ -1,19 +1,3 @@
-export type ReviewItem = {
-  id: string;
-  specificationId: string;
-  question: string;
-  fieldPath: string;
-  code: string;
-  options: string[];
-  problemText: string;
-  topic: string;
-  quantities: unknown;
-  relations: unknown;
-  claimedBy?: number | null;
-  claimedAt?: string | null;
-  claimExpiresAt?: string | null;
-};
-
 export type Version = {
   id: string;
   schemaId: string;

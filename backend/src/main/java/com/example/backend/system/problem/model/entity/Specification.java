@@ -10,12 +10,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -82,19 +78,4 @@ public class Specification extends AuditedEntity {
     @Column(nullable = false, length = 24)
     private ConfirmationState confirmationState;
 
-    @OneToMany(mappedBy = "specification", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("createdAt ASC")
-    private List<AmbiguityCase> ambiguityCases = new ArrayList<>();
-
-    public void addAmbiguityCase(AmbiguityCase ambiguityCase) {
-        ambiguityCases.add(ambiguityCase);
-        ambiguityCase.setSpecification(this);
-    }
-    public java.util.Comparator<AmbiguityCase> questionOrder() {
-        java.util.Map<String, Integer> order = new java.util.HashMap<>();
-        JsonNode questions = getAmbiguity();
-        if (questions != null && questions.isArray())
-            for (int i = 0; i < questions.size(); i++) order.put(questions.get(i).path("code").asText(), i);
-        return java.util.Comparator.comparingInt(item -> order.getOrDefault(item.getCode(), Integer.MAX_VALUE));
-    }
 }

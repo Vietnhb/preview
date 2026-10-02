@@ -1,8 +1,1 @@
-package com.example.backend.system.problem.model.enums;
-
-public enum OcrStatus {
-    NOT_REQUESTED,
-    SUCCEEDED,
-    NOT_CONFIGURED,
-    FAILED
-}
+// Removed (retired source asset storage). This file is intentionally empty: delete it.

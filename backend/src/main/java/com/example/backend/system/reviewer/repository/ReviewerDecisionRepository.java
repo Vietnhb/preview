@@ -1,8 +1,1 @@
-package com.example.backend.system.reviewer.repository;
-
-import com.example.backend.system.reviewer.model.entity.ReviewerDecision;
-import java.util.UUID;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface ReviewerDecisionRepository extends JpaRepository<ReviewerDecision, UUID> {
-}
+// Removed (table reviewer_decisions is dropped by V45). This file is intentionally empty: delete it.

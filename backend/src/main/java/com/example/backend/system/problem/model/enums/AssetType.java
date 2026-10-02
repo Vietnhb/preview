@@ -1,5 +1,1 @@
-package com.example.backend.system.problem.model.enums;
-
-public enum AssetType {
-    IMAGE
-}
+// Removed (retired source asset storage). This file is intentionally empty: delete it.

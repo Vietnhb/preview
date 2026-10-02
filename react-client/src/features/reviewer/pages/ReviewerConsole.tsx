@@ -6,7 +6,6 @@ import { allowedViews, reviewerAccess, reviewerNavigation, type ReviewerView } f
 import { ReviewerIcon } from "../components/ReviewerKit";
 import { ReviewerOverview } from "../components/ReviewerOverview";
 import { ContentModeration } from "../components/ContentModeration";
-import { QueueTab } from "../components/QueueTab";
 import { TopicsWorkspace } from "../components/TopicsWorkspace";
 import { BenchmarksTab } from "../components/BenchmarksTab";
 import "../styles/reviewer.css";
@@ -15,8 +14,8 @@ export default function ReviewerConsole() {
   return <Access reviewer><ReviewerPage /></Access>;
 }
 
-/** Older links used ?tab=queue|schemas|solvers|modules|library; keep them working. */
-const LEGACY: Record<string, ReviewerView> = { library: "moderation", queue: "questions", schemas: "topics", solvers: "topics", modules: "topics" };
+/** Older links used ?tab=schemas|solvers|modules|library; keep them working. */
+const LEGACY: Record<string, ReviewerView> = { library: "moderation", schemas: "topics", solvers: "topics", modules: "topics" };
 
 function ReviewerPage() {
   const [params, setParams] = useSearchParams();
@@ -63,7 +62,6 @@ function ReviewerPage() {
     <section key={view} className="reviewer-workspace">
       {view === "overview" && <ReviewerOverview access={access} name={user?.fullName} onOpen={go} />}
       {view === "moderation" && <ContentModeration />}
-      {view === "questions" && <QueueTab />}
       {view === "topics" && <TopicsWorkspace section={params.get("section")} onSection={section => go("topics", { section })} />}
       {view === "benchmarks" && <BenchmarksTab />}
     </section>
