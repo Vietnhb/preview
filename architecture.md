@@ -4,7 +4,54 @@
 
 LLM hiểu mô tả tự do và tạo cách trình bày trực quan theo ngữ cảnh. Hệ thống xác minh vật lý dựa trên công thức chuẩn trong topic schema do reviewer quản lý, không dựa trên việc mã vẽ chạy thành công.
 
-Tài liệu này mô tả kiến trúc mong muốn, không khẳng định luồng hiện tại đã triển khai đầy đủ và không quy định cách triển khai.
+Các phần về tạo và xác minh mô phỏng mô tả kiến trúc mong muốn, không khẳng định luồng hiện tại đã triển khai đầy đủ. Phần tổ chức backend bên dưới mô tả ranh giới tầng và cách đặt mã nguồn.
+
+## Tổ chức backend theo MVC
+
+Mã Java dưới `backend/src/main/java/com/example/backend` được nhóm theo nghiệp vụ trong `system`, rồi tách các tầng MVC bên trong từng nhóm. Cách nhóm tham khảo `StarterProject202603/backend`; phần dùng chung nằm trong `base`, cấu hình và bảo mật nằm ngoài nghiệp vụ:
+
+```text
+com/example/backend/
+├── Application.java
+├── base/
+│   ├── crud/                 # PageResponse, AuditedEntity, LifecycleStatus
+│   └── web/                  # GlobalExceptionHandler, ErrorResponse
+├── system/
+│   ├── account/
+│   ├── assignment/
+│   ├── curriculum/
+│   ├── library/
+│   ├── operations/
+│   ├── physics/
+│   ├── problem/
+│   ├── realtime/
+│   ├── reviewer/
+│   ├── school/
+│   │   └── dataio/           # Nhập CSV và tải mẫu CSV
+│   ├── simulation/
+│   │   └── dataio/           # Xuất dữ liệu mô phỏng
+│   └── support/
+├── integration/
+│   └── ai/                   # AIClient: giao tiếp provider/OCR/Jev
+├── exception/
+├── config/
+├── security/
+└── bootstrap/
+```
+
+Trong mỗi nghiệp vụ, các thư mục `controller`, `service`, `repository`, `model/entity`, `model/enums`, `dto` và `mapper` chỉ được tạo khi có lớp sử dụng. Controller nhận HTTP, xác thực dữ liệu đầu vào và định dạng response. Service giữ nghiệp vụ, transaction, quyền tài nguyên và phạm vi trường. Repository chỉ truy cập dữ liệu; entity/enums mô tả model. DTO là hợp đồng JSON của REST view, tách khỏi entity và service. Mapper chuyển entity/projection thành DTO.
+
+Luồng chính trong mỗi nghiệp vụ là `controller → service → repository → model/entity`; kết quả trả qua DTO. Controller không gọi repository/EntityManager, không trả entity và không chứa xử lý nghiệp vụ. Service không phụ thuộc controller hoặc xử lý multipart/HTTP. Các loại lỗi nằm trong `exception`; `base/web/controller/GlobalExceptionHandler.java` chuyển lỗi thành response HTTP. Cấu hình Spring/ENV nằm trong `config`, bảo mật trong `security`, khởi tạo dữ liệu tham chiếu trong `bootstrap`.
+
+Tầng HTTP của `system/realtime` giữ adapter SSE `controller/RealtimeEvents.java` và `RealtimeMutationFilter`; service không chứa `SseEmitter`. Dữ liệu sự kiện nằm trong `system/realtime/dto/RealtimeEvent.java`. Các lớp `*Config` và `*Properties`, gồm cấu hình security, thuộc `config`; `security` giữ JWT, interceptor capability và chính sách mật khẩu.
+
+`base/crud` giữ ba thành phần đang được nhiều nghiệp vụ sử dụng: phân trang, audit entity và trạng thái vòng đời. Không sao chép bộ generic CRUD, filter, annotation hoặc chuỗi kế thừa của template khi chưa có nhu cầu sử dụng. Các thao tác CRUD vẫn nằm trong controller/service của nghiệp vụ để giữ rõ quyền và quy tắc dữ liệu.
+
+`dataio` mang nghĩa nhập/xuất dữ liệu theo template, như CSV, Excel hoặc PDF. PhysLive đặt nhập CSV trường học tại `system/school/dataio` và xuất mô phỏng tại `system/simulation/dataio`. Giao tiếp AI thuộc `integration/ai/AIClient.java`: gửi HTTP, đọc JSON, gọi OCR/Jev và provider hiển thị. `system/simulation/service/AIService.java` giữ điều phối nghiệp vụ, chữ ký kế hoạch, xác minh và solver; dữ liệu gửi AI không được gom chung với nhập/xuất file chỉ vì đều là đầu vào/đầu ra.
+
+Tên lớp thể hiện nghiệp vụ, ví dụ `AIController`, `AIService`, `LibraryItemRepository`. DTO nhỏ cùng nghiệp vụ được gộp trong các nhóm contracts; service chỉ có một triển khai không cần thêm interface/implementation. Mỗi lớp có một nơi theo nghiệp vụ và tầng, không tạo alias package hoặc lớp trung gian chỉ để chuyển tiếp.
+
+[Chi tiết bảo trì backend](docs/implementation/backend-maintenance.md) và [danh mục API](docs/implementation/api-catalog.md) ghi nhận cấu trúc, phần đã gộp/xóa và hợp đồng đang dùng.
 
 ## Luồng tổng thể
 

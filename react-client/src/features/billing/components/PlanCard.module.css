@@ -1,0 +1,182 @@
+.card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 340px;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid var(--admin-border, var(--line));
+  border-radius: 12px;
+  background: var(--admin-surface, var(--surface));
+  color: var(--admin-heading, var(--ink));
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.card:hover {
+  border-color: var(--admin-border-strong, var(--line-strong));
+  box-shadow: var(--shadow-sm);
+}
+
+.card[data-selected="true"] {
+  border-color: var(--admin-accent, var(--accent));
+  background: var(--admin-accent-soft, var(--accent-soft));
+  box-shadow: 0 0 0 1px var(--admin-accent, var(--accent));
+}
+
+.card[data-disabled="true"] {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.card:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.heading {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.kicker {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--admin-muted, var(--muted));
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card .heading h3 {
+  margin: 0;
+  color: var(--admin-heading, var(--ink));
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.card input[type="radio"] {
+  width: 17px;
+  height: 17px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--admin-accent, var(--accent));
+}
+
+.selectionMarker {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 17px;
+  height: 17px;
+  border: 4px solid var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.description {
+  min-height: 42px;
+  margin: 11px 0 22px;
+  color: var(--admin-muted, var(--muted));
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--admin-border, var(--line));
+}
+
+.price strong {
+  color: var(--admin-heading, var(--ink));
+  font-size: clamp(22px, 2.1vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+
+.price span {
+  color: var(--admin-muted, var(--muted));
+  font-size: 12px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 18px 0 0;
+}
+
+.facts dt {
+  margin-bottom: 6px;
+  color: var(--admin-muted, var(--muted));
+  font-size: 12px;
+}
+
+.facts dd {
+  margin: 0;
+  color: var(--admin-heading, var(--ink));
+  font-size: 14px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.benefits {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 9px;
+  margin: 22px 0;
+  padding: 0;
+  list-style: none;
+  color: var(--admin-muted, var(--muted));
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.benefits li {
+  display: flex;
+  gap: 7px;
+}
+
+.benefits li span {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.select {
+  display: block;
+  padding: 9px 11px;
+  border: 1px solid var(--admin-border, var(--line));
+  border-radius: 6px;
+  color: var(--admin-heading, var(--ink));
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.card[data-selected="true"] .select {
+  border-color: var(--admin-accent, var(--accent));
+  background: var(--admin-accent, var(--accent));
+  color: var(--surface);
+}
+
+@media (max-width: 540px) {
+  .card {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}

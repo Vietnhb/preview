@@ -1,14 +1,7 @@
-/* Global compatibility styles: load once, in a fixed order.
- * New page styles use CSS Modules.
- */
-@import './app.css';
-@import './app-refresh.css';
+/* Global styles: load once, in this order. Page styles use CSS Modules
+ * or a feature stylesheet; every colour comes from tokens.css. */
+@import '@radix-ui/themes/styles.css';
+@import './tokens.css';
+@import './base.css';
 @import './modern-roles.css';
 @import './admin-console.css';
-@import '@radix-ui/themes/styles.css';
-
-:where(.radix-themes) {
-  --default-font-family: "Segoe UI", Inter, Arial, sans-serif;
-  --heading-font-family: var(--default-font-family);
-  --cursor-button: pointer;
-}

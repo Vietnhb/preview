@@ -1,0 +1,93 @@
+/* PhysLive design tokens — the single source for colour, type, radius and depth.
+ * Every stylesheet reads these variables; do not add new hard-coded colours.
+ * Palette follows the teacher workspace: cool neutrals, one blue accent and
+ * three status families. Dark values live in the workspace/lab stylesheets. */
+:root {
+  --font-sans: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  --ink: #172033;
+  --ink-2: #344054;
+  --muted: #667085;
+  --subtle: #98a2b3;
+  --line: #e4e8ee;
+  --line-strong: #d0d7e2;
+
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #eef2f6;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-strong: #1e40af;
+  --accent-soft: #eef4ff;
+  --accent-line: #c7d7fe;
+
+  --success: #067a57;
+  --success-soft: #e8f6f0;
+  --success-line: #b4e2cf;
+  --warning: #b25e09;
+  --warning-soft: #fff5e6;
+  --warning-line: #f7d9a8;
+  --danger: #c4320a;
+  --danger-soft: #fef0ec;
+  --danger-line: #f8c4b4;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 5%);
+  --shadow-sm: 0 1px 3px rgb(16 24 40 / 7%), 0 1px 2px rgb(16 24 40 / 4%);
+  --shadow-md: 0 12px 28px -10px rgb(16 24 40 / 18%), 0 2px 6px rgb(16 24 40 / 5%);
+  --shadow-lg: 0 24px 48px -16px rgb(16 24 40 / 24%);
+  --focus-ring: 0 0 0 3px rgb(37 99 235 / 22%);
+
+  /* Night surfaces for marketing heroes and auth panels. */
+  --night: #0a1020;
+  --night-2: #101a30;
+  --night-line: rgb(255 255 255 / 9%);
+  --night-ink: #f1f5fb;
+  --night-muted: #9aa8bf;
+  --glow-1: #60a5fa;
+  --glow-2: #22d3ee;
+
+  --header-h: 64px;
+  --page-max: 1320px;
+}
+
+/* Radix Themes reads its own scale; point it at the same accent and type. */
+.radix-themes {
+  --default-font-family: var(--font-sans);
+  --heading-font-family: var(--font-sans);
+  --code-font-family: var(--font-mono);
+  --cursor-button: pointer;
+  --color-background: var(--bg);
+  --color-panel-solid: var(--surface);
+}
+.radix-themes[data-accent-color="indigo"],
+.radix-themes [data-accent-color="indigo"] {
+  --accent-1: #fcfdff;
+  --accent-2: #f5f8ff;
+  --accent-3: #eef4ff;
+  --accent-4: #e0eaff;
+  --accent-5: #d1defe;
+  --accent-6: #c7d7fe;
+  --accent-7: #a9c1fb;
+  --accent-8: #84a5f6;
+  --accent-9: #2563eb;
+  --accent-10: #1d4ed8;
+  --accent-11: #1d4ed8;
+  --accent-12: #172f6e;
+  --accent-a3: rgb(37 99 235 / 8%);
+  --accent-a4: rgb(37 99 235 / 13%);
+  --accent-a5: rgb(37 99 235 / 19%);
+  --accent-a11: #1d4ed8;
+  --accent-surface: #f5f8ff;
+  --accent-indicator: #2563eb;
+  --accent-track: #2563eb;
+  --accent-contrast: #fff;
+}

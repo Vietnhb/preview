@@ -2,13 +2,14 @@ import type { PropsWithChildren } from "react";
 import { Theme } from "@radix-ui/themes";
 import { MotionConfig } from "motion/react";
 import { useLocation } from "react-router-dom";
-import NavBar from "../components/common/NavBar";
+import NavBar from "../shared/layout/NavBar";
 import LicenseNotice from "./LicenseNotice";
-import { usePhysliveStore } from "../store/usePhysliveStore";
-import academic from "./AcademicChrome.module.css";
+import { useSessionStore } from "../shared/auth/sessionStore";
+import academic from "../shared/layout/AcademicChrome.module.css";
+
 export default function AppShell({ children }: PropsWithChildren) {
   const { pathname } = useLocation();
-  const user = usePhysliveStore(state => state.user);
+  const user = useSessionStore(state => state.user);
   const role = user?.role;
   const passwordRequired = user?.mustChangePassword === true;
   const hasRoleTheme = Boolean(role && role !== "STAFF");

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateVectorScene } from '../src/simulation-scene/VectorScene.ts';
-import { drawVectorScene } from '../src/simulation-renderer/VectorSceneRenderer.ts';
-import { BindingResolver } from '../src/simulation-scene/BindingResolver.ts';
-import { prepareSimulationData } from '../src/simulation-runtime/SimulationData.ts';
+import { validateVectorScene } from '../src/features/simulation/engine/scene/VectorScene.ts';
+import { drawVectorScene } from '../src/features/simulation/engine/renderer/VectorSceneRenderer.ts';
+import { BindingResolver } from '../src/features/simulation/engine/scene/BindingResolver.ts';
+import { prepareSimulationData } from '../src/features/simulation/engine/runtime/SimulationData.ts';
 
 const check = value => typeof value === 'number' && Number.isFinite(value) || value === 'positions.x' ? undefined : 'invalid binding';
 

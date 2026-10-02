@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setImmediate } from "node:timers/promises";
-import { createSimulationAdjustment } from "../src/utils/simulationAdjustment.ts";
+import { createSimulationAdjustment } from "../src/features/simulation/model/simulationAdjustment.ts";
 
 function setup(t) {
   t.mock.timers.enable({ apis: ["setTimeout"] });

@@ -1,4 +1,4 @@
--- Canonical six-role catalog. Run Flyway V38 before this bootstrap on an existing database.
+-- Canonical six-role catalog and permission catalog. Run Flyway V41 before this bootstrap on an existing database.
 -- Initial published prices from B2B_SYSTEM_DESIGN. Preserve later administrator edits.
 CREATE TABLE IF NOT EXISTS license_plans (
     code VARCHAR(40) PRIMARY KEY,
@@ -113,6 +113,17 @@ CREATE TABLE IF NOT EXISTS library_moderation_audits (
 INSERT INTO roles (id, name)
 VALUES (1, 'ADMIN'), (2, 'MANAGER'), (3, 'REVIEWER'), (4, 'SCHOOL'), (5, 'STAFF'), (6, 'STUDENT')
 ON CONFLICT (name) DO NOTHING;;
+
+-- Permission catalog for the user_permissions junction (created by Flyway V41).
+INSERT INTO permissions (code, role_id, label)
+SELECT v.code, r.id, v.label
+FROM (VALUES (1, 'TEACH', 'STAFF', 'Giáo viên'),
+             (2, 'DEPARTMENT_HEAD_PHYSICS', 'STAFF', 'Tổ trưởng bộ môn Vật Lý'),
+             (3, 'CONTENT_EDIT', 'REVIEWER', 'Biên soạn'),
+             (4, 'CONTENT_REVIEW', 'REVIEWER', 'Kiểm duyệt')) AS v(position, code, role_name, label)
+JOIN roles r ON r.name = v.role_name
+ORDER BY v.position
+ON CONFLICT (code) DO NOTHING;;
 
 -- Migrate only explicit legacy school associations; never guess a user's school.
 DO $$

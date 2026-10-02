@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { communityLibrary } from "../../../api/libraryApi";
-import { curriculum as getCurriculum } from "../../../api/curriculumApi";
-import { getSharedSimulation } from "../../../api/simulationApi";
-import type { Curriculum, LibraryItem, Simulation } from "../../../types/physlive";
-import { indexAtTime } from "../../../utils/learningModel";
+import { communityLibrary } from "../api/libraryApi";
+import { curriculum as getCurriculum } from "../../curriculum/api/curriculumApi";
+import { getSharedSimulation } from "../../simulation/api/simulationApi";
+import type { Curriculum, LibraryItem, Simulation } from "../../../shared/types/physlive";
+import { indexAtTime } from "../../simulation/model/learningModel";
 
 export function useCommunityLibrary() {
   const [items, setItems] = useState<LibraryItem[]>([]);

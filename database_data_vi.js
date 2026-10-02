@@ -1,4 +1,4 @@
-// Data cho 38 bảng database PhysLive - Tiếng Việt với Ví dụ và Luồng
+// Data cho 40 bảng database PhysLive - Tiếng Việt với Ví dụ và Luồng
 
 const roleLabels = {
     'admin': 'ADMIN — Xem user và tạo manager',
@@ -24,7 +24,7 @@ const tables = [
             { name: "email", type: "VARCHAR(255) UNIQUE", description: "Email đăng nhập" },
             { name: "password", type: "VARCHAR(255)", description: "Mật khẩu (Bcrypt hash)" },
             { name: "full_name", type: "VARCHAR(255)", description: "Họ và tên" },
-            { name: "role_id", type: "INTEGER FK", description: "Vai trò (1-6)" },
+            { name: "role_id", type: "INTEGER FK", description: "Loại tài khoản (1-6). Quyền riêng của STAFF/REVIEWER nằm ở bảng user_permissions" },
             { name: "school_id", type: "UUID FK", description: "NULL cho vai trò platform, NOT NULL cho vai trò trường" },
             { name: "active", type: "BOOLEAN", description: "Cờ xóa mềm (soft delete)" }
         ],
@@ -49,7 +49,9 @@ const tables = [
             "Vai trò Platform (ADMIN, MANAGER, REVIEWER): school_id PHẢI NULL",
             "Vai trò Trường (SCHOOL, STAFF, STUDENT): school_id KHÔNG NULL",
             "Chỉ soft delete (active = false), KHÔNG xóa cứng",
-            "Mỗi trường CHỈ có 1 SCHOOL active"
+            "Mỗi trường CHỈ có 1 SCHOOL active",
+            "users N-1 roles (loại tài khoản); users N-N permissions qua user_permissions",
+            "STAFF và REVIEWER phải có ít nhất 1 quyền trong user_permissions"
         ]
     },
     
@@ -476,9 +478,9 @@ VALUES ('uuid-10a2', 201, '2026-2027', 'ACTIVE');`,
 |----|--------------------|---------------------------------------|
 | 1  | ADMIN              | Xem user, tạo MANAGER                   |
 | 2  | MANAGER              | Platform admin - Quản trị toàn hệ thống |
-| 3  | REVIEWER   | Chuyên gia kiểm duyệt nội dung physics |
+| 3  | REVIEWER   | Chuyên gia biên soạn / kiểm duyệt (theo quyền) |
 | 4  | SCHOOL     | Quản lý trường - 1 người/trường        |
-| 5  | STAFF            | Giáo viên - Nhiều người/trường         |
+| 5  | STAFF            | Giáo viên / tổ trưởng bộ môn (theo quyền) |
 | 6  | STUDENT            | Học sinh                               |`,
         flow: [
             { step: 1, desc: "Hệ thống khởi tạo: INSERT 6 roles cố định" },
@@ -490,7 +492,79 @@ VALUES ('uuid-10a2', 201, '2026-2027', 'ACTIVE');`,
             "6 roles HARD-CODED, không thêm/xóa/sửa",
             "Platform roles (1-3): school_id = NULL",
             "School roles (4-6): school_id NOT NULL",
-            "1 trường CHỈ có 1 SCHOOL active"
+            "1 trường CHỈ có 1 SCHOOL active",
+            "Role là loại tài khoản; quyền chi tiết của STAFF/REVIEWER gắn qua user_permissions"
+        ]
+    },
+
+    {
+        name: "permissions",
+        dbName: "permissions",
+        category: "auth",
+        categoryName: "Xác thực & Phân quyền",
+        purpose: "Danh mục quyền có thể gắn cho từng tài khoản; mỗi quyền thuộc về đúng một vai trò",
+        roles: ["manager", "school", "reviewer", "staff"],
+        columns: [
+            { name: "id", type: "SERIAL PRIMARY KEY", description: "1-4" },
+            { name: "code", type: "VARCHAR(40) UNIQUE", description: "Mã quyền: TEACH, DEPARTMENT_HEAD_PHYSICS, CONTENT_EDIT, CONTENT_REVIEW" },
+            { name: "role_id", type: "INTEGER FK", description: "Vai trò được phép giữ quyền này (roles.id)" },
+            { name: "label", type: "VARCHAR(120)", description: "Tên hiển thị tiếng Việt" }
+        ],
+        example: `VÍ DỤ DỮ LIỆU:
+
+| id | code            | role_id      | label                    |
+|----|-----------------|--------------|--------------------------|
+| 1  | TEACH           | 5 (STAFF)    | Giáo viên                |
+| 2  | DEPARTMENT_HEAD_PHYSICS | 5 (STAFF)    | Tổ trưởng bộ môn Vật Lý  |
+| 3  | CONTENT_EDIT    | 3 (REVIEWER) | Biên soạn                |
+| 4  | CONTENT_REVIEW  | 3 (REVIEWER) | Kiểm duyệt               |`,
+        flow: [
+            { step: 1, desc: "Migration V41 khởi tạo 4 quyền cố định" },
+            { step: 2, desc: "Form tài khoản hiển thị các quyền thuộc vai trò đang chọn" },
+            { step: 3, desc: "Quyền được gắn cho tài khoản qua bảng user_permissions" }
+        ],
+        businessRules: [
+            "Mỗi quyền thuộc đúng 1 vai trò (role_id)",
+            "STAFF: TEACH, DEPARTMENT_HEAD_PHYSICS",
+            "REVIEWER: CONTENT_EDIT, CONTENT_REVIEW",
+            "ADMIN, MANAGER, SCHOOL, STUDENT không có quyền riêng"
+        ]
+    },
+
+    {
+        name: "user_permissions",
+        dbName: "user_permissions",
+        category: "auth",
+        categoryName: "Xác thực & Phân quyền",
+        purpose: "Bảng trung gian N-N giữa users và permissions: một tài khoản có thể giữ nhiều quyền của vai trò mình",
+        roles: ["manager", "school", "reviewer", "staff"],
+        columns: [
+            { name: "user_id", type: "INTEGER FK", description: "Tài khoản được gắn quyền (users.id) — thuộc khóa chính" },
+            { name: "permission_id", type: "INTEGER FK", description: "Quyền được gắn (permissions.id) — thuộc khóa chính" },
+            { name: "granted_by", type: "INTEGER FK", description: "Tài khoản gắn quyền: SCHOOL (cho STAFF) hoặc MANAGER (cho REVIEWER); NULL với dữ liệu chuyển từ V41" },
+            { name: "granted_at", type: "TIMESTAMPTZ", description: "Thời điểm gắn quyền" }
+        ],
+        example: `VÍ DỤ DỮ LIỆU:
+
+| user_id | permission_id       | granted_by   | Ý nghĩa                                   |
+|---------|---------------------|--------------|-------------------------------------------|
+| 102     | 1 (TEACH)           | 101 (SCHOOL) | Thầy Minh là giáo viên                    |
+| 102     | 2 (DEPARTMENT_HEAD_PHYSICS) | 101 (SCHOOL) | ...đồng thời là tổ trưởng bộ môn Vật Lý   |
+| 103     | 1 (TEACH)           | 101 (SCHOOL) | Cô Lan chỉ là giáo viên                   |
+| 2       | 3 (CONTENT_EDIT)    | 1 (MANAGER)  | Thầy Hùng được biên soạn                  |
+| 2       | 4 (CONTENT_REVIEW)  | 1 (MANAGER)  | ...và được kiểm duyệt                     |`,
+        flow: [
+            { step: 1, desc: "SCHOOL tạo/sửa tài khoản STAFF trong trường mình và chọn quyền: giáo viên, tổ trưởng bộ môn hoặc cả hai" },
+            { step: 2, desc: "MANAGER tạo/sửa tài khoản REVIEWER và chọn quyền: biên soạn, kiểm duyệt hoặc cả hai" },
+            { step: 3, desc: "Backend ghi user_permissions kèm granted_by = người gắn" },
+            { step: 4, desc: "Mỗi request: backend đọc quyền hiện tại từ database để cho phép hoặc từ chối" }
+        ],
+        businessRules: [
+            "Khóa chính (user_id, permission_id): mỗi quyền chỉ gắn 1 lần cho 1 tài khoản",
+            "Chỉ gắn được quyền thuộc vai trò của tài khoản (trigger kiểm tra)",
+            "STAFF và REVIEWER phải có ít nhất 1 quyền (kiểm tra khi commit)",
+            "Đổi vai trò thì các quyền của vai trò cũ bị gỡ",
+            "Xóa user thì quyền bị xóa theo (ON DELETE CASCADE)"
         ]
     },
 

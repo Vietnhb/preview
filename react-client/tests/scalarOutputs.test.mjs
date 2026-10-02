@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { prepareSimulationData, seriesFor } from "../src/simulation-runtime/SimulationData.ts";
-import { BindingResolver } from "../src/simulation-scene/BindingResolver.ts";
+import { prepareSimulationData, seriesFor } from "../src/features/simulation/engine/runtime/SimulationData.ts";
+import { BindingResolver } from "../src/features/simulation/engine/scene/BindingResolver.ts";
 
 function simulation(overrides = {}) {
   return {

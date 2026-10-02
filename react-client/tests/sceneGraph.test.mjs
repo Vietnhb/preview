@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { compileSceneGraph } from "../src/simulation-scene/SceneGraph.ts";
+import { compileSceneGraph } from "../src/features/simulation/engine/scene/SceneGraph.ts";
 
 const simulation = (actor, effects = ["motion.trail"]) => ({
   simulationId: "scene-test",

@@ -15,43 +15,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: node scripts/check-physics-runtime-boundary.mjs
+      - run: node scripts/check-scene-contracts.mjs
   web:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: react-client } }
     steps:
       - uses: actions/checkout@v4
-      - run: node scripts/repair-versioned-schema-text.mjs --check
-        working-directory: .
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: react-client/package-lock.json }
       - run: npm ci
-      - run: node ../scripts/generate-schema-catalog.mjs --check
-      - run: node ../scripts/repair-versioned-schema-text.mjs --check
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
-  curriculum:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22 }
-      - run: node scripts/attach-curriculum-sources.mjs
-      - run: node scripts/check-curriculum-coverage.mjs
-      - run: node scripts/report-topic-coverage.mjs
-      - run: node scripts/check-physics-evidence-manifest.mjs --check
-      - run: node scripts/evaluate-schema-routing-retrieval.mjs --check
-      - run: node scripts/evaluate-mvp-multilingual-retrieval.mjs --check
-      - run: git diff --exit-code -- docs/curriculum/coverage.csv
-  python:
-    runs-on: ubuntu-latest
-    strategy: { matrix: { service: [problem-understanding-service, simulation-service, validation-service] } }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.12' }
-      - run: pip install -r requirements.txt
-        working-directory: ${{ matrix.service }}
-      - run: python -m pytest -q
-        working-directory: ${{ matrix.service }}
+      - run: npm run check

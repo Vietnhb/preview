@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { credentialsCsv } from '../src/features/school-import/credentialsCsv.ts';
+import { credentialsCsv } from '../src/features/school/dataio/model/credentialsCsv.ts';
 
 // Decode CSV through a separate reader to check delivered credential values.
 function readRows(csv) {

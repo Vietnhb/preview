@@ -27,13 +27,13 @@ globalThis.__canvasTest = {
   },
 };
 const result = await build({
-  entryPoints: ['src/components/simulation-canvas/CanvasPhysicsScene.tsx'],
+  entryPoints: ['src/features/simulation/components/CanvasPhysicsScene.tsx'],
   bundle: true, write: false, format: 'esm', platform: 'node', jsx: 'automatic',
   plugins: [{ name: 'lifecycle-test', setup(builder) {
     builder.onResolve({ filter: /^react(?:\/jsx-runtime)?$/ }, args => ({ path: args.path, namespace: 'test' }));
     builder.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents:
       'export const {useRef,useMemo,useCallback,useState,useEffect,jsx}=globalThis.__canvasTest; export const jsxs=jsx;' }));
-    builder.onLoad({ filter: /simulation-renderer[\\/]CanvasRenderer\.ts$/ }, () => ({ contents:
+    builder.onLoad({ filter: /engine[\\/]renderer[\\/]CanvasRenderer\.ts$/ }, () => ({ contents:
       'export const createCanvasRendererCache=()=>({}); export class CanvasRenderer {render(frame){globalThis.__canvasTest.draws.push(frame);}}' }));
   } }],
 });

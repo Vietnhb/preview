@@ -1,13 +1,14 @@
 package com.example.backend.security;
 
-import com.example.backend.entity.account.Role;
-import com.example.backend.entity.account.User;
-import com.example.backend.entity.enums.RoleName;
-import com.example.backend.repository.account.UserRepository;
-import com.example.backend.service.school.LicenseCheckService;
+import com.example.backend.system.account.model.entity.Role;
+import com.example.backend.system.account.model.entity.User;
+import com.example.backend.system.account.model.enums.RoleName;
+import com.example.backend.system.account.repository.UserRepository;
+import com.example.backend.system.school.service.LicenseCheckService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -15,7 +16,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
-import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 

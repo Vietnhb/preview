@@ -1,64 +1,68 @@
 import { lazy, Suspense, type ReactElement } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { usePhysliveStore } from "../store/usePhysliveStore";
-import { isStudentRole, ROLE_NAMES, LEARNING_MANAGER_ROLES, CONTENT_REVIEW_ROLES, APPLICATION_ROLES, roleHome } from "../types/roles";
+import { useSessionStore } from "../shared/auth/sessionStore";
+import { isStudentRole, ROLE_NAMES, LEARNING_MANAGER_ROLES, CONTENT_REVIEW_ROLES, APPLICATION_ROLES } from "../shared/auth/roles";
+import { canTeach, isDepartmentHead, userHome } from "../shared/auth/permissions";
 import RequireAccess from "./RequireAccess";
-const SchoolManager = lazy(() => import("../components/roles/admin/AdminRoleViews").then(module => ({ default: module.SchoolManagerView })));
-const AdminDirectory = lazy(() => import("../pages/admin/AdminDirectory"));
-const Admin = lazy(() => import("../pages/admin/AdminConsole"));
-const AdminSupport = lazy(() => import("../pages/admin/AdminSupport"));
-const AdminLayout = lazy(() => import("../pages/admin/AdminLayout"));
-const AdminUsers = lazy(() => import("../components/roles/admin/AdminRoleViews").then(module => ({ default: module.UsersView })));
-const AdminSchools = lazy(() => import("../components/roles/admin/AdminRoleViews").then(module => ({ default: module.SchoolsView })));
-const AdminPlans = lazy(() => import("../components/roles/admin/AdminRoleViews").then(module => ({ default: module.PlansView })));
-const AdminCurriculum = lazy(() => import("../components/roles/admin/AdminRoleViews").then(module => ({ default: module.CurriculumView })));
-const AdminValidation = lazy(() => import("../components/roles/admin/AdminRoleViews").then(module => ({ default: module.ValidationView })));
-const AdminPayments = lazy(() => import("../pages/admin/AdminPayments"));
-const Home = lazy(() => import("../pages/Home"));
-const Library = lazy(() => import("../pages/library/Library"));
-const CommunityLibrary = lazy(() => import("../pages/community/CommunityLibrary"));
-const Login = lazy(() => import("../pages/auth/Login"));
-const ForcedPasswordChange = lazy(() => import("../pages/auth/ForcedPasswordChange"));
-const DepartmentWorkspace = lazy(() => import("../pages/department/DepartmentWorkspace"));
-const Reviewer = lazy(() => import("../pages/reviewer/ReviewerConsole"));
-const Signup = lazy(() => import("../pages/auth/Signup"));
-const SchoolPaymentResult = lazy(() => import("../pages/auth/SchoolPaymentResult"));
-const SchoolBilling = lazy(() => import("../pages/school/SchoolBilling"));
-const SchoolClasses = lazy(() => import("../pages/school/SchoolClasses"));
-const SchoolReports = lazy(() => import("../pages/school/SchoolReports"));
-const SchoolLayout = lazy(() => import("../pages/school/SchoolLayout"));
-const SchoolDashboard = lazy(() => import("../pages/school/SchoolDashboard"));
-const Curriculum = lazy(() => import("../pages/curriculum/Curriculum"));
-const Workspace = lazy(() => import("../pages/teacher/SimulationWorkspace"));
-const AssignmentWorkspace = lazy(() => import("../pages/teacher/AssignmentWorkspace"));
-const Lab = lazy(() => import("../pages/Lab"));
-const StudentAssignments = lazy(() => import("../pages/student/StudentAssignments"));
-const ProfilePage = lazy(() => import("../pages/profile/ProfilePage"));
-const SiteInfo = lazy(() => import("../pages/SiteInfo"));
+
+const AdminDirectory = lazy(() => import("../features/account/pages/AdminDirectory"));
+const Admin = lazy(() => import("../features/management/pages/OverviewView").then(module => ({ default: module.OverviewView })));
+const AdminSupport = lazy(() => import("../features/support/pages/AdminSupport"));
+const AdminLayout = lazy(() => import("../features/management/layout/AdminLayout"));
+const UserAccounts = lazy(() => import("../features/account/components/UsersView").then(module => ({ default: module.UsersView })));
+const AdminSchools = lazy(() => import("../features/school/pages/SchoolsView").then(module => ({ default: module.SchoolsView })));
+const AdminPlans = lazy(() => import("../features/billing/pages/PlansView").then(module => ({ default: module.PlansView })));
+const AdminCurriculum = lazy(() => import("../features/curriculum/pages/CurriculumView").then(module => ({ default: module.CurriculumView })));
+const AdminValidation = lazy(() => import("../features/management/pages/ValidationView").then(module => ({ default: module.ValidationView })));
+const AdminPayments = lazy(() => import("../features/billing/pages/AdminPayments"));
+const Home = lazy(() => import("../features/public/pages/Home"));
+const Library = lazy(() => import("../features/library/pages/Library"));
+const CommunityLibrary = lazy(() => import("../features/library/pages/CommunityLibrary"));
+const Login = lazy(() => import("../features/auth/pages/Login"));
+const ForcedPasswordChange = lazy(() => import("../features/auth/pages/ForcedPasswordChange"));
+const DepartmentWorkspace = lazy(() => import("../features/school/pages/DepartmentWorkspace"));
+const Reviewer = lazy(() => import("../features/reviewer/pages/ReviewerConsole"));
+const Signup = lazy(() => import("../features/auth/pages/Signup"));
+const SchoolPaymentResult = lazy(() => import("../features/billing/pages/SchoolPaymentResult"));
+const SchoolBilling = lazy(() => import("../features/billing/pages/SchoolBilling"));
+const SchoolClasses = lazy(() => import("../features/school/components/SchoolClasses"));
+const SchoolReports = lazy(() => import("../features/school/pages/SchoolReports"));
+const SchoolLayout = lazy(() => import("../features/school/layout/SchoolLayout"));
+const SchoolDashboard = lazy(() => import("../features/school/pages/SchoolDashboard"));
+const Curriculum = lazy(() => import("../features/curriculum/pages/Curriculum"));
+const Workspace = lazy(() => import("../features/simulation/pages/SimulationWorkspace"));
+const AssignmentWorkspace = lazy(() => import("../features/assignments/pages/AssignmentWorkspace"));
+const Lab = lazy(() => import("../features/simulation/pages/Lab"));
+const StudentAssignments = lazy(() => import("../features/assignments/pages/StudentAssignments"));
+const ProfilePage = lazy(() => import("../features/account/pages/ProfilePage"));
+const SiteInfo = lazy(() => import("../features/public/pages/SiteInfo"));
 
 
 export default function AppRoutes({ authReady }: { authReady: boolean }) {
   const { pathname, search } = useLocation();
-  const user = usePhysliveStore(state => state.user);
+  const user = useSessionStore(state => state.user);
   const managerBillingOnly = authReady
     && user?.role === ROLE_NAMES.SCHOOL
     && user.billingRequired === true
     && pathname !== "/school/billing"
     && pathname !== "/signup/payment-result";
+  // A STAFF account that is only a department head has no teaching workspace.
+  const teachingElement = (element: ReactElement) =>
+    user?.role === ROLE_NAMES.STAFF && !canTeach(user) ? <Navigate to={userHome(user)} replace /> : element;
   const workspaceElement = (element: ReactElement) =>
-    <RequireAccess ready={authReady} roles={LEARNING_MANAGER_ROLES}>{element}</RequireAccess>;
+    <RequireAccess ready={authReady} roles={LEARNING_MANAGER_ROLES}>{teachingElement(element)}</RequireAccess>;
   const roleElement = (roles: readonly string[], element: ReactElement) => {
     return <RequireAccess ready={authReady} roles={roles}>{element}</RequireAccess>;
   };
   const assignmentsElement =
     roleElement([ROLE_NAMES.STAFF, ROLE_NAMES.STUDENT, ROLE_NAMES.MANAGER],
-      isStudentRole(user?.role) ? <StudentAssignments /> : <AssignmentWorkspace />);
+      isStudentRole(user?.role) ? <StudentAssignments /> : teachingElement(<Navigate to={`/assignments/workspace${search}`} replace />));
 
   if (authReady && user?.mustChangePassword && pathname !== "/change-password") {
     return <Navigate to="/change-password" replace />;
   }
   if (authReady && !user?.mustChangePassword && pathname === "/change-password" && user) {
-    return <Navigate to={roleHome(user.role, user.billingRequired)} replace />;
+    return <Navigate to={userHome(user)} replace />;
   }
   if (authReady && user?.role === ROLE_NAMES.MANAGER && (pathname === "/admin" || pathname.startsWith("/admin/"))) {
     return <Navigate to={`${pathname.replace(/^\/admin/, '/manager')}${search}`} replace />;
@@ -74,7 +78,7 @@ export default function AppRoutes({ authReady }: { authReady: boolean }) {
           <Route path="/" element={<Home />} />
           <Route path="/change-password" element={<RequireAccess ready={authReady}><ForcedPasswordChange /></RequireAccess>} />
           <Route path="/department" element={roleElement([ROLE_NAMES.STAFF],
-            user?.staffType === "DEPARTMENT_HEAD" && user.schoolId ? <DepartmentWorkspace /> : <Navigate to="/assignments" replace />)} />
+            isDepartmentHead(user) && user?.schoolId ? <DepartmentWorkspace /> : <Navigate to="/assignments" replace />)} />
           <Route path="/player" element={<Navigate to={`/workspace${search}`} replace />} />
           <Route path="/workspace" element={workspaceElement(<Workspace />)} />
           <Route
@@ -90,13 +94,13 @@ export default function AppRoutes({ authReady }: { authReady: boolean }) {
               />
             }
           />
-          <Route path="/lab" element={roleElement(LEARNING_MANAGER_ROLES, <Lab />)} />
+          <Route path="/lab" element={workspaceElement(<Lab />)} />
           <Route path="/library" element={<RequireAccess ready={authReady} roles={APPLICATION_ROLES}><Library /></RequireAccess>} />
           <Route path="/community" element={authReady ? <CommunityLibrary /> : <main className="route-loading" aria-busy="true" />} />
           <Route path="/assignments" element={assignmentsElement} />
           <Route path="/school" element={roleElement([ROLE_NAMES.SCHOOL], user?.schoolId ? <SchoolLayout /> : <Navigate to="/" replace />)}>
             <Route index element={<SchoolDashboard />} />
-            <Route path="users" element={user?.schoolId ? <SchoolManager key={user.schoolId} schoolId={user.schoolId} /> : <Navigate to="/" replace />} />
+            <Route path="users" element={user?.schoolId ? <UserAccounts key={user.schoolId} schoolId={user.schoolId} /> : <Navigate to="/" replace />} />
             <Route path="classes" element={<SchoolClasses />} />
             <Route path="reports" element={<SchoolReports />} />
             <Route path="billing" element={<SchoolBilling />} />
@@ -106,7 +110,7 @@ export default function AppRoutes({ authReady }: { authReady: boolean }) {
           <Route path="/admin/users" element={roleElement([ROLE_NAMES.ADMIN], <AdminDirectory />)} />
           <Route path="/manager" element={roleElement([ROLE_NAMES.MANAGER], <AdminLayout />)}>
             <Route index element={<Admin />} />
-            <Route path="users" element={<AdminUsers />} />
+            <Route path="users" element={<UserAccounts />} />
             <Route path="feedback" element={<AdminSupport kind="FEEDBACK" />} />
             <Route path="messages" element={<AdminSupport kind="MESSAGE" />} />
             <Route path="schools" element={<AdminSchools />} />

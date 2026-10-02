@@ -1,22 +1,19 @@
 package com.example.backend.bootstrap;
 
+import com.example.backend.base.crud.model.enums.LifecycleStatus;
+import com.example.backend.system.physics.model.entity.SchemaVersion;
+import com.example.backend.system.physics.repository.SchemaVersionRepository;
+import com.example.backend.system.physics.service.SchemaDefinitionService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.InputStream;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.example.backend.entity.enums.LifecycleStatus;
-import com.example.backend.entity.problem.SchemaVersion;
-import com.example.backend.repository.problem.SchemaVersionRepository;
-import com.example.backend.service.problem.SchemaDefinitionService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import lombok.RequiredArgsConstructor;
 
 /** Publishes the curriculum-aligned topic schemas compiled from schemas/library + schemas/topics. */
 @Component

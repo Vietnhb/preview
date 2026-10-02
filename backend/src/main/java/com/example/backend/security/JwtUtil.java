@@ -1,20 +1,18 @@
 package com.example.backend.security;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Date;
-
+import javax.crypto.SecretKey;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import javax.crypto.SecretKey;
-import io.jsonwebtoken.security.Keys;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j

@@ -16,8 +16,8 @@ test("simulation flow browser E2E harness traces API and render stages", async (
 });
 
 test("simulation surface inherits the workspace light or dark theme", async () => {
-  const css = await readFile(new URL("../src/styles/simulation.css", import.meta.url), "utf8");
-  const visualSandbox = await readFile(new URL("../src/simulation/VisualSandbox.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../src/features/simulation/styles/simulation.css", import.meta.url), "utf8");
+  const visualSandbox = await readFile(new URL("../src/features/simulation/components/VisualSandbox.tsx", import.meta.url), "utf8");
   assert.match(css, /--simulation-surface:/);
   assert.match(css, /data-theme-effective="dark"\]\s+\.simulation-sandbox/);
   assert.match(css, /background:\s*var\(--simulation-surface\)/);

@@ -1,9 +1,10 @@
 package com.example.backend.security;
 
-
-import com.example.backend.repository.account.UserRepository;
-import com.example.backend.dto.common.ErrorResponse;
-import com.example.backend.entity.enums.RoleName;
+import com.example.backend.base.web.dto.ErrorResponse;
+import com.example.backend.system.account.model.enums.RoleName;
+import com.example.backend.system.account.repository.UserRepository;
+import com.example.backend.system.school.model.entity.School;
+import com.example.backend.system.school.service.LicenseCheckService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -11,16 +12,15 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -34,7 +34,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
-    private final com.example.backend.service.school.LicenseCheckService licenseCheckService;
+    private final com.example.backend.system.school.service.LicenseCheckService licenseCheckService;
     private final ObjectMapper objectMapper;
 
     @Override

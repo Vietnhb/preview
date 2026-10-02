@@ -1,25 +1,22 @@
 package com.example.backend.bootstrap;
 
+import com.example.backend.system.curriculum.model.entity.ContentModule;
+import com.example.backend.system.curriculum.model.entity.GradeLevel;
+import com.example.backend.system.curriculum.model.entity.Lesson;
+import com.example.backend.system.curriculum.model.entity.Topic;
+import com.example.backend.system.curriculum.repository.ContentModuleRepository;
+import com.example.backend.system.curriculum.repository.GradeLevelRepository;
+import com.example.backend.system.curriculum.repository.LessonRepository;
+import com.example.backend.system.curriculum.repository.TopicRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.List;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.example.backend.entity.curriculum.ContentModule;
-import com.example.backend.entity.curriculum.GradeLevel;
-import com.example.backend.entity.curriculum.Lesson;
-import com.example.backend.entity.curriculum.Topic;
-import com.example.backend.repository.curriculum.ContentModuleRepository;
-import com.example.backend.repository.curriculum.GradeLevelRepository;
-import com.example.backend.repository.curriculum.LessonRepository;
-import com.example.backend.repository.curriculum.TopicRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.RequiredArgsConstructor;
 
 @Component
 @ConditionalOnProperty(prefix = "physlive.bootstrap", name = "catalogs-enabled", havingValue = "true")

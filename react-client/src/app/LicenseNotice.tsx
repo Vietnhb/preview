@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { getLicenseStatus, type LicenseStatus } from "../api/userApi";
-import { usePhysliveStore } from "../store/usePhysliveStore";
+import { getLicenseStatus, type LicenseStatus } from "../features/account/api/userApi";
+import { useSessionStore } from "../shared/auth/sessionStore";
+
 export default function LicenseNotice() {
-  const user = usePhysliveStore(state => state.user);
+  const user = useSessionStore(state => state.user);
   const { pathname } = useLocation();
   const [license, setLicense] = useState<LicenseStatus | null>(null);
   const [dismissedLicenseNoticeKey, setDismissedLicenseNoticeKey] = useState("");

@@ -1,0 +1,12 @@
+.page { min-height: calc(100dvh - 72px); max-width: calc(var(--page-max) + 64px); margin: 0 auto; padding: 28px; background: var(--surface-2); }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.heading > span, .muted { color: var(--gray-11); font-size: 13px; }
+.content { padding-top: 24px; }
+.content :global(.admin-content) { padding: 0; }
+.content :global(.reviewer-panel) { width: 100%; }
+.filters { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(180px, 280px); gap: 12px; margin-bottom: 20px; }
+.table { overflow: auto; }
+.muted { display: block; margin-top: 6px; }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+.pagination > span { margin-right: auto; font-size: 13px; color: var(--gray-11); }
+@media (max-width: 720px) { .page { padding: 16px; } .heading { align-items: flex-start; flex-direction: column; gap: 12px; } .filters { grid-template-columns: 1fr; } .pagination { flex-wrap: wrap; } }

@@ -12,6 +12,6 @@ public class AccountCapabilityConfig implements WebMvcConfigurer {
     private final AccountCapabilityInterceptor interceptor;
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(interceptor).addPathPatterns("/api/reviewer/**", "/api/evaluations/**", "/api/schemas/**", "/api/simulations/*/approve", "/api/simulations/*/reject");
+        registry.addInterceptor(interceptor).addPathPatterns(AccountCapabilityInterceptor.PATHS);
     }
 }

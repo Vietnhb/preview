@@ -1,0 +1,78 @@
+package com.example.backend.system.library.model.entity;
+
+import com.example.backend.base.crud.model.entity.AuditedEntity;
+import com.example.backend.system.account.model.entity.User;
+import com.example.backend.system.curriculum.model.entity.Lesson;
+import com.example.backend.system.library.model.enums.LibraryModerationStatus;
+import com.example.backend.system.library.model.enums.Visibility;
+import com.example.backend.system.problem.model.entity.Specification;
+import com.example.backend.system.simulation.model.entity.Simulation;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.Getter;
+import lombok.Setter;
+
+@Entity
+@Table(name = "library_items")
+@Getter
+@Setter
+public class LibraryItem extends AuditedEntity {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folder_id")
+    private LibraryFolder folder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "simulation_id")
+    private Simulation simulation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "specification_id", nullable = false)
+    private Specification specification;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
+    @Column(nullable = false, length = 160)
+    private String title;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private Visibility visibility = Visibility.PERSONAL;
+
+    /** Null keeps existing shared records visible while school scoping is introduced. */
+    @Column(name = "shared_institution_id", length = 120)
+    private String sharedInstitutionId;
+
+    @Column(nullable = false)
+    private boolean active = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "moderation_status", nullable = false, length = 16)
+    private LibraryModerationStatus moderationStatus = LibraryModerationStatus.APPROVED;
+
+    @Column(name = "moderation_comment", columnDefinition = "text")
+    private String moderationComment;
+
+    @Column(name = "moderated_at")
+    private java.time.Instant moderatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "moderated_by")
+    private User moderatedBy;
+
+    @Version
+    @Column(name = "record_version", nullable = false)
+    private long recordVersion;
+}

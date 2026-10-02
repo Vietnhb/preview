@@ -6,7 +6,7 @@ import {
   PLOT,
   projectile,
   trajectory,
-} from "../src/components/simulation/projectileModel.ts";
+} from "../src/features/simulation/model/projectileModel.ts";
 
 test("projectile lands at analytical range and never crosses the ground", () => {
   const p = projectile(45, 24, 100);

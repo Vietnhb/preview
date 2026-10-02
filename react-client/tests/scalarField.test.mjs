@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeScalarField, prepareSimulationData, probeScalarField, sampleScalarField } from "../src/simulation-runtime/SimulationData.ts";
+import { normalizeScalarField, prepareSimulationData, probeScalarField, sampleScalarField } from "../src/features/simulation/engine/runtime/SimulationData.ts";
 
 function field(overrides = {}) {
   return {

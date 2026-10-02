@@ -12,6 +12,9 @@ removed when the page is closed. This entry point is outside the production buil
 Use this fixture to check search, scope and curriculum filters, assignment
 prediction gating, navigation, dialogs, typography and responsive layouts.
 Reviewer and management mutations are deliberately not implemented.
+
+Community dialogs support local comments, likes, deletion and pagination. Use
+`?role=GUEST` to check public browsing and read-only discussions without login prompts.
 # Account capabilities
 
 Use `role=REVIEWER&mode=edit` or `mode=review` to preview separate reviewer permissions. The default reviewer has both.

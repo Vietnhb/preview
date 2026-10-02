@@ -2,6 +2,9 @@
 
 ## Current architecture
 
+- [Backend maintenance](implementation/backend-maintenance.md) documents feature packages, configuration, cleanup and verification.
+- [API catalog](implementation/api-catalog.md) lists HTTP endpoints, their purpose and role gates.
+
 - `implementation/simulation-creation-flow.md` describes routing, confirmation,
   generation, sandbox execution, and local controls.
 - [Rebuild report](implementation/matter-rebuild-report.md) records the implemented
@@ -23,8 +26,8 @@
 - `physics/formula-index.md`, `physics/models/`, and
   `physics/model-evidence-manifest.json` preserve model-level formula and test
   evidence. They include legacy specialized models and are not the active topic
-  pack catalog; active packs are listed in
-  `backend/src/main/resources/schemas/catalog.json`.
+  pack catalog; active topics live in
+  `backend/src/main/resources/schemas/topics/` and share definitions from `schemas/library/`.
 
 Superseded implementation reports are omitted from the working documentation;
 Git history remains the archive for those snapshots.

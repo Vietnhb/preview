@@ -7,7 +7,7 @@ let wallTime = 0;
 Object.defineProperty(globalThis, 'performance', { value: { now: () => wallTime }, configurable: true });
 globalThis.requestAnimationFrame = callback => { queue.set(++frameId, callback); return frameId; };
 globalThis.cancelAnimationFrame = id => queue.delete(id);
-const result = await build({ entryPoints: ['src/simulation-runtime/SimulationRuntime.ts'], bundle: true, write: false, platform: 'node', format: 'esm' });
+const result = await build({ entryPoints: ['src/features/simulation/engine/runtime/SimulationRuntime.ts'], bundle: true, write: false, platform: 'node', format: 'esm' });
 const { SimulationRuntime } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
 const runtime = new SimulationRuntime();
 let frame;

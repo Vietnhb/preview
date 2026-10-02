@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateVisualProgram } from "../src/simulation/visualCodeSafety.ts";
+import { validateVisualProgram } from "../src/features/simulation/model/visualCodeSafety.ts";
 
 const program = {
   init: "return { elapsed: 0, markers: [{ x: 100, y: 120 }] };",

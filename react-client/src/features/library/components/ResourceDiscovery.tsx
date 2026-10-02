@@ -2,9 +2,10 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Avatar, Badge, Button, Card, Dialog, IconButton, Inset, SegmentedControl, Select, Spinner, TextField, Theme } from "@radix-ui/themes";
 import { ArrowTopRightIcon, BackpackIcon, ChevronRightIcon, Cross2Icon, GlobeIcon, MagnifyingGlassIcon, PauseIcon, PlayIcon, ReaderIcon, ResetIcon, StarFilledIcon } from "@radix-ui/react-icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import PhysicsScene from "../../../components/simulation/PhysicsScene";
-import type { Curriculum, LibraryItem, Simulation } from "../../../types/physlive";
-import { buildCatalog, filterLibrary, indexLessonPaths, type CatalogSelection, type LibraryScope } from "./catalogModel";
+import PhysicsScene from "../../simulation/components/CanvasPhysicsScene";
+import type { Curriculum, LibraryItem, Simulation } from "../../../shared/types/physlive";
+import { buildCatalog, filterLibrary, indexLessonPaths, type CatalogSelection, type LibraryScope } from "../model/catalogModel";
+import { ResourceDiscussion } from "./ResourceDiscussion";
 import styles from "./ResourceDiscovery.module.css";
 
 type Props = {
@@ -121,7 +122,7 @@ export function ResourceDiscovery({ items, curriculum = null, loading, selectedI
           const path = paths.get(item.lessonId);
           const accent = resourceAccent(path?.moduleId || item.topic || item.id);
           return <motion.article layout className={styles.resourceMotion} key={item.id} initial={reducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: reducedMotion ? 1 : .97 }} whileHover={reducedMotion ? undefined : { y: -3 }} transition={transition}><Card size="3" className={styles.resource} data-accent={accent}>
-            <Inset clip="padding-box" side="top" pb="0"><div className={styles.cover}><div className={styles.coverContent}><Badge size="1" color={accent} variant="solid">Vật lý{path?.grade ? ` · ${path.grade}` : ""}</Badge><strong>{path?.module || "Mô phỏng vật lý"}</strong></div><ResourceDiagram /></div></Inset>
+            <Inset clip="padding-box" side="top" pb="0"><div className={styles.cover}><div className={styles.coverContent}><Badge size="1" color={accent} variant="soft" highContrast>Vật lý{path?.grade ? ` · ${path.grade}` : ""}</Badge><strong>{path?.module || "Mô phỏng vật lý"}</strong></div><ResourceDiagram /></div></Inset>
             <div className={styles.resourceMeta}><Badge size="1" color={item.visibility === "PUBLIC" ? "cyan" : "indigo"} variant="soft">{item.visibility === "PUBLIC" ? <GlobeIcon /> : <BackpackIcon />}{item.visibility === "PUBLIC" ? "Toàn hệ thống" : "Trong trường"}</Badge>{item.moderationStatus === "FEATURED" && <Badge size="1" color="amber" variant="soft"><StarFilledIcon /> Nổi bật</Badge>}</div>
             <h2>{item.title}</h2>
             <p className={styles.lesson}>{path?.lesson || "Mô phỏng vật lý"}</p>
@@ -135,6 +136,7 @@ export function ResourceDiscovery({ items, curriculum = null, loading, selectedI
       {simulationLoading && <div className={styles.playerState}><Spinner size="3" /> Đang mở mô phỏng…</div>}
       {!simulationLoading && simulationError && <p className={`${styles.playerState} ${styles.error}`}>{simulationError}</p>}
       {!simulationLoading && !simulationError && simulation && <motion.div initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={transition}><div className={styles.scene}><PhysicsScene simulation={simulation} index={frame} overlays={vectors} time={time} playing={playing} onTimeChange={onTimeChange} onPlaybackEnd={onPlaybackEnd} /></div><div className={styles.playback}><Button onClick={onTogglePlaying}>{playing ? <PauseIcon /> : <PlayIcon />}{playing ? "Tạm dừng" : "Chạy mô phỏng"}</Button><Button color="gray" variant="soft" onClick={onReset}><ResetIcon /> Về đầu</Button><input aria-label="Thời gian mô phỏng" type="range" min={0} max={Math.max(0, simulation.time.length - 1)} value={frame} onChange={event => onFrameChange(Number(event.target.value))} /><span>{time.toFixed(2)} s</span></div></motion.div>}
+      {selectedItem && <ResourceDiscussion key={selectedItem.id} resourceId={selectedItem.id} />}
     </Dialog.Content></Dialog.Root>
   </motion.section></Theme>;
 }

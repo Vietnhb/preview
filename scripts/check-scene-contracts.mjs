@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { AUTHORABLE_PRIMITIVES, SUPPORTED_EFFECTS } from "../react-client/src/simulation-scene/PrimitiveCapabilities.ts";
-import { validateVectorScene } from "../react-client/src/simulation-scene/VectorScene.ts";
+import { AUTHORABLE_PRIMITIVES, SUPPORTED_EFFECTS } from "../react-client/src/features/simulation/engine/scene/PrimitiveCapabilities.ts";
+import { validateVectorScene } from "../react-client/src/features/simulation/engine/scene/VectorScene.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const catalogPath = path.join(root, "backend", "src", "main", "resources", "schemas", "catalog.json");

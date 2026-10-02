@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sampleTimeline } from "../src/simulation/svgScene.ts";
+import { sampleTimeline } from "../src/features/simulation/model/svgScene.ts";
 
 test("playback interpolates every participant from backend samples", () => {
   const timeline = { durationSeconds: 2, frames: [

@@ -1,0 +1,274 @@
+import { useState } from "react";
+import Icon from "../../../shared/ui/LearningIcon";
+import SaveSimulationPanel from "../../library/components/SaveSimulationPanel";
+import { FormulaReview, SimulationParameterControl } from "./SimulationReview";
+import type { SimulationWorkspaceModel } from "../hooks/useSimulationWorkspace";
+
+const QUICK_EXAMPLES = [
+  {
+    title: "Chuyển động thẳng biến đổi đều",
+    text: "Một ô tô đang chạy với vận tốc 15 m/s thì hãm phanh chuyển động chậm dần đều với gia tốc 2 m/s². Hãy mô phỏng chuyển động của xe cho đến khi dừng lại.",
+  },
+  {
+    title: "Ném ngang từ độ cao",
+    text: "Ném một vật từ độ cao 20 m theo phương ngang với vận tốc đầu 15 m/s. Lấy gia tốc trọng trường g = 9.8 m/s², bỏ qua sức cản không khí.",
+  },
+  {
+    title: "Va chạm đàn hồi 2 xe",
+    text: "Xe 1 có khối lượng 2 kg chuyển động với vận tốc 4 m/s đến va chạm đàn hồi trực diện với xe 2 có khối lượng 1 kg đang đứng yên.",
+  },
+  {
+    title: "Con lắc đơn dao động",
+    text: "Một con lắc đơn có chiều dài dây 1.5 m, vật nặng 0.5 kg được kéo lệch góc 30 độ so với phương thẳng đứng rồi thả nhẹ không vận tốc đầu.",
+  },
+];
+
+export default function SimulationInspector({ experiment, explanation, save }: Readonly<Pick<SimulationWorkspaceModel, "experiment" | "explanation" | "save">>) {
+  const { simulation, values, validation, updateParameter, resetParameters, applyExample } = experiment;
+  const { intent, revision, setRevision, handleRevision } = explanation;
+  const { busy, saveOpen, savedMessage, renderError, currentSimulationId, canManageLearningContent,
+    folders, onBusyChange, onFolder, onSaved, onClose, onOpen } = save;
+  const [navigation, setNavigation] = useState({
+    simulation,
+    tab: "experiment" as "experiment" | "understand" | "details",
+  });
+  const inspectorTab = navigation.simulation !== simulation && simulation ? "experiment" : navigation.tab;
+  if (navigation.simulation !== simulation) setNavigation({ simulation, tab: inspectorTab });
+  const setInspectorTab = (tab: typeof navigation.tab) => setNavigation({ simulation, tab });
+  return (
+    <aside className="learn-inspector" aria-label="Thông số và giải thích">
+      <div className="learn-inspector-nav">
+        <div className="learn-tabs" role="tablist">
+          <button
+            role="tab"
+            type="button"
+            aria-selected={!saveOpen && inspectorTab === "experiment"}
+            disabled={saveOpen && busy}
+            onClick={() => { onClose(); setInspectorTab("experiment"); }}
+          >
+            <Icon name="sliders" /> Thử nghiệm
+          </button>
+          <button
+            role="tab"
+            type="button"
+            aria-selected={!saveOpen && inspectorTab === "understand"}
+            disabled={saveOpen && busy}
+            onClick={() => { onClose(); setInspectorTab("understand"); }}
+          >
+            <Icon name="book" /> Giải thích
+          </button>
+          <button
+            role="tab"
+            type="button"
+            aria-selected={!saveOpen && inspectorTab === "details"}
+            disabled={saveOpen && busy}
+            onClick={() => { onClose(); setInspectorTab("details"); }}
+          >
+            <Icon name="atom" /> Chi tiết
+          </button>
+        </div>
+        {simulation && canManageLearningContent && !currentSimulationId && (
+          <button type="button" className="learn-save-button"
+            disabled={busy || Boolean(renderError) || saveOpen}
+            onClick={onOpen}>
+            Lưu mô phỏng
+          </button>
+        )}
+      </div>
+
+      <div className="learn-inspector-body">
+        {canManageLearningContent && savedMessage && <div className="simulation-actions">
+          <span role="status">{savedMessage}</span>
+        </div>}
+        {simulation && saveOpen && <SaveSimulationPanel simulation={{ ...simulation, formulas: intent?.formulas, explanation: intent?.explanation }} parameters={{ ...values }} folders={folders}
+          onBusyChange={onBusyChange}
+          onFolder={onFolder}
+          onClose={onClose}
+          onSaved={onSaved} />}
+        {/* Tab 1: Parameters / Controls */}
+        {!saveOpen && inspectorTab === "experiment" && (
+          <div>
+            <div className="learn-section-title">
+              <h3>Thông số mô phỏng</h3>
+              {simulation?.parameters?.length ? (
+                <button
+                  type="button"
+                  style={{ border: 0, padding: "4px 8px", cursor: "pointer", fontSize: "11px" }}
+                  onClick={resetParameters}
+                  title="Khôi phục thông số mặc định"
+                >
+                  <Icon name="reset" /> Mặc định
+                </button>
+              ) : null}
+            </div>
+
+            {simulation?.parameters?.length ? (
+              <div style={{ display: "grid", gap: 14, marginTop: 12 }}>
+                {simulation.parameters.map((parameter) => (
+                  <SimulationParameterControl
+                    key={parameter.name}
+                    parameter={parameter}
+                    value={values[parameter.name] ?? parameter.value}
+                    onChange={(next) => updateParameter(parameter, next)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: "16px 0", color: "#607187" }}>
+                {simulation
+                  ? "Mô phỏng này không có biến số điều chỉnh."
+                  : (
+                    <div>
+                      <p style={{ marginBottom: 16 }}>Nhập đề bài để xem và điều chỉnh các thông số mô phỏng tại đây.</p>
+                      <span className="learn-small-label">GỢI Ý ĐỀ BÀI</span>
+                      <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+                        {QUICK_EXAMPLES.map((ex, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            style={{
+                              textAlign: "left",
+                              padding: "8px 10px",
+                              border: "1px solid #dce4ee",
+                              borderRadius: 8,
+                              background: "#f9fbfe",
+                              cursor: "pointer",
+                              display: "block",
+                              width: "100%",
+                              fontSize: 12,
+                            }}
+                            onClick={() => applyExample(ex.text)}
+                          >
+                            <strong>{ex.title}</strong>
+                            <p style={{ margin: "4px 0 0", color: "#607187", fontSize: 11, lineHeight: 1.4 }}>
+                              {ex.text}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+              </div>
+            )}
+
+            {/* Trạng thái kiểm chứng */}
+            <div className="simulation-validation" role="status" aria-live="polite" style={{ marginTop: 20 }}>
+              <strong>
+                {simulation?.simulationSpec?.runtimeKind === "VISUAL"
+                  ? "Trạng thái mô hình: "
+                  : "Kiểm tra vật lý: "}
+                {validation?.status === "FLAGGED"
+                  ? "Cần kiểm tra lại"
+                  : validation?.status === "VERIFIED_ANALYTICAL"
+                  ? "Đã xác minh bằng số + công thức chuẩn ✓"
+                  : validation?.status === "VERIFIED_NUMERICAL"
+                  ? "Đã xác minh bằng solver số ✓"
+                  : validation?.status === "VISUAL_ONLY_UNVERIFIED"
+                  ? "Chỉ minh họa — chưa xác minh vật lý"
+                  : validation?.status === "UNSUPPORTED"
+                  ? "Chưa hỗ trợ trung thực"
+                  : validation?.status === "PENDING"
+                  ? "Đang tính lại và kiểm tra…"
+                  : validation?.status === "PAUSED"
+                  ? "Đã dừng"
+                  : validation?.status === "UNVERIFIED"
+                  ? "Chưa kiểm chứng độc lập"
+                  : "Đang sẵn sàng"}
+              </strong>
+
+              {validation?.verificationScope && <p>Phạm vi xác minh: {validation.verificationScope}</p>}
+              {validation?.verificationMethod && (
+                <p>Phương pháp xác minh: {validation.verificationMethod}</p>
+              )}
+              {validation?.absoluteError !== undefined && validation.absoluteError !== null && (
+                <p>Sai số lớn nhất: {validation.absoluteError} (tương đối {validation.relativeError ?? "—"})</p>
+              )}
+              {!!validation?.assumptions?.length && (
+                <p>Giả định: {validation.assumptions.join("; ")}</p>
+              )}
+              {validation?.flags?.map((flag, index) => (
+                <p key={index}>{flag}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Physics Explanation */}
+        {!saveOpen && inspectorTab === "understand" && (
+          <div>
+            <h3>Giải thích hiện tượng vật lý</h3>
+            {intent?.explanation ? (
+              <div style={{ marginTop: 10 }}>
+                <p className="simulation-explanation">{intent.explanation}</p>
+                <FormulaReview intent={intent} />
+              </div>
+            ) : (
+              <p className="simulation-muted" style={{ padding: "12px 0" }}>
+                Phần giải thích hiện tượng và lý thuyết vật lý sẽ xuất hiện ở đây sau khi AI phân tích đề bài.
+              </p>
+            )}
+
+            {!!intent?.defaults?.length && (
+              <div className="simulation-defaults" style={{ marginTop: 14 }}>
+                <strong>Giả định mặc định</strong>
+                <ul>
+                  {intent.defaults.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {intent && (
+              <form className="simulation-revision-form" onSubmit={handleRevision}>
+                <label htmlFor="inspector-simulation-change">Cần điều chỉnh gì?</label>
+                <textarea
+                  id="inspector-simulation-change"
+                  rows={2}
+                  value={revision}
+                  onChange={(event) => setRevision(event.target.value)}
+                  placeholder="Ví dụ: Thay đổi vận tốc hoặc góc ném..."
+                />
+                <button disabled={busy || !revision.trim()}>Cập nhật giải thích</button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* Tab 3: Details & Scene Inventory */}
+        {!saveOpen && inspectorTab === "details" && (
+          <div>
+            <h3>Chi tiết mô hình</h3>
+
+            {intent?.simulationSpec?.requiredObjects?.length ? (
+              <div className="simulation-requirement-review" style={{ marginTop: 12 }}>
+                <h4>Thành phần AI nhận diện ({intent.simulationSpec.requiredObjects.length})</h4>
+                <ul>
+                  {intent.simulationSpec.requiredObjects.map((object, index) => (
+                    <li key={index}>
+                      <strong>
+                        {object.count} × {object.label}
+                      </strong>
+                      {object.shape && object.shape !== "unspecified" && <span> ({object.shape})</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              !simulation && (
+                <p className="simulation-muted" style={{ padding: "12px 0" }}>
+                  AI sẽ chọn các thành phần trực quan theo ngữ cảnh mô tả.
+                </p>
+              )
+            )}
+          </div>
+        )}
+      </div>
+
+      <footer className="learn-inspector-footer">
+        <Icon name="atom" />
+        <span>PhysLive Simulator · Dual Validation</span>
+      </footer>
+    </aside>
+  );
+}

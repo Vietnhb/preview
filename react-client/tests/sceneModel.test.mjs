@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { describeScene, niceStep, formatNumber, presentationRate, fastestOscillation } from "../src/simulation/sceneModel.ts";
+import { describeScene, niceStep, formatNumber, presentationRate, fastestOscillation } from "../src/features/simulation/model/sceneModel.ts";
 
 const run = (duration, f, steps = 200) => ({ durationSeconds: duration, frames: Array.from({ length: steps + 1 }, (_, i) => {
   const t = duration * i / steps; return { t, values: { t, ...f(t) } };

@@ -4,13 +4,16 @@ import { MemoryRouter } from "react-router-dom";
 import axios, { AxiosError } from "axios";
 import AppRoutes from "../../src/app/AppRoutes";
 import AppShell from "../../src/app/AppShell";
-import axiosClient from "../../src/api/axios";
-import { usePhysliveStore } from "../../src/store/usePhysliveStore";
-import type { Assignment, LibraryItem, User } from "../../src/types/physlive";
+import axiosClient from "../../src/shared/api/client";
+import type { LibraryComment } from "../../src/features/library/api/libraryApi";
+import { useSessionStore } from "../../src/shared/auth/sessionStore";
+import type { Assignment, LibraryItem } from "../../src/shared/types/physlive";
+import type { User } from "../../src/shared/auth/types";
 import "../../src/styles/global.css";
 
 const query = new URLSearchParams(location.search);
 const role = query.get("role") || "STUDENT";
+const guest = role === "GUEST";
 const school = { id: "school-1", code: "THPT01", name: "THPT Nguyễn Trãi", address: "Hà Nội", active: true, licenseStart: "2026-08-01", licenseEnd: "2027-08-01", monthlyTokenQuota: 1000000 };
 const users: User[] = [
   { id: 1, fullName: "Nguyễn Minh Anh", email: "admin@example.test", role: "ADMIN", active: true },
@@ -23,10 +26,11 @@ const users: User[] = [
 ];
 const actor = users.find(user => user.role === role) || users[5];
 actor.mustChangePassword = query.get("pending") === "1";
-usePhysliveStore.getState().setUser(actor);
+useSessionStore.getState().setUser(guest ? null : actor);
 // Isolated dev preview origin, deliberately invalid outside this adapter.
 const previousToken = localStorage.getItem("token");
-localStorage.setItem("token", "visual-fixture-only");
+if (guest) localStorage.removeItem("token");
+else localStorage.setItem("token", "visual-fixture-only");
 window.addEventListener("pagehide", () => {
   if (previousToken && previousToken !== "visual-fixture-only") localStorage.setItem("token", previousToken);
   else localStorage.removeItem("token");
@@ -90,6 +94,17 @@ const data: Record<string, unknown> = {
   "/evaluations/history": { items: [], page: 0, size: 10, totalElements: 0, totalPages: 0 },
   "/reviewer/library": [{ ...items[2], moderationStatus: "PENDING" }],
 };
+const discussions = new Map<string, { likes: number; liked: boolean; comments: LibraryComment[] }>();
+for (const item of items) discussions.set(item.id, {
+  likes: 12, liked: false,
+  comments: Array.from({ length: 24 }, (_, index) => ({
+    id: `${item.id}-comment-${index}`, authorId: index === 0 ? actor.id : 5,
+    authorName: index === 0 ? actor.fullName : "Đỗ Hoàng Nam", avatarUrl: null,
+    body: index === 0 ? "Đồ thị giúp em kiểm tra kết quả tính thời gian rơi." : `Nhận xét ${index}: có thể thử thay đổi độ cao ban đầu và so sánh kết quả.`,
+    createdAt: new Date(Date.UTC(2026, 8, 30, 10, 24 - index)).toISOString(),
+    canDelete: !guest && role !== "ADMIN" && (index === 0 || role === "MANAGER"),
+  })),
+});
 axiosClient.defaults.adapter = async config => {
   const path = new URL(config.url || "", location.origin).pathname.replace(/^\/api(?=\/)/, "");
   let response = data[path];
@@ -99,6 +114,31 @@ axiosClient.defaults.adapter = async config => {
     response = actor;
   }
   if (config.method === "post" && path === "/auth/logout") response = {};
+  const discussionRoute = path.match(/^\/library\/([^/]+)\/(discussion|reaction|comments)(?:\/([^/]+))?$/);
+  if (discussionRoute) {
+    const [, resourceId, operation, commentId] = discussionRoute;
+    const discussion = discussions.get(resourceId);
+    const canInteract = !guest && role !== "ADMIN";
+    if (discussion && (canInteract || config.method === "get")) {
+      if (operation === "discussion" && config.method === "get") {
+        const page = Number(config.params?.page || 0);
+        const size = Number(config.params?.size || 20);
+        response = { ...discussion, comments: discussion.comments.slice(page * size, (page + 1) * size), commentCount: discussion.comments.length, commentMaxLength: 2000, page, hasMore: (page + 1) * size < discussion.comments.length, canInteract };
+      } else if (operation === "reaction" && config.method === "put") {
+        const { liked } = JSON.parse(config.data);
+        if (liked !== discussion.liked) discussion.likes += liked ? 1 : -1;
+        discussion.liked = liked;
+        response = { likes: discussion.likes, liked };
+      } else if (operation === "comments" && config.method === "post") {
+        const comment = { id: crypto.randomUUID(), authorId: actor.id, authorName: actor.fullName, avatarUrl: null, body: JSON.parse(config.data).body, createdAt: new Date().toISOString(), canDelete: true };
+        discussion.comments.unshift(comment);
+        response = comment;
+      } else if (operation === "comments" && config.method === "delete" && discussion.comments.some(comment => comment.id === commentId && comment.canDelete)) {
+        discussion.comments = discussion.comments.filter(comment => comment.id !== commentId);
+        response = {};
+      }
+    }
+  }
   if (/^\/assignments\/[^/]+\/simulation$/.test(path) || path.startsWith("/simulations/shared/")) response = simulation;
   if (/^\/assignments\/[^/]+\/predictions$/.test(path)) {
     const assignmentId = path.split("/")[2];
@@ -111,5 +151,5 @@ axiosClient.defaults.adapter = async config => {
   return { data: structuredClone(response), status: 200, statusText: "OK", headers: {}, config };
 };
 axios.defaults.adapter = axiosClient.defaults.adapter;
-const paths: Record<string, string> = { ADMIN: "/admin/users", MANAGER: "/manager", REVIEWER: "/reviewer", SCHOOL: "/school", STAFF: "/workspace", STUDENT: "/assignments" };
+const paths: Record<string, string> = { GUEST: "/community", ADMIN: "/admin/users", MANAGER: "/manager", REVIEWER: "/reviewer", SCHOOL: "/school", STAFF: "/workspace", STUDENT: "/assignments" };
 createRoot(document.getElementById("root")!).render(<MemoryRouter initialEntries={[query.get("route") || paths[role]]}><AppShell><AppRoutes authReady /></AppShell></MemoryRouter>);

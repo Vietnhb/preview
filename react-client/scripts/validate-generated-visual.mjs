@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { validateVisualProgram } from "../src/simulation/visualCodeSafety.ts";
-import { instrumentVisualProgram } from "../src/simulation/visualWorkBudget.ts";
+import { validateVisualProgram } from "../src/features/simulation/model/visualCodeSafety.ts";
+import { instrumentVisualProgram } from "../src/features/simulation/model/visualWorkBudget.ts";
 
 const file = process.argv[2];
 if (!file) throw Error("Supply the live cases JSON artifact.");

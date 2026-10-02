@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { buildCatalog, indexLessonPaths, filterLibrary } from "../src/features/library/components/catalogModel.ts";
+import { buildCatalog, indexLessonPaths, filterLibrary } from "../src/features/library/model/catalogModel.ts";
 
 const curriculum = { topics: [
   { id: "physics", name: "Vật lý", enabled: true, modules: [

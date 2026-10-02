@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { repairGeneratedCode, diagnoseGeneratedCode } from "../src/simulation/codeRepair.ts";
+import { repairGeneratedCode, diagnoseGeneratedCode } from "../src/features/simulation/model/codeRepair.ts";
 
 const compiles = code => { try { new Function('"use strict"; return (' + code + "\n);"); return true; } catch { return false; } };
 

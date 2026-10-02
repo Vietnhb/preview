@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { getMe } from "../api/userApi";
-import { usePhysliveStore } from "../store/usePhysliveStore";
-import { clearToken, getToken } from "../utils/token";
-import { isTokenExpired } from "../utils/jwt";
+import { getMe } from "../features/account/api/userApi";
+import { useSessionStore } from "../shared/auth/sessionStore";
+import { clearToken, getToken } from "../shared/lib/token";
+import { isTokenExpired } from "../shared/lib/jwt";
+
 export function useSessionBootstrap() {
-  const setUser = usePhysliveStore(state => state.setUser);
+  const setUser = useSessionStore(state => state.setUser);
   const [authReady, setAuthReady] = useState(false);
   useEffect(() => {
     const token = getToken();

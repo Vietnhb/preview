@@ -6,12 +6,42 @@ Confirmed 01/10/2026. This is the current role contract for the database, backen
 
 1. `ADMIN`: view all user account information; create, edit, suspend/restore and reset passwords for `MANAGER` accounts.
 2. `MANAGER`: operate the platform, manage schools and accounts, curriculum, licenses, payments, support and validation. Inherits the former platform administrator's operational permissions.
-3. `REVIEWER`: per-account edit permission manages physics contexts, schemas, reference solvers, modules and benchmarks; per-account review permission moderates PUBLIC simulations. An account may have either permission or both, and must have at least one.
+3. `REVIEWER`: holds `CONTENT_EDIT` (manage physics contexts, schemas, reference solvers, modules and benchmarks) and/or `CONTENT_REVIEW` (moderate PUBLIC simulations). The permissions are granted per account by a MANAGER; an account may have either or both, and must have at least one.
 4. `SCHOOL`: manage staff, students, classes, school reports and billing within its own school.
-5. `STAFF`: teacher; create simulations, manage the personal library, assign and assess learning activities. `staff_type=DEPARTMENT_HEAD` adds own-school teacher/student assignments, school assignment overview and SHARED content moderation. `staff_alias` in the database is generated as `Trưởng bộ môn`; regular `TEACHER` staff receive `Giáo viên`.
+5. `STAFF`: school staff. Holds `TEACH` (teacher: create simulations, manage the personal library, assign and assess learning activities) and/or `DEPARTMENT_HEAD_PHYSICS` (tổ trưởng bộ môn Vật Lý: own-school teacher/student assignments, school assignment overview and SHARED content moderation). The permissions are granted per account by the SCHOOL account of the same school; an account may have either or both, and must have at least one.
 6. `STUDENT`: access assigned learning activities, predictions, submissions and shared class content.
 
 Role names are uppercase. IDs are fixed from 1 to 6. No legacy role aliases are accepted by application authorization.
+
+## Roles and permissions (users N-N permissions)
+
+Confirmed 02/10/2026. The role is the account type: one per account (`users.role_id`), it decides whether the account belongs to a school and which workspace it opens. What an individual STAFF or REVIEWER account may do is a set of permissions granted through a junction table, so one account can hold several.
+
+```
+roles(id, name)                                  -- 6 fixed account types
+users(id, role_id FK, school_id FK, ...)
+
+permissions(id, code UNIQUE, role_id FK, label)  -- each permission belongs to one role
+user_permissions(user_id FK, permission_id FK,   -- junction, PK (user_id, permission_id)
+                 granted_by FK users, granted_at)
+```
+
+| Code | Role | Label | Granted by |
+|------|------|-------|------------|
+| `TEACH` | STAFF | Giáo viên | SCHOOL of the same school |
+| `DEPARTMENT_HEAD_PHYSICS` | STAFF | Tổ trưởng bộ môn Vật Lý | SCHOOL of the same school |
+| `CONTENT_EDIT` | REVIEWER | Biên soạn | MANAGER |
+| `CONTENT_REVIEW` | REVIEWER | Kiểm duyệt | MANAGER |
+
+Rules, enforced by the account service and by database triggers:
+
+- A permission can only be granted to an account whose role owns it.
+- STAFF and REVIEWER accounts hold at least one permission; ADMIN, MANAGER, SCHOOL and STUDENT hold none.
+- Changing an account's role removes the permissions of the former role. A new STAFF account defaults to `TEACH`, a new REVIEWER to both reviewer permissions, unless the grantor chooses otherwise.
+- `granted_by` records the SCHOOL or MANAGER account that made the grant (NULL for rows migrated by V41). MANAGER, which operates all schools, may also adjust STAFF permissions.
+- A STAFF account without `TEACH` (department head only) is refused on the teaching routes: simulation authoring, problems, exports, the personal library, assignments and grading. It lands in the department workspace. Only accounts with `TEACH` can be assigned to teach a class.
+
+API: managed-user create/update requests take `permissions: string[]` (omit to keep the current grants or apply the defaults); user responses return `permissions: string[]`. The former `staffType`, `reviewerCanEdit` and `reviewerCanReview` fields and the `users.staff_type`, `users.staff_alias`, `users.reviewer_can_edit` and `users.reviewer_can_review` columns no longer exist. The USERS import column is `permissions` (`TEACH`, `DEPARTMENT_HEAD_PHYSICS` or `TEACH|DEPARTMENT_HEAD_PHYSICS`).
 
 ## Account and permission boundaries
 
@@ -39,9 +69,11 @@ The migration updates the role-school validation function, its trigger, the sing
 
 After V37, the confirmed account assignment restores the two original administrator accounts (user IDs 1 and 17) to `ADMIN` (role ID 1). They keep their existing credentials and can create new `MANAGER` accounts. This account-data correction does not change the applied migration or its checksum. No other account data or role assignments are changed; currently no account has the `MANAGER` role.
 
-Migration `V38__account_capabilities_and_initial_password.sql` adds account capabilities, generated staff aliases and the first-login password flag. It gives existing REVIEWER accounts both permissions and existing STAFF accounts the ordinary teacher type. V38 was applied and validated on the configured database on 01/10/2026; the two ADMIN accounts remain unchanged.
+Migration `V38__account_capabilities_and_initial_password.sql` added the first-login password flag and the account-capability columns that V41 replaces. It gives existing REVIEWER accounts both permissions and existing STAFF accounts the ordinary teacher type. V38 was applied and validated on the configured database on 01/10/2026; the two ADMIN accounts remain unchanged.
 
-Deploy the updated backend and frontend together through migration V38. Existing JWT claims do not override a user's new role: the backend resolves the current role from the database on each authenticated request. Reload the frontend after deployment so its session profile and navigation use the new role.
+Migration `V41__user_permissions.sql` creates `permissions` and `user_permissions`, converts the V38 columns (every STAFF account receives `TEACH`; a former `staff_type = DEPARTMENT_HEAD` account receives `TEACH` and `DEPARTMENT_HEAD_PHYSICS`; reviewer flags become `CONTENT_EDIT` / `CONTENT_REVIEW`) and drops `staff_type`, `staff_alias`, `reviewer_can_edit` and `reviewer_can_review`. It stops without changing anything if a STAFF or REVIEWER account would be left with no permission.
+
+Deploy the updated backend and frontend together through migration V41. Existing JWT claims do not override a user's new role: the backend resolves the current role from the database on each authenticated request. Reload the frontend after deployment so its session profile and navigation use the new role.
 
 ## Verification
 

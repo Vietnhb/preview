@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { sampleTimeline } from '../src/simulation/svgScene.ts';
+import { sampleTimeline } from '../src/features/simulation/model/svgScene.ts';
 
-const source = readFileSync(new URL('../src/simulation/SvgPixiScene.tsx', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/features/simulation/components/SvgPixiScene.tsx', import.meta.url), 'utf8');
 const worker = source.match(/const WORKER = String.raw`([\s\S]*?)`;/)[1];
 const timeline = {durationSeconds: 1, frames: [
   {t: 0, values: {'arbitrary.position': 0}}, {t: 1, values: {'arbitrary.position': 10}},
