@@ -59,6 +59,10 @@ public class LibraryController {
         return libraryService.move(id, request.folderId());
     }
 
+    @org.springframework.web.bind.annotation.PatchMapping("/{id}/visibility")
+    public LibraryItemResponse share(@PathVariable UUID id, @Valid @RequestBody LibraryRequests.Share request) {
+        return libraryService.share(id, request.visibility());
+    }
     @PostMapping
     public LibraryItemResponse save(@Valid @RequestBody LibraryRequests.Save request) {
         return libraryService.save(request);

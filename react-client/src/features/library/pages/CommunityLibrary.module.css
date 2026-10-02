@@ -1,2 +1,44 @@
-.heading { margin-bottom: 26px; }
-.heading h1 { margin: 0; color: var(--ink-2); font-size: 30px; font-weight: 650; line-height: 1.3; letter-spacing: -.7px; }
+/* Community library: a calm banner (interactive dot field + soft accent light)
+ * above the catalogue. Colours come from tokens, so it follows the theme. */
+.page { padding-top: 28px; }
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 32px;
+  padding: clamp(28px, 4vw, 44px) clamp(22px, 4vw, 44px);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    radial-gradient(60% 120% at 100% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    radial-gradient(40% 90% at 72% 110%, color-mix(in srgb, var(--glow-2) 14%, transparent), transparent 70%),
+    var(--surface);
+}
+.hero :global(.dot-field) {
+  z-index: -1;
+  mask-image: linear-gradient(100deg, transparent 20%, #000 75%);
+}
+.heroCopy { min-width: 0; max-width: 620px; }
+.hero h1 { margin: 0 0 10px; color: var(--ink); font-size: clamp(30px, 4vw, 44px); font-weight: 750; line-height: 1.15; letter-spacing: -.03em; }
+.hero p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.6; }
+.stats { display: flex; flex: 0 0 auto; gap: 0; margin: 0; }
+.stats > div { display: grid; gap: 2px; padding: 0 22px; border-left: 1px solid var(--line); }
+.stats > div:first-child { padding-left: 0; border-left: 0; }
+.stats > div:last-child { padding-right: 0; }
+.stats dd { margin: 0; color: var(--ink); font-size: 28px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stats dt { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .hero { flex-direction: column; align-items: flex-start; gap: 22px; }
+  .stats > div { padding: 0 16px; }
+}
+@media (max-width: 480px) {
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .stats > div { padding: 0 10px; }
+  .stats dd { font-size: 22px; }
+  .stats dt { font-size: 12px; white-space: normal; line-height: 1.3; }
+}

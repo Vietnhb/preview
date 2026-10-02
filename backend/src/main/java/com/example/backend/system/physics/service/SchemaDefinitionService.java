@@ -3,13 +3,10 @@ package com.example.backend.system.physics.service;
 import com.example.backend.base.crud.model.enums.LifecycleStatus;
 import com.example.backend.exception.ApiException;
 import com.example.backend.exception.SchemaCompilationException;
-import com.example.backend.exception.SolverBindingException;
 import com.example.backend.system.curriculum.model.entity.Topic;
 import com.example.backend.system.curriculum.repository.TopicRepository;
 import com.example.backend.system.physics.model.entity.SchemaVersion;
-import com.example.backend.system.physics.model.entity.SolverVersion;
 import com.example.backend.system.physics.repository.SchemaVersionRepository;
-import com.example.backend.system.physics.repository.SolverVersionRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -30,17 +27,12 @@ import org.springframework.util.StringUtils;
 /** Access and integrity boundary for reviewer-managed topic definitions. */
 @Service
 public class SchemaDefinitionService {
-    public record SolverBinding(String numericalSolverId, String referenceSolverId, String version) { }
-
     private final SchemaVersionRepository schemas;
-    private final SolverVersionRepository solvers;
     private final TopicRepository topics;
     private final ObjectMapper json;
 
-    public SchemaDefinitionService(SchemaVersionRepository schemas, SolverVersionRepository solvers,
-            TopicRepository topics, ObjectMapper json) {
+    public SchemaDefinitionService(SchemaVersionRepository schemas, TopicRepository topics, ObjectMapper json) {
         this.schemas = schemas;
-        this.solvers = solvers;
         this.topics = topics;
         this.json = json;
     }
@@ -75,15 +67,6 @@ public class SchemaDefinitionService {
         return schema;
     }
 
-    @Transactional(readOnly = true)
-    public SolverBinding requireSolverBinding(String schemaId, String version) {
-        SolverVersion solver = solvers.findFirstBySchemaIdAndVersion(schemaId, version)
-                .filter(s -> s.getLifecycleStatus() == LifecycleStatus.APPROVED)
-                .orElseThrow(() -> new SolverBindingException("No approved solver binding exists for schemaId=" + schemaId));
-        String referenceId = solver.getOutputDefinition().path("referenceSolverId").asText(null);
-        return new SolverBinding(solver.getSolverId(), referenceId, solver.getVersion());
-    }
-
     public void validateDefinition(JsonNode definition, String schemaId) {
         validateDefinition(definition, schemaId, "unspecified", "unspecified");
     }
@@ -108,14 +91,6 @@ public class SchemaDefinitionService {
     public JsonNode coreTypeLibrary() { return readSchemaResource("schemas/core-types/registry.json"); }
 
     public String compiledChecksum(JsonNode definition) { return checksum(definition); }
-
-    public String solverBindingChecksum(String solverId, JsonNode outputDefinition) {
-        ObjectNode binding = json.createObjectNode();
-        binding.put("solverId", solverId == null ? "" : solverId.trim());
-        binding.set("outputDefinition", outputDefinition == null ? JsonNodeFactory.instance.nullNode()
-                : outputDefinition.deepCopy());
-        return checksum(binding);
-    }
 
     private Optional<SchemaVersion> findApproved(String schemaId) {
         if (!StringUtils.hasText(schemaId)) return Optional.empty();

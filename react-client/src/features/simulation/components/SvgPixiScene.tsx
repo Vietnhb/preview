@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import pixiBundle from "../../../../node_modules/pixi.js/dist/webworker.min.js?raw";
 import purifierBundle from "../../../../node_modules/dompurify/dist/purify.min.js?raw";
 import Icon from "../../../shared/ui/LearningIcon";
@@ -350,9 +350,11 @@ const formatRate = (value: number) => formatNumber(value >= 100 ? value : Math.r
 
 type ViewMode = "ai" | "standard";
 
-export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, onRenderError }: Readonly<{
+export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, onRenderError, toolbarActions }: Readonly<{
   program: PixiVisualProgram; timeline: SolverTimeline; parameters: Record<string, number>; verificationStatus: string;
   models?: readonly SimulationModelRef[]; fieldMeta?: BackendFieldMeta; onRenderError?: (message: string) => void;
+  /** Page-level buttons shown at the end of the toolbar so the page needs no heading row of its own. */
+  toolbarActions?: ReactNode;
 }>) {
   const theme = useWorkspaceTheme();
   const sceneSpec = program.scene && typeof program.scene === "object" ? program.scene : null;
@@ -462,6 +464,7 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
       <span className={"sim-status sim-status--" + (/^VERIFIED/.test(verificationStatus) ? "ok" : verificationStatus === "PENDING" ? "pending" : "warn")}>
         {/^VERIFIED/.test(verificationStatus) ? "Đã xác minh vật lý" : verificationStatus === "PENDING" ? "Đang tính lại…" : "Chưa xác minh vật lý"}
       </span>
+      {toolbarActions && <div className="sim-player__actions">{toolbarActions}</div>}
     </div>
     {aiError && mode === "standard" && <div className="sim-notice" role="status">
       <strong>Cảnh AI chưa hiển thị được</strong> — đang dùng cảnh chuẩn học thuật dựng từ dữ liệu backend.

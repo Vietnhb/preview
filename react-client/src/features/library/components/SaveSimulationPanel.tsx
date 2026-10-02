@@ -32,7 +32,7 @@ export default function SaveSimulationPanel({ simulation, parameters, folders, o
       controller.abort();
       if (!cancelled) {
         setLoading(false);
-        setError("Tải bài học quá thời gian chờ (10 giây). Kiểm tra kết nối backend rồi nhấn Tải lại bài học.");
+        setError("Tải bài học quá thời gian chờ (10 giây). Kiểm tra kết nối mạng rồi nhấn Tải lại bài học.");
       }
     }, 10000);
     simulationCurriculum(simulation.schemaId, simulation.schemaVersion, controller.signal)

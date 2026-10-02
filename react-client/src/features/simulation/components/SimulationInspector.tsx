@@ -93,7 +93,7 @@ export default function SimulationInspector({ experiment, explanation, save }: R
               {simulation?.parameters?.length ? (
                 <button
                   type="button"
-                  style={{ border: 0, padding: "4px 8px", cursor: "pointer", fontSize: "11px" }}
+                  className="simulation-reset"
                   onClick={resetParameters}
                   title="Khôi phục thông số mặc định"
                 >
@@ -103,7 +103,7 @@ export default function SimulationInspector({ experiment, explanation, save }: R
             </div>
 
             {simulation?.parameters?.length ? (
-              <div style={{ display: "grid", gap: 14, marginTop: 12 }}>
+              <div className="simulation-controls">
                 {simulation.parameters.map((parameter) => (
                   <SimulationParameterControl
                     key={parameter.name}
@@ -114,35 +114,18 @@ export default function SimulationInspector({ experiment, explanation, save }: R
                 ))}
               </div>
             ) : (
-              <div style={{ padding: "16px 0", color: "#607187" }}>
+              <div className="simulation-empty">
                 {simulation
                   ? "Mô phỏng này không có biến số điều chỉnh."
                   : (
                     <div>
-                      <p style={{ marginBottom: 16 }}>Nhập đề bài để xem và điều chỉnh các thông số mô phỏng tại đây.</p>
+                      <p>Nhập đề bài để xem và điều chỉnh các thông số mô phỏng tại đây.</p>
                       <span className="learn-small-label">GỢI Ý ĐỀ BÀI</span>
-                      <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-                        {QUICK_EXAMPLES.map((ex, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            style={{
-                              textAlign: "left",
-                              padding: "8px 10px",
-                              border: "1px solid #dce4ee",
-                              borderRadius: 8,
-                              background: "#f9fbfe",
-                              cursor: "pointer",
-                              display: "block",
-                              width: "100%",
-                              fontSize: 12,
-                            }}
-                            onClick={() => applyExample(ex.text)}
-                          >
+                      <div className="simulation-examples">
+                        {QUICK_EXAMPLES.map((ex) => (
+                          <button key={ex.title} type="button" className="simulation-example" onClick={() => applyExample(ex.text)}>
                             <strong>{ex.title}</strong>
-                            <p style={{ margin: "4px 0 0", color: "#607187", fontSize: 11, lineHeight: 1.4 }}>
-                              {ex.text}
-                            </p>
+                            <span>{ex.text}</span>
                           </button>
                         ))}
                       </div>
@@ -162,11 +145,11 @@ export default function SimulationInspector({ experiment, explanation, save }: R
                   : validation?.status === "VERIFIED_ANALYTICAL"
                   ? "Đã xác minh bằng số + công thức chuẩn ✓"
                   : validation?.status === "VERIFIED_NUMERICAL"
-                  ? "Đã xác minh bằng solver số ✓"
+                  ? "Đã xác minh bằng tính toán số ✓"
                   : validation?.status === "VISUAL_ONLY_UNVERIFIED"
                   ? "Chỉ minh họa — chưa xác minh vật lý"
                   : validation?.status === "UNSUPPORTED"
-                  ? "Chưa hỗ trợ trung thực"
+                  ? "Chưa mô phỏng chính xác được tình huống này"
                   : validation?.status === "PENDING"
                   ? "Đang tính lại và kiểm tra…"
                   : validation?.status === "PAUSED"
@@ -267,7 +250,7 @@ export default function SimulationInspector({ experiment, explanation, save }: R
 
       <footer className="learn-inspector-footer">
         <Icon name="atom" />
-        <span>PhysLive Simulator · Dual Validation</span>
+        <span>PhysLive · Kết quả được kiểm tra bằng hai phương pháp</span>
       </footer>
     </aside>
   );

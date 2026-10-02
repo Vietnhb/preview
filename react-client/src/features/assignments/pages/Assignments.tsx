@@ -1,19 +1,17 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { createAssignment, studentOptions, teacherAssignments, assignmentSubmissions, gradeAssignmentSubmission, reopenAssignmentSubmission, teacherAssignmentClasses } from "../api/assignmentApi";
-import { createLibraryFolder, personalLibrary } from "../../library/api/libraryApi";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { createAssignment, setAssignmentOpen, studentOptions, teacherAssignments, teacherAssignmentClasses } from "../api/assignmentApi";
+import { createLibraryFolder } from "../../library/api/libraryApi";
 import { getSimulation } from "../../simulation/api/simulationApi";
 import TeacherLibraryPane from "../../library/components/TeacherLibraryPane";
-import type { Assignment, AssignmentSubmission, LibraryItem, StudentOption, Simulation, AssignmentActivityType, TeacherClassOption } from "../../../shared/types/physlive";
+import type { Assignment, LibraryItem, StudentOption, Simulation, AssignmentActivityType, TeacherClassOption } from "../../../shared/types/physlive";
 import { isStudentRole } from "../../../shared/auth/roles";
 import { useSessionStore } from "../../../shared/auth/sessionStore";
 import { useTeacherLibrary } from "../../library/hooks/useTeacherLibrary";
 import { TeacherAssignmentForm } from "../components/TeacherAssignmentForm";
 import { TeacherAssignmentHistory } from "../components/TeacherAssignmentHistory";
-import { TeacherSubmissionViewer } from "../components/TeacherSubmissionViewer";
 import "../styles/assignment-flow.css";
 
-const StudentAssignments = lazy(() => import("./StudentAssignments"));
 
 type Props = {
   workspaceLayout?: boolean;
@@ -34,10 +32,11 @@ export default function Assignments({
 
   // STAFF ASSIGNMENT STUDIO & SUBMISSIONS MANAGEMENT
   const [items, setItems] = useState<Assignment[]>([]);
-  const [saved, setSaved] = useState<LibraryItem[]>([]);
+  // Only validated simulations can be assigned; the list comes from the shared library store (one request).
+  const saved = useMemo(() => libraryItems.filter(item => item.validationStatus === "PASSED"), [libraryItems]);
   const [view, setView] = useState<"create" | "history">(() => workspaceLayout ? "create" : "history");
   const [formVersion, setFormVersion] = useState(0);
-  const inspectorRequest = useRef(0);
+  const navigate = useNavigate();
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [classes, setClasses] = useState<TeacherClassOption[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -50,6 +49,7 @@ export default function Assignments({
   const [activityType, setActivityType] = useState<AssignmentActivityType>("PREDICT_OBSERVE_EXPLAIN");
   const [assignmentSimulation, setAssignmentSimulation] = useState<Simulation | null>(null);
   const [simulationOptionsLoading, setSimulationOptionsLoading] = useState(false);
+  const [simulationOptionsError, setSimulationOptionsError] = useState(false);
   const [targetSeriesSource, setTargetSeriesSource] = useState("");
   const [sampleTime, setSampleTime] = useState("");
   const [measurementTolerance, setMeasurementTolerance] = useState("0.1");
@@ -63,27 +63,18 @@ export default function Assignments({
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
 
-  // Submissions inspector modal state
-  const [inspectingAssignment, setInspectingAssignment] =
-    useState<Assignment | null>(null);
-  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
-  const [submissionsLoading, setSubmissionsLoading] = useState(false);
-  const [submissionsError, setSubmissionsError] = useState("");
-
   const loadData = useCallback(async () => {
     if (!user || isStudent) return;
     setLoading(true);
     setError("");
     try {
-      const [assignments, libraryItems, studentItems, classItems] =
+      const [assignments, studentItems, classItems] =
         await Promise.all([
           teacherAssignments(),
-          personalLibrary(),
           studentOptions(),
           teacherAssignmentClasses(),
         ]);
       setItems(assignments);
-      setSaved(libraryItems.filter(item => item.validationStatus === "PASSED"));
       setStudents(studentItems);
       setClasses(classItems);
     } catch {
@@ -138,6 +129,7 @@ export default function Assignments({
   useEffect(() => {
     let active = true;
     setAssignmentSimulation(null);
+    setSimulationOptionsError(false);
     setTargetSeriesSource("");
     setInvestigationParameter("");
     setInvestigationOutcome("");
@@ -152,7 +144,7 @@ export default function Assignments({
       setSampleTime(String(simulation.time.at(-1) ?? 0));
       setInvestigationParameter(Object.keys(simulation.parameters)[0] ?? "");
     }).catch(() => {
-      if (active) setAssignmentSimulation(null);
+      if (active) { setAssignmentSimulation(null); setSimulationOptionsError(true); }
     }).finally(() => {
       if (active) setSimulationOptionsLoading(false);
     });
@@ -170,10 +162,17 @@ export default function Assignments({
     [classes, selectedClassId],
   );
 
+  // Giving the work to the whole class is the usual case, so start with everyone selected.
   const handleClassChange = (id: string) => {
     setSelectedClassId(id);
-    setSelectedStudents([]);
+    setSelectedStudents((classes.find(item => item.id === id)?.students ?? []).map(student => student.id));
   };
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 8000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const handleSelectAllStudents = () => {
     if (selectedStudents.length === classStudents.length) {
@@ -198,7 +197,7 @@ export default function Assignments({
     const measurementInvalid = activityType === "MEASUREMENT" && (!targetSeriesSource || !sampleTime.trim() || !Number.isFinite(Number(sampleTime)) || !measurementTolerance.trim() || !Number.isFinite(Number(measurementTolerance)) || Number(measurementTolerance) < 0);
     const investigationInvalid = activityType === "PARAMETER_INVESTIGATION" && !investigationParameter;
     if (!Number.isFinite(Number(maxScore)) || Number(maxScore) <= 0 || (dueAt && (!Number.isFinite(new Date(dueAt).getTime()) || new Date(dueAt).getTime() <= Date.now())) || measurementInvalid || investigationInvalid) {
-      setError("Kiểm tra lại điểm tối đa, đáp án số, sai số và hạn nộp."); return;
+      setError("Chưa giao được: kiểm tra lại điểm tối đa, cấu hình loại bài và hạn nộp (phải ở tương lai)."); return;
     }
     setSubmitting(true);
     setError("");
@@ -247,42 +246,22 @@ export default function Assignments({
     }
   };
 
-  // Open submissions viewer modal
-  const handleOpenSubmissions = async (assignment: Assignment) => {
-    const request = ++inspectorRequest.current;
-    setSubmissions([]);
-    setInspectingAssignment(assignment);
-    setSubmissionsLoading(true);
-    setSubmissionsError("");
+  // Grading lives on the "Bài nộp" page; open it on this assignment.
+  const handleOpenSubmissions = (assignment: Assignment) => navigate(`/lab?assignment=${encodeURIComponent(assignment.id)}`);
+
+  const handleToggleOpen = async (assignment: Assignment) => {
+    const closing = assignment.status === "ACTIVE";
+    if (closing && !window.confirm(`Đóng bài “${assignment.title}”? Học sinh chưa nộp sẽ không nộp được nữa. Bạn có thể mở lại sau.`)) return;
+    setError("");
     try {
-      const data = await assignmentSubmissions(assignment.id);
-      if (request === inspectorRequest.current) setSubmissions(data);
+      const updated = await setAssignmentOpen(assignment.id, !closing);
+      setItems(current => current.map(item => item.id === updated.id ? updated : item));
     } catch {
-      if (request === inspectorRequest.current) setSubmissionsError("Chưa tải được danh sách bài nộp của học sinh.");
-    } finally {
-      if (request === inspectorRequest.current) setSubmissionsLoading(false);
+      setError(closing ? "Chưa đóng được bài tập. Vui lòng thử lại." : "Chưa mở lại được bài tập. Vui lòng thử lại.");
     }
   };
 
-  const gradeSubmission = async (submissionId: string, score: number, feedback: string) => {
-    if (!inspectingAssignment) return;
-    const updated = await gradeAssignmentSubmission(inspectingAssignment.id, submissionId, score, feedback, true);
-    setSubmissions(current => current.map(item => item.id === updated.id ? updated : item));
-  };
-
-  const reopenSubmission = async (submissionId: string) => {
-    if (!inspectingAssignment) return;
-    const updated = await reopenAssignmentSubmission(inspectingAssignment.id, submissionId);
-    setSubmissions(current => current.map(item => item.id === updated.id ? updated : item));
-  };
-
-  if (isStudent) {
-    return (
-      <Suspense fallback={<main className="route-loading" aria-busy="true" />}>
-        <StudentAssignments />
-      </Suspense>
-    );
-  }
+  if (isStudent) return <Navigate to="/student/assignments" replace />;
   if (!user)
     return (
       <main className="main student-main">
@@ -324,24 +303,14 @@ export default function Assignments({
         <div className={workspaceLayout ? "assignment-workspace-content" : "assignment-workspace-content-standard"}>
         {notice && (
           <div
-            className="status-pill pass"
-            style={{
-              padding: "10px 16px",
-              marginBottom: "16px",
-              width: "100%",
-            }}
+            className="status-pill pass assignment-banner" role="status"
           >
             {notice}
           </div>
         )}
         {error && (
           <div
-            className="status-pill fail"
-            style={{
-              padding: "10px 16px",
-              marginBottom: "16px",
-              width: "100%",
-            }}
+            className="status-pill fail assignment-banner" role="alert"
           >
             {error}
           </div>
@@ -349,11 +318,19 @@ export default function Assignments({
 
         {!workspaceLayout && <header className="assignment-flow-header"><div><span className="assignment-eyebrow">Không gian giáo viên</span><h1>Bài tập mô phỏng</h1><p>Soạn bài, giao cho học sinh và theo dõi bài nộp tại một nơi.</p></div><button type="button" className="prediction-submit-btn" onClick={() => setView("create")}>+ Giao bài mới</button></header>}
         {!workspaceLayout && <div className="modern-tabs"><button className={`modern-tab-btn ${view === "history" ? "active" : ""}`} onClick={() => setView("history")}>Bài đã giao · {items.length}</button><button className={`modern-tab-btn ${view === "create" ? "active" : ""}`} onClick={() => setView("create")}>Soạn bài tập</button></div>}
-        {loading && <p role="status">Đang tải dữ liệu bài tập…</p>}
+        {view === "create" && (libraryLoading || (loading && !(workspaceLayout && saved.length > 0))) && <div className={`modern-card assignment-skeleton${workspaceLayout ? " assignment-workspace-panel" : ""}`} role="status" aria-label="Đang tải dữ liệu bài tập">
+          <span className="skeleton skeleton-title" /><span className="skeleton skeleton-line" style={{ width: "62%" }} />
+          <div className="assignment-skeleton-steps"><span className="skeleton" /><span className="skeleton" /><span className="skeleton" /></div>
+          <span className="skeleton skeleton-label" /><span className="skeleton skeleton-field" />
+          <span className="skeleton skeleton-label" />
+          <div className="assignment-skeleton-grid"><span className="skeleton" /><span className="skeleton" /><span className="skeleton" /><span className="skeleton" /></div>
+          <span className="skeleton skeleton-label" /><span className="skeleton skeleton-field" />
+          <span className="skeleton skeleton-label" /><span className="skeleton skeleton-area" />
+        </div>}
         <div
           className="assignment-flow-body"
         >
-          {view === "create" && (!loading || (workspaceLayout && saved.length > 0)) && <TeacherAssignmentForm
+          {view === "create" && !libraryLoading && (!loading || (workspaceLayout && saved.length > 0)) && <TeacherAssignmentForm
             key={formVersion}
             workspaceLayout={workspaceLayout}
             saved={saved}
@@ -365,6 +342,7 @@ export default function Assignments({
             activityType={activityType}
             simulation={assignmentSimulation}
             simulationOptionsLoading={simulationOptionsLoading}
+            simulationOptionsError={simulationOptionsError}
             targetSeriesSource={targetSeriesSource}
             sampleTime={sampleTime}
             measurementTolerance={measurementTolerance}
@@ -401,11 +379,9 @@ export default function Assignments({
             classes={classes}
             students={students}
             loading={loading}
-            selectedAssignmentId={inspectingAssignment?.id}
             onRefresh={loadData}
-            onOpenSubmissions={(assignment) =>
-              void handleOpenSubmissions(assignment)
-            }
+            onOpenSubmissions={handleOpenSubmissions}
+            onToggleOpen={assignment => void handleToggleOpen(assignment)}
           />}
         </div>
 
@@ -418,23 +394,11 @@ export default function Assignments({
           classes={classes}
           students={students}
           loading={loading}
-          selectedAssignmentId={inspectingAssignment?.id}
           onRefresh={loadData}
-          onOpenSubmissions={assignment => void handleOpenSubmissions(assignment)}
+          onOpenSubmissions={handleOpenSubmissions}
+            onToggleOpen={assignment => void handleToggleOpen(assignment)}
         />
       </aside>}
-      {inspectingAssignment && (
-        <TeacherSubmissionViewer
-          assignment={inspectingAssignment}
-          submissions={submissions}
-          loading={submissionsLoading}
-          error={submissionsError}
-          inline={false}
-          onClose={() => { inspectorRequest.current += 1; setInspectingAssignment(null); }}
-          onGrade={gradeSubmission}
-          onReopen={reopenSubmission}
-        />
-      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { ReviewerIcon, ReviewerRefresh, type ReviewerIconName } from "./Reviewer
 type PendingItem = { createdAt?: string };
 type Counts = {
   moderation?: { pending: number; oldest?: string };
-  drafts?: { schemas: number; solvers: number; modules: number };
+  drafts?: { schemas: number; modules: number };
   benchmarks?: { annotate: number; adjudicate: number; draft: number };
 };
 type Task = { id: string; view: ReviewerView; section?: string; icon: ReviewerIconName; count: number; title: string; detail: string; action: string };
@@ -24,10 +24,9 @@ function useOverview(access: ReviewerAccess) {
   const [failed, setFailed] = useState(false);
   const load = useCallback(async () => {
     setLoading(true); setFailed(false);
-    const [library, schemas, solvers, modules, benchmarks] = await Promise.all([
+    const [library, schemas, modules, benchmarks] = await Promise.all([
       access.canReview ? settle(api.get<PendingItem[]>("/reviewer/library", { params: { status: "PENDING" } })) : undefined,
       access.canEdit ? settle(api.get<Version[]>("/reviewer/schemas")) : undefined,
-      access.canEdit ? settle(api.get<Version[]>("/reviewer/solvers")) : undefined,
       access.canEdit ? settle(api.get<ModuleRelease[]>("/reviewer/module-releases")) : undefined,
       access.canEdit ? settle(api.get<Benchmark[]>("/reviewer/benchmarks")) : undefined,
     ]);
@@ -39,7 +38,6 @@ function useOverview(access: ReviewerAccess) {
     if (access.canEdit) {
       next.drafts = {
         schemas: schemas?.filter(item => item.lifecycleStatus === "DRAFT").length ?? 0,
-        solvers: solvers?.filter(item => item.lifecycleStatus === "DRAFT").length ?? 0,
         modules: modules?.filter(item => item.lifecycleStatus === "DRAFT").length ?? 0,
       };
       if (benchmarks) next.benchmarks = {
@@ -65,8 +63,8 @@ export function ReviewerOverview({ access, name, onOpen }: Readonly<{ access: Re
     tasks.push({ id: "benchmarks", view: "benchmarks", icon: "benchmark", count: work, title: "Đề kiểm thử cần bạn", detail: work ? `${counts.benchmarks.annotate} đề cần gán đáp án · ${counts.benchmarks.adjudicate} đề cần phân xử.` : "Không có đề nào đang chờ bạn.", action: "Mở danh sách đề" });
   }
   if (counts.drafts) {
-    const drafts = counts.drafts.schemas + counts.drafts.solvers + counts.drafts.modules;
-    tasks.push({ id: "drafts", view: "topics", section: counts.drafts.schemas ? "schemas" : counts.drafts.solvers ? "solvers" : "modules", icon: "schema", count: drafts, title: "Bản nháp chờ phê duyệt", detail: drafts ? `${counts.drafts.schemas} chủ đề · ${counts.drafts.solvers} bộ giải · ${counts.drafts.modules} gói phát hành.` : "Không có bản nháp tồn đọng.", action: "Xem bản nháp" });
+    const drafts = counts.drafts.schemas + counts.drafts.modules;
+    tasks.push({ id: "drafts", view: "topics", section: counts.drafts.schemas ? "schemas" : "modules", icon: "schema", count: drafts, title: "Bản nháp chờ phê duyệt", detail: drafts ? `${counts.drafts.schemas} chủ đề · ${counts.drafts.solvers} bộ giải · ${counts.drafts.modules} gói phát hành.` : "Không có bản nháp tồn đọng.", action: "Xem bản nháp" });
   }
   const total = tasks.reduce((sum, task) => sum + task.count, 0);
   const firstName = name?.trim().split(/\s+/).at(-1);
@@ -93,7 +91,7 @@ export function ReviewerOverview({ access, name, onOpen }: Readonly<{ access: Re
       <Heading as="h2" size="3">Quyền của bạn</Heading>
       <ul>
         {access.canReview && <li><ReviewerIcon name="eye" size={16} /><span><strong>Kiểm duyệt nội dung</strong> — xem mô phỏng giáo viên chia sẻ, phê duyệt, đánh dấu nổi bật, từ chối hoặc gỡ khỏi thư viện công khai.</span></li>}
-        {access.canEdit && <li><ReviewerIcon name="edit" size={16} /><span><strong>Biên soạn dữ liệu chuẩn</strong> — quản lý chủ đề vật lý, bộ giải và đề kiểm thử độ chính xác.</span></li>}
+        {access.canEdit && <li><ReviewerIcon name="edit" size={16} /><span><strong>Biên soạn dữ liệu chuẩn</strong> — quản lý chủ đề vật lý và đề kiểm thử độ chính xác.</span></li>}
       </ul>
       {!access.isManager && (!access.canEdit || !access.canReview) && <Text as="p" size="2" color="gray">Cần thêm quyền? Liên hệ bộ phận vận hành (Manager) để được cấp.</Text>}
     </Card>

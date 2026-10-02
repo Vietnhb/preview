@@ -236,8 +236,11 @@ public class AssignmentService {
     @Transactional(readOnly = true)
     public List<AssignmentResponse> forStudent() {
         User student = currentUserService.requireCurrentUser();
+        // A closed assignment stays visible to students who handed it in, so their score and feedback are not lost.
         return assignmentRepository.findByAssignedStudentIdsContaining(student.getId()).stream()
-                .filter(item -> item.getStatus() == com.example.backend.system.assignment.model.enums.AssignmentStatus.ACTIVE)
+                .filter(item -> item.getStatus() == AssignmentStatus.ACTIVE
+                        || submissionRepository.findByAssignmentIdAndStudentId(item.getId(), student.getId())
+                                .map(submission -> submission.getCompletedAt() != null).orElse(false))
                 .map(this::toResponse).toList();
     }
 
@@ -303,7 +306,7 @@ public class AssignmentService {
         }
         AssignmentSubmission submission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId()).orElse(null);
         if (assignment.getStatus() != com.example.backend.system.assignment.model.enums.AssignmentStatus.ACTIVE)
-            throw ApiException.badRequest("Assignment is closed");
+            throw ApiException.badRequest("Bài tập đã đóng, không nhận thêm bài làm.");
         // Late work remains accepted and is identifiable from dueAt/submittedAt.
         JsonNode prediction = request.predictions();
         if (prediction == null || !prediction.path(ANSWER_TEXT).isTextual()
@@ -333,7 +336,7 @@ public class AssignmentService {
         if (!assignment.getAssignedStudentIds().contains(student.getId()))
             throw ApiException.forbidden("Assignment is not assigned to this student");
         if (assignment.getStatus() != com.example.backend.system.assignment.model.enums.AssignmentStatus.ACTIVE)
-            throw ApiException.badRequest("Assignment is closed");
+            throw ApiException.badRequest("Bài tập đã đóng, không nhận thêm bài làm.");
         AssignmentSubmission submission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId()).orElse(null);
         if (submission == null && requiresPrediction(assignment))
             throw ApiException.badRequest("Submit a prediction before completing the assignment");
@@ -348,9 +351,15 @@ public class AssignmentService {
             throw ApiException.conflict("Assignment already submitted");
         if (!(submission.getPredictions() instanceof ObjectNode prediction))
             throw ApiException.badRequest("Prediction answer is invalid");
-        String answer = request.answerText() == null || request.answerText().isBlank()
-                ? request.conclusion().trim() : request.answerText().trim();
+        // The prediction made before the simulation opened is the record of a predict-observe-explain
+        // activity; completing the work must never replace it with the conclusion.
+        boolean keepsPrediction = requiresPrediction(assignment) && prediction.path(ANSWER_TEXT).isTextual()
+                && !prediction.path(ANSWER_TEXT).asText().isBlank();
+        if (!keepsPrediction) {
+            String answer = request.answerText() == null || request.answerText().isBlank()
+                    ? request.conclusion().trim() : request.answerText().trim();
             prediction.put(ANSWER_TEXT, answer);
+        }
         prediction.put("conclusion", request.conclusion().trim());
         if (request.estimatedValue() != null && Double.isFinite(request.estimatedValue()))
             prediction.put(ESTIMATED_VALUE, request.estimatedValue());
@@ -414,9 +423,28 @@ public class AssignmentService {
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
                 .filter(item -> item.getAssignment().getId().equals(assignmentId))
                 .orElseThrow(() -> ApiException.notFound("Submission not found"));
+        if (assignment.getStatus() != AssignmentStatus.ACTIVE)
+            throw ApiException.badRequest("Bài tập đã đóng. Hãy mở lại bài tập trước khi trả bài cho học sinh.");
+        if (submission.getCompletedAt() == null)
+            throw ApiException.badRequest("Học sinh chưa nộp bài này nên không thể trả lại.");
+        // The old grade belongs to the returned attempt; the new attempt is graded afresh.
+        submission.setScore(null); submission.setMaxScore(null); submission.setGradedAt(null); submission.setGradedBy(null);
         submission.setRetryAllowed(true); submission.setGradingStatus(com.example.backend.system.assignment.model.enums.GradingStatus.RETURNED);
         submission.setCompletedAt(null);
         return toSubmission(submissionRepository.save(submission));
+    }
+
+    /** Closing stops new work from students; reopening accepts it again. Grades already given are kept. */
+    @Transactional
+    public AssignmentResponse setStatus(java.util.UUID assignmentId, AssignmentStatus status) {
+        User teacher = currentUserService.requireCurrentUser();
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> ApiException.notFound(ASSIGNMENT_NOT_FOUND));
+        if (!RoleName.MANAGER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
+                && !assignment.getTeacher().getId().equals(teacher.getId()))
+            throw ApiException.forbidden("Chỉ giáo viên giao bài mới được đóng hoặc mở lại bài tập này.");
+        assignment.setStatus(status);
+        return toResponse(assignmentRepository.save(assignment));
     }
 
     @Transactional(readOnly = true)
@@ -453,11 +481,9 @@ public class AssignmentService {
 
     private AssignmentResponse toResponse(Assignment item) {
         User current = currentUserService.requireCurrentUser();
-        boolean predictionSubmitted = current.getRole() != null
-                && RoleName.STUDENT.matches(current.getRole().getName())
-                && submissionRepository.existsByAssignmentIdAndStudentId(item.getId(), current.getId());
         AssignmentSubmission ownSubmission = current.getRole() != null && RoleName.STUDENT.matches(current.getRole().getName())
                 ? submissionRepository.findByAssignmentIdAndStudentId(item.getId(), current.getId()).orElse(null) : null;
+        boolean predictionSubmitted = ownSubmission != null;
         return new AssignmentResponse(item.getId(), item.getLibraryItem() == null ? null : item.getLibraryItem().getId(),
                 item.getLibraryItem() == null ? null : item.getLibraryItem().getTitle(),
                 item.getSchoolClass() == null ? null : item.getSchoolClass().getId(),

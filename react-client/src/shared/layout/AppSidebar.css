@@ -1,0 +1,478 @@
+/* Signed-in application shell: collapsible sidebar (groups, badges, user menu)
+ * + top bar. Colours come from tokens.css, so it follows the theme. */
+.app-shell {
+  --sidebar-w: 264px;
+  --sidebar-rail: 68px;
+  --topbar-h: 56px;
+  --header-h: var(--topbar-h);
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  transition: grid-template-columns 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.app-shell[data-collapsed] {
+  grid-template-columns: var(--sidebar-rail) minmax(0, 1fr);
+}
+
+/* ---- Sidebar ---- */
+.app-sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+.app-sidebar__head {
+  display: flex;
+  align-items: center;
+  height: var(--topbar-h);
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.app-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 10px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.app-sidebar__brand-copy,
+.app-sidebar__user-copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+.app-sidebar__brand-copy strong {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.app-sidebar__brand-copy small,
+.app-sidebar__user-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-sidebar__nav {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 18px;
+  min-height: 0;
+  padding: 14px 10px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.app-sidebar__group {
+  display: grid;
+  gap: 2px;
+}
+.app-sidebar__label {
+  margin: 0 0 4px;
+  padding: 0 10px;
+  overflow: hidden;
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.app-sidebar__item {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.app-sidebar__item .learn-icon {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+.app-sidebar__item:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.app-sidebar__item[data-active] {
+  background: transparent;
+  color: var(--ink);
+  font-weight: 600;
+}
+.app-sidebar__item[data-active] .learn-icon,
+.app-sidebar__item:hover .learn-icon {
+  color: var(--ink);
+}
+.app-sidebar__pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--surface-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.app-sidebar__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-sidebar__badge {
+  flex: 0 0 auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
+  text-align: center;
+}
+.app-sidebar__item:focus-visible,
+.app-sidebar__brand:focus-visible,
+.app-shell button.app-sidebar__user:focus-visible,
+.app-shell button.app-topbar__toggle:focus-visible,
+.app-user-menu__item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Footer user button + menu */
+.app-sidebar__foot {
+  position: relative;
+  padding: 10px;
+  border-top: 1px solid var(--line);
+}
+.app-shell button.app-sidebar__user,
+.app-shell button.app-sidebar__user:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.app-shell button.app-sidebar__user:hover:not(:disabled),
+.app-shell button.app-sidebar__user[aria-expanded="true"] {
+  background: var(--surface-3);
+}
+.app-sidebar__avatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 700;
+}
+.app-sidebar__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.app-sidebar__user-copy {
+  flex: 1;
+}
+.app-sidebar__user-copy strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-sidebar__caret {
+  flex: 0 0 auto;
+  color: var(--subtle);
+}
+.app-user-menu {
+  position: absolute;
+  right: 10px;
+  bottom: calc(100% - 2px);
+  left: 10px;
+  z-index: 60;
+  display: grid;
+  gap: 2px;
+  min-width: 232px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transform-origin: bottom left;
+}
+.app-user-menu__who {
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  line-height: 1.35;
+}
+.app-user-menu__who strong {
+  font-size: 13px;
+}
+.app-user-menu__who small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+.app-user-menu__item,
+.app-shell button.app-user-menu__item,
+.app-shell button.app-user-menu__item:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+.app-user-menu__item:hover,
+.app-shell button.app-user-menu__item:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.app-user-menu__item .learn-icon {
+  width: 16px;
+  height: 16px;
+}
+.app-shell button.app-user-menu__item--danger,
+.app-shell button.app-user-menu__item--danger:hover:not(:disabled) {
+  color: var(--danger);
+}
+.app-shell button.app-user-menu__item--danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+}
+.app-user-menu__theme {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  margin: 4px 0;
+  border-block: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ---- Collapsed rail ---- */
+.app-shell[data-collapsed] .app-sidebar__brand-copy,
+.app-shell[data-collapsed] .app-sidebar__label,
+.app-shell[data-collapsed] .app-sidebar__text,
+.app-shell[data-collapsed] .app-sidebar__user-copy,
+.app-shell[data-collapsed] .app-sidebar__caret {
+  display: none;
+}
+.app-shell[data-collapsed] .app-sidebar__head,
+.app-shell[data-collapsed] .app-sidebar__item,
+.app-shell[data-collapsed] button.app-sidebar__user {
+  justify-content: center;
+  padding-inline: 0;
+}
+.app-shell[data-collapsed] .app-sidebar__group + .app-sidebar__group {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.app-shell[data-collapsed] .app-sidebar__nav {
+  gap: 14px;
+}
+.app-shell[data-collapsed] .app-sidebar__badge {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  overflow: hidden;
+  color: transparent;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.app-shell[data-collapsed] .app-user-menu {
+  right: auto;
+}
+
+/* ---- Main column ---- */
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--topbar-h);
+  padding: 0 20px 0 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--chrome);
+  backdrop-filter: saturate(1.4) blur(12px);
+}
+.app-shell button.app-topbar__toggle,
+.app-shell button.app-topbar__toggle:hover:not(:disabled) {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.app-shell button.app-topbar__toggle:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.app-topbar__toggle .learn-icon {
+  width: 18px;
+  height: 18px;
+}
+.app-shell button.app-topbar__toggle--mobile {
+  display: none;
+}
+.app-topbar__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--line-strong);
+}
+.app-topbar__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.app-topbar__title > span[aria-hidden] {
+  color: var(--subtle);
+}
+.app-topbar__title strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+.app-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.app-content {
+  flex: 1;
+  min-width: 0;
+}
+.app-shell button.app-scrim {
+  display: none;
+}
+
+/* ---- Mobile: sidebar becomes a drawer ---- */
+@media (max-width: 900px) {
+  .app-shell,
+  .app-shell[data-collapsed] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(var(--sidebar-w), 86vw);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(-102%);
+    transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .app-shell[data-drawer] .app-sidebar {
+    transform: none;
+  }
+  .app-shell[data-drawer] button.app-scrim,
+  .app-shell[data-drawer] button.app-scrim:hover:not(:disabled) {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    display: block;
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: var(--scrim);
+    cursor: default;
+  }
+  /* The drawer always shows the full menu, even if the rail was chosen on desktop. */
+  .app-shell[data-collapsed] .app-sidebar__brand-copy,
+  .app-shell[data-collapsed] .app-sidebar__user-copy { display: grid; }
+  .app-shell[data-collapsed] .app-sidebar__label,
+  .app-shell[data-collapsed] .app-sidebar__text,
+  .app-shell[data-collapsed] .app-sidebar__caret { display: block; }
+  .app-shell[data-collapsed] .app-sidebar__head,
+  .app-shell[data-collapsed] .app-sidebar__item,
+  .app-shell[data-collapsed] button.app-sidebar__user { justify-content: flex-start; padding-inline: 10px; }
+  .app-shell[data-collapsed] .app-sidebar__badge { position: static; width: auto; height: auto; min-width: 20px; padding: 1px 6px; color: #fff; box-shadow: none; }
+  .app-shell button.app-topbar__toggle--desktop { display: none; }
+  .app-shell button.app-topbar__toggle--mobile { display: grid; }
+  .app-topbar__title > span:first-child,
+  .app-topbar__title > span[aria-hidden] { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell,
+  .app-sidebar { transition: none; }
+}
+
+/* Areas whose pages were written for the older admin shell keep its variables, not its layout. */
+.app-content.admin-shell {
+  display: block;
+  min-height: 0;
+  background: transparent;
+}

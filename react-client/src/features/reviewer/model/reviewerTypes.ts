@@ -6,10 +6,7 @@ export type Version = {
   name?: string;
   topic?: string;
   definition?: unknown;
-  solverId?: string;
-  outputDefinition?: { referenceSolverId?: string };
   definitionChecksum?: string;
-  bindingChecksum?: string;
   recordVersion?: number;
   createdAt: string;
 };

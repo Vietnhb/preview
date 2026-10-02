@@ -10,7 +10,7 @@
 .directory-self>div { flex:1; min-width:0; }
 .directory-self strong { font-size:13px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .directory-self small { font-size:11px; color:var(--gray-11); }
-.directory-main { flex:1; min-width:0; }
+.directory-main { min-width:0; color:var(--gray-12); }
 .directory-topbar { height:76px; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:0 32px; border-bottom:1px solid var(--gray-5); background:var(--color-panel-solid); font-size:14px; }
 .directory-topbar>span { color:var(--gray-11); }
 .directory-topbar>span span { margin:0 14px; color:var(--gray-8); }
@@ -54,3 +54,16 @@
   .directory-stat-icon { width:30px; height:30px; flex-shrink:0; } .directory-stat-icon svg { width:16px; height:16px; }
   .directory-filters, .directory-panel-heading { padding-inline:16px; }
 }
+
+/* ---- ADMIN overview (AdminArea.tsx) ---- */
+.admin-home__grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:20px; margin-top:20px; }
+.admin-home__roles, .admin-home__managers { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+.admin-home__roles li { display:grid; grid-template-columns:150px minmax(0,1fr) 44px; align-items:center; gap:12px; font-size:14px; color:var(--ink-2); }
+.admin-home__roles strong { text-align:right; font-variant-numeric:tabular-nums; color:var(--ink); }
+.admin-home__bar { height:8px; border-radius:999px; background:var(--surface-3); overflow:hidden; }
+.admin-home__bar > span { display:block; height:100%; border-radius:inherit; background:var(--accent); transition:width .5s cubic-bezier(.22,1,.36,1); }
+.admin-home__managers li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+.admin-home__managers li:last-child { padding-bottom:0; border-bottom:0; }
+.admin-home__managers li > span { display:grid; min-width:0; line-height:1.35; }
+.admin-home__managers small { color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; }
+@media(max-width:900px) { .admin-home__grid { grid-template-columns:minmax(0,1fr); } .admin-home__roles li { grid-template-columns:120px minmax(0,1fr) 36px; } }

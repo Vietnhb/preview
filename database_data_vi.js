@@ -1,4 +1,4 @@
-// Data cho 36 bảng database PhysLive - Tiếng Việt với Ví dụ và Luồng
+// Data cho 35 bảng database PhysLive - Tiếng Việt với Ví dụ và Luồng
 
 const roleLabels = {
     'admin': 'ADMIN — Xem user và tạo manager',
@@ -1029,45 +1029,6 @@ Lesson 3: "Thực hành simulation"
         ]
     },
 
-    {
-        name: "solver_versions",
-        dbName: "solver_versions",
-        category: "curriculum",
-        categoryName: "Curriculum & Nội dung",
-        purpose: "Physics solver versions (numerical solver algorithms)",
-        roles: ["manager", "reviewer"],
-        columns: [
-            { name: "id", type: "VARCHAR(24) PRIMARY KEY", description: "Solver ID" },
-            { name: "archetype", type: "VARCHAR(40)", description: "Problem type" },
-            { name: "solver_type", type: "VARCHAR(20)", description: "NUMERICAL, SYMBOLIC" },
-            { name: "config_json", type: "JSONB", description: "Solver config" }
-        ],
-        example: `VÍ DỤ SOLVER VERSIONS:
-
-1. projectile-v1.0 (NUMERICAL)
-   - Runge-Kutta 4th order
-   - Step size: 0.01s
-   - Accuracy: 1e-6
-
-2. projectile-v2.0 (SYMBOLIC)
-   - Analytical solutions
-   - Exact answers
-   - Faster computation
-
-→ Simulations chọn solver version phù hợp`,
-        flow: [
-            { step: 1, desc: "MANAGER deploy solver algorithm mới" },
-            { step: 2, desc: "INSERT solver_versions" },
-            { step: 3, desc: "Simulations reference solver_version_id" },
-            { step: 4, desc: "Run simulation → Gọi solver tương ứng" }
-        ],
-        businessRules: [
-            "NUMERICAL: Numerical integration (chậm, chính xác)",
-            "SYMBOLIC: Analytical formulas (nhanh, exact)",
-            "Mỗi archetype có nhiều solver versions",
-            "Default solver = latest PUBLISHED version"
-        ]
-    },
 
     {
         name: "benchmark_problems",

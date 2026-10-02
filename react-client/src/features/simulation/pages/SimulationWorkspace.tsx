@@ -32,7 +32,8 @@ export default function SimulationWorkspace() {
         <div className="learn-layout" data-mobile-panel={mobilePanel} data-library-pane={canManageLearningContent}
           data-library-collapsed={libraryCollapsed}>
           {canManageLearningContent && <TeacherLibraryPane {...library} />}
-          <SimulationStage input={input} preview={preview} />
+          <SimulationStage input={input} preview={preview}
+            complaint={canManageLearningContent ? { simulationId: save.currentSimulationId || undefined, description: experiment.simulation?.description, parameters: experiment.values } : undefined} />
           <SimulationInspector experiment={experiment} explanation={explanation} save={save} />
         </div>
       </main>

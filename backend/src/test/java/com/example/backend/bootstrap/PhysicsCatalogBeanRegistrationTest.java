@@ -3,7 +3,6 @@ package com.example.backend.bootstrap;
 import com.example.backend.Application;
 import com.example.backend.system.curriculum.repository.TopicRepository;
 import com.example.backend.system.physics.repository.SchemaVersionRepository;
-import com.example.backend.system.physics.repository.SolverVersionRepository;
 import com.example.backend.system.physics.service.SchemaDefinitionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
@@ -23,7 +22,6 @@ class PhysicsCatalogBeanRegistrationTest {
             context.getEnvironment().getPropertySources().addFirst(new MapPropertySource(
                     "bootstrap-test", Map.of("physlive.bootstrap.catalogs-enabled", "true")));
             context.registerBean(SchemaVersionRepository.class, () -> mock(SchemaVersionRepository.class));
-            context.registerBean(SolverVersionRepository.class, () -> mock(SolverVersionRepository.class));
             context.registerBean(TopicRepository.class, () -> mock(TopicRepository.class));
             context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
 

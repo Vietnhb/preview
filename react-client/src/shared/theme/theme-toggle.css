@@ -1,0 +1,153 @@
+/* Trigger + dropdown. Every box is sized explicitly so the global button
+ * rules (min-height, padding) and Radix resets cannot shift the layout. */
+.theme-menu {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+}
+button.theme-menu__trigger {
+  appearance: none;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  box-shadow: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: var(--theme-menu-ink, var(--ink-2));
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.theme-menu button.theme-menu__trigger:hover:not(:disabled),
+.theme-menu button.theme-menu__trigger[aria-expanded="true"] {
+  background: var(--theme-menu-hover, var(--surface-3));
+  color: var(--theme-menu-ink-strong, var(--ink));
+}
+.theme-menu__glyph {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+}
+.theme-menu__list {
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 80;
+  display: grid;
+  gap: 2px;
+  width: 188px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  transform-origin: top right;
+}
+.theme-menu__list--end { right: 0; }
+.theme-menu__list--start { left: 0; transform-origin: top left; }
+button.theme-menu__item {
+  appearance: none;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  box-shadow: none;
+  justify-content: flex-start;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.theme-menu button.theme-menu__item:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+button.theme-menu__item[aria-checked="true"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.theme-menu__item > span {
+  flex: 1;
+}
+.theme-menu__check {
+  color: var(--accent);
+}
+button.theme-menu__trigger:focus-visible,
+button.theme-menu__item:focus-visible,
+.theme-segmented button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.theme-segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.theme-segmented button,
+.theme-segmented button:hover:not(:disabled) {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.theme-segmented button[aria-pressed="true"],
+.theme-segmented button[aria-pressed="true"]:hover:not(:disabled) {
+  color: var(--ink);
+  font-weight: 600;
+}
+.theme-segmented__pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--surface);
+  box-shadow: var(--shadow-xs), 0 0 0 1px var(--line);
+}
+
+/* The reveal is driven from themeStore; the default cross-fade would fight the clip-path. */
+.theme-switching::view-transition-old(root),
+.theme-switching::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+.theme-switching::view-transition-new(root) {
+  z-index: 1;
+}

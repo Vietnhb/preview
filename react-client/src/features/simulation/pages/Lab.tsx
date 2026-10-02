@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import Icon from "../../../shared/ui/LearningIcon";
-import LearningHeader from "../../../shared/layout/LearningHeader";
 import { assignmentSubmissions, gradeAssignmentSubmission, reopenAssignmentSubmission, studentOptions, teacherAssignments } from "../../assignments/api/assignmentApi";
 import type { AssignmentSubmission, StudentOption } from "../../../shared/types/physlive";
 import { TeacherAssignmentList } from "../../assignments/components/TeacherAssignmentList";
@@ -17,65 +16,75 @@ export default function Lab() {
   const [students, setStudents] = useState<Map<number, StudentOption>>(
     new Map(),
   );
-  const [selectedId, setSelectedId] = useState("");
+  // "Xem và chấm bài nộp" on the assignment page links here with ?assignment=<id>.
+  const [searchParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState(() => searchParams.get("assignment") ?? "");
   const [submissionFilter, setSubmissionFilter] =
     useState<SubmissionFilter>("all");
   const [studentQuery, setStudentQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [submissionsLoading, setSubmissionsLoading] = useState(true);
+  const [loadedIds, setLoadedIds] = useState<ReadonlySet<string>>(new Set());
+  const [failedIds, setFailedIds] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState("");
+  const requested = useRef(new Set<string>());
+  const generation = useRef(0);
+
+  /** Fetches one assignment's submissions once; a failure only affects that assignment. */
+  const loadSubmissions = useCallback(async (assignmentId: string) => {
+    if (requested.current.has(assignmentId)) return;
+    requested.current.add(assignmentId);
+    const run = generation.current;
+    try {
+      const submissions = await assignmentSubmissions(assignmentId);
+      if (run !== generation.current) return;
+      setRecords(current => current.map(item => item.assignment.id === assignmentId ? { ...item, submissions } : item));
+      setLoadedIds(current => new Set(current).add(assignmentId));
+    } catch {
+      if (run !== generation.current) return;
+      requested.current.delete(assignmentId);
+      setFailedIds(current => new Set(current).add(assignmentId));
+    }
+  }, []);
 
   const load = useCallback(async () => {
+    const run = ++generation.current;
+    requested.current = new Set();
     setLoading(true);
-    setSubmissionsLoading(true);
+    setLoadedIds(new Set());
+    setFailedIds(new Set());
     setError("");
     try {
       const assignments = await teacherAssignments();
-      const nextRecords = assignments.map((assignment) => ({
-        assignment,
-        submissions: [] as AssignmentSubmission[],
-      }));
-      setRecords(nextRecords);
-      setSelectedId((current) =>
-        nextRecords.some((item) => item.assignment.id === current)
-          ? current
-          : (nextRecords[0]?.assignment.id ?? ""),
-      );
+      if (run !== generation.current) return;
+      setRecords(assignments.map(assignment => ({ assignment, submissions: [] as AssignmentSubmission[] })));
+      const wanted = new URLSearchParams(window.location.search).get("assignment");
+      const firstId = assignments.find(item => item.id === wanted)?.id ?? assignments[0]?.id ?? "";
+      setSelectedId(current => assignments.some(item => item.id === current) ? current : firstId);
       setLoading(false);
-
-      const [studentItems, submissionResults] = await Promise.all([
-        studentOptions(),
-        Promise.all(
-          assignments.map(
-            async (assignment) =>
-              [
-                assignment.id,
-                await assignmentSubmissions(assignment.id),
-              ] as const,
-          ),
-        ),
-      ]);
-      const submissionsByAssignment = new Map(submissionResults);
-      setStudents(
-        new Map(studentItems.map((student) => [student.id, student])),
-      );
-      setRecords((current) =>
-        current.map((item) => ({
-          ...item,
-          submissions: submissionsByAssignment.get(item.assignment.id) ?? [],
-        })),
-      );
+      void studentOptions().then(items => { if (run === generation.current) setStudents(new Map(items.map(student => [student.id, student]))); }).catch(() => undefined);
+      // The assignment on screen first, then the rest a few at a time so a long list does not flood the server.
+      const queue = [...assignments.map(item => item.id)].sort((a, b) => Number(b === firstId) - Number(a === firstId));
+      const worker = async () => { for (let id = queue.shift(); id && run === generation.current; id = queue.shift()) await loadSubmissions(id); };
+      await Promise.all(Array.from({ length: 4 }, worker));
     } catch {
-      setError("Không thể tải danh sách bài nộp. Vui lòng thử lại.");
+      if (run === generation.current) setError("Không thể tải danh sách bài đã giao. Vui lòng thử lại.");
     } finally {
-      setLoading(false);
-      setSubmissionsLoading(false);
+      if (run === generation.current) setLoading(false);
     }
-  }, []);
+  }, [loadSubmissions]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Opening an assignment the queue has not reached yet fetches it right away.
+  useEffect(() => {
+    if (selectedId && !loading) void loadSubmissions(selectedId);
+  }, [selectedId, loading, loadSubmissions]);
+
+  const submissionsLoading = records.some(item => !loadedIds.has(item.assignment.id) && !failedIds.has(item.assignment.id));
+  const selectedLoaded = loadedIds.has(selectedId);
+  const selectedFailed = failedIds.has(selectedId);
 
   const selected = records.find((item) => item.assignment.id === selectedId);
   const totals = useMemo(() => {
@@ -118,8 +127,7 @@ export default function Lab() {
   }, [records, selectedId, updateSubmission]);
 
   return (
-    <div className="learning-app lab-page">
-      <LearningHeader variant="submissions" />
+    <>
       <main className="lab-main">
         <div className="lab-container">
           <section className="lab-summary-strip" aria-label="Tổng quan bài nộp">
@@ -174,7 +182,7 @@ export default function Lab() {
                 records={records}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
-                submissionsLoading={submissionsLoading}
+                loadedIds={loadedIds}
               />
               <section
                 className="lab-submission-card"
@@ -191,9 +199,9 @@ export default function Lab() {
                       </div>
                       <div className="lab-progress-summary">
                         <strong>
-                          {submissionsLoading
-                            ? "—"
-                            : `${selectedSubmitted} / ${selectedTotal}`}
+                          {selectedLoaded
+                            ? `${selectedSubmitted} / ${selectedTotal}`
+                            : "—"}
                         </strong>
                         <span>đã nộp</span>
                       </div>
@@ -251,11 +259,16 @@ export default function Lab() {
                           onChange={(event) =>
                             setStudentQuery(event.target.value)
                           }
-                          placeholder="Tên hoặc ID"
+                          placeholder="Nhập tên học sinh"
                         />
                       </label>
                     </div>
-                    {submissionsLoading ? (
+                    {selectedFailed ? (
+                      <div className="lab-empty-state" role="alert">
+                        <strong>Chưa tải được bài nộp của bài này</strong>
+                        <button type="button" className="lab-grade-button" onClick={() => { setFailedIds(current => { const next = new Set(current); next.delete(selectedId); return next; }); void loadSubmissions(selectedId); }}>Thử lại</button>
+                      </div>
+                    ) : !selectedLoaded ? (
                       <TeacherSubmissionTableLoading />
                     ) : (
                       <TeacherSubmissionTable
@@ -278,6 +291,6 @@ export default function Lab() {
           )}
         </div>
       </main>
-    </div>
+    </>
   );
 }

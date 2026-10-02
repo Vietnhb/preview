@@ -56,7 +56,7 @@ export function ModuleApprovalTab() {
     {decision && <ReviewerDialog title={decision.status === "APPROVED" ? "Phát hành gói?" : "Ngừng dùng gói?"} onClose={() => setDecision(null)}>
       <Text as="p" size="3"><strong>{decision.release.moduleName}</strong> · chủ đề {decision.release.schemaId} v{decision.release.schemaVersion}</Text>
       <ul className="reviewer-consequences">{decision.status === "APPROVED"
-        ? <><li>Giáo viên sẽ tạo được mô phỏng thuộc gói này.</li><li>Chủ đề và bộ giải đi kèm phải đã được phê duyệt; nếu chưa, hệ thống sẽ báo lỗi.</li></>
+        ? <><li>Giáo viên sẽ tạo được mô phỏng thuộc gói này.</li><li>Định nghĩa chủ đề phải hợp lệ; nếu chưa, hệ thống sẽ báo lỗi.</li></>
         : <><li>Giáo viên sẽ không tạo mô phỏng mới thuộc gói này.</li><li>Mô phỏng đã tạo vẫn dùng được.</li></>}</ul>
       {action.feedback}
       <div className="reviewer-form-footer"><Button type="button" variant="soft" color="gray" size="2" onClick={() => setDecision(null)}>Hủy</Button><Button type="button" size="2" color={decision.status === "RETIRED" ? "red" : undefined} disabled={action.busy} onClick={() => void confirm()}>{action.busy ? "Đang cập nhật…" : decision.status === "APPROVED" ? "Phát hành" : "Ngừng dùng"}</Button></div>

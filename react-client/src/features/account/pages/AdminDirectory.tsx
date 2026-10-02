@@ -2,27 +2,21 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Avatar, Badge, Button, Callout, Card, Dialog, Flex, Heading, IconButton, Select, Table, Text, TextField } from "@radix-ui/themes";
 import { ArrowRightIcon, CheckCircledIcon, Cross2Icon, LockClosedIcon, MagnifyingGlassIcon, PersonIcon, PlusIcon, ReloadIcon } from "@radix-ui/react-icons";
 import { AnimatePresence, motion } from "motion/react";
-import { Link, useNavigate } from "react-router-dom";
 import { adminUsers, createManagedUser, setManagedUserActive, updateManagedUser } from "../api/userApi";
 import { apiMessage } from "../../../shared/lib/apiError";
 import { AccountProfileFields, ResetManagedPasswordDialog } from "../components/ManagedAccountFields";
 import { accountDetails, accountDetailsPayload, blankAccountDetails, type AccountDetails } from "../model/accountDetailsModel";
 import LearningIcon from "../../../shared/ui/LearningIcon";
-import { useSessionStore } from "../../../shared/auth/sessionStore";
 import { ROLE_NAMES, getRoleLabel } from "../../../shared/auth/roles";
 import type { User } from "../../../shared/auth/types";
 import { permissionSummary, permissionsForRole } from "../../../shared/auth/permissions";
-import { clearToken } from "../../../shared/lib/token";
 import "../styles/admin-directory.css";
-import BrandMark from "../../../shared/ui/BrandMark";
 
 const initialForm = { fullName: "", email: "", password: "", ...blankAccountDetails };
 const formatDate = (date?: string | null) => date ? new Date(date).toLocaleString("vi-VN") : "Chưa có thông tin";
 const roleColors: Record<string, "iris" | "indigo" | "amber" | "cyan" | "green" | "gray"> = { ADMIN: "iris", MANAGER: "indigo", REVIEWER: "amber", SCHOOL: "cyan", STAFF: "green", STUDENT: "gray" };
 
 export default function AdminDirectory() {
-  const currentUser = useSessionStore(state => state.user);
-  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -80,18 +74,8 @@ export default function AdminDirectory() {
     catch (err) { setError(apiMessage(err, "Không thể cập nhật trạng thái MANAGER.")); }
     finally { savingRef.current = false; setSaving(false); }
   };
-  const logout = () => { clearToken(); useSessionStore.getState().setUser(null); navigate("/login", { replace: true }); };
 
-  return <div className="directory-shell">
-    <aside className="directory-sidebar">
-      <Link className="directory-brand" to="/admin/users"><BrandMark size={32} wordmark={false} /><div>PhysLive<small>Quản trị hệ thống</small></div></Link>
-      <p className="directory-nav-label">Quản trị</p>
-      <Link className="directory-nav-active" to="/admin/users"><LearningIcon name="users" />Tài khoản người dùng</Link>
-      <Button variant="ghost" className="directory-nav-create" onClick={startCreate}><PlusIcon />Tạo MANAGER</Button>
-      <div className="directory-self"><Avatar size="2" src={currentUser?.avatarUrl || undefined} fallback={currentUser?.fullName?.slice(0, 1) || "A"} /><div><strong>{currentUser?.fullName}</strong><small>ADMIN</small></div><IconButton variant="ghost" color="gray" aria-label="Đăng xuất" onClick={logout}><LearningIcon name="logout" /></IconButton></div>
-    </aside>
-    <main className="directory-main">
-      <header className="directory-topbar"><span>Quản trị <span>/</span> Tài khoản</span><Button asChild variant="ghost" color="gray"><Link to="/profile"><PersonIcon />Hồ sơ cá nhân</Link></Button></header>
+  return <div className="directory-main">
       <div className="directory-content">
         <div className="directory-heading"><Heading as="h1" size="7">Tài khoản người dùng</Heading>
           <Dialog.Root open={creating} onOpenChange={next => { if (!saving) setCreating(next); }}>
@@ -140,7 +124,6 @@ export default function AdminDirectory() {
           </Card></motion.div>}</AnimatePresence>
         </div>
       </div>
-    </main>
     <ResetManagedPasswordDialog user={resetUser} onClose={() => setResetUser(null)} onUpdated={updated => { setUsers(items => items.map(item => item.id === updated.id ? updated : item)); setSuccess(`Đã đặt lại mật khẩu cho ${updated.email}.`); }} />
   </div>;
 }

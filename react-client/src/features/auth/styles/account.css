@@ -1,43 +1,70 @@
-.account-auth-page { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: clamp(32px, 6vw, 96px); align-items: center; width: 100%; max-width: calc(var(--page-max) + 64px); min-height: calc(100vh - var(--header-h)); margin: 0 auto; padding: 32px; color: var(--ink); }
-.account-auth-form { width: 100%; max-width: 400px; }
-.account-heading h1 { margin: 0; color: var(--ink); font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -.02em; }
-.account-heading p { margin: 8px 0 0; color: var(--muted); font-size: 15px; }
-.account-form { display: grid; gap: 18px; margin-top: 32px; }
-.account-form label { display: grid; gap: 6px; color: var(--ink-2); font-size: 14px; font-weight: 600; }
-.account-form input { width: 100%; height: 44px; padding: 0 12px; font-size: 15px; font-weight: 400; }
+.account-auth-page { position: relative; isolation: isolate; overflow: hidden; height: calc(100dvh - 1px); min-height: 600px; margin-top: calc(-1 * var(--header-h)); background: radial-gradient(120% 70% at 30% 0%, var(--stage-top) 0%, var(--stage) 60%); color: var(--stage-ink); }
+.account-auth-page > .aurora { position: absolute; inset: 0 0 auto; z-index: -2; width: 100%; height: 78%; opacity: var(--stage-aurora-opacity); }
+.account-auth-page > .dot-field { z-index: -1; mask-image: radial-gradient(ellipse 80% 80% at 50% 40%, #000 30%, transparent 100%); }
+/* Split screen: the live demo fills the left half, the form panel the right half. */
+.account-auth-inner { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); height: 100%; min-height: 0; }
+.account-auth-form { display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 0; padding: calc(var(--header-h) + 16px) max(28px, calc((100% - 400px) / 2)) 32px; border-left: 1px solid var(--stage-line); background: var(--stage-2); color: var(--ink); }
+.account-heading h1 { margin: 0; color: var(--ink); font-size: 28px; font-weight: 700; line-height: 1.25; letter-spacing: -.025em; }
+.account-heading p { margin: 8px 0 0; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
+.account-form { display: grid; gap: 16px; margin-top: clamp(18px, 3vh, 28px); }
+.account-form label { display: grid; gap: 7px; color: var(--ink-2); font-size: 14px; font-weight: 600; }
+.account-field { position: relative; display: block; }
+.account-field__icon { position: absolute; top: 50%; left: 14px; width: 18px; height: 18px; transform: translateY(-50%); fill: none; stroke: var(--subtle); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; transition: stroke .15s ease; }
+.account-field:focus-within .account-field__icon { stroke: var(--accent); }
+.account-form input { width: 100%; height: 48px; padding: 0 14px 0 42px; border-radius: 12px; font-size: 15px; font-weight: 400; }
 .account-form input::placeholder { color: var(--subtle); }
-.account-password { position: relative; display: block; }
-.account-password input { padding-right: 64px; }
-.account-form .account-password-toggle { position: absolute; top: 6px; right: 6px; min-height: 32px; padding: 0 10px; border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; }
-.account-form .account-password-toggle:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); }
-.account-form .account-submit { height: 46px; margin-top: 4px; font-size: 15px; }
-.account-error { display: flex; align-items: flex-start; gap: 8px; padding: 11px 12px; border: 1px solid var(--danger-line); border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger); font-size: 14px; font-weight: 500; line-height: 1.45; }
+.account-password input { padding-right: 52px; }
+.account-form button.account-password-toggle,
+.account-form button.account-password-toggle:hover:not(:disabled) { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 36px; height: 36px; min-height: 0; padding: 0; border: 0; border-radius: 9px; background: transparent; color: var(--muted); box-shadow: none; }
+.account-form button.account-password-toggle:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); }
+.account-password-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.account-caps { color: var(--warning, #b45309); font-size: 12.5px; font-weight: 500; }
+.account-form button.account-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; margin-top: 6px; border-radius: 12px; font-size: 15px; font-weight: 600; }
+.account-submit svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .18s ease; }
+.account-submit:hover:not(:disabled) svg { transform: translateX(3px); }
+.account-error { display: flex; align-items: flex-start; gap: 8px; padding: 11px 12px; border: 1px solid var(--danger-line); border-radius: 12px; background: var(--danger-soft); color: var(--danger); font-size: 14px; font-weight: 500; line-height: 1.45; }
 .account-error .learn-icon { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 2px; }
-.account-hint { margin: 20px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
-.account-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+.account-hint { display: flex; align-items: flex-start; gap: 10px; margin: 22px 0 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--muted); font-size: 13px; line-height: 1.55; }
+.account-hint svg { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 2px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.account-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 24px; color: var(--muted); font-size: 14px; }
 .account-links a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .account-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .account-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgb(255 255 255 / 45%); border-top-color: #fff; border-radius: 50%; animation: account-spin .7s linear infinite; }
 @keyframes account-spin { to { transform: rotate(360deg); } }
-.account-auth-aside { position: relative; isolation: isolate; overflow: hidden; align-self: stretch; display: flex; flex-direction: column; justify-content: center; min-height: 560px; padding: 56px; border-radius: 24px; background: radial-gradient(60% 60% at 70% 30%, rgb(37 99 235 / 30%), transparent 70%), var(--night); color: var(--night-ink); box-shadow: var(--shadow-lg); }
-.account-auth-aside .dot-field { z-index: -1; mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 30%, transparent 100%); }
-.account-aside-label { align-self: flex-start; margin: 0 0 18px; padding: 5px 12px; border: 1px solid var(--night-line); border-radius: 999px; color: var(--night-ink); font-size: 13px; font-weight: 500; }
-.account-auth-aside h2 { max-width: 18ch; margin: 0 0 36px; font-size: clamp(30px, 3vw, 42px); font-weight: 700; line-height: 1.12; letter-spacing: -.03em; }
+.account-auth-aside { display: flex; flex-direction: column; justify-content: center; width: min(100%, 640px); min-width: 0; min-height: 0; margin: 0 auto; padding: calc(var(--header-h) + 16px) 40px 32px; color: var(--stage-ink); }
+.account-auth-aside h2 { margin: 0 0 clamp(12px, 2.4vh, 28px); font-size: clamp(28px, 2.8vw, 40px); font-weight: 700; line-height: 1.22; letter-spacing: -.03em; }
 .account-auth-aside h2 > span { display: block; }
+/* The plot height follows the viewport so the page never scrolls. */
 .auth-figure { margin: 0; }
-.auth-figure svg { display: block; width: 100%; max-width: 520px; height: auto; }
-.auth-figure__grid { stroke: var(--night-line); stroke-width: 1; }
-.auth-figure__axis { stroke: var(--night-muted); stroke-width: 1.5; }
+.auth-figure svg { display: block; width: 100%; height: auto; max-height: max(150px, calc(100dvh - 440px)); }
+.auth-figure__grid { stroke: var(--stage-line); stroke-width: 1; }
+.auth-figure__axis { stroke: var(--stage-muted); stroke-width: 1.5; }
 .auth-figure path { fill: none; stroke-width: 2; stroke-linecap: round; }
-.auth-figure__other path { stroke: var(--night-muted); stroke-dasharray: 5 5; opacity: .7; }
-.auth-figure__other circle { fill: var(--night-muted); }
-.auth-figure__best path { stroke: var(--glow-1); stroke-width: 3; filter: drop-shadow(0 0 6px rgb(96 165 250 / 60%)); }
-.auth-figure__best circle { fill: var(--glow-2); }
-.auth-figure__label { fill: var(--glow-1); font: 600 12px var(--font-sans); }
-.auth-figure__label--muted { fill: var(--night-muted); font-weight: 500; }
-.auth-figure__tick { fill: var(--night-muted); font: 11px var(--font-mono); }
-.auth-figure figcaption { max-width: 46ch; margin-top: 18px; color: var(--night-muted); font-size: 14px; line-height: 1.6; }
-@media (max-width: 960px) { .account-auth-page { grid-template-columns: minmax(0, 1fr); justify-items: center; padding: 40px 20px; } .account-auth-aside { display: none; } }
+.auth-figure__other path { stroke: var(--stage-muted); stroke-dasharray: 5 5; opacity: .6; }
+.auth-figure__other circle { fill: var(--stage-muted); opacity: .7; }
+.auth-figure__best path { stroke: var(--stage-glow-1); stroke-width: 3; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--stage-glow-1) 45%, transparent)); }
+.auth-figure__best circle { fill: var(--stage-glow-2); }
+.auth-figure__drop { stroke: var(--stage-glow-1); stroke-width: 1; stroke-dasharray: 3 4; opacity: .5; }
+.auth-figure__label { fill: var(--stage-glow-1); font: 600 13px var(--font-sans); }
+.auth-figure__tick { fill: var(--stage-muted); font: 11px var(--font-mono); }
+.auth-figure__control { display: grid; grid-template-columns: auto minmax(0, 1fr) 40px; align-items: center; gap: 14px; margin-top: 14px; color: var(--stage-ink); font-size: 14px; font-weight: 500; }
+.auth-figure__control output { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.auth-figure__control input[type="range"] { --fill: 50%; width: 100%; height: 24px; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; appearance: none; -webkit-appearance: none; }
+.auth-figure__control input::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: linear-gradient(to right, var(--stage-glow-1) var(--fill), var(--stage-line) var(--fill)); }
+.auth-figure__control input::-moz-range-track { height: 4px; border-radius: 999px; background: var(--stage-line); }
+.auth-figure__control input::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--stage-glow-1); }
+.auth-figure__control input::-webkit-slider-thumb { width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: var(--stage-2); border: 2px solid var(--stage-glow-1); box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage-glow-1) 22%, transparent); transition: transform .12s ease; -webkit-appearance: none; }
+.auth-figure__control input::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: var(--stage-2); border: 2px solid var(--stage-glow-1); }
+.auth-figure__control input:hover::-webkit-slider-thumb, .auth-figure__control input:active::-webkit-slider-thumb { transform: scale(1.12); }
+.auth-figure__control input:focus-visible { outline: 2px solid var(--stage-glow-1); outline-offset: 4px; border-radius: 999px; }
+.auth-figure__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0 0; }
+.auth-figure__stats > div { padding: 12px 14px; border: 1px solid var(--stage-line); border-radius: 14px; background: var(--stage-card); box-shadow: var(--stage-card-shadow); backdrop-filter: blur(6px); }
+.auth-figure__stats dt { color: var(--stage-muted); font-size: 12px; line-height: 1.4; }
+.auth-figure__stats dd { margin: 4px 0 0; color: var(--stage-ink); font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; white-space: nowrap; }
+.auth-figure figcaption { margin-top: 14px; color: var(--stage-muted); font-size: 13px; line-height: 1.6; }
+@media (max-height: 720px) { .auth-figure figcaption { display: none; } .account-hint { margin-top: 14px; } .account-links { margin-top: 14px; } }
+@media (max-width: 960px), (max-height: 640px) { .account-auth-page { height: auto; min-height: 100dvh; overflow: visible; } .account-auth-inner { min-height: 100dvh; } }
+@media (max-width: 960px) { .account-auth-inner { grid-template-columns: minmax(0, 1fr); } .account-auth-form { border-left: 0; background: transparent; } .account-auth-aside { display: none; } }
 
 /* School subscription onboarding. Scoped away from personal account forms. */
 .school-signup { min-height: 100vh; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; }

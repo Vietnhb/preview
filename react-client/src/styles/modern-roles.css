@@ -200,7 +200,7 @@
 
 .modern-tab-btn:hover {
   color: var(--text-primary);
-  background: rgb(255 255 255 / 60%);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
 }
 
 .modern-tab-btn.active {
@@ -460,8 +460,8 @@
   padding: 12px;
   overflow-x: auto;
   border-radius: 8px;
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--code-bg);
+  color: var(--code-ink);
   font-size: 12px;
   white-space: pre;
 }
@@ -690,7 +690,7 @@
   margin: 0;
   border: 0;
   overflow-y: auto;
-  background: rgb(23 32 51 / 50%);
+  background: var(--scrim);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;

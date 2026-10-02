@@ -1,15 +1,43 @@
+/* Site navigation. One flat bar: brand, text links with a sliding underline,
+ * then theme + account on the right. No nested pills or capsules. */
 .site-nav {
+  --nav-ink: var(--ink);
+  --nav-muted: var(--muted);
+  --nav-hover: var(--surface-3);
+  --nav-line: var(--line);
+  --nav-surface: var(--chrome);
+  --nav-cta: var(--inverse);
+  --nav-cta-hover: var(--inverse-hover);
+  --nav-cta-ink: var(--on-inverse);
   position: sticky;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid var(--line);
-  background: rgb(255 255 255 / 92%);
-  backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom: 1px solid var(--nav-line);
+  background: var(--nav-surface);
+  backdrop-filter: saturate(1.4) blur(14px);
+  transition: background-color 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease;
 }
+/* Over a full-bleed hero: clear at the top of the page, surfaced once scrolled. */
+.site-nav--hero {
+  --nav-ink: var(--stage-ink);
+  --nav-muted: var(--stage-muted);
+  --nav-hover: rgb(var(--stage-rgb) / 7%);
+  --nav-line: var(--stage-line);
+  --nav-surface: var(--stage-glass);
+  --nav-cta: var(--stage-cta);
+  --nav-cta-hover: var(--stage-cta-hover);
+  --nav-cta-ink: var(--stage-cta-ink);
+}
+.site-nav--hero:not([data-scrolled]) {
+  border-bottom-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+}
+
 .site-nav__inner {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 40px;
   max-width: calc(var(--page-max) + 64px);
   height: var(--header-h);
   margin: 0 auto;
@@ -20,100 +48,114 @@
   flex-shrink: 0;
   text-decoration: none;
 }
+.site-nav .brand-mark {
+  color: var(--nav-ink);
+}
+
+/* Links */
 .site-nav__links {
   display: flex;
-  align-items: center;
-  gap: 2px;
+  align-items: stretch;
+  gap: 4px;
   min-width: 0;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface-2);
+  height: 100%;
 }
 .site-nav__link {
   position: relative;
-  isolation: isolate;
   display: inline-flex;
   align-items: center;
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 14px;
+  padding: 0 12px;
+  color: var(--nav-muted);
+  font-size: 14.5px;
   font-weight: 500;
   letter-spacing: -0.005em;
   text-decoration: none;
   white-space: nowrap;
   transition: color 0.15s ease;
 }
-.site-nav__link > span {
+.site-nav__link > span:not(.active-pill) {
   position: relative;
-  z-index: 1;
 }
+.site-nav__link:hover,
+.site-nav__link.active {
+  color: var(--nav-ink);
+}
+.site-nav__link:focus-visible,
+.site-nav__button:focus-visible,
+.site-nav__profile:focus-visible {
+  outline: none;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--focus-ring);
+}
+/* ActivePill slides between links (Motion layoutId); here it is a short underline. */
 .site-nav__link .active-pill {
   position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: 999px;
-  background: var(--surface);
-  box-shadow: 0 1px 2px rgb(16 24 40 / 8%), 0 0 0 1px rgb(16 24 40 / 6%);
+  inset: auto 12px 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--nav-ink);
 }
-.site-nav__link:hover {
-  color: var(--ink);
-}
-.site-nav__link.active {
-  color: var(--ink);
-  font-weight: 600;
+
+/* Right side */
+.site-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
 }
 .site-nav__account {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-left: auto;
+  gap: 6px;
+}
+.site-nav .theme-menu {
+  --theme-menu-ink: var(--nav-muted);
+  --theme-menu-ink-strong: var(--nav-ink);
+  --theme-menu-hover: var(--nav-hover);
 }
 .site-nav__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding: 0 18px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  color: var(--ink-2);
-  font-size: 14px;
-  font-weight: 600;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  color: var(--nav-ink);
+  font-size: 14.5px;
+  font-weight: 500;
   letter-spacing: -0.005em;
   text-decoration: none;
   white-space: nowrap;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .site-nav__button:hover {
-  background: var(--surface-3);
-  color: var(--ink);
+  background: var(--nav-hover);
 }
 .site-nav__button--primary {
-  background: var(--ink);
-  color: #fff;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%), 0 6px 16px -6px rgb(23 32 51 / 50%);
+  margin-left: 4px;
+  padding: 0 16px;
+  background: var(--nav-cta);
+  color: var(--nav-cta-ink);
+  font-weight: 600;
 }
 .site-nav__button--primary:hover {
-  background: #0b1222;
-  color: #fff;
+  background: var(--nav-cta-hover);
+  color: var(--nav-cta-ink);
 }
 .site-nav__profile {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 10px 4px 4px;
+  padding: 3px 10px 3px 3px;
   border-radius: 999px;
-  color: var(--ink-2);
+  color: var(--nav-ink);
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
+  transition: background-color 0.15s ease;
 }
 .site-nav__profile:hover {
-  background: var(--surface-3);
-  color: var(--ink);
+  background: var(--nav-hover);
 }
 .site-nav__profile > span:last-child {
   max-width: 180px;
@@ -125,8 +167,8 @@
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   overflow: hidden;
   border-radius: 50%;
   background: var(--accent-soft);
@@ -143,19 +185,19 @@ button.site-nav__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  min-width: 38px;
-  height: 38px;
-  min-height: 38px;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   background: transparent;
-  color: var(--muted);
+  color: var(--nav-muted);
 }
 button.site-nav__icon:hover:not(:disabled) {
-  background: var(--surface-3);
-  color: var(--ink);
+  background: var(--nav-hover);
+  color: var(--nav-ink);
 }
 .site-nav__icon .learn-icon {
   width: 18px;
@@ -163,8 +205,9 @@ button.site-nav__icon:hover:not(:disabled) {
 }
 button.site-nav__menu-toggle {
   display: none;
-  margin-left: auto;
 }
+
+/* Mobile sheet */
 .site-nav__sheet {
   display: grid;
   gap: 2px;
@@ -185,8 +228,9 @@ button.site-nav__menu-toggle {
   text-decoration: none;
 }
 .site-nav__sheet-link.active {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: var(--surface-3);
+  color: var(--ink);
+  font-weight: 600;
 }
 button.site-nav__sheet-logout {
   justify-content: flex-start;
@@ -206,13 +250,15 @@ button.site-nav__sheet-logout:hover:not(:disabled) {
 }
 .site-nav__sheet .site-nav__button--primary {
   min-height: 44px;
-  margin-top: 6px;
+  margin: 6px 0 0;
+  background: var(--inverse);
+  color: var(--on-inverse);
 }
 
 @media (max-width: 960px) {
   .site-nav__inner {
     gap: 16px;
-    padding: 0 20px;
+    padding: 0 16px 0 20px;
   }
   .site-nav__links,
   .site-nav__account {
@@ -221,62 +267,4 @@ button.site-nav__sheet-logout:hover:not(:disabled) {
   button.site-nav__menu-toggle {
     display: inline-flex;
   }
-}
-
-/* Dark tone over the home hero: floating glass bar. */
-.site-nav--dark {
-  padding: 8px 16px 0;
-  border-bottom: 0;
-  background: transparent;
-  backdrop-filter: none;
-}
-.site-nav--dark .site-nav__inner {
-  height: 56px;
-  padding: 0 10px 0 18px;
-  border: 1px solid var(--night-line);
-  border-radius: 999px;
-  background: rgb(10 16 32 / 55%);
-  backdrop-filter: saturate(1.6) blur(16px);
-  box-shadow: 0 10px 40px -12px rgb(0 0 0 / 60%);
-}
-.site-nav--dark .site-nav__links {
-  border-color: transparent;
-  background: transparent;
-}
-.site-nav--dark .site-nav__link .active-pill {
-  background: rgb(255 255 255 / 10%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
-}
-.site-nav--dark .brand-mark {
-  color: var(--night-ink);
-}
-.site-nav--dark .site-nav__link {
-  color: var(--night-muted);
-}
-.site-nav--dark .site-nav__link:hover,
-.site-nav--dark .site-nav__link.active {
-  color: var(--night-ink);
-}
-.site-nav--dark .site-nav__button {
-  color: var(--night-ink);
-}
-.site-nav--dark .site-nav__button:hover {
-  background: rgb(255 255 255 / 8%);
-  color: #fff;
-}
-.site-nav--dark .site-nav__button--primary,
-.site-nav--dark .site-nav__button--primary:hover {
-  background: #fff;
-  color: var(--night);
-}
-.site-nav--dark .site-nav__profile {
-  color: var(--night-ink);
-}
-.site-nav--dark .site-nav__profile:hover,
-.site-nav--dark button.site-nav__icon:hover:not(:disabled) {
-  background: rgb(255 255 255 / 8%);
-  color: #fff;
-}
-.site-nav--dark button.site-nav__icon {
-  color: var(--night-muted);
 }

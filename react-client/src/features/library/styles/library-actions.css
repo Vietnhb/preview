@@ -12,7 +12,12 @@
 .library-action-popover button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .library-menu-divider { height: 1px; margin: 4px 2px; background: var(--surface-3); }
 .library-menu-label { margin: 8px 10px 4px; color: var(--muted); font-size: 12px; }
-.library-menu-folders { max-height: 140px; overflow: auto; }
+.library-menu-folders { max-height: 196px; overflow: auto; overscroll-behavior: contain; }
+.library-action-popover .library-menu-chevron { flex: 0 0 16px; width: 16px; height: 16px; margin-left: auto; color: var(--muted); }
+.library-action-popover button.library-menu-back { margin-bottom: 2px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.library-action-popover input.library-menu-search { margin: 2px 0 6px; padding: 7px 9px; font-size: 13px; }
+.library-menu-folders button small { flex: 0 0 auto; margin-left: auto; color: var(--muted); font-size: 11px; }
+.library-menu-folders button[aria-current="true"]:disabled { opacity: 1; cursor: default; color: var(--muted); }
 .library-action-popover .library-menu-danger, .library-menu-error { color: var(--danger); }
 .library-menu-error, .library-delete-copy { margin: 8px 10px; overflow-wrap: anywhere; }
 .library-action-popover label { display: block; margin: 8px 6px; font-weight: 600; }
@@ -25,3 +30,43 @@
 :root[data-theme-effective="dark"] .learning-app .learn-library-items .learn-library-item > .library-more { background: transparent; color: #b8c5d7; }
 :root[data-theme-effective="dark"] .learning-app .learn-library-items .learn-library-item > .library-more:hover,
 :root[data-theme-effective="dark"] .learning-app .learn-library-items .learn-library-item > .library-more[aria-expanded="true"] { background: #38475c; }
+
+/* Drag a library row onto a folder to move it. */
+.learning-app .learn-library-item[draggable="true"] { cursor: grab; }
+.learning-app .learn-library-item[draggable="true"]:active { cursor: grabbing; }
+.learning-app .learn-library-folder[data-drop="over"] { border-radius: 12px; background: var(--accent-soft); outline: 2px dashed var(--accent); outline-offset: 2px; }
+.learning-app .learn-library-folder[data-drop="saving"] { opacity: .7; }
+.learning-app .learn-library-items .library-drop-error { color: var(--danger); }
+
+/* Share menu: three audiences, each with who approves it. */
+.library-action-popover button.library-share-option { align-items: flex-start; }
+.library-share-option > span { display: grid; gap: 2px; min-width: 0; white-space: normal !important; }
+.library-share-option strong { font-weight: 600; }
+.library-share-option small { color: var(--muted); font-size: 12px; line-height: 1.4; white-space: normal; }
+.library-share-option em { flex: 0 0 auto; margin-left: auto; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-style: normal; font-weight: 600; }
+.library-action-popover button.library-share-option[aria-current="true"]:disabled { opacity: 1; cursor: default; }
+.library-share-tag { font-weight: 600; color: var(--accent); }
+.library-share-tag[data-state="PENDING"] { color: var(--warning, #b25e09); }
+.library-share-tag[data-state="REJECTED"] { color: var(--danger); }
+
+/* "Thông tin" view of a library item */
+.library-info { display: grid; gap: 8px; margin: 4px 0 6px; padding: 0 10px; }
+.library-info > div { display: grid; gap: 1px; }
+.library-info dt { color: var(--muted); font-size: 11.5px; }
+.library-info dd { margin: 0; color: inherit; font-size: 13.5px; line-height: 1.4; overflow-wrap: anywhere; }
+
+/* Menu rows: everything starts at the left edge; the global button style centres content otherwise. */
+.library-action-popover button,
+.library-action-popover button:hover:not(:disabled) { justify-content: flex-start; min-height: 36px; padding: 0 10px; color: var(--ink-2); font-size: 13.5px; font-weight: 500; line-height: 1.3; }
+.library-action-popover button:hover:not(:disabled) { color: var(--ink); }
+.library-action-popover button:not(.library-share-option) > span { flex: 1; min-width: 0; }
+.library-action-popover button svg { flex: 0 0 16px; width: 16px; height: 16px; color: var(--muted); }
+.library-action-popover button.library-menu-danger,
+.library-action-popover button.library-menu-danger:hover:not(:disabled) { color: var(--danger); }
+.library-action-popover button.library-menu-danger svg { color: currentColor; }
+.library-action-popover button.library-menu-danger:hover:not(:disabled) { background: var(--danger-soft); }
+.library-action-popover button.library-share-option,
+.library-action-popover button.library-share-option:hover:not(:disabled) { min-height: 0; padding: 8px 10px; }
+.library-action-popover .library-menu-footer button,
+.library-action-popover .library-menu-footer button:hover:not(:disabled) { justify-content: center; }
+.library-action-popover { width: 240px; border-radius: 14px; font-family: inherit; }

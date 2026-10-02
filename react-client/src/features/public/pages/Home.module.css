@@ -1,9 +1,14 @@
 .home {
   --gutter: max(24px, calc((100% - var(--page-max)) / 2 + 32px));
-  --glass: rgb(255 255 255 / 4%);
-  --glass-line: rgb(255 255 255 / 10%);
-  background: var(--night);
-  color: var(--night-ink);
+  /* Everything here reads the theme-aware --stage tokens (styles/tokens.css). */
+  --glass: rgb(var(--stage-rgb) / 4%);
+  --glass-line: var(--stage-line);
+  --shine-1: var(--stage-glow-1);
+  --shine-2: var(--stage-glow-2);
+  --shine-3: var(--stage-glow-3);
+  --frame-rgb: var(--stage-rgb);
+  background: var(--stage);
+  color: var(--stage-ink);
 }
 
 /* ---- Hero ---- */
@@ -13,7 +18,7 @@
   overflow: hidden;
   margin-top: calc(var(--header-h) * -1);
   padding-top: var(--header-h);
-  background: radial-gradient(120% 70% at 50% 0%, #0f1d3d 0%, var(--night) 60%);
+  background: radial-gradient(120% 70% at 50% 0%, var(--stage-top) 0%, var(--stage) 60%);
 }
 .hero :global(.aurora) {
   position: absolute;
@@ -21,7 +26,7 @@
   z-index: -2;
   width: 100%;
   height: 78%;
-  opacity: 0.95;
+  opacity: var(--stage-aurora-opacity);
 }
 .hero :global(.dot-field) {
   z-index: -1;
@@ -32,8 +37,8 @@
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(rgb(255 255 255 / 4%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 4%) 1px, transparent 1px);
+    linear-gradient(rgb(var(--stage-rgb) / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--stage-rgb) / 5%) 1px, transparent 1px);
   background-size: 72px 72px;
   mask-image: radial-gradient(ellipse 60% 50% at 50% 35%, #000 10%, transparent 80%);
   pointer-events: none;
@@ -44,59 +49,38 @@
   padding: clamp(56px, 9vw, 120px) var(--gutter) 56px;
   text-align: center;
 }
-.label {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 30px;
-  padding: 7px 16px 7px 12px;
-  border: 1px solid var(--glass-line);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 6%);
-  backdrop-filter: blur(10px);
-  font-size: 14px;
-  font-weight: 500;
-}
-.pulse {
-  position: relative;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--glow-2);
-  box-shadow: 0 0 12px var(--glow-2);
-}
-.pulse::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border: 1px solid var(--glow-2);
-  border-radius: 50%;
-  animation: pulse 2.4s ease-out infinite;
-}
-@keyframes pulse {
-  from { opacity: 0.9; transform: scale(0.6); }
-  to { opacity: 0; transform: scale(1.9); }
-}
 .home h1 {
   margin: 0;
   font-size: clamp(48px, 8.4vw, 116px);
   font-weight: 800;
-  line-height: 0.98;
+  line-height: 1.08;
   letter-spacing: -0.055em;
 }
-.lineOne,
-.lineTwo {
+.lineOne {
   display: block;
 }
+/* React Bits RotatingText: each word rolls inside its own clipped box. The tall
+ * line box leaves room for Vietnamese tone marks above and dots below. */
 .lineTwo {
-  min-height: 1.08em;
-  padding-bottom: 0.06em;
+  justify-content: center;
+  min-height: 1.4em;
+  margin-top: -0.14em;
+  line-height: 1.4;
+}
+.lineTwo :global(.text-rotate) {
+  justify-content: center;
+}
+.rotWord {
   overflow: hidden;
+}
+.rotWord :global(.text-shine) {
+  margin-block: 0;
+  padding-block: 0;
 }
 .lead {
   max-width: 44ch;
   margin: 30px auto 40px;
-  color: #cbd5e1;
+  color: var(--stage-soft);
   font-size: clamp(17px, 1.6vw, 20px);
   line-height: 1.6;
 }
@@ -124,11 +108,11 @@
 }
 .primary {
   position: relative;
-  background: #fff;
-  color: var(--night);
+  background: var(--stage-cta);
+  color: var(--stage-cta-ink);
 }
 .primary:hover {
-  background: #e8f0ff;
+  background: var(--stage-cta-hover);
 }
 .primary span {
   transition: transform 0.2s ease;
@@ -139,12 +123,12 @@
 .ghost {
   border: 1px solid var(--glass-line);
   background: var(--glass);
-  color: var(--night-ink);
+  color: var(--stage-ink);
   backdrop-filter: blur(10px);
 }
 .ghost:hover {
-  border-color: rgb(255 255 255 / 26%);
-  background: rgb(255 255 255 / 9%);
+  border-color: rgb(var(--stage-rgb) / 26%);
+  background: rgb(var(--stage-rgb) / 9%);
 }
 
 .stage {
@@ -164,7 +148,7 @@
 .marquee {
   padding: 22px 0;
   border-top: 1px solid var(--glass-line);
-  color: var(--night-muted);
+  color: var(--stage-muted);
   font-size: 18px;
   font-weight: 500;
 }
@@ -175,7 +159,7 @@
 }
 .marquee :global(.marquee__track) span::after {
   content: "✦";
-  color: var(--glow-1);
+  color: var(--stage-glow-1);
   font-size: 12px;
 }
 
@@ -189,25 +173,17 @@
   margin: 0 auto 56px;
   text-align: center;
 }
-.index {
-  display: inline-block;
-  margin-bottom: 18px;
-  color: var(--glow-1);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  letter-spacing: 0.04em;
-}
 .sectionHead h2 {
   margin: 0 0 18px;
   font-size: clamp(34px, 4.6vw, 64px);
   font-weight: 800;
-  line-height: 1.04;
+  line-height: 1.14;
   letter-spacing: -0.045em;
 }
 .sectionHead p {
   max-width: 54ch;
   margin: 0 auto;
-  color: var(--night-muted);
+  color: var(--stage-muted);
   font-size: 18px;
 }
 
@@ -234,13 +210,14 @@
   height: 100%;
   border: 1px solid var(--glass-line);
   border-radius: 24px;
-  background: linear-gradient(180deg, rgb(255 255 255 / 6%), rgb(255 255 255 / 2%));
+  background: var(--stage-card);
+  box-shadow: var(--stage-card-shadow);
 }
 .bentoCard::before,
 .audience::before,
 .step::before,
 .plan::before {
-  background: radial-gradient(380px circle at var(--spot-x) var(--spot-y), rgb(96 165 250 / 16%), transparent 60%) !important;
+  background: radial-gradient(380px circle at var(--spot-x) var(--spot-y), var(--stage-spot), transparent 60%) !important;
 }
 .bentoCard {
   display: flex;
@@ -263,7 +240,7 @@
 .bentoCard p,
 .step p {
   margin: 0;
-  color: var(--night-muted);
+  color: var(--stage-muted);
   font-size: 15px;
 }
 
@@ -289,11 +266,11 @@
   line-height: 1;
   letter-spacing: -0.05em;
   color: transparent;
-  -webkit-text-stroke: 1.5px rgb(96 165 250 / 55%);
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--stage-glow-1) 55%, transparent);
   transition: -webkit-text-stroke-color 0.2s ease;
 }
 .step:hover .stepIndex {
-  -webkit-text-stroke-color: var(--glow-2);
+  -webkit-text-stroke-color: var(--stage-glow-2);
 }
 
 /* Audiences */
@@ -311,10 +288,10 @@
   display: inline-block;
   margin-bottom: 44px;
   padding: 5px 12px;
-  border: 1px solid rgb(96 165 250 / 35%);
+  border: 1px solid color-mix(in srgb, var(--stage-glow-1) 35%, transparent);
   border-radius: 999px;
-  background: rgb(37 99 235 / 15%);
-  color: #bfdbfe;
+  background: color-mix(in srgb, var(--stage-glow-1) 14%, transparent);
+  color: color-mix(in srgb, var(--stage-glow-1) 62%, var(--stage-ink));
   font-size: 13px;
   font-weight: 600;
 }
@@ -329,7 +306,7 @@
 .audience li {
   position: relative;
   padding-left: 24px;
-  color: #cbd5e1;
+  color: var(--stage-soft);
   font-size: 15px;
 }
 .audience li::before {
@@ -339,15 +316,15 @@
   left: 0;
   width: 12px;
   height: 7px;
-  border-bottom: 2px solid var(--glow-2);
-  border-left: 2px solid var(--glow-2);
+  border-bottom: 2px solid var(--stage-glow-2);
+  border-left: 2px solid var(--stage-glow-2);
   transform: rotate(-45deg) scale(0.75);
 }
 
 /* Plans */
 .state {
   margin: 0;
-  color: var(--night-muted);
+  color: var(--stage-muted);
   text-align: center;
 }
 .plans {
@@ -369,7 +346,7 @@
 .planDesc {
   min-height: 3em;
   margin: 6px 0 22px;
-  color: var(--night-muted);
+  color: var(--stage-muted);
   font-size: 14px;
 }
 .planPrice {
@@ -381,7 +358,7 @@
 }
 .planPrice span {
   margin-left: 6px;
-  color: var(--night-muted);
+  color: var(--stage-muted);
   font-size: 14px;
   font-weight: 500;
 }
@@ -399,7 +376,7 @@
   font-size: 14px;
 }
 .planFacts dt {
-  color: var(--night-muted);
+  color: var(--stage-muted);
 }
 .planFacts dd {
   margin: 0;
@@ -434,12 +411,12 @@
   margin: 0 0 20px;
   font-size: clamp(36px, 5vw, 68px);
   font-weight: 800;
-  line-height: 1.04;
+  line-height: 1.14;
   letter-spacing: -0.045em;
 }
 .closingInner p {
   margin: 0 auto 36px;
-  color: var(--night-muted);
+  color: var(--stage-muted);
   font-size: 18px;
 }
 
@@ -449,7 +426,7 @@
   border-top: 1px solid var(--glass-line);
 }
 .footer :global(.brand-mark) {
-  color: var(--night-ink);
+  color: var(--stage-ink);
 }
 .footerInner {
   display: flex;
@@ -459,7 +436,7 @@
   margin: 0 auto;
 }
 .footerNote {
-  color: var(--night-muted);
+  color: var(--stage-muted);
   font-size: 14px;
 }
 .footer nav {
@@ -469,12 +446,12 @@
   margin-left: auto;
 }
 .footer nav a {
-  color: var(--night-muted);
+  color: var(--stage-muted);
   font-size: 14px;
   text-decoration: none;
 }
 .footer nav a:hover {
-  color: var(--night-ink);
+  color: var(--stage-ink);
 }
 
 @media (max-width: 1000px) {
@@ -489,7 +466,4 @@
   .stage { width: calc(100% - 24px); }
   .footerInner { flex-direction: column; align-items: flex-start; gap: 12px; }
   .footer nav { margin-left: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .pulse::after { animation: none; }
 }

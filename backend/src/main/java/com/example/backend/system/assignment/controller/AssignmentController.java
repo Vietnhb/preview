@@ -1,5 +1,6 @@
 package com.example.backend.system.assignment.controller;
 
+import com.example.backend.system.assignment.model.enums.AssignmentStatus;
 import com.example.backend.system.assignment.dto.AssignmentContracts.AssignmentResponse;
 import com.example.backend.system.assignment.dto.AssignmentContracts.AssignmentSubmissionResponse;
 import com.example.backend.system.assignment.dto.AssignmentContracts.CompleteAssignmentRequest;
@@ -86,6 +87,16 @@ public class AssignmentController {
                                                @PathVariable UUID submissionId,
                                                @Valid @RequestBody GradeAssignmentRequest request) {
         return assignmentService.grade(assignmentId, submissionId, request.score(), request.feedback(), request.confirm());
+    }
+
+    @PostMapping("/{id}/close")
+    public AssignmentResponse close(@PathVariable UUID id) {
+        return assignmentService.setStatus(id, AssignmentStatus.CLOSED);
+    }
+
+    @PostMapping("/{id}/open")
+    public AssignmentResponse open(@PathVariable UUID id) {
+        return assignmentService.setStatus(id, AssignmentStatus.ACTIVE);
     }
 
     @PostMapping("/{assignmentId}/submissions/{submissionId}/reopen")

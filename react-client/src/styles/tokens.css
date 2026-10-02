@@ -1,7 +1,8 @@
 /* PhysLive design tokens — the single source for colour, type, radius and depth.
  * Every stylesheet reads these variables; do not add new hard-coded colours.
  * Palette follows the teacher workspace: cool neutrals, one blue accent and
- * three status families. Dark values live in the workspace/lab stylesheets. */
+ * three status families. The dark set below is switched by
+ * <html data-theme-effective="dark"> (shared/theme/themeStore.ts). */
 :root {
   --font-sans: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
@@ -55,8 +56,107 @@
   --glow-1: #60a5fa;
   --glow-2: #22d3ee;
 
+  /* Theme-aware surfaces for the public pages (home, about, terms). Unlike
+   * --night*, which stays dark in both themes, these follow the theme. */
+  --stage: #f6f8fc;
+  --stage-2: #ffffff;
+  --stage-top: #dce8ff;
+  --stage-ink: #0f172a;
+  --stage-soft: #334155;
+  --stage-muted: #5b6577;
+  --stage-rgb: 15 23 42;
+  --stage-line: rgb(15 23 42 / 10%);
+  --stage-glass: rgb(255 255 255 / 62%);
+  --stage-card: linear-gradient(180deg, rgb(255 255 255 / 92%), rgb(255 255 255 / 64%));
+  --stage-card-shadow: 0 1px 2px rgb(16 24 40 / 5%), 0 18px 40px -24px rgb(16 24 40 / 28%);
+  --stage-cta: #0f172a;
+  --stage-cta-hover: #1e293b;
+  --stage-cta-ink: #ffffff;
+  --stage-spot: rgb(37 99 235 / 10%);
+  --stage-glow-1: #2563eb;
+  --stage-glow-2: #0891b2;
+  --stage-glow-3: #7c3aed;
+  --stage-aurora-opacity: 0.5;
+
+  /* Solid "inverse" control (dark on light, light on dark) and frosted chrome. */
+  --inverse: #172033;
+  --inverse-hover: #0b1222;
+  --on-inverse: #ffffff;
+  --chrome: rgb(255 255 255 / 92%);
+  --code-bg: #172033;
+  --code-ink: #c7d7fe;
+  --scrim: rgb(23 32 51 / 45%);
+
   --header-h: 64px;
   --page-max: 1320px;
+  color-scheme: light;
+}
+
+:root[data-theme-effective="dark"] {
+  color-scheme: dark;
+
+  /* Neutrals match the palette the workspace and admin console already used in dark. */
+  --ink: #e8eef7;
+  --ink-2: #c9d5e5;
+  --muted: #9eacbc;
+  --subtle: #7b8798;
+  --line: #303a49;
+  --line-strong: #445269;
+
+  --bg: #10151d;
+  --surface: #171d27;
+  --surface-2: #1b222d;
+  --surface-3: #252d39;
+
+  --accent: #4f8cff;
+  --accent-hover: #6ea0ff;
+  --accent-strong: #a9c6ff;
+  --accent-soft: #20385f;
+  --accent-line: #34507f;
+
+  --success: #3ecf9a;
+  --success-soft: #0f2a22;
+  --success-line: #1d4f3e;
+  --warning: #f2b544;
+  --warning-soft: #2c2210;
+  --warning-line: #5a431a;
+  --danger: #ff8a73;
+  --danger-soft: #331a16;
+  --danger-line: #612c24;
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 36%), 0 1px 2px rgb(0 0 0 / 24%);
+  --shadow-md: 0 14px 30px -10px rgb(0 0 0 / 60%), 0 2px 6px rgb(0 0 0 / 30%);
+  --shadow-lg: 0 26px 52px -16px rgb(0 0 0 / 70%);
+  --focus-ring: 0 0 0 3px rgb(79 140 255 / 34%);
+
+  --stage: #0a1020;
+  --stage-2: #101a30;
+  --stage-top: #0f1d3d;
+  --stage-ink: #f1f5fb;
+  --stage-soft: #cbd5e1;
+  --stage-muted: #9aa8bf;
+  --stage-rgb: 255 255 255;
+  --stage-line: rgb(255 255 255 / 10%);
+  --stage-glass: rgb(10 16 32 / 55%);
+  --stage-card: linear-gradient(180deg, rgb(255 255 255 / 6%), rgb(255 255 255 / 2%));
+  --stage-card-shadow: none;
+  --stage-cta: #ffffff;
+  --stage-cta-hover: #e8f0ff;
+  --stage-cta-ink: #0a1020;
+  --stage-spot: rgb(96 165 250 / 16%);
+  --stage-glow-1: #60a5fa;
+  --stage-glow-2: #22d3ee;
+  --stage-glow-3: #a5b4fc;
+  --stage-aurora-opacity: 0.95;
+
+  --inverse: #e8eef7;
+  --inverse-hover: #ffffff;
+  --on-inverse: #10151d;
+  --chrome: rgb(16 21 29 / 86%);
+  --code-bg: #0b0f15;
+  --code-ink: #b9cdfb;
+  --scrim: rgb(0 0 0 / 60%);
 }
 
 /* Radix Themes reads its own scale; point it at the same accent and type. */
@@ -68,8 +168,8 @@
   --color-background: var(--bg);
   --color-panel-solid: var(--surface);
 }
-.radix-themes[data-accent-color="indigo"],
-.radix-themes [data-accent-color="indigo"] {
+:root:not([data-theme-effective="dark"]) .radix-themes[data-accent-color="indigo"],
+:root:not([data-theme-effective="dark"]) .radix-themes [data-accent-color="indigo"] {
   --accent-1: #fcfdff;
   --accent-2: #f5f8ff;
   --accent-3: #eef4ff;

@@ -111,12 +111,12 @@ export function assignableRoles(actor: string | null | undefined, currentRole?: 
 
 export function roleHome(role: string | null | undefined, billingRequired = false): string {
   switch (role) {
-    case 'ADMIN': return '/admin/users';
+    case 'ADMIN': return '/admin';
     case 'MANAGER': return '/manager';
     case 'REVIEWER': return '/reviewer';
     case 'SCHOOL': return billingRequired ? '/school/billing' : '/school';
     case 'STAFF': return '/workspace';
-    case 'STUDENT': return '/assignments';
+    case 'STUDENT': return '/student';
     default: return '/';
   }
 }

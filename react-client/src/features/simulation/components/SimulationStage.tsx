@@ -1,36 +1,35 @@
+import { useState } from "react";
 import Icon from "../../../shared/ui/LearningIcon";
+import SimulationComplaintDialog from "../../support/components/SimulationComplaintDialog";
 import SvgPixiScene from "./SvgPixiScene";
 import { RecognitionDisplay, FormulaReview } from "./SimulationReview";
 import { visualSource, type SimulationWorkspaceModel } from "../hooks/useSimulationWorkspace";
 
-export default function SimulationStage({ input, preview }: Readonly<Pick<SimulationWorkspaceModel, "input" | "preview">>) {
+/** What a complaint about the simulation on screen should carry; absent for accounts that cannot file one. */
+type ComplaintContext = { simulationId?: string; description?: string; parameters?: Record<string, number> };
+
+export default function SimulationStage({ input, preview, complaint }: Readonly<Pick<SimulationWorkspaceModel, "input" | "preview"> & { complaint?: ComplaintContext }>) {
+  const [complaintOpen, setComplaintOpen] = useState(false);
   const {
     sourceMode, setSourceMode, text, setText, sourceFile, previewUrl, busy, error, acceptImage,
     recognition, correction, setCorrection, editingRecognition, setEditingRecognition, recognitionLowConfidence,
     intent, revision, setRevision, normalize, handleRecognition, handleRevision, generate, reset,
   } = input;
-  const { simulation, liveTimeline, runValues, sandboxKey, validation, renderError, setRenderError, restartPreview } = preview;
+  const { simulation, liveTimeline, runValues, sandboxKey, validation, renderError, setRenderError, restartPreview, recomputing } = preview;
+  // "Báo lỗi" and "Dựng lại" live in the player's own toolbar, next to the view tabs.
+  const stageActions = <>
+    {complaint && <button type="button" className="sim-action" title="Báo cho người kiểm duyệt khi mô phỏng sai" onClick={() => setComplaintOpen(true)}><Icon name="message" />Báo lỗi</button>}
+    <button type="button" className="sim-action" title="Dựng lại cảnh và phát từ đầu" onClick={restartPreview}><Icon name="reset" />Dựng lại</button>
+  </>;
   return (
     <section className="learn-exploration" aria-label="Quan sát và khám phá">
       <section className="learn-stage" aria-label="Mô phỏng tương tác">
         {simulation ? (
           /* Layout giữa khi có mô phỏng: Canvas card + Header + Restart */
           <div className="simulation-stage-container">
-            <div className="simulation-panel-heading">
-              <div>
-                <span className="simulation-eyebrow">Mô phỏng tương tác</span>
-                <h2>Khám phá mô hình</h2>
-              </div>
-              <button
-                type="button"
-                className="simulation-restart-button"
-                onClick={restartPreview}
-              >
-                <Icon name="reset" /> Dựng lại
-              </button>
-            </div>
-
+            {complaintOpen && complaint && <SimulationComplaintDialog {...complaint} onClose={() => setComplaintOpen(false)} />}
             {liveTimeline ? (
+              <div className="simulation-scene-frame" aria-busy={recomputing}>
               <SvgPixiScene
                 key={sandboxKey}
                 program={simulation.simulationSpec.visualProgram ?? { code: "" }}
@@ -40,9 +39,12 @@ export default function SimulationStage({ input, preview }: Readonly<Pick<Simula
                 fieldMeta={simulation.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
                 verificationStatus={validation?.status ?? "VISUAL_ONLY_UNVERIFIED"}
                 onRenderError={setRenderError}
+                toolbarActions={stageActions}
               />
+              {recomputing && <div className="simulation-recomputing" role="status"><span className="simulation-recomputing__spinner" aria-hidden="true" />Đang tính lại với thông số mới…</div>}
+              </div>
             ) : (
-              <p className="simulation-muted">Chưa có timeline từ backend để hiển thị.</p>
+              <><div className="sim-player__actions">{stageActions}</div><p className="simulation-muted">Chưa có dữ liệu chuyển động để hiển thị. Hãy thử dựng lại mô phỏng.</p></>
             )}
             {renderError && <button type="button" className="simulation-restart-button" disabled={busy}
               onClick={() => void generate({ code: visualSource(simulation), message: renderError })}>
@@ -53,10 +55,10 @@ export default function SimulationStage({ input, preview }: Readonly<Pick<Simula
               message: "Redesign the current visual presentation as a polished, contextual illustrated world following the original user description and the rendering contract's art direction. Improve clarity, artwork, environment and composition; preserve the signed physics plan. This is visual design feedback, not physics validation.",
             })}>{busy ? "AI đang thiết kế lại…" : "Thiết kế lại hình ảnh bằng AI"}</button>}
             <p className="simulation-muted">
-              Kéo tham số để backend tính lại. Chuyển động, đồ thị và số liệu lấy từ solver backend; cảnh “Minh họa AI” chỉ là phần trình bày, không phải bằng chứng vật lý.
+              Kéo thanh thông số để tính lại. Chuyển động, đồ thị và số liệu được tính từ mô hình vật lý; hình minh họa do AI vẽ chỉ để trình bày, không phải bằng chứng vật lý.
             </p>
             <details>
-              <summary>Mã minh họa (PixiJS + SVG) do AI sinh</summary>
+              <summary>Nâng cao: mã nguồn hình minh họa</summary>
               <pre style={{ overflow: "auto", maxHeight: "28rem", whiteSpace: "pre-wrap" }}>{visualSource(simulation)}</pre>
             </details>
             {error && <p className="simulation-error" role="alert">{error}</p>}

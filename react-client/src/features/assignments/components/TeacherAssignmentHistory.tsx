@@ -11,6 +11,7 @@ type TeacherAssignmentHistoryProps = {
   loading: boolean;
   onRefresh: () => void;
   onOpenSubmissions: (assignment: Assignment) => void;
+  onToggleOpen: (assignment: Assignment) => void;
 };
 
 export function TeacherAssignmentHistory({
@@ -22,6 +23,7 @@ export function TeacherAssignmentHistory({
   loading,
   onRefresh,
   onOpenSubmissions,
+  onToggleOpen,
 }: Readonly<TeacherAssignmentHistoryProps>) {
   const [classFilter, setClassFilter] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
@@ -40,7 +42,7 @@ export function TeacherAssignmentHistory({
     >
       <div className="modern-card-header assignment-history-header">
         <div>
-          <h2 id="assigned-work-title">Mô phỏng đã giao</h2>
+          <h2 id="assigned-work-title">Bài đã giao</h2>
           <p>Xem lịch sử theo lớp, học sinh và thời điểm giao.</p>
         </div>
         <button
@@ -49,7 +51,7 @@ export function TeacherAssignmentHistory({
           onClick={onRefresh}
           disabled={loading}
         >
-          {loading ? "Đang tải…" : "Làm mới"}
+          Làm mới
         </button>
       </div>
       <div className="assignment-history-filters">
@@ -57,11 +59,18 @@ export function TeacherAssignmentHistory({
         <label><span>Học sinh</span><select value={studentFilter} onChange={event => setStudentFilter(event.target.value)}><option value="">Tất cả học sinh</option>{visibleStudents.map(student => <option key={student.id} value={student.id}>{student.fullName}</option>)}</select></label>
       </div>
       {loading && (
-        <p className="assignment-history-message" role="status">Đang tải danh sách bài đã giao…</p>
+        <div className="assignment-history-list" role="status" aria-label="Đang tải danh sách bài đã giao">
+          {[0, 1, 2].map(index => <div className="assignment-history-card assignment-history-skeleton" key={index}>
+            <span className="skeleton skeleton-title" style={{ width: `${70 - index * 12}%` }} />
+            <span className="skeleton skeleton-line" style={{ width: "45%" }} />
+            <span className="skeleton skeleton-line" />
+            <span className="skeleton skeleton-line" style={{ width: "30%" }} />
+          </div>)}
+        </div>
       )}
       {!loading && filteredItems.length === 0 && (
         <div className="assignment-history-empty">
-          {items.length === 0 ? "Chưa có mô phỏng nào được giao." : "Không có lần giao bài phù hợp với bộ lọc."}
+          {items.length === 0 ? "Chưa giao bài nào. Soạn bài ở khung bên cạnh để bắt đầu." : "Không có lần giao bài phù hợp với bộ lọc."}
         </div>
       )}
       {!loading && filteredItems.length > 0 && (
@@ -91,7 +100,7 @@ export function TeacherAssignmentHistory({
                   </svg>
                   <span>{item.studentIds.length} học sinh nhận bài</span>
                   {item.dueAt
-                    ? <span>Hạn nộp {new Date(item.dueAt).toLocaleDateString("vi-VN")}</span>
+                    ? <span className={item.status === "ACTIVE" && new Date(item.dueAt).getTime() < Date.now() ? "assignment-overdue" : ""}>Hạn nộp {new Date(item.dueAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}{item.status === "ACTIVE" && new Date(item.dueAt).getTime() < Date.now() ? " · đã quá hạn" : ""}</span>
                     : ""}
                 </div>
                 <button
@@ -99,13 +108,16 @@ export function TeacherAssignmentHistory({
                   className="assignment-history-open-btn"
                   onClick={() => onOpenSubmissions(item)}
                 >
-                  <span>Xem bài nộp</span>
+                  <span>Xem và chấm bài nộp</span>
 
                   <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                     <path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
               </div>
+              <button type="button" className="assignment-history-toggle" onClick={() => onToggleOpen(item)}>
+                {item.status === "ACTIVE" ? "Đóng bài (ngừng nhận bài nộp)" : "Mở lại bài"}
+              </button>
               <details className="assignment-recipient-details">
                 <summary>Xem danh sách học sinh</summary>
                 <p>{item.studentIds.map(id => studentNames.get(id) || `Học sinh #${id}`).join(", ")}</p>

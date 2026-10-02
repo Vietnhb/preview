@@ -346,7 +346,12 @@ export function useAssignmentPractice(userId: number | undefined) {
         ...selectedAssignment,
         submissionCompleted: true,
         completedAt: submission.completedAt,
-        predictions: { ...selectedAssignment.predictions, conclusion: conclusionInput.trim() },
+        predictions: {
+          ...selectedAssignment.predictions,
+          conclusion: conclusionInput.trim(),
+          ...(activityType === "PREDICT_OBSERVE_EXPLAIN" ? {} : { answerText: conclusionInput.trim() }),
+          ...(activityType === "MEASUREMENT" ? { estimatedValue: Number(estimatedValue) } : {}),
+        },
         score: submission.score,
         feedback: submission.feedback,
         gradingStatus: submission.gradingStatus,

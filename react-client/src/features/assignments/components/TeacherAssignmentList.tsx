@@ -7,12 +7,13 @@ export function TeacherAssignmentList({
   records,
   selectedId,
   onSelect,
-  submissionsLoading,
+  loadedIds,
 }: Readonly<{
   records: AssignmentRecord[];
   selectedId: string;
   onSelect: (id: string) => void;
-  submissionsLoading: boolean;
+  /** Assignments whose submissions have arrived; the rest still show a loading note. */
+  loadedIds: ReadonlySet<string>;
 }>) {
   return (
     <aside className="lab-assignment-list" aria-label="Danh sách bài đã giao">
@@ -52,7 +53,7 @@ export function TeacherAssignmentList({
               {assignment.title}
             </span>
             <span className="lab-assignment-item-meta">
-              {submissionsLoading
+              {!loadedIds.has(assignment.id)
                 ? "Đang tải bài nộp…"
                 : `${submissions.filter(item => item.completedAt).length}/${assignment.studentIds.length} đã nộp`} · Hạn{" "}
               {formatShortDate(assignment.dueAt)}

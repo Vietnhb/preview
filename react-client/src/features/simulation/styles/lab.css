@@ -907,3 +907,25 @@
   color: #93c5fd;
   background: #1e3a5f;
 }
+
+/* Teacher management area: the workspace header stays; a narrow rail sits beside the page. */
+.teacher-area { display: grid; grid-template-columns: 208px minmax(0, 1fr); min-height: 0; }
+.teacher-rail { display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow-y: auto; padding: 16px 10px; border-right: 1px solid var(--line); background: var(--surface); }
+.teacher-rail__group { display: grid; gap: 2px; }
+.teacher-rail__group > p { margin: 0 0 4px; padding: 0 10px; color: var(--subtle); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.teacher-rail__item { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px; border-radius: 8px; color: var(--ink-2); font-size: 13.5px; font-weight: 500; text-decoration: none; transition: background-color .15s ease, color .15s ease; }
+.teacher-rail__item:hover { background: var(--surface-3); color: var(--ink); }
+.teacher-rail__item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.teacher-rail__item .learn-icon { flex: 0 0 auto; width: 16px; height: 16px; }
+.teacher-rail__item span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.teacher-rail__item em { margin-left: auto; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; font-style: normal; font-weight: 700; line-height: 18px; text-align: center; }
+.teacher-area__content { min-width: 0; min-height: 0; overflow-y: auto; }
+.teacher-area__content > .lab-main { overflow: visible; padding: 28px 32px 56px; }
+@media (max-width: 900px) {
+  .teacher-area { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .teacher-rail { flex-direction: row; gap: 4px; overflow-x: auto; overflow-y: hidden; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .teacher-rail__group { display: flex; gap: 4px; }
+  .teacher-rail__group > p { display: none; }
+  .teacher-rail__item { white-space: nowrap; }
+  .teacher-area__content > .lab-main { padding: 20px 16px 40px; }
+}

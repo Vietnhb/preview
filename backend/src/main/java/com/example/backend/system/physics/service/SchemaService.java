@@ -94,9 +94,6 @@ public class SchemaService {
         if (status == LifecycleStatus.APPROVED) {
             schemaDefinitions.validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(),
                     schema.getTopic());
-            if (!"2.0".equals(schema.getDefinition().path("metaSchemaVersion").asText())) {
-                schemaDefinitions.requireSolverBinding(schema.getSchemaId(), schema.getVersion());
-            }
             String actualChecksum = schemaDefinitions.compiledChecksum(schema.getDefinition());
             if (schema.getDefinitionChecksum() != null && !schema.getDefinitionChecksum().equals(actualChecksum)) {
                 throw ApiException.conflict("Schema checksum drift detected for " + schema.getSchemaId() + "@" + schema.getVersion()

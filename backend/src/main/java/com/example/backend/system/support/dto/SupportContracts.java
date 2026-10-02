@@ -16,6 +16,11 @@ public final class SupportContracts {
             @NotBlank @Size(max = 10000) String content) {
     }
 
+    public record CreateComplaintRequest(
+            @NotBlank @Size(max = 180) String subject,
+            @NotBlank @Size(max = 10000) String content,
+            UUID simulationId) {
+    }
     public record UpdateSupportRequest(
             SupportStatus status,
             @Size(max = 10000) String response) {
@@ -23,5 +28,5 @@ public final class SupportContracts {
 
     public record SupportView(UUID id, SupportKind kind, Integer senderId, String senderName, String senderEmail,
                               String subject, String content, SupportStatus status, String adminResponse,
-                              Instant createdAt, Instant respondedAt) { }
+                              Instant createdAt, Instant respondedAt, UUID simulationId, String responderName) { }
 }

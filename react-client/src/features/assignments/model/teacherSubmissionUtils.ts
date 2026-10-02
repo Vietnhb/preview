@@ -26,10 +26,10 @@ export function predictionDetails(predictions: unknown) {
   if (typeof predictions === "string")
     return { answer: predictions, reasoning: "", conclusion: "", estimatedValue: undefined as number | undefined };
   if (predictions === null || typeof predictions !== "object")
-    return { answer: "Chưa có dự đoán", reasoning: "", conclusion: "", estimatedValue: undefined as number | undefined };
+    return { answer: "Chưa có câu trả lời", reasoning: "", conclusion: "", estimatedValue: undefined as number | undefined };
   const value = predictions as Record<string, unknown>;
   return {
-    answer: typeof value.answerText === "string" ? value.answerText : "Chưa có dự đoán",
+    answer: typeof value.answerText === "string" && value.answerText.trim() ? value.answerText : "Chưa có câu trả lời",
     reasoning: typeof value.reasoning === "string" ? value.reasoning : "",
     conclusion: typeof value.conclusion === "string" ? value.conclusion : "",
     estimatedValue: typeof value.estimatedValue === "number" ? value.estimatedValue : undefined,

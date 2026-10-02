@@ -1,0 +1,56 @@
+/* Simulation complaints: the teacher's dialog and the reviewer's desk share these pieces. */
+.complaint-overlay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: var(--scrim, rgb(15 23 42 / 45%)); backdrop-filter: blur(3px); }
+.complaint-dialog { display: grid; gap: 18px; width: min(100%, 620px); max-height: calc(100dvh - 40px); overflow-y: auto; padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lg); }
+.complaint-dialog__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.complaint-dialog__head h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+.complaint-dialog__head p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.complaint-dialog button.complaint-close,
+.complaint-dialog button.complaint-close:hover:not(:disabled) { display: grid; place-items: center; flex: 0 0 auto; width: 32px; height: 32px; min-height: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; }
+.complaint-dialog button.complaint-close:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); }
+.complaint-form { display: grid; gap: 14px; }
+.complaint-form label { display: grid; gap: 6px; color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
+.complaint-form select, .complaint-form textarea { width: 100%; font-size: 14px; font-weight: 400; }
+.complaint-form textarea { min-height: 110px; resize: vertical; }
+.complaint-context { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 13px; line-height: 1.5; }
+.complaint-context strong { color: var(--ink-2); }
+.complaint-form__actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.complaint-error { margin: 0; color: var(--danger); font-size: 13px; font-weight: 500; }
+.complaint-notice { margin: 0; color: var(--success, #15803d); font-size: 13px; font-weight: 500; }
+.complaint-history { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+.complaint-history h3 { margin: 0; font-size: 14px; font-weight: 700; }
+.complaint-history__empty { margin: 0; color: var(--muted); font-size: 13px; }
+.complaint-item { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.complaint-item__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.complaint-item__top strong { min-width: 0; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.complaint-item time, .complaint-item__meta { color: var(--muted); font-size: 12px; }
+.complaint-item__body { margin: 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.complaint-item__answer { margin: 4px 0 0; padding: 10px 12px; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--accent-soft); color: var(--ink); font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.complaint-item__answer b { display: block; margin-bottom: 2px; font-size: 12px; color: var(--accent); }
+.complaint-status { flex: 0 0 auto; padding: 2px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.complaint-status[data-status="OPEN"] { background: var(--warning-soft, #fff5e6); color: var(--warning, #b25e09); }
+.complaint-status[data-status="READ"] { background: var(--accent-soft); color: var(--accent); }
+.complaint-status[data-status="RESOLVED"] { background: var(--success-soft, #e8f7ee); color: var(--success, #15803d); }
+.simulation-heading-actions { display: flex; align-items: center; gap: 8px; }
+.complaint-dialog[data-history-only="true"] .complaint-history { padding-top: 0; border-top: 0; }
+/* Reviewer desk */
+.complaint-desk { display: grid; gap: 14px; }
+.complaint-desk__reply { display: grid; gap: 10px; margin-top: 6px; }
+.complaint-desk__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+/* Teacher page: complaints already sent */
+.complaint-page { display: grid; gap: 16px; align-content: start; padding: 28px 32px 56px; color: var(--ink); }
+.complaint-page__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 14px; align-items: start; }
+.complaint-page__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.complaint-page__head h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+.complaint-page__head p { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.complaint-page__filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.complaint-page__filters button,
+.complaint-page__filters button:hover:not(:disabled) { min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 13px; font-weight: 500; cursor: pointer; }
+.complaint-page__filters button[aria-pressed="true"],
+.complaint-page__filters button[aria-pressed="true"]:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.complaint-page .complaint-item { padding: 16px 18px; }
+.complaint-page__empty { margin: 0; padding: 40px 20px; border: 1px dashed var(--line-strong); border-radius: 14px; color: var(--muted); font-size: 14px; text-align: center; }
+.complaint-page__empty a { color: var(--accent); font-weight: 600; }
+@media (max-width: 900px) { .complaint-page { padding: 20px 16px 40px; } }
+.complaint-page__head button.complaint-page__refresh,
+.complaint-page__head button.complaint-page__refresh:hover:not(:disabled) { flex: 0 0 auto; min-height: 34px; padding: 0 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink-2); font-size: 13px; font-weight: 500; cursor: pointer; }
+.complaint-page__head button.complaint-page__refresh:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); }

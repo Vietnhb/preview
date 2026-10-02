@@ -23,6 +23,18 @@ public class SupportController {
     @PostMapping("/messages")
     public SupportContracts.SupportView message(@Valid @RequestBody CreateSupportRequest request) { return service.create(SupportKind.MESSAGE, request); }
 
+    /** A teacher reports a simulation as wrong; reviewers answer it. */
+    @PostMapping("/complaints")
+    public SupportContracts.SupportView complaint(@Valid @RequestBody SupportContracts.CreateComplaintRequest request) {
+        return service.createComplaint(request);
+    }
+    @GetMapping("/complaints/review")
+    public List<SupportContracts.SupportView> complaintsForReview() { return service.complaintsForReview(); }
+    @PutMapping("/complaints/review/{id}")
+    public SupportContracts.SupportView resolveComplaint(@PathVariable UUID id,
+                                                       @Valid @RequestBody UpdateSupportRequest request) {
+        return service.resolveComplaint(id, request);
+    }
     @GetMapping("/mine")
     public List<SupportContracts.SupportView> mine() { return service.mine(); }
 

@@ -48,4 +48,8 @@ public class SupportItem extends AuditedEntity {
 
     @Column
     private Instant respondedAt;
+
+    /** Simulation a COMPLAINT is about; null for feedback, messages and unsaved simulations. */
+    @Column(name = "simulation_id")
+    private java.util.UUID simulationId;
 }

@@ -263,18 +263,17 @@
   display: flex;
   align-items: center;
   gap: 15px;
+  white-space: nowrap;
   font-size: 12px;
   color: var(--learn-muted);
 }
 .learn-journey > span {
   color: var(--subtle);
 }
+/* The active tab is drawn by the sliding pill (base.css), so the link itself keeps
+   the same padding and fully rounded shape as the other tabs. */
 .learn-journey strong,
 .learn-journey a.active {
-  padding: 5px 10px;
-  border-radius: 6px;
-  background: var(--accent-soft);
-  color: var(--learn-blue);
   font-weight: 600;
 }
 .learn-journey a:hover,
@@ -1037,9 +1036,9 @@
 :root[data-theme-effective="dark"] .learning-app .learn-journey a:hover {
   color: #e8eef7;
 }
-:root[data-theme-effective="dark"] .learning-app .learn-journey a.active {
-  border-color: #3b4758;
+:root[data-theme-effective="dark"] .learning-app .learn-journey .active-pill {
   background: #252d39;
+  box-shadow: 0 0 0 1px #3b4758;
 }
 :root[data-theme-effective="dark"] .learning-app .learn-header-icon,
 :root[data-theme-effective="dark"] .learning-app .learn-header-action {
@@ -1236,3 +1235,173 @@
   opacity: 0.6;
 }
 
+
+/* Account menu in the workspace header (the site nav is hidden on full-page workspaces). */
+.learn-account-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 4px;
+}
+.learning-app button.learn-account,
+.learning-app button.learn-account:hover:not(:disabled) {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-strong, var(--accent));
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.learning-app button.learn-account:hover:not(:disabled),
+.learning-app button.learn-account[aria-expanded="true"] {
+  box-shadow: 0 0 0 3px var(--surface-3);
+}
+.learn-account img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.learn-account-menu {
+  position: absolute;
+  z-index: 120;
+  top: calc(100% + 10px);
+  right: 0;
+  display: grid;
+  gap: 2px;
+  width: 240px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.learn-account-who {
+  display: grid;
+  gap: 1px;
+  margin-bottom: 4px;
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--line);
+  line-height: 1.4;
+}
+.learn-account-who strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.learn-account-who small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.learn-account-menu > a,
+.learning-app .learn-account-menu > button,
+.learning-app .learn-account-menu > button:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.learn-account-menu > a:hover,
+.learning-app .learn-account-menu > button:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.learning-app .learn-account-menu > button.learn-account-logout,
+.learning-app .learn-account-menu > button.learn-account-logout:hover:not(:disabled) {
+  color: var(--danger);
+}
+.learning-app .learn-account-menu > button.learn-account-logout:hover:not(:disabled) {
+  background: var(--danger-soft);
+}
+.learn-account-menu .learn-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+.learn-header-action .learn-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
+/* Loading placeholders: grey bars with a soft sweep, shaped like the content that is coming. */
+.skeleton {
+  display: block;
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface-2) 45%, var(--surface-3) 65%);
+  background-size: 300% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+.skeleton-title { width: 46%; height: 20px; }
+.skeleton-line { width: 100%; }
+.skeleton-label { width: 28%; height: 10px; margin-top: 10px; }
+.skeleton-field { height: 42px; border-radius: 10px; }
+.skeleton-area { height: 76px; border-radius: 10px; }
+@keyframes skeleton-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+.learn-library-skeleton {
+  display: grid;
+  gap: 16px;
+  padding: 18px 4px;
+}
+.learn-library-skeleton .skeleton { height: 14px; }
+.assignment-skeleton {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.assignment-skeleton-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 14px 0 8px;
+}
+.assignment-skeleton-steps .skeleton { height: 34px; border-radius: 999px; }
+.assignment-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.assignment-skeleton-grid .skeleton { height: 64px; border-radius: 12px; }
+.assignment-history-skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+/* Mid-size desktops (the common 1366-1536px laptop): slimmer side panels so the simulation gets the width. */
+@media (min-width: 1251px) and (max-width: 1599px) {
+  .learn-layout[data-library-pane="true"] { grid-template-columns: 232px minmax(0, 1fr) 340px; }
+  .learn-layout[data-library-pane="true"][data-library-collapsed="true"] { grid-template-columns: 48px minmax(0, 1fr) 340px; }
+}

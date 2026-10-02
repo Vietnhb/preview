@@ -1,17 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { LibraryFolder, LibraryItem } from "../../../shared/types/physlive";
-import { deleteLibraryItem, moveLibraryItem, renameLibraryItem } from "../api/libraryApi";
+import axios from "axios";
+import { deleteLibraryItem, moveLibraryItem, renameLibraryItem, shareLibraryItem } from "../api/libraryApi";
 import { teacherLibraryStore } from "../hooks/useTeacherLibrary";
 import { getToken } from "../../../shared/lib/token";
 import Icon from "../../../shared/ui/LearningIcon";
 import "../styles/library-actions.css";
 
+const SHARE_OPTIONS: { value: LibraryItem["visibility"]; label: string; help: string }[] = [
+  { value: "PERSONAL", label: "Chỉ mình tôi", help: "Không chia sẻ với ai." },
+  { value: "SHARED", label: "Trong trường", help: "Tổ trưởng bộ môn Vật lý của trường duyệt trước khi hiển thị." },
+  { value: "PUBLIC", label: "Kho cộng đồng", help: "Người kiểm duyệt của PhysLive duyệt trước khi hiển thị." },
+];
+
+/** Short review state of a shared item, shown in the share menu and on the library row. */
+export function shareStatus(item: LibraryItem) {
+  if (item.visibility === "PERSONAL") return "Đang chọn";
+  if (item.moderationStatus === "PENDING") return "Chờ duyệt";
+  if (item.moderationStatus === "REJECTED") return "Bị từ chối";
+  return "Đã duyệt";
+}
+
 export default function LibraryItemActions({ item, folders }: Readonly<{ item: LibraryItem; folders: LibraryFolder[] }>) {
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDialogElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-  const [mode, setMode] = useState<"actions" | "rename" | "delete">("actions");
+  const [mode, setMode] = useState<"actions" | "info" | "move" | "share" | "rename" | "delete">("actions");
+  const [folderQuery, setFolderQuery] = useState("");
   const [title, setTitle] = useState(item.title);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -47,9 +63,14 @@ export default function LibraryItemActions({ item, folders }: Readonly<{ item: L
           : state.items.filter(value => value.id !== item.id) }));
       }
       close();
-    } catch { setError("Không lưu được thay đổi. Vui lòng thử lại."); }
+    } catch (cause) {
+      const message = axios.isAxiosError<{ message?: string }>(cause) ? cause.response?.data?.message : undefined;
+      setError(message || "Không lưu được thay đổi. Vui lòng thử lại.");
+    }
     finally { setBusy(false); }
   };
+  const normalizedFolderQuery = folderQuery.trim().toLocaleLowerCase("vi");
+  const matchingFolders = folders.filter(folder => folder.name.toLocaleLowerCase("vi").includes(normalizedFolderQuery));
   return <>
     <button ref={trigger} type="button" className="library-more" aria-label={`Tùy chọn: ${item.title}`}
       aria-expanded={Boolean(position)} aria-controls={position ? `library-actions-${item.id}` : undefined} aria-haspopup="dialog"
@@ -64,15 +85,51 @@ export default function LibraryItemActions({ item, folders }: Readonly<{ item: L
     {position && createPortal(<dialog ref={panel} open id={`library-actions-${item.id}`} className="library-action-popover" aria-label={`Tùy chọn: ${item.title}`} style={position}
       onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node) && event.relatedTarget !== trigger.current) setPosition(null); }}>
       {mode === "actions" && <>
+        <button type="button" disabled={busy} onClick={() => setMode("info")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5M12 7.8v.2" /></svg>Thông tin</button>
         <button type="button" disabled={busy} onClick={() => setMode("rename")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m16 3 5 5L8 21H3v-5ZM14 5l5 5" /></svg>Đổi tên</button>
-        <div className="library-menu-divider" />
-        <p className="library-menu-label">Chuyển vào thư mục</p>
-        <div className="library-menu-folders">{folders.filter(folder => folder.id !== item.folderId).map(folder =>
-          <button type="button" key={folder.id} disabled={busy} onClick={() => void run(() => moveLibraryItem(item.id, folder.id))}><Icon name="folder" /><span>{folder.name}</span></button>)}
-          {!folders.some(folder => folder.id !== item.folderId) && <p className="library-menu-label">Chưa có thư mục khác</p>}
-        </div>
+        <button type="button" disabled={busy} onClick={() => { setFolderQuery(""); setMode("move"); }}><Icon name="folder" /><span>Chuyển vào thư mục…</span><svg className="library-menu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></button>
+        <button type="button" disabled={busy} onClick={() => setMode("share")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="m8.2 10.9 7.6-3.8M8.2 13.1l7.6 3.8" /></svg><span>Chia sẻ…</span><svg className="library-menu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></button>
         <div className="library-menu-divider" />
         <button type="button" className="library-menu-danger" disabled={busy} onClick={() => setMode("delete")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>Xóa khỏi thư viện</button>
+      </>}
+      {mode === "move" && <>
+        <button type="button" className="library-menu-back" disabled={busy} onClick={() => setMode("actions")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>Chuyển vào thư mục</button>
+        {folders.length > 6 && <input className="library-menu-search" type="search" value={folderQuery} onChange={event => setFolderQuery(event.target.value)} placeholder="Tìm thư mục" aria-label="Tìm thư mục" />}
+        <div className="library-menu-folders">
+          {matchingFolders.map(folder => {
+            const current = folder.id === item.folderId;
+            return <button type="button" key={folder.id} disabled={busy || current} aria-current={current ? "true" : undefined} onClick={() => void run(() => moveLibraryItem(item.id, folder.id))}>
+              <Icon name="folder" /><span>{folder.name}</span>{current && <small>Đang ở đây</small>}
+            </button>;
+          })}
+          {matchingFolders.length === 0 && <p className="library-menu-label">{folders.length === 0 ? "Chưa có thư mục nào" : "Không tìm thấy thư mục"}</p>}
+        </div>
+      </>}
+      {mode === "info" && <>
+        <button type="button" className="library-menu-back" onClick={() => setMode("actions")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>Thông tin mô phỏng</button>
+        <dl className="library-info">
+          <div><dt>Tên</dt><dd>{item.title}</dd></div>
+          <div><dt>Chủ đề</dt><dd>{item.topic || "Chưa xác định"}</dd></div>
+          <div><dt>Thư mục</dt><dd>{folders.find(folder => folder.id === item.folderId)?.name ?? "Chưa phân loại"}</dd></div>
+          <div><dt>Ngày lưu</dt><dd>{new Date(item.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</dd></div>
+          <div><dt>Kiểm tra kết quả</dt><dd>{item.validationStatus === "PASSED" ? "Đã đạt, giao bài được" : "Chưa đạt, chưa giao bài được"}</dd></div>
+          <div><dt>Chia sẻ</dt><dd>{item.visibility === "PERSONAL" ? "Chỉ mình tôi" : `${item.visibility === "PUBLIC" ? "Kho cộng đồng" : "Trong trường"} · ${shareStatus(item).toLocaleLowerCase("vi")}`}</dd></div>
+          {item.visibility !== "PERSONAL" && item.moderationComment && <div><dt>Ghi chú của người duyệt</dt><dd>{item.moderationComment}</dd></div>}
+        </dl>
+      </>}
+      {mode === "share" && <>
+        <button type="button" className="library-menu-back" disabled={busy} onClick={() => setMode("actions")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>Chia sẻ mô phỏng</button>
+        {SHARE_OPTIONS.map(option => {
+          const current = item.visibility === option.value;
+          // A rejected request can be sent again from the same option.
+          const resend = current && item.moderationStatus === "REJECTED";
+          return <button type="button" key={option.value} className="library-share-option" disabled={busy || (current && !resend)} aria-current={current ? "true" : undefined}
+            onClick={() => void run(() => shareLibraryItem(item.id, option.value))}>
+            <span><strong>{option.label}</strong><small>{option.help}</small></span>
+            {current && <em>{resend ? "Gửi lại" : shareStatus(item)}</em>}
+          </button>;
+        })}
+        {item.visibility !== "PERSONAL" && item.moderationStatus === "REJECTED" && item.moderationComment && <p className="library-menu-error">Lý do từ chối: {item.moderationComment}</p>}
       </>}
       {mode === "rename" && <form onSubmit={event => { event.preventDefault(); if (title.trim()) void run(() => renameLibraryItem(item.id, title.trim())); }}>
         <label htmlFor={`rename-${item.id}`}>Đổi tên mô phỏng</label>

@@ -14,4 +14,5 @@ public final class LibraryRequests {
     public record Clone(@NotNull UUID folderId, @Size(max = 160) String title) { }
     public record Rename(@NotBlank @Size(max = 160) String title) { }
     public record Move(@NotNull UUID folderId) { }
+    public record Share(@NotNull Visibility visibility) { }
 }

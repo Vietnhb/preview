@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import "./NavBar.css";
 import { clearToken } from "../lib/token";
@@ -7,6 +7,7 @@ import type { User } from "../auth/types";
 import LearningIcon from "../ui/LearningIcon";
 import BrandMark from "../ui/BrandMark";
 import { ActivePill } from "../effects/Motion";
+import ThemeToggle from "../theme/ThemeToggle";
 import { canReviewContent, canViewUsers, isAdminRole, isStudentRole, ROLE_NAMES, roleHome } from "../auth/roles";
 import { canTeach, isDepartmentHead, userHome } from "../auth/permissions";
 
@@ -22,7 +23,7 @@ const publicItems: NavItem[] = [
 function itemsFor(user: User | null): NavItem[] {
   if (!user) return publicItems;
   const items: NavItem[] = [];
-  if (isStudentRole(user.role)) items.push({ to: "/assignments", label: "Học tập" });
+  if (isStudentRole(user.role)) items.push({ to: "/student", label: "Học tập" });
   if (canTeach(user) && !canViewUsers(user.role)) {
     items.push({ to: "/workspace", label: "Workspace" }, { to: "/assignments/workspace", label: "Giao bài" });
   }
@@ -52,7 +53,15 @@ export default function NavBar() {
   const menuOpen = menuPath === pathname;
   const setMenuOpen = (open: boolean) => setMenuPath(open ? pathname : null);
   const items = itemsFor(user);
-  const tone = pathname === "/" ? "site-nav site-nav--dark" : "site-nav";
+  // Over a full-bleed hero the bar starts transparent and gains its surface once the page scrolls.
+  const overHero = ["/", "/about", "/terms", "/login"].includes(pathname);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 12);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, [pathname]);
 
   const logout = () => {
     clearToken();
@@ -61,7 +70,7 @@ export default function NavBar() {
   };
 
   return (
-    <header className={tone}>
+    <header className={`site-nav${overHero ? " site-nav--hero" : ""}`} data-scrolled={scrolled || menuOpen ? "true" : undefined}>
       <div className="site-nav__inner">
         <Link to={userHome(user)} className="site-nav__brand" aria-label="PhysLive">
           <BrandMark size={30} />
@@ -73,9 +82,10 @@ export default function NavBar() {
             </NavLink>
           ))}
         </nav>
-        <div className="site-nav__account">
+        <div className="site-nav__actions">
+          <ThemeToggle className="site-nav__theme" />
           {user ? (
-            <>
+            <div className="site-nav__account">
               <Link to="/profile" className="site-nav__profile" title="Hồ sơ cá nhân">
                 <Avatar user={user} />
                 <span>{user.fullName}</span>
@@ -83,14 +93,13 @@ export default function NavBar() {
               <button type="button" className="site-nav__icon" onClick={logout} aria-label="Đăng xuất" title="Đăng xuất">
                 <LearningIcon name="logout" />
               </button>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="site-nav__account">
               <Link to="/login" className="site-nav__button">Đăng nhập</Link>
               <Link to="/signup" className="site-nav__button site-nav__button--primary">Đăng ký cho trường</Link>
-            </>
+            </div>
           )}
-        </div>
         <button
           type="button"
           className="site-nav__icon site-nav__menu-toggle"
@@ -100,6 +109,7 @@ export default function NavBar() {
         >
           <LearningIcon name={menuOpen ? "close" : "menu"} />
         </button>
+        </div>
       </div>
       {menuOpen && (
         <div className="site-nav__sheet">

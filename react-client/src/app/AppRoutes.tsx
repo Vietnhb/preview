@@ -21,7 +21,16 @@ const CommunityLibrary = lazy(() => import("../features/library/pages/CommunityL
 const Login = lazy(() => import("../features/auth/pages/Login"));
 const ForcedPasswordChange = lazy(() => import("../features/auth/pages/ForcedPasswordChange"));
 const DepartmentWorkspace = lazy(() => import("../features/school/pages/DepartmentWorkspace"));
-const Reviewer = lazy(() => import("../features/reviewer/pages/ReviewerConsole"));
+const reviewerModule = () => import("../features/reviewer/pages/ReviewerConsole");
+const Reviewer = lazy(reviewerModule);
+const ReviewerHome = lazy(() => reviewerModule().then(module => ({ default: module.ReviewerHomePage })));
+const ReviewerModeration = lazy(() => reviewerModule().then(module => ({ default: module.ReviewerModerationPage })));
+const ReviewerTopics = lazy(() => reviewerModule().then(module => ({ default: module.ReviewerTopicsPage })));
+const ReviewerComplaints = lazy(() => reviewerModule().then(module => ({ default: module.ReviewerComplaintsPage })));
+const ReviewerBenchmarks = lazy(() => reviewerModule().then(module => ({ default: module.ReviewerBenchmarksPage })));
+const adminAreaModule = () => import("../features/account/pages/AdminArea");
+const AdminArea = lazy(adminAreaModule);
+const AdminOverview = lazy(() => adminAreaModule().then(module => ({ default: module.AdminOverviewPage })));
 const Signup = lazy(() => import("../features/auth/pages/Signup"));
 const SchoolPaymentResult = lazy(() => import("../features/billing/pages/SchoolPaymentResult"));
 const SchoolBilling = lazy(() => import("../features/billing/pages/SchoolBilling"));
@@ -32,8 +41,16 @@ const SchoolDashboard = lazy(() => import("../features/school/pages/SchoolDashbo
 const Curriculum = lazy(() => import("../features/curriculum/pages/Curriculum"));
 const Workspace = lazy(() => import("../features/simulation/pages/SimulationWorkspace"));
 const AssignmentWorkspace = lazy(() => import("../features/assignments/pages/AssignmentWorkspace"));
+const teacherAreaModule = () => import("../features/assignments/pages/TeacherArea");
+const TeacherArea = lazy(teacherAreaModule);
+const TeacherThemed = lazy(() => teacherAreaModule().then(module => ({ default: module.TeacherThemed })));
+const TeacherComplaints = lazy(() => teacherAreaModule().then(module => ({ default: module.TeacherComplaintsPage })));
 const Lab = lazy(() => import("../features/simulation/pages/Lab"));
-const StudentAssignments = lazy(() => import("../features/assignments/pages/StudentAssignments"));
+const studentModule = () => import("../features/assignments/pages/StudentAssignments");
+const StudentArea = lazy(studentModule);
+const StudentHome = lazy(() => studentModule().then(module => ({ default: module.StudentHomePage })));
+const StudentTasks = lazy(() => studentModule().then(module => ({ default: module.StudentAssignmentsPage })));
+const StudentCommunity = lazy(() => studentModule().then(module => ({ default: module.StudentCommunityPage })));
 const ProfilePage = lazy(() => import("../features/account/pages/ProfilePage"));
 const SiteInfo = lazy(() => import("../features/public/pages/SiteInfo"));
 
@@ -56,7 +73,7 @@ export default function AppRoutes({ authReady }: { authReady: boolean }) {
   };
   const assignmentsElement =
     roleElement([ROLE_NAMES.STAFF, ROLE_NAMES.STUDENT, ROLE_NAMES.MANAGER],
-      isStudentRole(user?.role) ? <StudentAssignments /> : teachingElement(<Navigate to={`/assignments/workspace${search}`} replace />));
+      isStudentRole(user?.role) ? <Navigate to="/student/assignments" replace /> : teachingElement(<Navigate to={`/assignments/workspace${search}`} replace />));
 
   if (authReady && user?.mustChangePassword && pathname !== "/change-password") {
     return <Navigate to="/change-password" replace />;
@@ -68,14 +85,15 @@ export default function AppRoutes({ authReady }: { authReady: boolean }) {
     return <Navigate to={`${pathname.replace(/^\/admin/, '/manager')}${search}`} replace />;
   }
   if (authReady && user?.role === ROLE_NAMES.ADMIN
-      && pathname !== "/admin" && pathname !== "/admin/users" && pathname !== "/profile" && pathname !== "/change-password") {
-    return <Navigate to="/admin/users" replace />;
+      && pathname !== "/" && pathname !== "/admin" && !pathname.startsWith("/admin/") && pathname !== "/profile" && pathname !== "/change-password") {
+    return <Navigate to="/admin" replace />;
   }
   if (managerBillingOnly && !user?.mustChangePassword) return <Navigate to="/school/billing" replace />;
 
   return <Suspense fallback={<main className="route-loading" aria-busy="true" />}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          {/* Home is the guest landing page; signed-in accounts go to their own area. */}
+          <Route path="/" element={!authReady ? <main className="route-loading" aria-busy="true" /> : user ? <Navigate to={userHome(user)} replace /> : <Home />} />
           <Route path="/change-password" element={<RequireAccess ready={authReady}><ForcedPasswordChange /></RequireAccess>} />
           <Route path="/department" element={roleElement([ROLE_NAMES.STAFF],
             isDepartmentHead(user) && user?.schoolId ? <DepartmentWorkspace /> : <Navigate to="/assignments" replace />)} />
@@ -94,8 +112,16 @@ export default function AppRoutes({ authReady }: { authReady: boolean }) {
               />
             }
           />
-          <Route path="/lab" element={workspaceElement(<Lab />)} />
-          <Route path="/library" element={<RequireAccess ready={authReady} roles={APPLICATION_ROLES}><Library /></RequireAccess>} />
+          <Route path="/lab" element={workspaceElement(<TeacherArea />)}>
+            <Route index element={<Lab />} />
+            <Route path="complaints" element={<TeacherComplaints />} />
+            <Route path="library" element={<Library />} />
+            <Route path="community" element={<TeacherThemed><CommunityLibrary /></TeacherThemed>} />
+            <Route path="department" element={isDepartmentHead(user) && user?.schoolId ? <DepartmentWorkspace /> : <Navigate to="/lab" replace />} />
+            <Route path="*" element={<Navigate to="/lab" replace />} />
+          </Route>
+          {/* Teachers use the library inside their management area, next to submissions and complaints. */}
+          <Route path="/library" element={<RequireAccess ready={authReady} roles={APPLICATION_ROLES}>{user?.role === ROLE_NAMES.STAFF && canTeach(user) ? <Navigate to="/lab/library" replace /> : <Library />}</RequireAccess>} />
           <Route path="/community" element={authReady ? <CommunityLibrary /> : <main className="route-loading" aria-busy="true" />} />
           <Route path="/assignments" element={assignmentsElement} />
           <Route path="/school" element={roleElement([ROLE_NAMES.SCHOOL], user?.schoolId ? <SchoolLayout /> : <Navigate to="/" replace />)}>
@@ -106,8 +132,17 @@ export default function AppRoutes({ authReady }: { authReady: boolean }) {
             <Route path="billing" element={<SchoolBilling />} />
             <Route path="*" element={<Navigate to="/school" replace />} />
           </Route>
-          <Route path="/admin" element={roleElement([ROLE_NAMES.ADMIN], <Navigate to="/admin/users" replace />)} />
-          <Route path="/admin/users" element={roleElement([ROLE_NAMES.ADMIN], <AdminDirectory />)} />
+          <Route path="/admin" element={roleElement([ROLE_NAMES.ADMIN], <AdminArea />)}>
+            <Route index element={<AdminOverview />} />
+            <Route path="users" element={<AdminDirectory />} />
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Route>
+          <Route path="/student" element={roleElement([ROLE_NAMES.STUDENT], <StudentArea />)}>
+            <Route index element={<StudentHome />} />
+            <Route path="assignments" element={<StudentTasks />} />
+            <Route path="community" element={<StudentCommunity />} />
+            <Route path="*" element={<Navigate to="/student" replace />} />
+          </Route>
           <Route path="/manager" element={roleElement([ROLE_NAMES.MANAGER], <AdminLayout />)}>
             <Route index element={<Admin />} />
             <Route path="users" element={<UserAccounts />} />
@@ -119,10 +154,14 @@ export default function AppRoutes({ authReady }: { authReady: boolean }) {
             <Route path="curriculum" element={<AdminCurriculum />} />
             <Route path="validation" element={<AdminValidation />} />
           </Route>
-          <Route
-            path="/reviewer"
-            element={roleElement(CONTENT_REVIEW_ROLES, <Reviewer />)}
-          />
+          <Route path="/reviewer" element={roleElement(CONTENT_REVIEW_ROLES, <Reviewer />)}>
+            <Route index element={<ReviewerHome />} />
+            <Route path="moderation" element={<ReviewerModeration />} />
+            <Route path="topics/:section?" element={<ReviewerTopics />} />
+            <Route path="benchmarks" element={<ReviewerBenchmarks />} />
+            <Route path="complaints" element={<ReviewerComplaints />} />
+            <Route path="*" element={<Navigate to="/reviewer" replace />} />
+          </Route>
           <Route path="/curriculum" element={<RequireAccess ready={authReady} roles={APPLICATION_ROLES}><Curriculum /></RequireAccess>} />
           <Route path="/profile" element={<RequireAccess ready={authReady}><ProfilePage /></RequireAccess>} />
           <Route path="/about" element={<SiteInfo kind="about" />} />

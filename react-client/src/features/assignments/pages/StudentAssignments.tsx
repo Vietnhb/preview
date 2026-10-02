@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Badge, SegmentedControl } from "@radix-ui/themes";
+import type { ReactNode } from "react";
+import { Outlet, useNavigate, useOutletContext } from "react-router-dom";
 import { AssignmentList } from "../components/StudentAssignmentList";
 import { StudentClassOverview } from "../components/StudentClassOverview";
 import { AssignmentWorkbench } from "../components/StudentAssignmentWorkbench";
@@ -8,47 +8,67 @@ import { useAssignmentPractice } from "../hooks/useAssignmentPractice";
 import { useStudentResources } from "../hooks/useStudentResources";
 import { useSessionStore } from "../../../shared/auth/sessionStore";
 import type { User } from "../../../shared/auth/types";
+import AppSidebarLayout, { type SidebarGroup } from "../../../shared/layout/AppSidebar";
 import "./student-workspace.css";
 
-type Tab = "assigned" | "library";
+type StudentContext = {
+  user: User | null;
+  practice: ReturnType<typeof useAssignmentPractice>;
+  resources: ReturnType<typeof useStudentResources>;
+};
+const useStudent = () => useOutletContext<StudentContext>();
 
-function StudentWorkspace({ initialTab, user }: Readonly<{ initialTab: Tab; user: User | null }>) {
-  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+/** One data load for the whole student area; pages read it through the outlet context. */
+function StudentArea({ user }: Readonly<{ user: User | null }>) {
   const practice = useAssignmentPractice(user?.id);
   const resources = useStudentResources(user?.id);
-  const chooseTab = (value: string) => {
-    setActiveTab(value as Tab);
-    practice.close();
-    resources.close();
-  };
-
-  return <div className={`main student-main student-workspace student-layout-${activeTab}`}>
-    <div className="modern-container">
-      {!practice.workbench && activeTab === "assigned" && <StudentClassOverview
-        studentName={user?.fullName || "bạn"}
-        schoolName={resources.classes[0]?.schoolName ?? user?.schoolName}
-        classes={resources.classes}
-        loading={resources.classesLoading}
-        pendingAssignments={practice.pending}
-        completedAssignments={practice.completed}
-        sharedResources={resources.discovery.items.length}
-        onExplore={() => setActiveTab("library")}
-      />}
-      {!practice.workbench && <div className="student-page-tabs">
-        <SegmentedControl.Root size="3" value={activeTab} aria-label="Khu vực học tập" onValueChange={chooseTab}>
-          <SegmentedControl.Item value="assigned">Bài tập được giao<Badge variant="soft">{practice.assignments.length}</Badge></SegmentedControl.Item>
-          <SegmentedControl.Item value="library">Cộng đồng<Badge color="cyan" variant="soft">{resources.discovery.items.length}</Badge></SegmentedControl.Item>
-        </SegmentedControl.Root>
-      </div>}
-      {activeTab === "assigned" && (practice.workbench
-        ? <AssignmentWorkbench {...practice.workbench} />
-        : <AssignmentList {...practice.list} />)}
-      {activeTab === "library" && <ResourceDiscovery {...resources.discovery} vectors={practice.vectors} />}
-    </div>
-  </div>;
+  const groups: SidebarGroup[] = [
+    { items: [{ to: "/student", label: "Tổng quan", icon: "grid", end: true }] },
+    { label: "Học tập", items: [
+      { to: "/student/assignments", label: "Bài tập được giao", icon: "book", badge: practice.pending },
+      { to: "/student/community", label: "Kho mô phỏng", icon: "atom" },
+    ] },
+  ];
+  return <AppSidebarLayout id="student" subtitle="Học tập" home="/student" groups={groups} contentClassName="student-area">
+    <Outlet context={{ user, practice, resources } satisfies StudentContext} />
+  </AppSidebarLayout>;
 }
 
-export default function StudentAssignments({ initialTab = "assigned" }: Readonly<{ initialTab?: Tab }>) {
+export default function StudentLayout() {
   const user = useSessionStore(state => state.user);
-  return <StudentWorkspace key={user?.id ?? "guest"} user={user} initialTab={initialTab} />;
+  return <StudentArea key={user?.id ?? "guest"} user={user} />;
+}
+
+function StudentPage({ layout, children }: Readonly<{ layout: "assigned" | "library"; children: ReactNode }>) {
+  return <div className={`main student-main student-workspace student-layout-${layout}`}><div className="modern-container">{children}</div></div>;
+}
+
+export function StudentHomePage() {
+  const { user, practice, resources } = useStudent();
+  const navigate = useNavigate();
+  return <StudentPage layout="assigned">
+    <StudentClassOverview
+      studentName={user?.fullName || "bạn"}
+      schoolName={resources.classes[0]?.schoolName ?? user?.schoolName}
+      classes={resources.classes}
+      loading={resources.classesLoading}
+      pendingAssignments={practice.pending}
+      completedAssignments={practice.completed}
+      sharedResources={resources.discovery.items.length}
+      onExplore={() => navigate("/student/community")}
+    />
+    <AssignmentList {...practice.list} onSelect={assignment => { practice.list.onSelect(assignment); navigate("/student/assignments"); }} />
+  </StudentPage>;
+}
+
+export function StudentAssignmentsPage() {
+  const { practice } = useStudent();
+  return <StudentPage layout="assigned">
+    {practice.workbench ? <AssignmentWorkbench {...practice.workbench} /> : <AssignmentList {...practice.list} />}
+  </StudentPage>;
+}
+
+export function StudentCommunityPage() {
+  const { practice, resources } = useStudent();
+  return <StudentPage layout="library"><ResourceDiscovery {...resources.discovery} vectors={practice.vectors} /></StudentPage>;
 }

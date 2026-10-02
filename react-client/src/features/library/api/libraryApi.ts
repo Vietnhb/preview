@@ -21,6 +21,10 @@ export const saveLibrary = (
     visibility 
   }).then(r => r.data);
 
+/** PERSONAL: only the owner. SHARED: the school, after the department head approves. PUBLIC: the community, after a reviewer approves. */
+export const shareLibraryItem = (id: string, visibility: LibraryItem["visibility"]) =>
+  axiosClient.patch<LibraryItem>(`/library/${id}/visibility`, { visibility }).then(r => r.data);
+
 export const cloneSharedLibrary = (id: string, folderId: string, title?: string) =>
   axiosClient.post<LibraryItem>(`/library/${id}/clone`, { folderId, title }).then(r => r.data);
 

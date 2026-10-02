@@ -171,6 +171,35 @@ public class LibraryService {
         return toResponse(libraryRepository.save(item));
     }
 
+    /**
+     * Changes who can see an item the caller owns. School sharing waits for the school's physics
+     * department head; community sharing waits for a reviewer. Going back to personal needs no review.
+     */
+    @Transactional
+    public LibraryItemResponse share(java.util.UUID id, Visibility visibility) {
+        User user = currentUserService.requireCurrentUser();
+        LibraryItem item = libraryRepository.findById(id)
+                .filter(value -> value.isActive() && value.getOwner().getId().equals(user.getId()))
+                .orElseThrow(() -> ApiException.notFound(LIBRARY_ITEM_NOT_FOUND));
+        if (visibility != Visibility.PERSONAL) {
+            Simulation simulation = item.getSimulation();
+            if (simulation == null || simulation.getOwner() == null || !user.getId().equals(simulation.getOwner().getId()))
+                throw ApiException.forbidden("Chỉ chia sẻ được mô phỏng do chính bạn tạo, không chia sẻ được bản sao lấy từ người khác.");
+            if (simulation.getStatus() != SimulationStatus.READY || !"PASSED".equals(item.getSpecification().getValidationStatus()))
+                throw ApiException.conflict("Chỉ chia sẻ được mô phỏng đã kiểm định.");
+            if (visibility == Visibility.SHARED && (user.getInstitutionId() == null || user.getInstitutionId().isBlank()))
+                throw ApiException.badRequest("Chia sẻ cấp trường cần tài khoản thuộc một trường.");
+        }
+        if (item.getVisibility() == visibility && item.getModerationStatus() != LibraryModerationStatus.REJECTED)
+            return toResponse(item);
+        item.setVisibility(visibility);
+        item.setSharedInstitutionId(visibility == Visibility.SHARED ? user.getInstitutionId() : null);
+        item.setModerationStatus(visibility == Visibility.PERSONAL ? LibraryModerationStatus.APPROVED : LibraryModerationStatus.PENDING);
+        item.setModerationComment(null);
+        item.setModeratedAt(null);
+        item.setModeratedBy(null);
+        return toResponse(libraryRepository.save(item));
+    }
     private LibraryItemResponse toResponse(LibraryItem item) {
         return new LibraryItemResponse(item.getId(), item.getSimulation() == null ? null : item.getSimulation().getId(),
                 item.getFolder() == null ? null : item.getFolder().getId(),

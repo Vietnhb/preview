@@ -46,6 +46,10 @@ export const gradeAssignmentSubmission = (assignmentId: string, submissionId: st
 export const reopenAssignmentSubmission = (assignmentId: string, submissionId: string) =>
   axiosClient.post<AssignmentSubmission>(`/assignments/${assignmentId}/submissions/${submissionId}/reopen`).then(r => r.data);
 
+/** Closing stops students from handing in; reopening accepts work again. */
+export const setAssignmentOpen = (assignmentId: string, open: boolean) =>
+  axiosClient.post<Assignment>(`/assignments/${assignmentId}/${open ? "open" : "close"}`).then(r => r.data);
+
 export const submitAssignmentPrediction = (assignmentId: string, predictions: unknown) => 
   axiosClient.post<AssignmentSubmission>(
     `/assignments/${assignmentId}/predictions`, 

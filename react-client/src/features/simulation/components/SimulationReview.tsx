@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { formatNumber, prettyUnit } from "../model/sceneModel";
@@ -34,15 +34,34 @@ export function SimulationParameterControl({ parameter, value, onChange }: Reado
     if (Number.isFinite(numeric)) onChange(numeric);
     setDraft(null);
   };
-  return <label className="simulation-control"><span>{parameter.label || parameter.name}</span>
-    <strong>{Number(value.toPrecision(5))} {prettyUnit(parameter.unit ?? "")}</strong>
-    {min < max && <><input type="range" min={min} max={max} step={parameter.step ?? "any"} value={value}
-      onChange={(event) => onChange(Number(event.target.value))} />
-      <input type="number" min={min} max={max} step="any" value={draft ?? String(value)}
-        onFocus={() => setDraft(String(value))} onChange={(event) => setDraft(event.target.value)}
-        onBlur={commit} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /></>}
-  </label>;
+  const unit = prettyUnit(parameter.unit ?? "");
+  // Labels often arrive as "vị trí ban đầu x0 (m)"; the unit is shown next to the value instead.
+  const rawLabel = (parameter.label || parameter.name).replace(/\s*\([^()]*\)\s*$/, "").trim() || parameter.name;
+  const label = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
+  const adjustable = min < max;
+  const fill = adjustable ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100)) : 0;
+  const shown = Number(value.toPrecision(5));
+  return <div className="simulation-control">
+    <div className="simulation-control__head">
+      <label htmlFor={`sim-param-${parameter.name}`}>{label}</label>
+      <span className="simulation-control__value">
+        <input id={`sim-param-${parameter.name}`} type="number" inputMode="decimal" min={min} max={max} step="any" disabled={!adjustable}
+          value={draft ?? String(shown)}
+          onFocus={(event) => { setDraft(String(shown)); event.currentTarget.select(); }} onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} />
+        {unit && <span className="simulation-control__unit">{unit}</span>}
+      </span>
+    </div>
+    {adjustable && <>
+      <input className="simulation-control__range" type="range" aria-label={`Điều chỉnh ${rawLabel}`} min={min} max={max} step={parameter.step ?? "any"} value={value}
+        style={{ "--fill": `${fill}%` } as CSSProperties}
+        onChange={(event) => onChange(Number(event.target.value))} />
+      <div className="simulation-control__scale" aria-hidden="true"><span>{formatBound(min)}</span><span>{formatBound(max)}</span></div>
+    </>}
+  </div>;
 }
+
+const formatBound = (bound: number) => String(Number(bound.toPrecision(4)));
 
 /** Textbook-style rendering of approved ASCII equations (symbols only, no topic knowledge). */
 function prettyEquation(equation: string) {

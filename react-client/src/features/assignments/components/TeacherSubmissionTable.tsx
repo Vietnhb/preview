@@ -4,6 +4,7 @@ import type { SubmissionTableProps } from "../model/teacherSubmissionTypes";
 import { formatDateTime, initials, predictionDetails } from "../model/teacherSubmissionUtils";
 
 function gradingLabel(submission: AssignmentSubmission) {
+  if (submission.gradingStatus === "RETURNED" && !submission.completedAt) return "Đã trả lại, chờ làm lại";
   if (!submission.completedAt) return "Đang làm";
   if (submission.gradingStatus === "TEACHER_CONFIRMED") return "Đã chấm";
   if (submission.gradingStatus === "AI_GRADED") return "Điểm tự động";
@@ -30,7 +31,7 @@ export function TeacherSubmissionTable({ record, students, filter, query, onGrad
     }).filter(({ submission, studentId, studentName }) => {
       const completed = Boolean(submission?.completedAt);
       const matchesFilter = filter === "all" || (filter === "submitted" ? completed : !completed);
-      const matchesQuery = !normalizedQuery || studentName.toLocaleLowerCase("vi-VN").includes(normalizedQuery) || String(studentId).includes(normalizedQuery);
+      const matchesQuery = !normalizedQuery || studentName.toLocaleLowerCase("vi-VN").includes(normalizedQuery);
       return matchesFilter && matchesQuery;
     });
   }, [filter, query, record, students]);
@@ -61,7 +62,9 @@ export function TeacherSubmissionTable({ record, students, filter, query, onGrad
     }
   };
 
-  const reopen = async (submissionId: string) => {
+  const reopen = async (submissionId: string, studentName: string) => {
+    // Reopening discards the confirmed grade, so ask first.
+    if (!window.confirm(`Trả bài cho ${studentName} làm lại? Điểm đã chấm của bài này sẽ bị xoá.`)) return;
     setBusy(true);
     setActionError("");
     try {
@@ -86,18 +89,18 @@ export function TeacherSubmissionTable({ record, students, filter, query, onGrad
         const isGrading = submission?.id === gradingId;
         return <Fragment key={studentId}>
           <tr>
-            <td data-label="Học sinh"><div className="lab-student-cell"><span className="lab-student-avatar" aria-hidden="true">{initials(studentName, studentId)}</span><span><strong>{studentName}</strong><small>ID {studentId}</small></span></div></td>
-            <td data-label="Bài làm" className={submission ? "" : "lab-muted-cell"}>{submission ? <div className="lab-answer-cell"><strong>{details.answer}</strong>{details.reasoning && <small><b>Lập luận:</b> {details.reasoning}</small>}{details.conclusion && <small><b>Kết luận:</b> {details.conclusion}</small>}</div> : "Chưa bắt đầu"}</td>
-            <td data-label="Nộp lúc">{submission?.completedAt ? <time dateTime={submission.completedAt}>{formatDateTime(submission.completedAt)}</time> : "—"}</td>
+            <td data-label="Học sinh"><div className="lab-student-cell"><span className="lab-student-avatar" aria-hidden="true">{initials(studentName, studentId)}</span><span><strong>{studentName}</strong></span></div></td>
+            <td data-label="Bài làm" className={submission ? "" : "lab-muted-cell"}>{submission ? <div className="lab-answer-cell"><strong>{details.answer}</strong>{details.estimatedValue !== undefined && <small><b>Giá trị đo:</b> {details.estimatedValue}</small>}{details.reasoning && <small><b>Lập luận:</b> {details.reasoning}</small>}{details.conclusion && details.conclusion !== details.answer && <small><b>Kết luận:</b> {details.conclusion}</small>}</div> : "Chưa bắt đầu"}</td>
+            <td data-label="Nộp lúc">{submission?.completedAt ? <><time dateTime={submission.completedAt}>{formatDateTime(submission.completedAt)}</time>{record.assignment.dueAt && new Date(submission.completedAt).getTime() > new Date(record.assignment.dueAt).getTime() && <small className="lab-late-badge">Nộp muộn</small>}</> : "—"}</td>
             <td data-label="Trạng thái"><div className="lab-grade-status"><span className={`lab-status ${completed ? "submitted" : submission ? "progress" : "pending"}`}><span className="lab-status-dot" aria-hidden="true" />{submission ? gradingLabel(submission) : "Chưa bắt đầu"}</span>{completed && submission?.score != null && <strong>{submission.score}/{submission.maxScore ?? maxScore}</strong>}</div></td>
-            <td data-label="Chấm điểm" className="lab-grade-action">{completed && submission && <button type="button" className="lab-grade-button" aria-expanded={isGrading} onClick={() => openGrading(submission)}>{submission.gradingStatus === "TEACHER_CONFIRMED" ? "Sửa điểm" : "Chấm bài"}</button>}</td>
+            <td data-label="Chấm điểm" className="lab-grade-action">{completed && submission && <button type="button" className="lab-grade-button" aria-expanded={isGrading} onClick={() => openGrading(submission)}>{submission.gradingStatus === "TEACHER_CONFIRMED" ? "Sửa điểm" : submission.gradingStatus === "AI_GRADED" ? "Xem và xác nhận điểm" : "Chấm bài"}</button>}</td>
           </tr>
           {isGrading && submission && <tr className="lab-grading-row"><td colSpan={5}>
             <form className="lab-grading-form" onSubmit={event => void submitGrade(event, submission.id)}>
               <div className="lab-grading-heading"><div><strong>Chấm bài của {studentName}</strong><small>Thang điểm tối đa: {maxScore}</small></div><button type="button" aria-label="Đóng khung chấm điểm" onClick={() => setGradingId("")}>×</button></div>
-              <div className="lab-grading-fields"><label>Điểm<input type="number" min="0" max={maxScore} step="0.1" required value={score} onChange={event => setScore(event.target.value)} /></label><label>Nhận xét<textarea rows={3} maxLength={4000} value={feedback} onChange={event => setFeedback(event.target.value)} placeholder="Nhận xét về dự đoán, lập luận và kết luận của học sinh…" /></label></div>
+              <div className="lab-grading-fields"><label>Điểm<input type="number" min="0" max={maxScore} step="0.1" required value={score} onChange={event => setScore(event.target.value)} /></label><label>Nhận xét<textarea rows={3} maxLength={4000} value={feedback} onChange={event => setFeedback(event.target.value)} placeholder="Nhận xét về câu trả lời, lập luận và kết luận của học sinh…" /></label></div>
               {actionError && <p className="lab-grading-error" role="alert">{actionError}</p>}
-              <div className="lab-grading-actions"><button type="button" className="lab-reopen-button" disabled={busy} onClick={() => void reopen(submission.id)}>Trả bài làm lại</button><button type="submit" className="prediction-submit-btn" disabled={busy}>{busy ? "Đang lưu…" : "Xác nhận điểm"}</button></div>
+              <div className="lab-grading-actions">{record.assignment.status === "ACTIVE" && <button type="button" className="lab-reopen-button" disabled={busy} onClick={() => void reopen(submission.id, studentName)}>Trả bài làm lại</button>}<button type="submit" className="prediction-submit-btn" disabled={busy}>{busy ? "Đang lưu…" : "Xác nhận điểm"}</button></div>
             </form>
           </td></tr>}
         </Fragment>;

@@ -78,6 +78,8 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
   const [sandboxKey, setSandboxKey] = useState(0);
   const [validation, setValidation] = useState<SimulationValidation | null>(null);
   const [locallyAdjusted, setLocallyAdjusted] = useState(false);
+  /** True from a parameter change until the recomputed motion arrives. */
+  const [recomputing, setRecomputing] = useState(false);
 
   const restoreSaved = useCallback((result: GeneratedSimulationResult, id: string) => {
     const params = result.savedParameters ?? Object.fromEntries(result.parameters.map(p => [p.name, p.value]));
@@ -88,7 +90,7 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
     setLiveTimeline(result.simulationSpec.solverTimeline ?? null);
     setValues(params); setRunValues(params);
     setValidation(result.validation);
-    setLocallyAdjusted(false);
+    setLocallyAdjusted(false); setRecomputing(false);
     setRenderError(""); setAutoRepairUsed(true);
     setSaveOpen(false); setSavedMessage("");
     setCurrentSimulationId(id);
@@ -165,7 +167,7 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
     setValidation(null);
     setError(null);
     setBusy(false);
-    setLocallyAdjusted(false);
+    setLocallyAdjusted(false); setRecomputing(false);
     setSourceFile(null);
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -342,10 +344,14 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
         setRunValues(values);
         setValidation(result.validation);
         setError(null);
+        // New parameters mean a new motion: replay it from t = 0 instead of continuing mid-way.
+        setSandboxKey(key => key + 1);
+        setRecomputing(false);
       }).catch((cause: unknown) => {
         if (controller.signal.aborted) return;
         setError(getError(cause));
         setValidation({ status: "FLAGGED", flags: [getError(cause)] });
+        setRecomputing(false);
       });
     }, 180);
     return () => { window.clearTimeout(timeout); controller.abort(); };
@@ -359,6 +365,7 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
       [parameter.name]: Math.min(max, Math.max(min, numeric)),
     }));
     setLocallyAdjusted(true);
+    setRecomputing(true);
     setValidation({
       status: "PENDING",
       flags: [],
@@ -372,6 +379,8 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
     );
     setValues(initial);
     setLocallyAdjusted(true);
+    setRecomputing(true);
+    setValidation({ status: "PENDING", flags: [] });
   };
 
   const recognitionLowConfidence =
@@ -408,7 +417,7 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
       recognition, correction, setCorrection, editingRecognition, setEditingRecognition, recognitionLowConfidence,
       intent, revision, setRevision, normalize, handleRecognition, handleRevision, generate, reset,
     },
-    preview: { simulation, liveTimeline, runValues, sandboxKey, validation, renderError, setRenderError, restartPreview },
+    preview: { simulation, liveTimeline, runValues, sandboxKey, validation, renderError, setRenderError, restartPreview, recomputing },
     experiment: { simulation, values, validation, updateParameter, resetParameters, applyExample },
     explanation: { intent, revision, setRevision, handleRevision },
     save: {

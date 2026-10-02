@@ -237,17 +237,167 @@
   margin-top: 10px;
 }
 
-.simulation-control input[type="range"],
-.simulation-control input[type="number"] {
-  grid-column: 1 / -1;
+/* Parameter controls: label + compact value on one row, slider underneath. */
+.simulation-controls {
+  display: grid;
+  gap: 2px;
+  margin-top: 10px;
 }
-
-.simulation-control strong {
+.simulation-control {
+  display: grid;
+  gap: 6px;
+  padding: 10px 0 8px;
+  border-bottom: 1px solid var(--line);
+}
+.simulation-control:last-child {
+  border-bottom: 0;
+}
+.simulation-control__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.simulation-control__head label {
+  min-width: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.simulation-control__value {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.simulation-control__value:hover {
+  border-color: var(--line-strong);
+}
+.simulation-control__value:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+.simulation-control .simulation-control__value input[type="number"] {
+  width: 58px;
+  min-height: 0;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.simulation-control__value input::-webkit-outer-spin-button,
+.simulation-control__value input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+.simulation-control__unit {
+  min-width: 14px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.simulation-control input.simulation-control__range {
+  --fill: 0%;
+  width: 100%;
+  height: 20px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.simulation-control__range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--surface-3) var(--fill));
+}
+.simulation-control__range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+.simulation-control__range::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.simulation-control__range::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.12s ease;
+  -webkit-appearance: none;
+}
+.simulation-control__range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+}
+.simulation-control__range:hover::-webkit-slider-thumb,
+.simulation-control__range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.simulation-control__range:focus-visible {
+  outline: none;
+}
+.simulation-control__range:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--focus-ring);
+}
+.simulation-control__scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -4px;
+  color: var(--muted);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
-
-.simulation-control input[type="number"] {
-  padding: 7px 9px;
+.learn-section-title button.simulation-reset,
+.learn-section-title button.simulation-reset:hover:not(:disabled) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.learn-section-title button.simulation-reset:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.simulation-reset .learn-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .simulation-validation {
@@ -568,3 +718,107 @@
 .simulation-bindings th { font-weight: 600; color: var(--text-secondary, var(--ink-2)); }
 .simulation-bindings__value { white-space: nowrap; font-variant-numeric: tabular-nums; }
 @media (max-width: 480px) { .simulation-bindings th:nth-child(3), .simulation-bindings td:nth-child(3) { display: none; } }
+
+/* Inspector empty state: example problems the teacher can load with one click. */
+.simulation-empty {
+  padding: 14px 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.simulation-empty p {
+  margin: 0 0 16px;
+}
+.simulation-examples {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.simulation-examples button.simulation-example,
+.simulation-examples button.simulation-example:hover:not(:disabled) {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-height: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.simulation-examples button.simulation-example:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.simulation-example strong {
+  font-weight: 600;
+}
+.simulation-example span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Shown over the scene while new parameters are being recomputed. */
+.simulation-scene-frame {
+  position: relative;
+}
+.simulation-recomputing {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.simulation-scene-frame[aria-busy="true"] > :first-child {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+.simulation-recomputing__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: simulation-recomputing-spin 0.7s linear infinite;
+}
+@keyframes simulation-recomputing-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Teacher workspace: give the scene the room. There is no separate heading row: the page buttons
+   sit in the player toolbar. Only the box changes; the scene inside is an iframe that redraws
+   itself on resize, so rendering and validation are untouched. */
+.simulation-stage-container { padding: 12px 16px 16px; gap: 10px; }
+.sim-player__actions { display: inline-flex; align-items: center; gap: 6px; }
+.sim-player__toolbar .sim-status { margin-left: auto; }
+.sim-player__actions button.sim-action,
+.sim-player__actions button.sim-action:hover:not(:disabled) { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink-2); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.sim-player__actions button.sim-action:hover:not(:disabled) { border-color: var(--line-strong); background: var(--surface-3); color: var(--ink); }
+.sim-action .learn-icon { width: 14px; height: 14px; }
+/* Full screen shows the simulation alone: scene, playback bar and charts. */
+.sim-player:fullscreen { box-sizing: border-box; overflow-y: auto; padding: 16px 20px; background: var(--surface); }
+.sim-player:fullscreen .sim-stage { flex: 0 0 auto; height: calc(100dvh - 150px); }
+.sim-player:fullscreen .sim-player__actions { display: none; }
+@media (min-width: 851px) {
+  .simulation-stage-container .sim-stage {
+    height: clamp(360px, calc(100dvh - 244px), 900px);
+  }
+}

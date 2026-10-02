@@ -47,7 +47,7 @@ export default function TeacherLibraryPane({ folders, items, currentSimulationId
 
   return <aside className="learn-library-pane" aria-label="Thư mục mô phỏng cá nhân">
     <div className="learn-library-pane-header">
-      <div className="learn-library-heading"><div><span>THƯ VIỆN CỦA TÔI</span><strong>{folders.length} thư mục · {items.length} mô phỏng</strong></div></div>
+      <div className="learn-library-heading"><div><span>THƯ VIỆN CỦA TÔI</span><strong>{loading ? "Đang tải…" : `${folders.length} thư mục · ${items.length} mô phỏng`}</strong></div></div>
       <div className="learn-library-actions">
         {onNewSimulation && <button type="button" className="learn-new-simulation" onClick={onNewSimulation}><Icon name="plus" />Mô phỏng mới</button>}
         <button className="learn-new-folder-trigger" type="button" aria-label="Thư mục mới" title="Thư mục mới" aria-expanded={creatorOpen} aria-controls="new-library-folder-form" onClick={() => setCreatorOpen(value => !value)}><Icon name="folderPlus" /></button>
@@ -60,7 +60,9 @@ export default function TeacherLibraryPane({ folders, items, currentSimulationId
       </form>}
     </div>
     <div className="learn-library-tree">
-      {loading && <p className="learn-library-state">Đang tải thư viện…</p>}
+      {loading && <div className="learn-library-skeleton" role="status" aria-label="Đang tải thư viện">
+        {[78, 60, 70, 52, 66].map((width, index) => <span className="skeleton skeleton-line" key={index} style={{ width: `${width}%` }} />)}
+      </div>}
       {!loading && error && <div className="learn-library-state error" role="alert">{error} {onRetry && <button type="button" onClick={onRetry}>Thử lại</button>}</div>}
       {!loading && !error && folders.length === 0 && <div className="learn-library-empty"><strong>Chưa có thư mục</strong><p>Tạo thư mục để lưu và tổ chức các mô phỏng đã kiểm chứng.</p></div>}
       {visibleFolders.map(folder => <LibraryFolderView

@@ -7,7 +7,6 @@ import com.example.backend.exception.OutputContractException;
 import com.example.backend.exception.PhysicsDomainException;
 import com.example.backend.exception.SchemaCompilationException;
 import com.example.backend.exception.SchemaRoutingException;
-import com.example.backend.exception.SolverBindingException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,13 +43,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SchemaRoutingException.class)
     public ResponseEntity<ErrorResponse> handleSchemaRouting(SchemaRoutingException ex) {
         return ResponseEntity.unprocessableEntity().body(new ErrorResponse(422, ex.getMessage()));
-    }
-
-    /** Missing or inconsistent schema-to-solver bindings indicate a backend catalog defect. */
-    @ExceptionHandler(SolverBindingException.class)
-    public ResponseEntity<ErrorResponse> handleSolverBinding(SolverBindingException ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse(500, ex.getMessage()));
     }
 
     /** A request quantity falls outside a model's physical domain. */

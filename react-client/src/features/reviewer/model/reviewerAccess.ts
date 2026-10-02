@@ -25,7 +25,7 @@ export function reviewerNavigation(access: ReviewerAccess): ReviewerNavGroup[] {
     { id: "moderation", label: "Mô phỏng chờ duyệt", hint: "Giáo viên chia sẻ lên thư viện công khai", icon: "library" },
   ] });
   if (access.canEdit) groups.push({ id: "edit", label: "Biên soạn dữ liệu chuẩn", items: [
-    { id: "topics", label: "Chủ đề vật lý", hint: "Cấu trúc chủ đề, bộ giải, gói phát hành", icon: "schema" },
+    { id: "topics", label: "Chủ đề vật lý", hint: "Cấu trúc chủ đề, gói phát hành", icon: "schema" },
     { id: "benchmarks", label: "Đề kiểm thử AI", hint: "Đáp án chuẩn để đo độ chính xác", icon: "benchmark" },
   ] });
   return groups;

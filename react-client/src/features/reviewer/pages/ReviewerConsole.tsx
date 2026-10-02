@@ -1,69 +1,100 @@
-import { useSearchParams } from "react-router-dom";
-import { Badge, Card, Heading, Text } from "@radix-ui/themes";
-import { Access } from "../../../shared/ui/OperationsKit";
+import { useEffect, useState } from "react";
+import { Navigate, Outlet, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
+import { Card, Heading, Text } from "@radix-ui/themes";
+import api from "../../../shared/api/client";
 import { useSessionStore } from "../../../shared/auth/sessionStore";
-import { allowedViews, reviewerAccess, reviewerNavigation, type ReviewerView } from "../model/reviewerAccess";
+import AppSidebarLayout, { type SidebarGroup } from "../../../shared/layout/AppSidebar";
+import { reviewerAccess, type ReviewerAccess, type ReviewerView } from "../model/reviewerAccess";
 import { ReviewerIcon } from "../components/ReviewerKit";
 import { ReviewerOverview } from "../components/ReviewerOverview";
 import { ContentModeration } from "../components/ContentModeration";
 import { TopicsWorkspace } from "../components/TopicsWorkspace";
 import { BenchmarksTab } from "../components/BenchmarksTab";
+import { ComplaintsDesk } from "../components/ComplaintsDesk";
+import { complaintsForReview } from "../../support/api/supportApi";
 import "../styles/reviewer.css";
 
-export default function ReviewerConsole() {
-  return <Access reviewer><ReviewerPage /></Access>;
+/** Older links used ?view= / ?tab=; send them to the matching route. */
+const LEGACY: Record<string, string> = { overview: "", moderation: "moderation", library: "moderation", topics: "topics", schemas: "topics", modules: "topics", benchmarks: "benchmarks" };
+const pathOf = (view: ReviewerView, extra?: Record<string, string>) =>
+  view === "overview" ? "/reviewer" : `/reviewer/${view}${view === "topics" && extra?.section ? `/${extra.section}` : ""}`;
+
+type ReviewerContext = { access: ReviewerAccess };
+const useReviewer = () => useOutletContext<ReviewerContext>();
+
+/** REVIEWER area (also open to MANAGER). The sidebar shows only what the account was granted. */
+export default function ReviewerLayout() {
+  const user = useSessionStore(state => state.user);
+  const [params] = useSearchParams();
+  const access = reviewerAccess(user);
+  const [pending, setPending] = useState(0);
+  useEffect(() => {
+    if (!access.canReview) return;
+    let active = true;
+    const load = () => void api.get<unknown[]>("/reviewer/library", { params: { status: "PENDING" } }).then(response => { if (active) setPending(response.data.length); }).catch(() => undefined);
+    load(); const timer = window.setInterval(load, 60000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [access.canReview]);
+
+  // Complaints are open to every reviewer account, whichever permission it holds.
+  const canHandleComplaints = access.canEdit || access.canReview;
+  const [openComplaints, setOpenComplaints] = useState(0);
+  useEffect(() => {
+    if (!canHandleComplaints) return;
+    let active = true;
+    const load = () => void complaintsForReview().then(items => { if (active) setOpenComplaints(items.filter(item => item.status !== "RESOLVED").length); }).catch(() => undefined);
+    load(); const timer = window.setInterval(load, 60000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [canHandleComplaints]);
+
+  const legacy = params.get("view") ?? params.get("tab");
+  if (legacy !== null && legacy in LEGACY) return <Navigate to={`/reviewer${LEGACY[legacy] ? `/${LEGACY[legacy]}` : ""}`} replace />;
+
+  const groups: SidebarGroup[] = [{ items: [{ to: "/reviewer", label: "Việc cần làm", icon: "grid", end: true }] }];
+  if (access.canReview) groups.push({ label: "Kiểm duyệt nội dung", items: [{ to: "/reviewer/moderation", label: "Mô phỏng chờ duyệt", icon: "shield", badge: pending }] });
+  if (canHandleComplaints) groups.push({ label: "Hỗ trợ giáo viên", items: [{ to: "/reviewer/complaints", label: "Khiếu nại mô phỏng", icon: "message", badge: openComplaints }] });
+  if (access.canEdit) groups.push({ label: "Biên soạn dữ liệu chuẩn", items: [
+    { to: "/reviewer/topics", label: "Chủ đề vật lý", icon: "atom" },
+    { to: "/reviewer/benchmarks", label: "Đề kiểm thử AI", icon: "chart" },
+  ] });
+  if (access.isManager) groups.push({ label: "Vận hành", items: [{ to: "/manager", label: "Về trang vận hành", icon: "back" }] });
+
+  return <AppSidebarLayout id="reviewer" subtitle="Kiểm duyệt" home="/reviewer" groups={groups} contentClassName="reviewer-academic reviewer-page">
+    {!access.canEdit && !access.canReview
+      ? <div className="reviewer-blocked"><Card size="4"><span className="reviewer-empty-icon"><ReviewerIcon name="lock" size={28} /></span>
+          <Heading as="h1" size="5" mt="3">Tài khoản chưa được cấp quyền</Heading>
+          <Text as="p" color="gray" mt="2">Tài khoản kiểm duyệt cần ít nhất một quyền: <strong>kiểm duyệt nội dung</strong> hoặc <strong>biên soạn dữ liệu chuẩn</strong>. Hãy liên hệ bộ phận vận hành (Manager) để được cấp quyền.</Text>
+        </Card></div>
+      : <Outlet context={{ access } satisfies ReviewerContext} />}
+  </AppSidebarLayout>;
 }
 
-/** Older links used ?tab=schemas|solvers|modules|library; keep them working. */
-const LEGACY: Record<string, ReviewerView> = { library: "moderation", schemas: "topics", solvers: "topics", modules: "topics" };
+export function ReviewerHomePage() {
+  const { access } = useReviewer();
+  const navigate = useNavigate();
+  const name = useSessionStore(state => state.user?.fullName);
+  return <ReviewerOverview access={access} name={name} onOpen={(view, extra) => navigate(pathOf(view, extra))} />;
+}
 
-function ReviewerPage() {
-  const [params, setParams] = useSearchParams();
-  const user = useSessionStore(state => state.user);
-  const access = reviewerAccess(user);
-  const groups = reviewerNavigation(access);
-  const views = allowedViews(access);
-  const requested = params.get("view") ?? LEGACY[params.get("tab") ?? ""] ?? params.get("tab");
-  const view: ReviewerView = views.includes(requested as ReviewerView) ? requested as ReviewerView : "overview";
-  const go = (next: ReviewerView, extra?: Record<string, string>) => setParams(() => {
-    const search = new URLSearchParams({ view: next });
-    Object.entries(extra ?? {}).forEach(([key, value]) => search.set(key, value));
-    return search;
-  });
+export function ReviewerModerationPage() {
+  const { access } = useReviewer();
+  return access.canReview ? <ContentModeration /> : <Navigate to="/reviewer" replace />;
+}
 
-  if (!access.canEdit && !access.canReview) return <main className="main reviewer-academic reviewer-blocked">
-    <Card size="4"><span className="reviewer-empty-icon"><ReviewerIcon name="lock" size={28} /></span>
-      <Heading as="h1" size="5" mt="3">Tài khoản chưa được cấp quyền</Heading>
-      <Text as="p" color="gray" mt="2">Tài khoản kiểm duyệt cần ít nhất một quyền: <strong>kiểm duyệt nội dung</strong> hoặc <strong>biên soạn dữ liệu chuẩn</strong>. Hãy liên hệ bộ phận vận hành (Manager) để được cấp quyền.</Text>
-    </Card>
-  </main>;
+export function ReviewerTopicsPage() {
+  const { access } = useReviewer();
+  const { section } = useParams();
+  const navigate = useNavigate();
+  if (!access.canEdit) return <Navigate to="/reviewer" replace />;
+  return <TopicsWorkspace section={section ?? null} onSection={next => navigate(`/reviewer/topics/${next}`)} />;
+}
 
-  return <div className="main reviewer-academic">
-    <aside className="reviewer-nav-panel" aria-label="Khu vực kiểm duyệt">
-      <div className="reviewer-nav-profile">
-        <Text as="div" size="1" color="gray">Xin chào</Text>
-        <Text as="div" size="3" weight="bold" className="reviewer-nav-name">{user?.fullName ?? "Chuyên gia"}</Text>
-        <div className="reviewer-permission-chips" aria-label="Quyền của bạn">
-          {access.isManager ? <Badge color="gray" variant="soft">Vận hành · toàn quyền</Badge> : <>
-            {access.canReview && <Badge color="indigo" variant="soft"><ReviewerIcon name="eye" size={12} />Kiểm duyệt</Badge>}
-            {access.canEdit && <Badge color="gray" variant="soft"><ReviewerIcon name="edit" size={12} />Biên soạn</Badge>}
-          </>}
-        </div>
-      </div>
-      <nav className="reviewer-navigation">
-        {groups.map(group => <div key={group.id} className="reviewer-nav-group">
-          {group.label && <Text as="div" size="1" weight="medium" className="reviewer-nav-label">{group.label}</Text>}
-          {group.items.map(item => <button key={item.id} type="button" className="reviewer-nav-item" aria-current={view === item.id ? "page" : undefined} onClick={() => go(item.id)}>
-            <ReviewerIcon name={item.icon} size={18} /><span><strong>{item.label}</strong><small>{item.hint}</small></span>
-          </button>)}
-        </div>)}
-      </nav>
-    </aside>
-    <section key={view} className="reviewer-workspace">
-      {view === "overview" && <ReviewerOverview access={access} name={user?.fullName} onOpen={go} />}
-      {view === "moderation" && <ContentModeration />}
-      {view === "topics" && <TopicsWorkspace section={params.get("section")} onSection={section => go("topics", { section })} />}
-      {view === "benchmarks" && <BenchmarksTab />}
-    </section>
-  </div>;
+export function ReviewerComplaintsPage() {
+  const { access } = useReviewer();
+  return access.canEdit || access.canReview ? <ComplaintsDesk /> : <Navigate to="/reviewer" replace />;
+}
+
+export function ReviewerBenchmarksPage() {
+  const { access } = useReviewer();
+  return access.canEdit ? <BenchmarksTab /> : <Navigate to="/reviewer" replace />;
 }

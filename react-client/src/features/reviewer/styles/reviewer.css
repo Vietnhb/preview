@@ -153,7 +153,7 @@
 .reviewer-academic .reviewer-json-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
 .reviewer-academic pre.reviewer-json,
 .reviewer-academic textarea.reviewer-json, .reviewer-academic .reviewer-json textarea { font: 13px/1.6 var(--font-mono); }
-.reviewer-academic pre.reviewer-json { margin: 10px 0 0; padding: 14px; max-height: 360px; overflow: auto; border-radius: var(--radius); background: var(--ink); color: var(--accent-line); }
+.reviewer-academic pre.reviewer-json { margin: 10px 0 0; padding: 14px; max-height: 360px; overflow: auto; border-radius: var(--radius); background: var(--code-bg); color: var(--code-ink); }
 
 /* Topics */
 .reviewer-academic .reviewer-step-number { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 8px; border-radius: 50%; background: var(--surface-3); font-size: 12px; font-weight: 600; }
@@ -255,3 +255,32 @@
   .reviewer-academic .reviewer-decision-bar .rt-Button { flex: 1 1 auto; }
   .reviewer-academic .reviewer-decision-bar .reviewer-spacer { display: none; }
 }
+
+/* Simulation problems and their formulas */
+.reviewer-academic .reviewer-capabilities { display: grid; gap: 8px; justify-items: start; }
+.reviewer-academic .reviewer-capability { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--surface); padding: 8px 12px; }
+.reviewer-academic .reviewer-capability > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.reviewer-academic .reviewer-capability > summary:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 4px; }
+.reviewer-academic .reviewer-capability[open] > summary { margin-bottom: 10px; }
+.reviewer-academic .reviewer-capability-title { font-weight: 500; color: var(--ink); margin-right: auto; }
+.reviewer-academic .reviewer-capability-body { display: grid; gap: 10px; }
+.reviewer-academic .reviewer-capability-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.reviewer-academic .reviewer-formula-group { display: grid; gap: 6px; justify-items: start; margin-top: 6px; }
+.reviewer-academic .reviewer-formula-group > p { margin: 0; }
+.reviewer-academic .reviewer-formula-row { display: grid; grid-template-columns: minmax(110px, 22%) auto minmax(0, 1fr) 30px; align-items: center; gap: 6px; width: 100%; }
+.reviewer-academic .reviewer-formula-row input { min-width: 0; padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--surface); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; color: var(--ink); }
+.reviewer-academic .reviewer-formula-row input:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.reviewer-academic .reviewer-formula-row input[aria-invalid="true"] { border-color: var(--danger); }
+.reviewer-academic .reviewer-formula-eq { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.reviewer-academic .reviewer-formula-error { grid-column: 3 / -1; }
+.reviewer-academic .reviewer-formulas { display: grid; gap: 4px; margin: 0; width: 100%; }
+.reviewer-academic .reviewer-formulas > div { display: grid; grid-template-columns: minmax(110px, 24%) minmax(0, 1fr); gap: 10px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; }
+.reviewer-academic .reviewer-formulas dt { color: var(--muted); overflow-wrap: anywhere; }
+.reviewer-academic .reviewer-formulas dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.reviewer-academic .reviewer-note-danger { border-color: var(--danger); background: var(--danger-soft); }
+.reviewer-academic .reviewer-note-danger ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* ---- Pages inside the role sidebar shell (shared/layout/AppSidebar) ---- */
+.reviewer-academic.reviewer-page { width: 100%; max-width: calc(var(--page-max) + 64px); margin: 0 auto; padding: 28px 32px 56px; color: var(--ink); }
+.reviewer-page .reviewer-blocked { max-width: 640px; margin: 48px auto 0; text-align: center; }
+@media (max-width: 700px) { .reviewer-academic.reviewer-page { padding: 20px 16px 40px; } }
