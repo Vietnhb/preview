@@ -822,3 +822,11 @@
     height: clamp(360px, calc(100dvh - 244px), 900px);
   }
 }
+
+/* Scene used as a card cover: fills the cover, no chrome, and lets the card receive the pointer. */
+.sim-player--cover { width: 100%; height: 100%; gap: 0; }
+.sim-player--cover .sim-stage,
+.simulation-stage-container .sim-player--cover .sim-stage { height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+/* The scene is laid out at 2.5x the cover's size and shown scaled down, so labels and proportions
+   look like the full player in miniature instead of being squeezed into a small canvas. */
+.sim-player--cover .sim-stage__frame { inset: auto; top: 0; left: 0; width: 250%; height: 250%; transform: scale(.4); transform-origin: 0 0; pointer-events: none; }

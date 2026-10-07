@@ -1,8 +1,12 @@
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import SimulationThumb from "./SimulationThumb";
+import { useMemo, useRef, useState } from "react";
 import { Avatar, Badge, Button, Dialog, IconButton, SegmentedControl, Select, Spinner, TextField, Theme } from "@radix-ui/themes";
 import { ArrowTopRightIcon, ChevronRightIcon, Cross2Icon, MagnifyingGlassIcon, PauseIcon, PlayIcon, ReaderIcon, ResetIcon, StarFilledIcon } from "@radix-ui/react-icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import PhysicsScene from "../../simulation/components/CanvasPhysicsScene";
+import SvgPixiScene from "../../simulation/components/SvgPixiScene";
+import type { GeneratedSimulationResult } from "../../simulation/api/simulationUnderstandingApi";
+import "../../simulation/styles/simulation.css";
 import type { Curriculum, LibraryItem, Simulation } from "../../../shared/types/physlive";
 import { SpotlightCard } from "../../../shared/effects/Motion";
 import { buildCatalog, filterLibrary, indexLessonPaths, type CatalogSelection, type CatalogSubject, type LibraryScope } from "../model/catalogModel";
@@ -12,6 +16,8 @@ import styles from "./ResourceDiscovery.module.css";
 type Props = {
   items: LibraryItem[]; loading: boolean; selectedItem: LibraryItem | null; simulation: Simulation | null;
   curriculum?: Curriculum | null;
+  /** The author's scene for the open item; shown instead of the generic player when available. */
+  generated?: GeneratedSimulationResult | null;
   time: number; simulationLoading: boolean; simulationError: string; frame: number; playing: boolean;
   vectors: { grid: boolean; trajectory: boolean; velocity: boolean; acceleration: boolean };
   onOpen: (item: LibraryItem) => void; onClose: () => void; onTogglePlaying: () => void; onReset: () => void;
@@ -29,17 +35,6 @@ function hashOf(value: string) {
 }
 const resourceAccent = (moduleId: string): Accent => (["indigo", "cyan", "amber"] as const)[hashOf(moduleId) % 3];
 
-/** Small physics sketches for the card cover; the module decides which one, so a module keeps its picture. */
-const DIAGRAMS: ReactNode[] = [
-  <><path d="M8 58c14 0 16-40 30-40s16 34 30 34 14-30 26-30" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /><circle cx="38" cy="18" r="4" fill="currentColor" /></>,
-  <><path d="M10 62C28 14 70 6 96 60" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="1 7" /><circle cx="53" cy="20" r="5" fill="currentColor" /><path d="M53 20l16-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></>,
-  <><path d="M52 8L30 54" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M20 60a34 34 0 0 1 64 0" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 5" opacity=".6" /><circle cx="30" cy="56" r="7" fill="currentColor" /><path d="M40 8h24" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></>,
-  <><path d="M14 22h28l6-8 8 16 8-16 6 8h20v36H14z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" /><path d="M44 58v10M52 54v18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></>,
-];
-function ResourceDiagram({ seed }: Readonly<{ seed: string }>) {
-  return <svg className={styles.coverDiagram} viewBox="0 0 104 76" fill="none" aria-hidden="true">{DIAGRAMS[hashOf(seed) % DIAGRAMS.length]}</svg>;
-}
-
 type CatalogNavProps = { catalog: CatalogSubject[]; selection: CatalogSelection; total: number; counts: Map<string, number>; onSelect: (selection: CatalogSelection) => void };
 
 /** Table of contents: grade tabs, then modules that open to their lessons. One marker slides to the active row. */
@@ -47,13 +42,15 @@ function CatalogNav({ catalog, selection, total, counts, onSelect }: Readonly<Ca
   const reducedMotion = useReducedMotion();
   const [gradeTab, setGradeTab] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  /** Chapters without any simulation stay folded away per grade until asked for. */
+  const [showEmpty, setShowEmpty] = useState<Record<string, boolean>>({});
   const spring = reducedMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 420, damping: 36 };
   const sum = (lessons: { id: string }[]) => lessons.reduce((value, lesson) => value + (counts.get(lesson.id) ?? 0), 0);
   const marker = <motion.span layoutId="catalog-marker" className={styles.navMarker} aria-hidden="true" transition={spring} />;
 
   return <nav className={styles.nav} aria-label="Mục lục tài nguyên">
     <div className={styles.navHead}><h2>Mục lục</h2>{selection.subjectId && <button type="button" className={styles.navReset} onClick={() => onSelect({})}>Bỏ lọc</button>}</div>
-    <button type="button" className={styles.navRow} aria-pressed={!selection.subjectId} onClick={() => onSelect({})}>{!selection.subjectId && marker}<span>Tất cả tài nguyên</span><span className={styles.navCount}>{total}</span></button>
+    <button type="button" className={styles.navRow} aria-pressed={!selection.subjectId} onClick={() => onSelect({})}>{!selection.subjectId && marker}<span>Tất cả mô phỏng</span><span className={styles.navCount} data-has>{total}</span></button>
     {catalog.map(subject => {
       const withItems = subject.grades.find(grade => sum(grade.modules.flatMap(module => module.lessons)) > 0);
       const activeGrade = subject.grades.find(grade => grade.name === (selection.subjectId === subject.id && selection.grade ? selection.grade : gradeTab[subject.id])) ?? withItems ?? subject.grades[0];
@@ -66,12 +63,20 @@ function CatalogNav({ catalog, selection, total, counts, onSelect }: Readonly<Ca
             return <button key={grade.name} type="button" role="tab" aria-selected={active} className={styles.gradeTab}
               onClick={() => { setGradeTab(previous => ({ ...previous, [subject.id]: grade.name })); onSelect({ subjectId: subject.id, grade: grade.name }); }}>
               {active && <motion.span layoutId={`catalog-grade-${subject.id}`} className={styles.gradePill} aria-hidden="true" transition={spring} />}
-              <span>{grade.name}</span>
+              <span>{grade.name}</span>{sum(grade.modules.flatMap(module => module.lessons)) > 0 && <small>{sum(grade.modules.flatMap(module => module.lessons))}</small>}
             </button>;
           })}
         </div>
         <ul className={styles.modules}>
-          {activeGrade.modules.map(module => {
+          {(() => {
+            const gradeKey = `${subject.id}/${activeGrade.name}`;
+            const filled = activeGrade.modules.filter(module => sum(module.lessons) > 0);
+            const empty = activeGrade.modules.filter(module => sum(module.lessons) === 0);
+            // With nothing shared in this grade yet, list every chapter so the outline is not blank.
+            const folded = filled.length > 0 && empty.length > 0 && !showEmpty[gradeKey]
+              && !empty.some(module => selection.subjectId === subject.id && selection.grade === activeGrade.name && selection.moduleId === module.id);
+            return <>
+          {(folded ? filled : [...filled, ...empty]).map(module => {
             const key = `${subject.id}/${activeGrade.name}/${module.id}`;
             const inModule = selection.subjectId === subject.id && selection.grade === activeGrade.name && selection.moduleId === module.id;
             const expanded = open[key] ?? inModule;
@@ -82,19 +87,24 @@ function CatalogNav({ catalog, selection, total, counts, onSelect }: Readonly<Ca
                 onClick={() => { setOpen(previous => ({ ...previous, [key]: inModule && !selection.lessonId ? !expanded : true })); onSelect(base); }}>
                 {inModule && !selection.lessonId && marker}
                 <ChevronRightIcon className={styles.navChevron} data-open={expanded || undefined} />
-                <span>{module.name}</span><span className={styles.navCount}>{moduleCount}</span>
+                <span>{module.name}</span>{moduleCount > 0 && <span className={styles.navCount} data-has>{moduleCount}</span>}
               </button>
               <AnimatePresence initial={false}>{expanded && <motion.ul className={styles.lessons} initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reducedMotion ? 0 : 0.2 }}>
                 {module.lessons.map(lesson => {
                   const active = selection.lessonId === lesson.id;
                   const lessonCount = counts.get(lesson.id) ?? 0;
                   return <li key={lesson.id}><button type="button" className={`${styles.navRow} ${styles.navLesson}`} data-empty={lessonCount === 0 || undefined} aria-pressed={active} onClick={() => onSelect({ ...base, lessonId: lesson.id })}>
-                    {active && marker}<span>{lesson.name}</span><span className={styles.navCount}>{lessonCount}</span>
+                    {active && marker}<span>{lesson.name}</span>{lessonCount > 0 && <span className={styles.navCount} data-has>{lessonCount}</span>}
                   </button></li>;
                 })}
               </motion.ul>}</AnimatePresence>
             </li>;
           })}
+          {filled.length > 0 && empty.length > 0 && <li><button type="button" className={styles.navMore} aria-expanded={!folded} onClick={() => setShowEmpty(previous => ({ ...previous, [gradeKey]: folded }))}>
+            {folded ? `Xem thêm ${empty.length} chương chưa có mô phỏng` : "Ẩn các chương chưa có mô phỏng"}
+          </button></li>}
+            </>;
+          })()}
         </ul>
       </section>;
     })}
@@ -102,7 +112,7 @@ function CatalogNav({ catalog, selection, total, counts, onSelect }: Readonly<Ca
   </nav>;
 }
 
-export function ResourceDiscovery({ items, curriculum = null, loading, selectedItem, simulation, time, simulationLoading, simulationError, frame, playing, vectors, onOpen, onClose, onTogglePlaying, onReset, onFrameChange, onTimeChange, onPlaybackEnd, error = "", onRetry, allowSchoolScope = true }: Readonly<Props>) {
+export function ResourceDiscovery({ items, curriculum = null, generated = null, loading, selectedItem, simulation, time, simulationLoading, simulationError, frame, playing, vectors, onOpen, onClose, onTogglePlaying, onReset, onFrameChange, onTimeChange, onPlaybackEnd, error = "", onRetry, allowSchoolScope = true }: Readonly<Props>) {
   const [selection, setSelection] = useState<CatalogSelection>({});
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<LibraryScope>("ALL");
@@ -155,7 +165,7 @@ export function ResourceDiscovery({ items, curriculum = null, loading, selectedI
           const featured = item.moderationStatus === "FEATURED";
           return <motion.article layout className={styles.resourceMotion} key={item.id} initial={reducedMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: reducedMotion ? 1 : .97 }} whileHover={reducedMotion ? undefined : { y: -4 }} transition={reducedMotion ? transition : { duration: .28, delay: Math.min(index, 8) * .035 }}>
             <SpotlightCard className={styles.resource}>
-              <div className={styles.cover} data-accent={accent}><ResourceDiagram seed={seed} />{featured && <span className={styles.featured}><StarFilledIcon /> Nổi bật</span>}</div>
+              <div className={styles.cover} data-accent={accent}><SimulationThumb simulationId={item.simulationId} />{featured && <span className={styles.featured}><StarFilledIcon /> Nổi bật</span>}</div>
               <div className={styles.resourceBody}>
                 <p className={styles.eyebrow}>{[path?.grade, path?.module].filter(Boolean).join(" · ") || "Mô phỏng vật lý"}</p>
                 <h2>{item.title}</h2>
@@ -174,7 +184,14 @@ export function ResourceDiscovery({ items, curriculum = null, loading, selectedI
       <div className={styles.dialogHeading}><div><Badge color="indigo" variant="soft">Vật lý{selectedPath?.grade ? ` · ${selectedPath.grade}` : ""}</Badge><Dialog.Title mt="3" mb="2">{selectedItem?.title || "Mô phỏng"}</Dialog.Title><Dialog.Description size="2" color="gray">{selectedItem?.sharedByName || "Giáo viên"}{selectedItem?.schoolName ? ` · ${selectedItem.schoolName}` : ""}</Dialog.Description></div><Dialog.Close><IconButton size="2" variant="soft" color="gray" aria-label="Đóng mô phỏng"><Cross2Icon /></IconButton></Dialog.Close></div>
       {simulationLoading && <div className={styles.playerState}><Spinner size="3" /> Đang mở mô phỏng…</div>}
       {!simulationLoading && simulationError && <p className={`${styles.playerState} ${styles.error}`}>{simulationError}</p>}
-      {!simulationLoading && !simulationError && simulation && <motion.div initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={transition}><div className={styles.scene}><PhysicsScene simulation={simulation} index={frame} overlays={vectors} time={time} playing={playing} onTimeChange={onTimeChange} onPlaybackEnd={onPlaybackEnd} /></div><div className={styles.playback}><Button onClick={onTogglePlaying}>{playing ? <PauseIcon /> : <PlayIcon />}{playing ? "Tạm dừng" : "Chạy mô phỏng"}</Button><Button color="gray" variant="soft" onClick={onReset}><ResetIcon /> Về đầu</Button><input aria-label="Thời gian mô phỏng" type="range" min={0} max={Math.max(0, simulation.time.length - 1)} value={frame} onChange={event => onFrameChange(Number(event.target.value))} /><span>{time.toFixed(2)} s</span></div></motion.div>}
+      {!simulationLoading && !simulationError && generated?.simulationSpec.solverTimeline && <div>
+        <SvgPixiScene program={generated.simulationSpec.visualProgram ?? { code: "" }} timeline={generated.simulationSpec.solverTimeline}
+          parameters={generated.savedParameters ?? Object.fromEntries(generated.parameters.map(parameter => [parameter.name, parameter.value]))}
+          models={generated.simulationSpec.physicsModels}
+          fieldMeta={generated.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
+          verificationStatus={generated.validation?.status ?? "VISUAL_ONLY_UNVERIFIED"} />
+      </div>}
+      {!simulationLoading && !simulationError && !generated && simulation && <motion.div initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={transition}><div className={styles.scene}><PhysicsScene simulation={simulation} index={frame} overlays={vectors} time={time} playing={playing} onTimeChange={onTimeChange} onPlaybackEnd={onPlaybackEnd} /></div><div className={styles.playback}><Button onClick={onTogglePlaying}>{playing ? <PauseIcon /> : <PlayIcon />}{playing ? "Tạm dừng" : "Chạy mô phỏng"}</Button><Button color="gray" variant="soft" onClick={onReset}><ResetIcon /> Về đầu</Button><input aria-label="Thời gian mô phỏng" type="range" min={0} max={Math.max(0, simulation.time.length - 1)} value={frame} onChange={event => onFrameChange(Number(event.target.value))} /><span>{time.toFixed(2)} s</span></div></motion.div>}
       {selectedItem && <ResourceDiscussion key={selectedItem.id} resourceId={selectedItem.id} />}
     </Dialog.Content></Dialog.Root>
   </motion.section></Theme>;

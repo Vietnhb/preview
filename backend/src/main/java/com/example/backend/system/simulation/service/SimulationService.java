@@ -78,6 +78,24 @@ public class SimulationService {
 
     @Transactional(readOnly = true)
     public SimulationResponse getShared(UUID id) {
+        return latestResponse(sharedSimulation(id));
+    }
+
+    /**
+     * The scene exactly as its author built it (illustration, timeline, parameters), for viewers of a
+     * shared item. Access is the same as {@link #getShared}; older saves without a scene answer 404.
+     */
+    @Transactional(readOnly = true)
+    public JsonNode getSharedGenerated(UUID id) {
+        Simulation simulation = sharedSimulation(id);
+        JsonNode result = runs.findFirstBySimulationIdOrderByCreatedAtDesc(simulation.getId())
+                .map(SimulationRun::getResult).orElse(null);
+        if (result == null || !result.path("simulationSpec").path("visualProgram").isObject())
+            throw ApiException.notFound("Mô phỏng này chưa có cảnh minh họa đã lưu.");
+        return result.deepCopy();
+    }
+
+    private Simulation sharedSimulation(UUID id) {
         User user = currentUser.currentUserOrNull();
         LibraryItem reviewItem = null;
         if (access.canReviewPublic(user)) {
@@ -93,12 +111,12 @@ public class SimulationService {
                     .findFirst().orElse(null);
         }
         if (reviewItem != null)
-            return latestResponse(reviewItem.getSimulation());
+            return reviewItem.getSimulation();
         LibraryItem item = library.findVisiblePublishedSimulation(id,
                 user == null ? Set.of(Visibility.PUBLIC) : Set.of(Visibility.SHARED, Visibility.PUBLIC), Visibility.PUBLIC,
                 Set.of(LibraryModerationStatus.APPROVED, LibraryModerationStatus.FEATURED), user == null ? null : user.getInstitutionId())
                 .orElseThrow(() -> ApiException.notFound("Shared simulation not found"));
-        return latestResponse(item.getSimulation());
+        return item.getSimulation();
     }
 
     private boolean canPreviewModerationItem(LibraryItem item) {

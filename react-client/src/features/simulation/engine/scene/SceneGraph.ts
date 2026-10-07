@@ -214,7 +214,8 @@ function normalizeWaveFieldBindings(nodes: VisualizationNode[]): VisualizationNo
 /** Compile both the new AI scene graph and the current server presentation. */
 export function compileSceneGraph(simulation: Simulation): SceneGraph {
   const visualization = simulation.visualization;
-  const spec = simulation.spec ?? visualization.spec;
+  // Simulations authored with an AI scene come back without a server visualization block.
+  const spec = simulation.spec ?? visualization?.spec;
   const entityNodes = spec?.entities?.map(specEntityNode).filter((node): node is VisualizationNode => node !== null) ?? [];
   const visualNodes = spec?.visuals ?? [];
   const chartNodes = spec?.charts?.map((chart, index) => ({
@@ -223,7 +224,7 @@ export function compileSceneGraph(simulation: Simulation): SceneGraph {
     layer: "static" as const,
     properties: chart,
   })) ?? [];
-  const authoredSceneNodes = visualization.presentation?.sceneGraph?.nodes;
+  const authoredSceneNodes = visualization?.presentation?.sceneGraph?.nodes;
   const explicitNodes = authoredSceneNodes ?? [...entityNodes, ...visualNodes, ...chartNodes];
   const nodes = explicitNodes?.length
     ? normalizeWaveFieldBindings(explicitNodes).map((node, index) => normalizeNode(node, "scene", index))

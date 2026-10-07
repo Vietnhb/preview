@@ -59,6 +59,9 @@ export const saveGeneratedSimulation = (simulation: GeneratedSimulationResult, p
 
 export const openGeneratedSimulation = (id: string) =>
   axiosClient.get<GeneratedSimulationResult>(`/simulation/saved/${id}`).then(r => r.data);
+/** A shared simulation as its author built it; rejects for older saves that have no stored scene. */
+export const openSharedGeneratedSimulation = (id: string) =>
+  axiosClient.get<GeneratedSimulationResult>(`/simulations/shared/${id}`, { params: { view: "generated" } }).then(r => r.data);
 export const updateSavedSimulationVisual = (id: string, simulation: GeneratedSimulationResult) =>
   axiosClient.patch<void>(`/simulation/saved/${id}/visual`, simulation);
 export const understandSimulationText = (description: string) =>

@@ -350,11 +350,17 @@ const formatRate = (value: number) => formatNumber(value >= 100 ? value : Math.r
 
 type ViewMode = "ai" | "standard";
 
-export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, onRenderError, toolbarActions }: Readonly<{
+export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, onRenderError, toolbarActions, cover = false, coverPlaying = false, onCoverFailed }: Readonly<{
   program: PixiVisualProgram; timeline: SolverTimeline; parameters: Record<string, number>; verificationStatus: string;
   models?: readonly SimulationModelRef[]; fieldMeta?: BackendFieldMeta; onRenderError?: (message: string) => void;
   /** Page-level buttons shown at the end of the toolbar so the page needs no heading row of its own. */
   toolbarActions?: ReactNode;
+  /** Card cover: only the scene, no toolbar, playback bar or charts. It rests on the first frame. */
+  cover?: boolean;
+  /** In cover mode, plays (looping) while true, e.g. while the card is hovered. */
+  coverPlaying?: boolean;
+  /** In cover mode, called when neither the authored nor the reference scene could be drawn. */
+  onCoverFailed?: () => void;
 }>) {
   const theme = useWorkspaceTheme();
   const sceneSpec = program.scene && typeof program.scene === "object" ? program.scene : null;
@@ -365,20 +371,21 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
   const [time, setTime] = useState(0);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(!cover);
   const [speed, setSpeed] = useState(1);
   /* simulated seconds per real second at 1× (nanosecond and year-long runs stay watchable) */
   const rate = useMemo(() => presentationRate(timeline.durationSeconds, timeline), [timeline]);
   const tooFast = useMemo(() => replayTooFast(timeline), [timeline]);
   const rateNote = (rate > 1.5 ? "Tua nhanh ×" + formatRate(rate) : rate < 1 / 1.5 ? "Chiếu chậm ×" + formatRate(1 / rate) : "")
     + (tooFast ? " · dao động quá nhanh để hiện hết, xem đồ thị" : "");
-  const [loop, setLoop] = useState(false);
+  const [loop, setLoop] = useState(cover);
   const [run, setRun] = useState(0);
   const iframe = useRef<HTMLIFrameElement>(null);
   const scene = useMemo(() => describeScene(timeline, models ?? [], fieldMeta ?? {}), [timeline, models, fieldMeta]);
   const dataRef = useRef({ timeline, parameters, verificationStatus, scene });
   const callbackRef = useRef(onRenderError);
   const modeRef = useRef(mode);
+  const coverRef = useRef(cover);
   useEffect(() => { callbackRef.current = onRenderError; }, [onRenderError]);
   useEffect(() => { modeRef.current = mode; }, [mode]);
   const nonce = useMemo(() => crypto.randomUUID(), []);
@@ -429,6 +436,8 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
         // Coalesce worker ticks into one React update per animation frame so a
         // busy main thread never builds a backlog (clock and charts stay in sync).
         latestTime = event.data.t;
+        // A cover shows no clock or charts, so it skips the per-frame React update entirely.
+        if (coverRef.current) return;
         if (!pending) pending = requestAnimationFrame(() => { pending = 0; setTime(latestTime); });
       }
     };
@@ -451,7 +460,24 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
     if (next === "ai") setAiError("");
     setMode(next); setRun(value => value + 1);
   };
+  const coverFailedRef = useRef(onCoverFailed);
+  useEffect(() => { coverFailedRef.current = onCoverFailed; }, [onCoverFailed]);
+  useEffect(() => { if (cover && error) coverFailedRef.current?.(); }, [cover, error]);
+  useEffect(() => {
+    if (!cover) return;
+    setPlaying(coverPlaying);
+    if (!coverPlaying) send({ type: "seek", t: 0 });
+    send({ type: "play", playing: coverPlaying });
+  }, [cover, coverPlaying, send]);
   const progress = timeline.durationSeconds > 0 ? Math.min(100, time / timeline.durationSeconds * 100) : 0;
+
+  if (cover) return <div className="sim-player sim-player--cover" data-theme={theme === "DARK" ? "dark" : "light"}>
+    <div className="sim-stage">
+      {!error && <iframe key={mode + ":" + run} ref={iframe} className="sim-stage__frame" title={program.description || "Mô phỏng vật lý"}
+        sandbox="allow-scripts" referrerPolicy="no-referrer" tabIndex={-1} srcDoc={html} onLoad={start} />}
+      {!error && !ready && <div className="sim-stage__loading" role="status"><span className="sim-spinner" /></div>}
+    </div>
+  </div>;
 
   return <div className="sim-player" data-theme={theme === "DARK" ? "dark" : "light"}>
     <div className="sim-player__toolbar">

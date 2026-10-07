@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { communityLibrary } from "../api/libraryApi";
 import { curriculum as getCurriculum } from "../../curriculum/api/curriculumApi";
 import { getSharedSimulation } from "../../simulation/api/simulationApi";
+import { openSharedGeneratedSimulation, type GeneratedSimulationResult } from "../../simulation/api/simulationUnderstandingApi";
 import type { Curriculum, LibraryItem, Simulation } from "../../../shared/types/physlive";
 import { indexAtTime } from "../../simulation/model/learningModel";
 
@@ -12,6 +13,8 @@ export function useCommunityLibrary() {
   const [error, setError] = useState("");
   const [selectedItem, setSelectedItem] = useState<LibraryItem | null>(null);
   const [simulation, setSimulation] = useState<Simulation | null>(null);
+  /** The author's own scene; when present the dialog shows it instead of the generic player. */
+  const [generated, setGenerated] = useState<GeneratedSimulationResult | null>(null);
   const [simulationLoading, setSimulationLoading] = useState(false);
   const [simulationError, setSimulationError] = useState("");
   const [frame, setFrame] = useState(0);
@@ -46,6 +49,7 @@ export function useCommunityLibrary() {
     requestRef.current += 1;
     setSelectedItem(null);
     setSimulation(null);
+    setGenerated(null);
     setSimulationLoading(false);
     setSimulationError("");
     setFrame(0);
@@ -57,12 +61,17 @@ export function useCommunityLibrary() {
     const requestId = ++requestRef.current;
     setSelectedItem(item);
     setSimulation(null);
+    setGenerated(null);
     setSimulationError("");
     setSimulationLoading(true);
     setFrame(0);
     setTime(0);
     setPlaying(false);
     try {
+      // Prefer the real scene; fall back to the generic player for saves that predate stored scenes.
+      const scene = await openSharedGeneratedSimulation(item.simulationId).catch(() => null);
+      if (requestId !== requestRef.current) return;
+      if (scene?.simulationSpec?.solverTimeline) { setGenerated(scene); return; }
       const loaded = await getSharedSimulation(item.simulationId);
       if (requestId !== requestRef.current) return;
       setSimulation(loaded);
@@ -75,7 +84,7 @@ export function useCommunityLibrary() {
   };
 
   return {
-    items, curriculum, loading, error, load, selectedItem, simulation, time,
+    items, curriculum, loading, error, load, selectedItem, simulation, generated, time,
     simulationLoading, simulationError, frame, playing, open, close,
     togglePlaying: () => {
       if (simulation && time >= (simulation.time.at(-1) ?? 0)) {

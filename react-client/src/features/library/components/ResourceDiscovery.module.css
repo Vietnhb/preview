@@ -91,3 +91,14 @@
   .playback input { order: 3; flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .loading span { animation: none; } .navChevron, .coverDiagram { transition: none; } }
+
+/* Table of contents as a panel: chapters with simulations first, counts as pills, empty chapters folded away. */
+.catalog { padding: 14px 10px 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); scrollbar-width: none; }
+.catalog::-webkit-scrollbar { display: none; }
+.navCount[data-has] { min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); font-size: 11.5px; font-weight: 600; text-align: center; }
+.nav button.navRow[aria-pressed="true"] .navCount[data-has] { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.nav button.gradeTab small { margin-left: 5px; color: var(--accent); font-size: 11px; font-weight: 700; }
+.nav button.navMore, .nav button.navMore:hover:not(:disabled) { width: 100%; min-height: 32px; margin-top: 6px; padding: 0 10px; border: 1px dashed var(--line-strong); border-radius: 8px; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 500; justify-content: center; cursor: pointer; }
+.nav button.navMore:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.cover { overflow: hidden; }
+.cover { height: 168px; }

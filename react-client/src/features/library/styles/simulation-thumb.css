@@ -1,0 +1,16 @@
+/* Static SVG preview on shared-simulation cards. Colours follow the card's accent (--cover-ink). */
+.simulation-thumb { position: relative; display: grid; place-items: center; width: 100%; height: 100%; }
+.simulation-thumb { overflow: hidden; }
+.simulation-thumb__plot { display: block; width: 100%; height: 100%; }
+.simulation-thumb__axis { stroke: color-mix(in srgb, var(--cover-ink, var(--accent)) 28%, transparent); stroke-width: 1; }
+.simulation-thumb__curve { fill: none; stroke: var(--cover-ink, var(--accent)); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.simulation-thumb__curve[data-track="1"] { opacity: .6; stroke-dasharray: 5 4; }
+.simulation-thumb__curve[data-track="2"] { opacity: .4; stroke-dasharray: 2 4; }
+.simulation-thumb__end { fill: var(--surface); stroke: var(--cover-ink, var(--accent)); stroke-width: 2; }
+.simulation-thumb__end[data-track="1"], .simulation-thumb__end[data-track="2"] { opacity: .6; }
+.simulation-thumb__runner { fill: var(--cover-ink, var(--accent)); }
+.simulation-thumb__label { position: absolute; right: 10px; bottom: 8px; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--muted); font-size: 11px; font-weight: 500; }
+.simulation-thumb__skeleton { width: 62%; height: 46%; border-radius: 10px; background: linear-gradient(90deg, color-mix(in srgb, var(--cover-ink, var(--accent)) 10%, transparent) 25%, color-mix(in srgb, var(--cover-ink, var(--accent)) 20%, transparent) 45%, color-mix(in srgb, var(--cover-ink, var(--accent)) 10%, transparent) 65%); background-size: 300% 100%; animation: simulation-thumb-sweep 1.4s ease-in-out infinite; }
+@keyframes simulation-thumb-sweep { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .simulation-thumb__skeleton { animation: none; } .simulation-thumb__runner { display: none; } }
+.simulation-thumb__none { color: var(--muted); font-size: 12.5px; }

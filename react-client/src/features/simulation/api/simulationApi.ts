@@ -22,6 +22,8 @@ export const normalizeSimulation = (value: BackendSimulation): Simulation => {
   };
   return {
     ...value,
+    // Some saved simulations carry no visualization block; every reader expects an object.
+    visualization: value.visualization ?? ({} as Simulation["visualization"]),
     runId: value.simulationRunId,
     valid: value.validationPassed,
     ready: value.validationPassed,

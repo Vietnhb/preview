@@ -32,6 +32,11 @@ public class SimulationController {
         return simulationService.get(id);
     }
 
+    /** Same access as the plain shared read; returns the author's full scene instead of the solver series. */
+    @GetMapping(value = "/shared/{id}", params = "view=generated")
+    public com.fasterxml.jackson.databind.JsonNode getSharedGenerated(@PathVariable UUID id) {
+        return simulationService.getSharedGenerated(id);
+    }
     @GetMapping("/shared/{id}")
     public SimulationResponse getShared(@PathVariable UUID id) {
         return simulationService.getShared(id);
