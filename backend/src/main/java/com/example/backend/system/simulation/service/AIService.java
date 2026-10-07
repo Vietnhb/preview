@@ -312,6 +312,7 @@ public class AIService {
             ((ObjectNode) spec).put("topicVersion", selected.getVersion());
             if (response.path("stage").asText().equals("EXPLAIN")) {
                 reconcileParticipantCount(description, selected, response);
+                reconcileSharedParameters(description, selected, response);
                 ObjectNode preview = previewWithRepair(description, selected, response);
                 response.set("validation", preview.path("validation"));
                 response.put("planSignature", signPlan(response));
@@ -395,10 +396,74 @@ public class AIService {
                 + " participant(s). Give every counted object its own physicsModels entry (distinct id and label, shared"
                 + " parameters are fine) unless one capability computes several of them together, and update the explanation.");
         feedback.set("previousPlan", spec);
-        JsonNode retry = askLlm(description, selected, feedback);
+        JsonNode retry = askLlmOptional(description, selected, feedback);
+        if (retry == null)
+            return;
         JsonNode fixed = retry.path("simulationSpec");
         if (!fixed.isObject() || !"EXPLAIN".equals(retry.path("status").asText(retry.path("stage").asText()))
                 || fixed.path("physicsModels").size() <= bound)
+            return;
+        ObjectNode copy = (ObjectNode) fixed.deepCopy();
+        copy.put("schemaId", selected.getSchemaId());
+        copy.put("topic", selected.getTopic());
+        copy.put("topicVersion", selected.getVersion());
+        response.set("simulationSpec", copy);
+        for (String field : java.util.List.of("explanation", "defaults"))
+            if (retry.has(field))
+                response.set(field, retry.get(field));
+    }
+
+    /**
+     * Sliders that several participants of the same law feed into the same input, and that the planner
+     * has not declared common on purpose (simulationSpec.sharedQuantities). Found from the plan's
+     * structure only.
+     */
+    private java.util.List<String> undeclaredSharing(JsonNode spec) {
+        java.util.Set<String> declared = new java.util.HashSet<>();
+        spec.path("sharedQuantities").forEach(name -> declared.add(name.asText()));
+        declared.add(spec.path("durationParameter").asText(""));
+        Map<String, Integer> uses = new LinkedHashMap<>();
+        for (JsonNode model : spec.path("physicsModels"))
+            model.path("inputs").fields().forEachRemaining(input -> {
+                if (input.getValue().isTextual())
+                    uses.merge(model.path("capabilityId").asText() + "\n" + input.getKey() + "\n" + input.getValue().asText(),
+                            1, Integer::sum);
+            });
+        java.util.Set<String> shared = new java.util.LinkedHashSet<>();
+        uses.forEach((use, count) -> {
+            String name = use.substring(use.lastIndexOf('\n') + 1);
+            if (count > 1 && !declared.contains(name))
+                shared.add(name);
+        });
+        return new java.util.ArrayList<>(shared);
+    }
+
+    /**
+     * Whether like objects share one slider or each has its own is a judgement about the described
+     * situation, so the planner makes it — but it must make it explicitly: when participants of the
+     * same kind share a slider that the plan does not declare common, the planner gets one chance to
+     * either give each object its own parameter or declare the quantity common.
+     */
+    private void reconcileSharedParameters(String description, SchemaVersion selected, ObjectNode response) {
+        JsonNode spec = response.path("simulationSpec");
+        java.util.List<String> shared = undeclaredSharing(spec);
+        if (shared.isEmpty())
+            return;
+        int bound = spec.path("physicsModels").size();
+        ObjectNode feedback = json.createObjectNode();
+        feedback.put("error", "Participants of the same kind share the slider(s) " + String.join(", ", shared)
+                + " for the same input, so the user cannot change one object without changing the others. For each of"
+                + " them decide: a property of the object itself gets one parameter per participant (same label, value"
+                + " and range); a quantity that is physically one and the same for these participants stays a single"
+                + " parameter and its name is listed in simulationSpec.sharedQuantities. Keep everything else unchanged.");
+        feedback.set("previousPlan", spec);
+        JsonNode retry = askLlmOptional(description, selected, feedback);
+        if (retry == null)
+            return;
+        JsonNode fixed = retry.path("simulationSpec");
+        if (!fixed.isObject() || !"EXPLAIN".equals(retry.path("status").asText(retry.path("stage").asText()))
+                || fixed.path("physicsModels").size() < bound
+                || undeclaredSharing(fixed).size() >= shared.size())
             return;
         ObjectNode copy = (ObjectNode) fixed.deepCopy();
         copy.put("schemaId", selected.getSchemaId());
@@ -419,9 +484,97 @@ public class AIService {
      * Intent-preserving fixes for common plan inconsistencies (no topic knowledge
      * involved).
      */
+    /**
+     * Participants bound identically (same law and the same binding for every input) are independent
+     * copies of one object: nothing in the plan relates one copy to another, so each may have its own
+     * value. Every slider such copies share is therefore split into one slider per copy (same label,
+     * value and range), which lets the interface change the copies together or one by one. This is
+     * only the fallback for what the planner left undecided: a slider it declared common
+     * (sharedQuantities) is never split, nor is one used outside the group, the duration, or one that
+     * feeds two different inputs of a participant (one quantity seen from two sides of an interaction).
+     * Purely structural: no knowledge of topics, laws or quantity names is involved.
+     */
+    private void splitReplicaParameters(ObjectNode spec) {
+        if (!(spec.path("parameters") instanceof ArrayNode parameters) || !spec.path("physicsModels").isArray())
+            return;
+        String duration = spec.path("durationParameter").asText("");
+        java.util.Set<String> common = new java.util.HashSet<>();
+        spec.path("sharedQuantities").forEach(name -> common.add(name.asText()));
+        Map<String, java.util.List<ObjectNode>> groups = new LinkedHashMap<>();
+        Map<String, Integer> usage = new LinkedHashMap<>();
+        for (JsonNode node : spec.path("physicsModels")) {
+            if (!(node instanceof ObjectNode model) || !model.path("inputs").isObject())
+                continue;
+            java.util.TreeMap<String, String> bindings = new java.util.TreeMap<>();
+            java.util.Set<String> bound = new java.util.HashSet<>();
+            model.path("inputs").fields().forEachRemaining(input -> {
+                bindings.put(input.getKey(), input.getValue().toString());
+                if (input.getValue().isTextual())
+                    bound.add(input.getValue().asText());
+            });
+            bound.forEach(name -> usage.merge(name, 1, Integer::sum));
+            groups.computeIfAbsent(model.path("capabilityId").asText() + "\n" + bindings, key -> new java.util.ArrayList<>())
+                    .add(model);
+        }
+        java.util.Set<String> names = new java.util.HashSet<>();
+        parameters.forEach(parameter -> names.add(parameter.path("name").asText()));
+        Map<String, java.util.List<ObjectNode>> copies = new LinkedHashMap<>();
+        for (java.util.List<ObjectNode> group : groups.values()) {
+            if (group.size() < 2)
+                continue;
+            java.util.Set<String> shared = new java.util.LinkedHashSet<>(), twoSided = new java.util.HashSet<>();
+            group.get(0).path("inputs").forEach(value -> {
+                if (value.isTextual() && !shared.add(value.asText()))
+                    twoSided.add(value.asText());
+            });
+            shared.removeAll(twoSided);
+            shared.removeAll(common);
+            for (String name : shared) {
+                ObjectNode original = null;
+                for (JsonNode parameter : parameters)
+                    if (parameter instanceof ObjectNode candidate && candidate.path("name").asText().equals(name))
+                        original = candidate;
+                if (original == null || name.equals(duration) || usage.getOrDefault(name, 0) != group.size())
+                    continue;
+                java.util.List<ObjectNode> split = new java.util.ArrayList<>();
+                for (ObjectNode model : group) {
+                    String base = name + "_" + model.path("id").asText().replaceAll("[^A-Za-z0-9_]", "_");
+                    String unique = base;
+                    for (int suffix = 2; names.contains(unique); suffix++)
+                        unique = base + "_" + suffix;
+                    names.add(unique);
+                    ObjectNode copy = original.deepCopy();
+                    copy.put("name", unique);
+                    split.add(copy);
+                    ObjectNode inputs = (ObjectNode) model.path("inputs");
+                    java.util.List<String> keys = new java.util.ArrayList<>();
+                    inputs.fields().forEachRemaining(input -> {
+                        if (input.getValue().isTextual() && input.getValue().asText().equals(name))
+                            keys.add(input.getKey());
+                    });
+                    for (String key : keys)
+                        inputs.put(key, unique);
+                }
+                copies.put(name, split);
+            }
+        }
+        if (copies.isEmpty())
+            return;
+        ArrayNode rebuilt = json.createArrayNode();
+        for (JsonNode parameter : parameters) {
+            java.util.List<ObjectNode> split = copies.get(parameter.path("name").asText());
+            if (split == null)
+                rebuilt.add(parameter);
+            else
+                rebuilt.addAll(split);
+        }
+        spec.set("parameters", rebuilt);
+    }
+
     private void normalizePlan(ObjectNode spec) {
         if (spec == null || spec.isMissingNode())
             return;
+        splitReplicaParameters(spec);
         Map<String, ObjectNode> parameters = new LinkedHashMap<>();
         for (JsonNode parameter : spec.path("parameters")) {
             if (!(parameter instanceof ObjectNode p))
@@ -506,6 +659,15 @@ public class AIService {
         if (result == null || !result.isObject() || !result.path("status").isTextual())
             throw ApiException.upstream("Kết quả phân tích mô phỏng của AI không hợp lệ");
         return result;
+    }
+
+    /** A second opinion that only improves an already usable plan: when it cannot be obtained, the plan stands. */
+    private JsonNode askLlmOptional(String description, SchemaVersion selected, JsonNode planFeedback) {
+        try {
+            return askLlm(description, selected, planFeedback);
+        } catch (ApiException unavailable) {
+            return null;
+        }
     }
 
     private String resource(String path) {

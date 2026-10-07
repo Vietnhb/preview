@@ -830,3 +830,12 @@
 /* The scene is laid out at 2.5x the cover's size and shown scaled down, so labels and proportions
    look like the full player in miniature instead of being squeezed into a small canvas. */
 .sim-player--cover .sim-stage__frame { inset: auto; top: 0; left: 0; width: 250%; height: 250%; transform: scale(.4); transform-origin: 0 0; pointer-events: none; }
+
+/* sliders grouped by participant */
+.simulation-control-group { display: grid; gap: 2px; padding: 6px 0 2px; border-bottom: 1px solid var(--line); }
+.simulation-control-group:last-child { border-bottom: 0; }
+.simulation-control-group > h4,
+.simulation-control-group > summary { margin: 0; padding: 6px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: var(--muted, inherit); }
+.simulation-control-group > summary { cursor: pointer; }
+.simulation-control-group .simulation-control:last-child { border-bottom: 0; }
+.simulation-control-mode { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; cursor: pointer; }

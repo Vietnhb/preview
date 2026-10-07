@@ -249,6 +249,12 @@ function svgRoot(source) {
     root.setAttribute('viewBox', vb.join(' '));
     root.setAttribute('width', String(vb[2])); root.setAttribute('height', String(vb[3]));
   }
+  // Artwork drawn in tiny units (e.g. metres: viewBox 0.1 wide) is given a workable pixel size; the viewBox, and
+  // with it every coordinate the generator declared, is unchanged.
+  if (hasBox && !(numeric('width') > 0 && numeric('height') > 0) && Math.max(box[2], box[3]) < 64) {
+    const grow = 128 / Math.max(box[2], box[3]);
+    root.setAttribute('width', String(box[2] * grow)); root.setAttribute('height', String(box[3] * grow));
+  }
   if (!root.getAttribute('xmlns')) root.setAttribute('xmlns', SVG_NS);
   return root;
 }
@@ -281,7 +287,7 @@ async function svgBitmap(source, screen, fitWidth, fitHeight) {
     // Viewport art (backdrop): exactly the display density.
     const longest = Math.max(width, height), cap = limits.maxTextureSide / longest;
     const resolution = screen ? Math.max(0.5, Math.min(devicePixelRatio || 1, 2, cap))
-      : Math.max(1, Math.min(Math.max(devicePixelRatio * 1.5, 2, 640 / longest), 8, cap));
+      : Math.max(1, Math.min(Math.max(devicePixelRatio * 1.5, 2, 640 / longest), cap));
     const surface = document.createElement('canvas');
     surface.width = Math.ceil(width * resolution); surface.height = Math.ceil(height * resolution);
     texturePixels += surface.width * surface.height;

@@ -220,7 +220,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     /** Generated display objects that ride along with a participant (labels, riders, attached decorations). */
     const followers = new Map<PixiNS.Container, { id: string; dx: number; dy: number; placed?: Pt }>();
     /** Solver-driven straight connections (ropes, wires, rods) between participants and/or fixed world points. */
-    type LinkEnd = string | [number, number];
+    /* a participant id, a point [x, y] of the scene frame, or a point [x, y, id] of participant id's own frame
+       (independent systems laid out side by side each keep their own origin: a pivot, a wall, a track start) */
+    type LinkEnd = string | [number, number] | [number, number, string];
     let links: Array<{ from: LinkEnd; to: LinkEnd; color?: string; width: number; dashed: boolean }> = [];
     /**
      * Instruments: generated artwork whose moving part the kit drives from one solver field through a
@@ -250,6 +252,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
        mirrors the art when its value is negative (field direction, polarity, current sense). */
     type Fixture = { item: PixiNS.Container; x: Coordinate; y: Coordinate; anchor: Pt; sizeMeters: number; solid: boolean;
       angle: Coordinate; angleScale: number; flipBy: string;
+      /** participant whose own frame x / y are measured in ('' = the scene frame) */
+      frame: string;
       baseW: number; baseH: number; world: Pt | null; screen: Pt | null; k: number; rotation: number; mirror: number };
     let fixtures: Fixture[] = [];
     /** Participants whose non-spatial state is visible on stage (instrument or meter card), rebuilt by build(). */
@@ -551,8 +555,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     }
     /** Register static artwork at a world position (metres or a parameter name); anchor = the art's point that sits there. */
     function fixture(item: PixiNS.Container, spec: { x?: Coordinate; y?: Coordinate; anchor?: Partial<Pt>; sizeMeters?: number; solid?: boolean;
-      angle?: Coordinate; angleScale?: number; flipBy?: string } = {}) {
+      angle?: Coordinate; angleScale?: number; flipBy?: string; frame?: string } = {}) {
       if (!item || typeof item.getLocalBounds !== "function") throw Error("fixture(): pass a PIXI display object.");
+      if (spec.frame && !tracks.some(entry => entry.p.id === spec.frame)) throw Error('fixture(): unknown participant frame "' + spec.frame + '".');
       const parameters = host.data().parameters ?? {};
       for (const value of [spec.x, spec.y, spec.angle, spec.flipBy]) if (typeof value === "string" && value && !(value in parameters))
         throw Error('fixture(): unknown parameter "' + value + '". Parameters: ' + Object.keys(parameters).join(", "));
@@ -563,7 +568,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       fixtureLayer.addChild(item);
       fixtures.push({ item, x: spec.x ?? null, y: spec.y ?? null, anchor, sizeMeters: Number(spec.sizeMeters) > 0 ? Number(spec.sizeMeters) : 0,
         solid: !!spec.solid, angle: spec.angle ?? null, angleScale: Number.isFinite(Number(spec.angleScale)) && spec.angleScale !== 0 ? Number(spec.angleScale) : 1,
-        flipBy: typeof spec.flipBy === "string" ? spec.flipBy : "",
+        flipBy: typeof spec.flipBy === "string" ? spec.flipBy : "", frame: typeof spec.frame === "string" ? spec.frame : "",
         baseW: Math.max(1, b.width), baseH: Math.max(1, b.height), world: null, screen: null, k: 1, rotation: 0, mirror: 1 });
       build();
       return item;
@@ -576,7 +581,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         const w = fixtureWorld(f);
         if (!c || !w) continue;
         let at: Pt;
-        if (mode === "lanes") {
+        const framed = f.frame ? framePoint(f.frame, w.x, w.y) : null;
+        if (framed) at = mode === "lanes" ? { x: framed.x, y: framed.y + 15 } : framed;
+        else if (mode === "lanes") {
           const roads = tracks.filter(track => track.p.dims > 0).map(track => laneY(track.lane) + 15);
           at = { x: c.toScreen(w.x, 0).x, y: roads.length ? Math.max(...roads) : c.view.y + c.view.h };
         } else if (mode === "columns") {
@@ -675,15 +682,29 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     /** Straight solver-bound connection between two ends: a participant id or a fixed world point [x, y] in metres. */
     function link(from: LinkEnd, to: LinkEnd, options: { color?: string; width?: number; dashed?: boolean } = {}) {
       const check = (end: LinkEnd) => {
-        if (Array.isArray(end)) { if (end.length !== 2 || !end.every(Number.isFinite)) throw Error("link(): a world point is [x, y] in metres."); return; }
+        if (Array.isArray(end)) {
+          if (end.length < 2 || !Number.isFinite(end[0]) || !Number.isFinite(end[1])) throw Error("link(): a point is [x, y] in metres, or [x, y, participantId] in that participant's own frame.");
+          if (end.length > 2 && !tracks.some(entry => entry.p.id === end[2])) throw Error('link(): unknown participant frame "' + String(end[2]) + '".');
+          return;
+        }
         const track = tracks.find(entry => entry.p.id === end);
         if (!track || track.p.dims === 0) throw Error('link(): "' + String(end) + '" is not a moving participant.');
       };
       check(from); check(to);
       links.push({ from, to, color: options.color, width: Math.max(0.5, Math.min(12, Number(options.width) || 2)), dashed: !!options.dashed });
     }
+    /** Screen position of the point (x, y) metres in a participant's own frame (where the kit laid that participant out). */
+    function framePoint(id: string, x: number, y: number): Pt | null {
+      const track = tracks.find(entry => entry.p.id === id);
+      if (!cam || !track) return null;
+      if (mode === "lanes") return { x: cam.toScreen(x, 0).x, y: laneY(track.lane) };
+      if (mode === "columns") return { x: columnX(track.lane), y: cam.toScreen(0, y).y };
+      return cam.toScreen(x + track.originX, y);
+    }
+    /** True when participants are laid out in frames of their own, so a bare scene point is ambiguous. */
+    const ownFrames = () => tracks.some(track => track.originX !== 0);
     function endPoint(end: LinkEnd, values: Record<string, number>): Pt | null {
-      if (Array.isArray(end)) return cam ? cam.toScreen(end[0], end[1]) : null;
+      if (Array.isArray(end)) return end.length > 2 ? framePoint(end[2] as string, end[0], end[1]) : cam ? cam.toScreen(end[0], end[1]) : null;
       const track = tracks.find(entry => entry.p.id === end);
       return track ? track.screen(values) : null;
     }
@@ -804,7 +825,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       for (const f of fixtures) {
         const w = fixtureWorld(f);
         if (!w) continue;
-        if (mode === "plane") grow(w.x, w.y); else if (mode === "lanes") grow(w.x, NaN); else if (mode === "columns") grow(NaN, w.y);
+        const shift = f.frame ? tracks.find(entry => entry.p.id === f.frame)?.originX ?? 0 : 0;
+        if (mode === "plane") grow(w.x + shift, w.y); else if (mode === "lanes") grow(w.x, NaN); else if (mode === "columns") grow(NaN, w.y);
       }
       // padding + minimum spans so nothing touches the frame
       const padBounds = (minSpan: number, independentAxes = false) => {
@@ -1471,8 +1493,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       for (const item of links) {
         let a = endPoint(item.from, values), b = endPoint(item.to, values);
         /* lanes / columns have one measured axis: a fixed point shares the other axis with the body it holds */
-        if (a && b && mode === "lanes") { if (Array.isArray(item.from)) a = { x: a.x, y: b.y }; else if (Array.isArray(item.to)) b = { x: b.x, y: a.y }; }
-        if (a && b && mode === "columns") { if (Array.isArray(item.from)) a = { x: b.x, y: a.y }; else if (Array.isArray(item.to)) b = { x: a.x, y: b.y }; }
+        const bare = (end: LinkEnd) => Array.isArray(end) && end.length === 2;
+        if (a && b && mode === "lanes") { if (bare(item.from)) a = { x: a.x, y: b.y }; else if (bare(item.to)) b = { x: b.x, y: a.y }; }
+        if (a && b && mode === "columns") { if (bare(item.from)) a = { x: b.x, y: a.y }; else if (bare(item.to)) b = { x: a.x, y: b.y }; }
         if (!a || !b) continue;
         if (item.dashed) dashed(dynamicLayer, a.x, a.y, b.x, b.y);
         else dynamicLayer.moveTo(a.x, a.y).lineTo(b.x, b.y);
@@ -1693,6 +1716,14 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
             + " s: the fixture is not where the verified physics puts the obstacle. Place it with the plan parameter (or value) the solver uses.");
         }
       }
+      // 4b. independent systems drawn side by side have frames of their own: fixed points must say whose frame they are in
+      if (ownFrames()) {
+        const names = tracks.filter(track => track.p.dims > 0).map(track => track.p.id).join(", ");
+        if (links.some(item => [item.from, item.to].some(end => Array.isArray(end) && end.length === 2)))
+          add("a link uses a scene point \"x,y\", but the participants (" + names + ") are laid out side by side, each with its own origin; write the point in the participant's own frame as \"<id>:x,y\" (e.g. its pivot is \"<id>:0,0\").");
+        if (fixtures.some(f => !f.frame))
+          add("a fixture has no frame, but the participants (" + names + ") are laid out side by side, each with its own origin; give the fixture the participant whose frame its position is measured in (frame).");
+      }
       // 5. solid bodies on one line may touch but never pass through each other
       {
         const solid = tracks.filter(track => track.lineKey && attached.get(track.p.id)?.options.solid);
@@ -1811,7 +1842,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       min?: number | null; max?: number | null } };
   type DriveName = "rotate" | "translate" | "scale" | "reveal" | "opacity" | "travel" | "none";
   type FixtureSpec = { svg: string; x?: number | null; xParameter?: string; y?: number | null; yParameter?: string;
-    anchor?: Pt; sizeMeters?: number; solid?: boolean; angle?: number | null; angleParameter?: string; angleScale?: number; flipBy?: string };
+    anchor?: Pt; sizeMeters?: number; solid?: boolean; angle?: number | null; angleParameter?: string; angleScale?: number; flipBy?: string; frame?: string };
   type LinkSpec = { from: string; to: string; color?: string; width?: number; dashed?: boolean };
   type IllustratedSpec = { environment?: string; environmentAnchorY?: number; surface?: string; support?: string; connector?: string; bodies?: BodySpec[];
     instruments?: InstrumentSpec[]; links?: LinkSpec[]; fixtures?: FixtureSpec[];
@@ -1891,12 +1922,17 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         anchor: a && Number.isFinite(Number(a.x)) && Number.isFinite(Number(a.y)) ? { x: (Number(a.x) - vb.x) * sx, y: (Number(a.y) - vb.y) * sy } : undefined,
         sizeMeters: item.sizeMeters, solid: item.solid,
         angle: text_(item.angleParameter) ?? (Number.isFinite(Number(item.angle)) && item.angle !== null ? Number(item.angle) : null),
-        angleScale: item.angleScale, flipBy: text_(item.flipBy) });
+        angleScale: item.angleScale, flipBy: text_(item.flipBy), frame: text_(item.frame) && ids.has(item.frame!) ? item.frame : undefined });
     }
     /* links: "<participant id>" or "x,y" (fixed world point in metres) */
-    const end = (value: string): string | [number, number] => {
-      const numbers = String(value).split(",").map(part => Number(part.trim()));
-      return numbers.length === 2 && numbers.every(Number.isFinite) && /\d/.test(value) && !ids.has(value) ? [numbers[0], numbers[1]] : String(value);
+    const end = (value: string): string | [number, number] | [number, number, string] => {
+      const text = String(value);
+      if (ids.has(text)) return text;
+      /* "<participant id>:x,y" = a point in that participant's own frame; "x,y" = a point of the scene frame */
+      const colon = text.lastIndexOf(":"), frame = colon > 0 ? text.slice(0, colon).trim() : "";
+      const numbers = (frame ? text.slice(colon + 1) : text).split(",").map(part => Number(part.trim()));
+      if (numbers.length !== 2 || !numbers.every(Number.isFinite)) return text;
+      return frame ? [numbers[0], numbers[1], frame] : [numbers[0], numbers[1]];
     };
     for (const item of Array.isArray(spec.links) ? spec.links : [])
       if (item && item.from && item.to) base.link(end(item.from), end(item.to), { color: text_(item.color), width: item.width, dashed: item.dashed });

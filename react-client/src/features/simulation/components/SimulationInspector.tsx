@@ -3,6 +3,8 @@ import Icon from "../../../shared/ui/LearningIcon";
 import SaveSimulationPanel from "../../library/components/SaveSimulationPanel";
 import { FormulaReview, SimulationParameterControl } from "./SimulationReview";
 import type { SimulationWorkspaceModel } from "../hooks/useSimulationWorkspace";
+import type { SimulationParameter } from "../api/simulationUnderstandingApi";
+import { groupParameters, type PlanModel } from "../model/parameterGroups";
 
 const QUICK_EXAMPLES = [
   {
@@ -103,16 +105,13 @@ export default function SimulationInspector({ experiment, explanation, save }: R
             </div>
 
             {simulation?.parameters?.length ? (
-              <div className="simulation-controls">
-                {simulation.parameters.map((parameter) => (
-                  <SimulationParameterControl
-                    key={parameter.name}
-                    parameter={parameter}
-                    value={values[parameter.name] ?? parameter.value}
-                    onChange={(next) => updateParameter(parameter, next)}
-                  />
-                ))}
-              </div>
+              <ParameterControls
+                key={simulation.planSignature ?? simulation.sessionId}
+                parameters={simulation.parameters}
+                models={simulation.simulationSpec?.physicsModels}
+                values={values}
+                onChange={updateParameter}
+              />
             ) : (
               <div className="simulation-empty">
                 {simulation
@@ -253,5 +252,71 @@ export default function SimulationInspector({ experiment, explanation, save }: R
         <span>PhysLive · Kết quả được kiểm tra bằng hai phương pháp</span>
       </footer>
     </aside>
+  );
+}
+
+/**
+ * Sliders arranged by what the plan's bindings say they are:
+ *  - common quantities first;
+ *  - a property that several like objects each have (peers) is one control while "linked" — changing it changes
+ *    every object — and one control per object once unlinked; peers that start alike are linked by default;
+ *  - whatever else belongs to a single participant is listed under that participant.
+ */
+function ParameterControls({ parameters, models, values, onChange }: Readonly<{
+  parameters: SimulationParameter[];
+  models?: readonly PlanModel[];
+  values: Record<string, number>;
+  onChange: (parameter: SimulationParameter, value: number) => void;
+}>) {
+  const { shared, groups, peers } = groupParameters(parameters, models ?? []);
+  const byName = new Map(parameters.map((parameter) => [parameter.name, parameter]));
+  const ownerOf = new Map(groups.flatMap((group) => group.parameters.map((parameter) => [parameter.name, group.label] as const)));
+  const startsAlike = (name: string) => peers[name].every((peer) => byName.get(peer)?.value === byName.get(peers[name][0])?.value);
+  /* family (named by its first member) -> linked?; unset = linked exactly when its members start alike */
+  const [links, setLinks] = useState<Record<string, boolean>>({});
+  const linked = (family: string) => links[family] ?? startsAlike(family);
+  const control = (parameter: SimulationParameter, targets: string[] = [parameter.name], label?: string) => (
+    <SimulationParameterControl
+      key={parameter.name}
+      parameter={label ? { ...parameter, label } : parameter}
+      value={values[parameter.name] ?? parameter.value}
+      onChange={(next) => { for (const name of targets) { const target = byName.get(name); if (target) onChange(target, next); } }}
+    />
+  );
+  const families = parameters.filter((parameter) => peers[parameter.name]?.[0] === parameter.name);
+  if (!families.length && groups.length < 2) return <div className="simulation-controls">{parameters.map((parameter) => control(parameter))}</div>;
+  return (
+    <div className="simulation-controls">
+      {shared.length > 0 && (
+        <section className="simulation-control-group">
+          {(families.length > 0 || groups.length > 0) && <h4>Chung</h4>}
+          {shared.map((parameter) => control(parameter))}
+        </section>
+      )}
+      {families.map((first) => {
+        const names = peers[first.name], together = linked(first.name);
+        return (
+          <section key={first.name} className="simulation-control-group">
+            <label className="simulation-control-mode">
+              <input type="checkbox" checked={!together}
+                onChange={(event) => setLinks((current) => ({ ...current, [first.name]: !event.target.checked }))} />
+              Chỉnh riêng từng vật ({names.length})
+            </label>
+            {together
+              ? control(first, names)
+              : names.map((name) => { const parameter = byName.get(name); return parameter && control(parameter, [name], (first.label || first.name) + " · " + (ownerOf.get(name) ?? name)); })}
+          </section>
+        );
+      })}
+      {groups.map((group) => {
+        const own = group.parameters.filter((parameter) => !peers[parameter.name]);
+        return own.length > 0 && (
+          <section key={group.id} className="simulation-control-group">
+            <h4>{group.label}</h4>
+            {own.map((parameter) => control(parameter))}
+          </section>
+        );
+      })}
+    </div>
   );
 }

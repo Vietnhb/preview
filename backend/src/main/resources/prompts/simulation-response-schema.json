@@ -321,11 +321,11 @@
                 "properties": {
                   "from": {
                     "type": "string",
-                    "description": "A moving participant id, or a fixed world point 'x,y' in metres."
+                    "description": "A moving participant id; or a fixed point 'x,y' in metres of the common scene frame; or '<participant id>:x,y' = a fixed point in that participant's own frame (needed when participants are independent systems laid out side by side, e.g. the pivot of pendulum p2 is 'p2:0,0')."
                   },
                   "to": {
                     "type": "string",
-                    "description": "A moving participant id, or a fixed world point 'x,y' in metres."
+                    "description": "A moving participant id; or a fixed point 'x,y' in metres of the common scene frame; or '<participant id>:x,y' = a fixed point in that participant's own frame (needed when participants are independent systems laid out side by side, e.g. the pivot of pendulum p2 is 'p2:0,0')."
                   },
                   "color": {
                     "type": "string",
@@ -359,7 +359,8 @@
                   "angle",
                   "angleParameter",
                   "angleScale",
-                  "flipBy"
+                  "flipBy",
+                  "frame"
                 ],
                 "properties": {
                   "svg": {
@@ -431,6 +432,10 @@
                   "flipBy": {
                     "type": "string",
                     "description": "Plan parameter whose NEGATIVE value mirrors the drawing horizontally: the sense of a field, a polarity, a current direction drawn pointing +x. '' if unused."
+                  },
+                  "frame": {
+                    "type": "string",
+                    "description": "Participant id whose own coordinate frame x / y are measured in. Independent systems (several pendulums, several tracks) are laid out side by side by the kit, each with its own origin, so a fixture belonging to one of them names it here. '' = the common scene frame (only when all participants share one frame)."
                   }
                 }
               }
