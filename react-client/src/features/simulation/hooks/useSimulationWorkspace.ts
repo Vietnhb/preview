@@ -23,8 +23,8 @@ const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 function getError(error: unknown) {
   if (axios.isAxiosError<{ message?: string }>(error))
-    return error.response?.data?.message || "The server could not complete this step.";
-  return error instanceof Error ? error.message : "An unexpected error occurred.";
+    return error.response?.data?.message || "Máy chủ không thể hoàn tất bước này. Vui lòng thử lại.";
+  return error instanceof Error ? error.message : "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.";
 }
 
 export function parameterBounds(parameter: SimulationParameter): [number, number] {
@@ -115,11 +115,11 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
 
   const acceptImage = (file: File) => {
     if (!IMAGE_MIME_TYPES.has(file.type)) {
-      setError("Please choose a PNG, JPEG, or WebP image.");
+      setError("Vui lòng chọn ảnh định dạng PNG, JPEG hoặc WebP.");
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      setError("Image must be smaller than 8 MB.");
+      setError("Dung lượng ảnh phải nhỏ hơn 8 MB.");
       return;
     }
     setError(null);
@@ -283,7 +283,7 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
       const result = await confirmSimulationExplanation(intent, renderDiagnostics);
       const parameters = result.parameters ?? [];
       if (new Set(parameters.map((item) => item.name)).size !== parameters.length)
-        throw new Error("Generated simulation contains duplicate parameter names.");
+        throw new Error("Mô phỏng được tạo có tên tham số bị trùng.");
       if (
         parameters.some(
           (item) =>
@@ -292,7 +292,7 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
             (item.min !== undefined && item.max !== undefined && item.min > item.max),
         )
       )
-        throw new Error("Generated simulation contains inconsistent parameter bounds.");
+        throw new Error("Giới hạn tham số của mô phỏng được tạo không nhất quán.");
       const paramValues = Object.fromEntries(
         parameters.map((item) => [item.name, item.value]),
       );
@@ -301,9 +301,9 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
           (value) => !Number.isFinite(value),
         )
       )
-        throw new Error("Generated simulation has a parameter outside the local runtime limit.");
+        throw new Error("Mô phỏng được tạo có tham số vượt quá giới hạn chạy trên thiết bị.");
       if (!result.simulationSpec.solverTimeline?.frames?.length)
-        throw new Error("Generated simulation is missing its server timeline.");
+        throw new Error("Mô phỏng được tạo thiếu dữ liệu diễn tiến từ máy chủ.");
       if (renderDiagnostics && currentSimulationId) {
         try {
           await updateSavedSimulationVisual(currentSimulationId, result);

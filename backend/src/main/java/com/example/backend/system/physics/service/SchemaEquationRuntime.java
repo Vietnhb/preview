@@ -60,34 +60,34 @@ public class SchemaEquationRuntime {
             String name = parameter.path("name").asText();
             double value = overrides.has(name) ? overrides.path(name).asDouble(Double.NaN)
                     : parameter.path("value").asDouble(Double.NaN);
-            require(!name.isBlank() && !parameters.containsKey(name) && Double.isFinite(value), "Invalid parameter");
+            require(!name.isBlank() && !parameters.containsKey(name) && Double.isFinite(value), "Tham số không hợp lệ");
             require(value >= parameter.path("min").asDouble(-Double.MAX_VALUE)
-                    && value <= parameter.path("max").asDouble(Double.MAX_VALUE), "Parameter outside declared range: " + name);
+                    && value <= parameter.path("max").asDouble(Double.MAX_VALUE), "Tham số nằm ngoài phạm vi cho phép: " + name);
             parameters.put(name, value);
         }
-        overrides.fieldNames().forEachRemaining(name -> require(parameters.containsKey(name), "Unknown parameter: " + name));
+        overrides.fieldNames().forEachRemaining(name -> require(parameters.containsKey(name), "Tham số không xác định: " + name));
         double duration = spec.path("durationSeconds").asDouble(Double.NaN);
         if (spec.hasNonNull("durationParameter")) {
             String key = spec.path("durationParameter").asText();
-            require(parameters.containsKey(key), "Unknown duration parameter");
+            require(parameters.containsKey(key), "Tham số thời gian không xác định");
             for (JsonNode parameter : spec.path("parameters")) if (parameter.path("name").asText().equals(key)) {
                 require(parameter.path("unit").asText().equals("s") && parameter.path("value").asDouble() == duration,
-                        "Duration parameter must match the initial duration and use seconds");
+                        "Tham số thời gian phải khớp thời lượng ban đầu và dùng đơn vị giây");
             }
             duration = parameters.get(key);
         }
-        require(Double.isFinite(duration) && duration > 0 && duration <= maxDuration, "Invalid simulation duration");
+        require(Double.isFinite(duration) && duration > 0 && duration <= maxDuration, "Thời lượng mô phỏng không hợp lệ");
         List<Bound> bindings = new ArrayList<>();
         for (JsonNode model : spec.path("physicsModels")) {
-            require(bindings.size() < maxParticipants, "Participant resource limit exceeded");
+            require(bindings.size() < maxParticipants, "Số lượng vật thể vượt quá giới hạn cho phép");
             String id = model.path("id").asText();
-            require(!id.isBlank() && bindings.stream().noneMatch(b -> b.id.equals(id)), "Duplicate or missing model id");
+            require(!id.isBlank() && bindings.stream().noneMatch(b -> b.id.equals(id)), "Định danh mô hình bị trùng hoặc bị thiếu");
             JsonNode capability = null;
             for (JsonNode candidate : definition.path("capabilities")) {
                 if (candidate.path("capabilityId").asText().equals(model.path("capabilityId").asText())) capability = candidate;
             }
             require(capability != null && capability.path("execution").path("math").isObject(),
-                    "Capability has no approved executable equation set");
+                    "Chức năng chưa có hệ phương trình thực thi được phê duyệt");
             checkDimensions(capability);
             Map<String, Double> inputs = new LinkedHashMap<>();
             for (JsonNode input : capability.path("canonicalInputs")) {
@@ -95,16 +95,16 @@ public class SchemaEquationRuntime {
                 JsonNode binding = model.path("inputs").path(key);
                 double value;
                 if (binding.isTextual()) {
-                    require(parameters.containsKey(binding.asText()), "Unknown input parameter: " + binding.asText());
+                    require(parameters.containsKey(binding.asText()), "Tham số đầu vào không xác định: " + binding.asText());
                     value = parameters.get(binding.asText());
                     for (JsonNode parameter : spec.path("parameters")) {
                         if (parameter.path("name").asText().equals(binding.asText()))
-                            require(parameter.path("unit").asText().equals(input.path("unit").asText()), "Input must use canonical SI unit: " + key);
+                            require(parameter.path("unit").asText().equals(input.path("unit").asText()), "Đầu vào phải sử dụng đơn vị SI chuẩn: " + key);
                     }
                 } else value = binding.isNumber() ? binding.asDouble() : input.path("defaultValue").asDouble(Double.NaN);
-                require(Double.isFinite(value), "Missing canonical input: " + key);
+                require(Double.isFinite(value), "Thiếu đầu vào chuẩn: " + key);
                 require(value >= input.path("min").asDouble(-Double.MAX_VALUE)
-                        && value <= input.path("max").asDouble(Double.MAX_VALUE), "Solver domain violation: " + key);
+                        && value <= input.path("max").asDouble(Double.MAX_VALUE), "Giá trị nằm ngoài miền tính toán của bộ giải: " + key);
                 inputs.put(key, value);
             }
             bindings.add(new Bound(id, capability, inputs));
@@ -116,7 +116,7 @@ public class SchemaEquationRuntime {
         int steps = (int) Math.max(Math.min(MIN_STEPS, budgetSteps),
                 Math.min(Math.min((double) budgetSteps, MAX_BASE_STEPS), Math.ceil(duration / defaultStep)));
         require(steps > 0 && (long) (steps * 2 + 1) * Math.max(1, bindings.size()) <= maxSamples,
-                "Timeline exceeds configured sample budget; shorten duration or increase runtime budget");
+                "Dữ liệu diễn tiến vượt quá giới hạn số mẫu. Vui lòng giảm thời lượng mô phỏng");
         ObjectNode result = run(spec, bindings, duration, steps);
         while ("FLAGGED".equals(result.path("validation").path("status").asText()) && steps * 2L <= budgetSteps) {
             steps *= 2;
@@ -134,7 +134,7 @@ public class SchemaEquationRuntime {
         ObjectNode invariants = validation.putObject("invariantResults");
         validation.put("solverVersion", "schema-ast-rk4/1.0");
         validation.put("formulaSource", "APPROVED_TOPIC_SCHEMA");
-        validation.put("verificationScope", "Bound canonical quantities; semantic assumptions remain visible for review");
+        validation.put("verificationScope", "Các đại lượng chuẩn đã được liên kết; các giả định vẫn được hiển thị để kiểm tra");
         ObjectNode timeline = result.putObject("solverTimeline");
         timeline.put("durationSeconds", duration);
         var frames = timeline.putArray("frames");
@@ -156,14 +156,14 @@ public class SchemaEquationRuntime {
             double absTolerance = bound.capability.path("validation").path("absoluteTolerance").asDouble(Double.NaN);
             double relTolerance = bound.capability.path("validation").path("relativeTolerance").asDouble(Double.NaN);
             require(Double.isFinite(absTolerance) && absTolerance >= 0 && Double.isFinite(relTolerance) && relTolerance >= 0,
-                    "Schema validation tolerances are required");
+                    "Mô hình cần có sai số cho phép để kiểm định");
             Map<String, Double> initialInvariants = new LinkedHashMap<>();
             for (int i = 0; i <= steps; i++) {
                 Map<String, Double> sample = coarse.get(i);
                 Map<String, Double> reference = hasReference ? evaluateMap(math.path("closedForm"), bound.inputs,
                         Map.of("t", duration * i / steps)) : fine.get(i * 2);
                 for (String key : sample.keySet()) {
-                    require(reference.containsKey(key), "Reference omits canonical output: " + key);
+                    require(reference.containsKey(key), "Dữ liệu đối chiếu thiếu đầu ra chuẩn: " + key);
                     double error = Math.abs(sample.get(key) - reference.get(key));
                     double scale = Math.max(Math.abs(sample.get(key)), Math.abs(reference.get(key)));
                     absoluteError = Math.max(absoluteError, error);
@@ -183,7 +183,7 @@ public class SchemaEquationRuntime {
                     Map<String, Double> rates = evaluateMap(math.path("rates"), bound.inputs, withTime(sample, duration * i / steps));
                     for (var rate : rates.entrySet()) {
                         String key = rate.getKey();
-                        require(sample.containsKey(key), "ODE state is missing from solver output: " + key);
+                        require(sample.containsKey(key), "Kết quả bộ giải thiếu trạng thái phương trình vi phân: " + key);
                         double derivative = (-coarse.get(i + 2).get(key) + 8 * coarse.get(i + 1).get(key)
                                 - 8 * coarse.get(i - 1).get(key) + coarse.get(i - 2).get(key)) / (12 * duration / steps);
                         double residual = Math.abs(derivative - rate.getValue());
@@ -198,15 +198,15 @@ public class SchemaEquationRuntime {
                 Map<String, Double> benchmarkInputs = new LinkedHashMap<>(bound.inputs);
                 benchmark.path("inputs").fields().forEachRemaining(field -> benchmarkInputs.put(field.getKey(), field.getValue().asDouble()));
                 double benchmarkDuration = benchmark.path("durationSeconds").asDouble(1);
-                require(benchmarkDuration > 0 && benchmarkDuration <= maxDuration, "Invalid benchmark duration");
+                require(benchmarkDuration > 0 && benchmarkDuration <= maxDuration, "Thời lượng kiểm chuẩn không hợp lệ");
                 int benchmarkSteps = (int) Math.ceil(benchmarkDuration / defaultStep);
-                require(benchmarkSteps <= maxSamples, "Benchmark sample budget exceeded");
+                require(benchmarkSteps <= maxSamples, "Số mẫu kiểm chuẩn vượt quá giới hạn");
                 var benchmarkSamples = integrate(new Bound(bound.id, bound.capability, benchmarkInputs), benchmarkDuration, benchmarkSteps);
                 Map<String, Double> last = benchmarkSamples.get(benchmarkSamples.size() - 1);
                 var expected = benchmark.path("expectedOutputs").fields();
                 while (expected.hasNext()) {
                     var field = expected.next();
-                    require(last.containsKey(field.getKey()), "Benchmark references unknown output");
+                    require(last.containsKey(field.getKey()), "Bài kiểm chuẩn tham chiếu đến đầu ra không xác định");
                     double value = field.getValue().asDouble(Double.NaN);
                     passed &= Double.isFinite(value) && Math.abs(last.get(field.getKey()) - value) <= absTolerance + relTolerance * Math.abs(value);
                 }
@@ -231,9 +231,9 @@ public class SchemaEquationRuntime {
         boolean coverage = spec.path("physicsCoverage").asText().equals("COMPLETE");
         String status = !passed ? "FLAGGED" : !coverage || !numericalEvidence ? "VISUAL_ONLY_UNVERIFIED"
                 : allReference ? "VERIFIED_ANALYTICAL" : "VERIFIED_NUMERICAL";
-        if (!coverage) flags.add("Some described physics is not mapped to approved executable equations.");
-        if (!numericalEvidence && !bindings.isEmpty()) flags.add("Numerical evidence contract is incomplete.");
-        if (!passed) flags.add("Reference comparison or invariant checks failed; this simulation is not verified.");
+        if (!coverage) flags.add("Một phần nội dung vật lý chưa được liên kết với phương trình thực thi đã phê duyệt.");
+        if (!numericalEvidence && !bindings.isEmpty()) flags.add("Minh chứng tính toán số chưa đầy đủ.");
+        if (!passed) flags.add("Kết quả đối chiếu hoặc kiểm tra đại lượng bảo toàn không đạt; mô phỏng chưa được xác minh.");
         validation.put("status", status);
         validation.put("executionMethod", bindings.isEmpty() ? "VISUAL_ONLY" : "NUMERICAL");
         validation.put("solverMethod", "RK4");
@@ -241,7 +241,7 @@ public class SchemaEquationRuntime {
         validation.put("absoluteError", absoluteError);
         validation.put("relativeError", relativeError);
         validation.put("maxOdeResidual", maxResidual);
-        validation.put("benchmarkSummary", benchmarksChecked + " approved benchmark bindings checked");
+        validation.put("benchmarkSummary", "Đã kiểm tra " + benchmarksChecked + " liên kết kiểm chuẩn được phê duyệt");
         if (allReference) validation.put("referenceSolverVersion", "schema-ast-closed-form/1.0");
         return result;
     }
@@ -251,7 +251,7 @@ public class SchemaEquationRuntime {
         symbols.put("t", Map.of("T", 1.0));
         for (String group : List.of("canonicalInputs", "outputs")) for (JsonNode quantity : capability.path(group)) {
             String unit = quantity.path("unit").asText();
-            require(unitDimensions.containsKey(unit), "Unknown canonical unit dimension: " + unit);
+            require(unitDimensions.containsKey(unit), "Thứ nguyên đơn vị chuẩn không xác định: " + unit);
             symbols.put(quantity.path("key").asText(), unitDimensions.get(unit));
         }
         JsonNode math = capability.path("execution").path("math");
@@ -261,38 +261,38 @@ public class SchemaEquationRuntime {
                 var equation = equations.next();
                 Map<String, Double> actual = dimension(equation.getValue(), symbols, 0, new int[]{0});
                 if (!phase.equals("invariants")) {
-                    require(symbols.containsKey(equation.getKey()), "State/output unit is not declared: " + equation.getKey());
+                    require(symbols.containsKey(equation.getKey()), "Đơn vị của trạng thái hoặc đầu ra chưa được khai báo: " + equation.getKey());
                     Map<String, Double> expected = symbols.get(equation.getKey());
                     if (phase.equals("rates")) expected = combine(expected, Map.of("T", 1.0), -1);
-                    require(actual == null || actual.equals(expected), "Dimensional mismatch in " + phase + "." + equation.getKey());
+                    require(actual == null || actual.equals(expected), "Thứ nguyên không khớp tại " + phase + "." + equation.getKey());
                 }
             }
         }
     }
 
     private Map<String, Double> dimension(JsonNode ast, Map<String, Map<String, Double>> symbols, int depth, int[] nodes) {
-        require(depth <= maxDepth && ++nodes[0] <= maxNodes, "Equation dimension budget exceeded");
+        require(depth <= maxDepth && ++nodes[0] <= maxNodes, "Phép kiểm tra thứ nguyên vượt quá giới hạn xử lý");
         if (ast.isNumber()) return ast.asDouble() == 0 ? null : Map.of();
-        if (ast.isTextual()) { require(symbols.containsKey(ast.asText()), "Undeclared quantity dimension: " + ast.asText()); return symbols.get(ast.asText()); }
-        require(ast.isArray() && ast.size() >= 2 && ast.size() <= 3, "Invalid equation AST");
+        if (ast.isTextual()) { require(symbols.containsKey(ast.asText()), "Thứ nguyên đại lượng chưa được khai báo: " + ast.asText()); return symbols.get(ast.asText()); }
+        require(ast.isArray() && ast.size() >= 2 && ast.size() <= 3, "Cấu trúc phương trình không hợp lệ");
         String op = ast.path(0).asText();
         Map<String, Double> a = dimension(ast.get(1), symbols, depth + 1, nodes);
         Map<String, Double> b = ast.size() == 3 ? dimension(ast.get(2), symbols, depth + 1, nodes) : Map.of();
         return switch (op) {
-            case "add", "sub" -> { require(a == null || b == null || a.equals(b), "Cannot add quantities with different dimensions"); yield a == null ? b : a; }
+            case "add", "sub" -> { require(a == null || b == null || a.equals(b), "Không thể cộng các đại lượng khác thứ nguyên"); yield a == null ? b : a; }
             case "mul" -> a == null || b == null ? null : combine(a, b, 1);
             case "div" -> a == null ? null : combine(a, b == null ? Map.of() : b, -1);
             case "neg", "abs" -> a;
             case "sqrt", "pow" -> {
                 double exponent = op.equals("sqrt") ? 0.5 : ast.path(2).asDouble(Double.NaN);
-                require(Double.isFinite(exponent) && (b == null || b.isEmpty()), "Dimensional exponent must be a numeric constant");
+                require(Double.isFinite(exponent) && (b == null || b.isEmpty()), "Số mũ thứ nguyên phải là hằng số");
                 Map<String, Double> result = new LinkedHashMap<>();
                 if (a != null) a.forEach((key, value) -> { if (value * exponent != 0) result.put(key, value * exponent); });
                 yield result;
             }
             case "sin", "cos", "exp", "log", "asin", "acos", "atan" -> {
-                require(a == null || a.isEmpty(), "Transcendental input must be dimensionless (angles use radians)"); yield Map.of(); }
-            default -> throw ApiException.unprocessable("Unknown dimension operator: " + op);
+                require(a == null || a.isEmpty(), "Đầu vào hàm siêu việt phải không có thứ nguyên; góc dùng đơn vị radian"); yield Map.of(); }
+            default -> throw ApiException.unprocessable("Phép toán thứ nguyên không xác định: " + op);
         };
     }
 
@@ -306,7 +306,7 @@ public class SchemaEquationRuntime {
     private List<Map<String, Double>> integrate(Bound bound, double duration, int steps) {
         JsonNode math = bound.capability.path("execution").path("math");
         Map<String, Double> state = evaluateMap(math.path("initial"), bound.inputs, Map.of("t", 0.0));
-        require(!state.isEmpty(), "Equation set has no initial state");
+        require(!state.isEmpty(), "Hệ phương trình chưa có trạng thái ban đầu");
         List<Map<String, Double>> samples = new ArrayList<>();
         double h = duration / steps;
         for (int i = 0; i <= steps; i++) {
@@ -319,9 +319,9 @@ public class SchemaEquationRuntime {
             Map<String, Double> k4 = evaluateMap(math.path("rates"), bound.inputs, withTime(advance(state, k3, h), t + h));
             Map<String, Double> next = new LinkedHashMap<>();
             for (String key : state.keySet()) {
-                require(k1.containsKey(key) && k2.containsKey(key) && k3.containsKey(key) && k4.containsKey(key), "ODE rate missing: " + key);
+                require(k1.containsKey(key) && k2.containsKey(key) && k3.containsKey(key) && k4.containsKey(key), "Thiếu đạo hàm của trạng thái: " + key);
                 double value = state.get(key) + h / 6 * (k1.get(key) + 2 * k2.get(key) + 2 * k3.get(key) + k4.get(key));
-                require(Double.isFinite(value), "Solver produced NaN/Infinity");
+                require(Double.isFinite(value), "Bộ giải trả về giá trị không xác định hoặc vô hạn");
                 next.put(key, value);
             }
             state = next;
@@ -335,7 +335,7 @@ public class SchemaEquationRuntime {
 
     private Map<String, Double> advance(Map<String, Double> state, Map<String, Double> rates, double h) {
         Map<String, Double> result = new LinkedHashMap<>();
-        state.forEach((key, value) -> { require(rates.containsKey(key), "ODE rate missing: " + key); result.put(key, value + h * rates.get(key)); });
+        state.forEach((key, value) -> { require(rates.containsKey(key), "Thiếu đạo hàm của trạng thái: " + key); result.put(key, value + h * rates.get(key)); });
         return result;
     }
 
@@ -350,8 +350,8 @@ public class SchemaEquationRuntime {
             }
             double evaluateKey(String key) {
                 if (result.containsKey(key)) return result.get(key);
-                require(expressions.has(key), "Unknown equation quantity: " + key);
-                require(!resolving.contains(key) && resolving.size() < maxDepth, "Circular or excessive equation dependency");
+                require(expressions.has(key), "Đại lượng trong phương trình không xác định: " + key);
+                require(!resolving.contains(key) && resolving.size() < maxDepth, "Các phương trình phụ thuộc vòng hoặc vượt quá độ sâu cho phép");
                 resolving.add(key);
                 double value = evaluate(expressions.get(key), this, 0, new int[]{0});
                 resolving.removeLast(); result.put(key, value); return value;
@@ -363,13 +363,13 @@ public class SchemaEquationRuntime {
     }
 
     private double evaluate(JsonNode ast, ToDoubleFunction<String> lookup, int depth, int[] nodes) {
-        require(depth <= maxDepth && ++nodes[0] <= maxNodes, "Equation AST resource limit exceeded");
+        require(depth <= maxDepth && ++nodes[0] <= maxNodes, "Cấu trúc phương trình vượt quá giới hạn xử lý");
         if (ast.isNumber()) return ast.asDouble();
         if (ast.isTextual()) return lookup.applyAsDouble(ast.asText());
-        require(ast.isArray() && ast.size() >= 2 && ast.size() <= 3, "Invalid arithmetic AST");
+        require(ast.isArray() && ast.size() >= 2 && ast.size() <= 3, "Cấu trúc biểu thức số học không hợp lệ");
         String op = ast.path(0).asText();
         boolean unary = List.of("neg", "sin", "cos", "sqrt", "exp", "abs", "log", "asin", "acos", "atan").contains(op);
-        require(ast.size() == (unary ? 2 : 3), "Invalid arithmetic AST arity");
+        require(ast.size() == (unary ? 2 : 3), "Số toán hạng trong biểu thức không hợp lệ");
         double a = evaluate(ast.get(1), lookup, depth + 1, nodes);
         double b = ast.size() > 2 ? evaluate(ast.get(2), lookup, depth + 1, nodes) : 0;
         double value = switch (op) {
@@ -388,9 +388,9 @@ public class SchemaEquationRuntime {
             case "asin" -> Math.asin(a);
             case "acos" -> Math.acos(a);
             case "atan" -> Math.atan(a);
-            default -> throw ApiException.unprocessable("Unsupported arithmetic operator: " + op);
+            default -> throw ApiException.unprocessable("Phép toán số học không được hỗ trợ: " + op);
         };
-        require(Double.isFinite(value), "Equation produced NaN/Infinity");
+        require(Double.isFinite(value), "Phương trình trả về giá trị không xác định hoặc vô hạn");
         return value;
     }
 

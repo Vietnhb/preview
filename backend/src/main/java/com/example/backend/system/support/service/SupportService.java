@@ -28,14 +28,14 @@ public class SupportService {
     @Transactional
     public SupportView create(SupportKind kind, CreateSupportRequest request) {
         if (kind == null) {
-            throw ApiException.badRequest("Support kind is required");
+            throw ApiException.badRequest("Vui lòng chọn loại yêu cầu hỗ trợ");
         }
         if (request == null || request.subject() == null || request.subject().isBlank()
                 || request.content() == null || request.content().isBlank()) {
-            throw ApiException.badRequest("Subject and content are required");
+            throw ApiException.badRequest("Vui lòng nhập tiêu đề và nội dung");
         }
         if (request.subject().trim().length() > 180 || request.content().trim().length() > 10000) {
-            throw ApiException.badRequest("Subject or content is too long");
+            throw ApiException.badRequest("Tiêu đề hoặc nội dung quá dài");
         }
         User sender = currentUser.requireCurrentUser();
         SupportItem item = new SupportItem();
@@ -54,7 +54,7 @@ public class SupportService {
             throw ApiException.forbidden("Chỉ giáo viên mới gửi được khiếu nại về mô phỏng.");
         SupportView created = create(SupportKind.COMPLAINT, new CreateSupportRequest(request.subject(), request.content()));
         if (request.simulationId() == null) return created;
-        SupportItem item = repository.findById(created.id()).orElseThrow(() -> ApiException.notFound("Support item not found"));
+        SupportItem item = repository.findById(created.id()).orElseThrow(() -> ApiException.notFound("Không tìm thấy yêu cầu hỗ trợ"));
         item.setSimulationId(request.simulationId());
         return view(repository.save(item));
     }
@@ -94,7 +94,7 @@ public class SupportService {
     public List<SupportView> adminList(SupportKind kind) {
         requireManager();
         if (kind == null) {
-            throw ApiException.badRequest("Support kind is required");
+            throw ApiException.badRequest("Vui lòng chọn loại yêu cầu hỗ trợ");
         }
         return repository.findTop200ByKindOrderByCreatedAtDesc(kind).stream()
                 .map(this::view)
@@ -105,13 +105,13 @@ public class SupportService {
     public SupportView update(UUID id, UpdateSupportRequest request) {
         User admin = requireManager();
         if (request == null) {
-            throw ApiException.badRequest("Support update is required");
+            throw ApiException.badRequest("Vui lòng nhập nội dung cập nhật yêu cầu hỗ trợ");
         }
-        SupportItem item = repository.findById(id).orElseThrow(() -> ApiException.notFound("Support item not found"));
+        SupportItem item = repository.findById(id).orElseThrow(() -> ApiException.notFound("Không tìm thấy yêu cầu hỗ trợ"));
         SupportStatus status = request.status() == null ? item.getStatus() : request.status();
         String response = request.response() == null ? null : request.response().trim();
         if (response != null && response.length() > 10000) {
-            throw ApiException.badRequest("Admin response is too long");
+            throw ApiException.badRequest("Phản hồi của quản trị viên quá dài");
         }
         if (response != null && !response.isBlank()) {
             item.setAdminResponse(response);
@@ -145,7 +145,7 @@ public class SupportService {
     private User requireManager() {
         User user = currentUser.requireCurrentUser();
         if (user.getRole() == null || !RoleName.MANAGER.matches(user.getRole().getName()))
-            throw ApiException.forbidden("Only managers can manage support items");
+            throw ApiException.forbidden("Chỉ người quản lý mới được quản lý yêu cầu hỗ trợ");
         return user;
     }
 }

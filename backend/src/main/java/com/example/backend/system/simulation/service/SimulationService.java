@@ -51,7 +51,7 @@ public class SimulationService {
     public SimulationResponse get(UUID id) {
         User user = currentUser.requireCurrentUser();
         Simulation simulation = simulations.findByIdAndOwnerId(id, user.getId())
-                .orElseThrow(() -> ApiException.notFound("Simulation not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy mô phỏng"));
         return latestResponse(simulation);
     }
 
@@ -70,9 +70,9 @@ public class SimulationService {
     public SimulationResponse replay(Simulation simulation, UUID runId) {
         if (runId == null) return latestResponse(simulation);
         SimulationRun run = runs.findById(runId)
-                .orElseThrow(() -> ApiException.notFound("Assigned simulation run not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy lượt chạy mô phỏng đã giao"));
         if (run.getSimulation() == null || !simulation.getId().equals(run.getSimulation().getId()))
-            throw ApiException.forbidden("Assigned simulation run is not available");
+            throw ApiException.forbidden("Lượt chạy mô phỏng đã giao chưa sẵn sàng");
         return response(simulation, run);
     }
 
@@ -115,7 +115,7 @@ public class SimulationService {
         LibraryItem item = library.findVisiblePublishedSimulation(id,
                 user == null ? Set.of(Visibility.PUBLIC) : Set.of(Visibility.SHARED, Visibility.PUBLIC), Visibility.PUBLIC,
                 Set.of(LibraryModerationStatus.APPROVED, LibraryModerationStatus.FEATURED), user == null ? null : user.getInstitutionId())
-                .orElseThrow(() -> ApiException.notFound("Shared simulation not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy mô phỏng chia sẻ"));
         return item.getSimulation();
     }
 
@@ -141,7 +141,7 @@ public class SimulationService {
     /** Physical parameter edits are disabled until a schema-backed execution binding is available. */
     @Transactional(readOnly = true)
     public SimulationResponse previewAdjustment(Simulation simulation, UUID baseRunId, Map<String, Double> requestedParams) {
-        throw ApiException.gone("Parameter execution is unavailable until this topic has a published solver binding");
+        throw ApiException.gone("Chưa thể chạy tham số vì chủ đề chưa có bộ giải được xuất bản");
     }
 
     private SimulationResponse latestResponse(Simulation simulation) {

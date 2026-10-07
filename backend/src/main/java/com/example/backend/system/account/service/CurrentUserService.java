@@ -24,9 +24,9 @@ public class CurrentUserService {
     public User requireCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw ApiException.unauthorized("Authentication is required");
+            throw ApiException.unauthorized("Vui lòng đăng nhập để tiếp tục");
         }
         return userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> ApiException.unauthorized("Authenticated user no longer exists"));
+                .orElseThrow(() -> ApiException.unauthorized("Tài khoản đăng nhập không còn tồn tại"));
     }
 }

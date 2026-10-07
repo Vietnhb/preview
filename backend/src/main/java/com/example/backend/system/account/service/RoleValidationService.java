@@ -28,15 +28,15 @@ public class RoleValidationService {
      */
     public void validateRoleSchoolConsistency(String roleName, School school) {
         RoleName role = RoleName.from(roleName)
-                .orElseThrow(() -> ApiException.badRequest("Unsupported role"));
+                .orElseThrow(() -> ApiException.badRequest("Vai trò không được hỗ trợ"));
         if (role.isPlatformRole()) {
             if (school != null) {
-                throw ApiException.badRequest(String.format("Platform role %s cannot have a school assigned", roleName)
+                throw ApiException.badRequest(String.format("Vai trò hệ thống %s không được gán vào trường", roleName)
                 );
             }
         } else {
             if (school == null) {
-                throw ApiException.badRequest(String.format("School role %s must have a school assigned", roleName)
+                throw ApiException.badRequest(String.format("Vai trò %s phải được gán vào một trường", roleName)
                 );
             }
         }
@@ -74,7 +74,7 @@ public class RoleValidationService {
         }
         
         if (managerCount > 0) {
-            throw ApiException.badRequest("This school already has an active SCHOOL. Only 1 manager per school is allowed."
+            throw ApiException.badRequest("Trường đã có tài khoản quản lý đang hoạt động. Mỗi trường chỉ được có một quản lý."
             );
         }
     }

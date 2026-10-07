@@ -47,7 +47,7 @@ public class GeneratedSimulationStorage {
     public LibraryItemResponse save(SimulationRequests.Save request, SchemaVersion schema, ObjectNode computed) {
         var user = currentUser.requireCurrentUser();
         var lesson = lessons.findById(request.lessonId())
-                .orElseThrow(() -> ApiException.notFound("Lesson not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy bài học"));
         if (!lesson.isActive() || !lesson.getLevel().isActive() || !lesson.getLevel().getModule().isActive()
                 || !lesson.getLevel().getModule().getTopic().isEnabled())
             throw ApiException.conflict("Bài học này không còn được sử dụng");
@@ -124,7 +124,7 @@ public class GeneratedSimulationStorage {
     public ObjectNode open(UUID id) {
         var user = currentUser.requireCurrentUser();
         var simulation = simulations.findByIdAndOwnerId(id, user.getId())
-                .orElseThrow(() -> ApiException.notFound("Simulation not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy mô phỏng"));
         var run = runs.findFirstBySimulationIdOrderByCreatedAtDesc(simulation.getId())
                 .orElseThrow(() -> ApiException.notFound("Không có dữ liệu mô phỏng đã lưu"));
         if (!run.getResult().path("simulationSpec").path("visualProgram").isObject())
@@ -136,7 +136,7 @@ public class GeneratedSimulationStorage {
     public void updateVisual(UUID id, ObjectNode generated) {
         var user = currentUser.requireCurrentUser();
         var simulation = simulations.findByIdAndOwnerId(id, user.getId())
-                .orElseThrow(() -> ApiException.notFound("Simulation not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy mô phỏng"));
         var previous = runs.findFirstBySimulationIdOrderByCreatedAtDesc(id)
                 .orElseThrow(() -> ApiException.notFound("Không có dữ liệu mô phỏng đã lưu"));
         ObjectNode snapshot = ((ObjectNode) previous.getResult()).deepCopy();

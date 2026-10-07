@@ -97,7 +97,7 @@ public class CurriculumAdminService {
                 item.setActive(!item.isActive());
                 lessonRepository.save(item);
             }
-            default -> throw ApiException.badRequest("Unsupported curriculum node type");
+            default -> throw ApiException.badRequest("Loại mục trong chương trình học không được hỗ trợ");
         }
         return tree();
     }
@@ -116,22 +116,22 @@ public class CurriculumAdminService {
     }
 
     private Topic topic(UUID id) {
-        return topicRepository.findById(id).orElseThrow(missing("Topic"));
+        return topicRepository.findById(id).orElseThrow(missing("chủ đề"));
     }
 
     private ContentModule module(UUID id) {
-        return moduleRepository.findById(id).orElseThrow(missing("Module"));
+        return moduleRepository.findById(id).orElseThrow(missing("học phần"));
     }
 
     private GradeLevel level(UUID id) {
-        return levelRepository.findById(id).orElseThrow(missing("Level"));
+        return levelRepository.findById(id).orElseThrow(missing("cấp độ"));
     }
 
     private Lesson lesson(UUID id) {
-        return lessonRepository.findById(id).orElseThrow(missing("Lesson"));
+        return lessonRepository.findById(id).orElseThrow(missing("bài học"));
     }
 
     private static java.util.function.Supplier<ApiException> missing(String type) {
-        return () -> ApiException.notFound(type + " not found");
+        return () -> ApiException.notFound("Không tìm thấy " + type);
     }
 }

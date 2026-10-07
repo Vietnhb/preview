@@ -25,7 +25,7 @@ public class EvaluationService {
     private static final String INCORRECT_SIMULATION_RATE = "incorrectSimulationRate";
     private static final String PRECISION = "precision";
     private static final String RECALL = "recall";
-    private static final String EVALUATION_NOT_FOUND = "Evaluation run not found";
+    private static final String EVALUATION_NOT_FOUND = "Không tìm thấy lượt đánh giá";
     private final EvaluationRunRepository evaluationRepository;
     private final ObjectMapper objectMapper;
 

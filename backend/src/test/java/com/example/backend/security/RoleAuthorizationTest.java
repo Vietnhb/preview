@@ -105,10 +105,10 @@ class RoleAuthorizationTest {
     void authenticationAndPermissionFailuresKeepTheSameJsonContract() throws Exception {
         mvc.perform(request(HttpMethod.GET, "/api/library"))
                 .andExpect(status().isUnauthorized()).andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.status").value(401)).andExpect(jsonPath("$.message").value("Authentication is required"));
+                .andExpect(jsonPath("$.status").value(401)).andExpect(jsonPath("$.message").value("Vui lòng đăng nhập để tiếp tục"));
         mvc.perform(request(HttpMethod.GET, "/api/admin/users").with(user("student").roles("STUDENT")))
                 .andExpect(status().isForbidden()).andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.status").value(403)).andExpect(jsonPath("$.message").value("You do not have permission for this action"));
+                .andExpect(jsonPath("$.status").value(403)).andExpect(jsonPath("$.message").value("Bạn không có quyền thực hiện thao tác này"));
     }
 
     @RestController static class ProbeController {

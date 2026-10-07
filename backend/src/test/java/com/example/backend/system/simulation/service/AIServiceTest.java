@@ -125,7 +125,8 @@ class AIServiceTest {
                 .thenReturn(response(500, "{\"error\":{\"message\":\"test-visual-key denied\"}}"));
         ApiException error = assertThrows(ApiException.class, () -> ask(client("openai_compatible", true)));
         assertTrue(error.getMessage().contains("HTTP 500"));
-        assertTrue(error.getMessage().contains("[redacted]"));
+        assertTrue(error.getMessage().contains("Vui lòng thử lại"));
+        assertFalse(error.getMessage().contains("denied"));
         assertFalse(error.getMessage().contains("test-visual-key"));
         verify(http).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     }

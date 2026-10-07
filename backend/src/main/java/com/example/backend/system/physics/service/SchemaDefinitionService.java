@@ -51,17 +51,17 @@ public class SchemaDefinitionService {
 
     @Transactional(readOnly = true)
     public SchemaVersion requireApproved(String schemaId) {
-        return findApproved(schemaId).orElseThrow(() -> ApiException.unprocessable("No approved schema definition exists for: " + schemaId));
+        return findApproved(schemaId).orElseThrow(() -> ApiException.unprocessable("Không có định nghĩa mô hình đã được phê duyệt cho: " + schemaId));
     }
 
     @Transactional(readOnly = true)
     public SchemaVersion requireCurrentApproved(String schemaId, String version) {
         SchemaVersion schema = schemas.findFirstBySchemaIdAndVersion(schemaId, version)
                 .filter(s -> s.getLifecycleStatus() == LifecycleStatus.APPROVED)
-                .orElseThrow(() -> ApiException.conflict("Routed schema is no longer approved: " + schemaId + "@" + version));
+                .orElseThrow(() -> ApiException.conflict("Mô hình đã chọn không còn được phê duyệt: " + schemaId + "@" + version));
         if (approvedSchemas().stream().noneMatch(s -> s.getSchemaId().equalsIgnoreCase(schemaId)
                 && s.getVersion().equals(version))) {
-            throw ApiException.conflict("Routed schema version is no longer current and enabled");
+            throw ApiException.conflict("Phiên bản mô hình đã chọn không còn hiện hành hoặc đã bị vô hiệu hóa");
         }
         validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(), schema.getTopic());
         return schema;

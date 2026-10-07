@@ -44,7 +44,7 @@ public class LicenseCheckService {
 
     public void requireWriteAccess(User user) {
         if (!canPerformWriteOperations(user))
-            throw ApiException.forbidden("An active school license is required for this operation");
+            throw ApiException.forbidden("Trường cần có gói sử dụng còn hiệu lực để thực hiện thao tác này");
     }
 
     public LicenseStatusResponse status(User user) {

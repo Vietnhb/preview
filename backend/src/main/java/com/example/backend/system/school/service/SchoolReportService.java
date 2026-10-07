@@ -57,10 +57,10 @@ public class SchoolReportService {
                 .map(row -> new TokenRow(row.getUser().getEmail(), row.getOperation(), row.getTokens(), row.getUsageMonth(), row.getRecordedAt())).toList();
     }
 
-    private School school(UUID schoolId) { return schools.findById(schoolId).orElseThrow(() -> ApiException.notFound("School not found")); }
+    private School school(UUID schoolId) { return schools.findById(schoolId).orElseThrow(() -> ApiException.notFound("Không tìm thấy trường")); }
     private void requireAccess(UUID schoolId) {
         if (!roles.canManageSchool(currentUser.requireCurrentUser(), schoolId)) {
-            throw ApiException.forbidden("School access denied");
+            throw ApiException.forbidden("Bạn không có quyền truy cập trường này");
         }
     }
 

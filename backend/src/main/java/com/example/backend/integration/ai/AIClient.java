@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 /** Provider protocols and transport; simulation planning stays in its business service. */
 @Component
+@lombok.extern.slf4j.Slf4j
 public class AIClient {
     private final AIProperties ai;
     private final JevProperties jev;
@@ -38,13 +39,13 @@ public class AIClient {
         body.put("state", state);
         body.set("questions", questions);
         if (body.toString().length() > jev.maximumPromptCharacters())
-            throw ApiException.unprocessable("Approved schema routing context exceeds the configured JEV limit");
+            throw ApiException.unprocessable("Dữ liệu chọn mô hình vượt quá giới hạn xử lý");
         return post(endpoint(jev.baseUrl(), "systemone"), jev.apiKey(), body, jev.timeout()).path("answers");
     }
 
     public JsonNode text(JsonNode input, Supplier<String> prompt) {
         if (ai.provider().apiKey() == null || ai.provider().apiKey().isBlank())
-            throw ApiException.unavailable("LLM provider API key is not configured");
+            throw ApiException.unavailable("Dịch vụ phân tích AI chưa được cấu hình");
         try {
             ObjectNode body = json.createObjectNode();
             body.put("model", ai.provider().textModel());
@@ -57,13 +58,13 @@ public class AIClient {
                     body, ai.provider().readTimeout());
             return json.readTree(completion.path("choices").path(0).path("message").path("content").asText(""));
         } catch (IOException ex) {
-            throw ApiException.internal("Could not prepare the simulation understanding request");
+            throw ApiException.internal("Không thể chuẩn bị yêu cầu phân tích mô phỏng");
         }
     }
 
     public JsonNode transcribe(byte[] bytes, String mediaType, String context, Supplier<String> prompt) {
         if (ai.provider().apiKey() == null || ai.provider().apiKey().isBlank())
-            throw ApiException.unavailable("Vision provider API key is not configured");
+            throw ApiException.unavailable("Dịch vụ nhận dạng ảnh chưa được cấu hình");
         try {
             String dataUrl = "data:" + mediaType + ";base64," + Base64.getEncoder().encodeToString(bytes);
             ObjectNode body = json.createObjectNode();
@@ -83,13 +84,13 @@ public class AIClient {
                     body, ai.provider().readTimeout());
             return json.readTree(completion.path("choices").path(0).path("message").path("content").asText(""));
         } catch (IOException ex) {
-            throw ApiException.upstream("Vision provider returned an invalid transcription response");
+            throw ApiException.upstream("Kết quả nhận dạng ảnh không hợp lệ");
         }
     }
 
     public JsonNode visual(JsonNode input, String system, JsonNode contract) {
         if (ai.visual().apiKey() == null || ai.visual().apiKey().isBlank())
-            throw ApiException.unavailable("Visual AI API key is not configured; set AI_VISUAL_API_KEY in env.local");
+            throw ApiException.unavailable("Dịch vụ tạo cảnh minh họa AI chưa được cấu hình. Vui lòng liên hệ quản trị viên");
         if ("gemini_interactions".equalsIgnoreCase(ai.visual().provider())) {
             return askGeminiInteraction(input, system, contract);
         }
@@ -152,17 +153,18 @@ public class AIClient {
             }
             JsonNode choice = completion.path("choices").path(0);
             if ("length".equals(choice.path("finish_reason").asText()))
-                throw ApiException.upstream("Visual AI output was truncated; increase AI_VISUAL_MAX_COMPLETION_TOKENS or lower AI_VISUAL_REASONING_EFFORT");
-            if (completion.has("error") && choice.isMissingNode())
-                throw ApiException.upstream("Visual AI provider error: "
-                        + completion.path("error").path("message").asText("unknown").replace(ai.visual().apiKey(),
-                                "[redacted]"));
+                throw ApiException.upstream("Cảnh minh họa AI chưa được tạo đầy đủ. Vui lòng thử lại hoặc rút gọn mô tả");
+            if (completion.has("error") && choice.isMissingNode()) {
+                log.warn("Visual AI provider error: {}", completion.path("error").path("message")
+                        .asText("unknown").replace(ai.visual().apiKey(), "[redacted]"));
+                throw ApiException.upstream("Dịch vụ tạo cảnh minh họa AI gặp lỗi. Vui lòng thử lại.");
+            }
             JsonNode result = parseModelJson(choice.path("message").path("content"));
             if (result == null || !result.isObject())
-                throw ApiException.upstream("LLM response must be an object");
+                throw ApiException.upstream("Phản hồi của dịch vụ AI không đúng định dạng");
             return result;
         } catch (IOException ex) {
-            throw ApiException.upstream("LLM returned invalid visual program JSON");
+            throw ApiException.upstream("Dữ liệu cảnh minh họa của AI không hợp lệ");
         }
     }
 
@@ -224,10 +226,10 @@ public class AIClient {
             JsonNode completion = post(ai.visual().baseUrl(), ai.visual().apiKey(), body, ai.visual().readTimeout(), true);
             JsonNode result = parseJsonObject(geminiInteractionText(completion));
             if (result == null || !result.isObject())
-                throw ApiException.upstream("LLM response must be an object");
+                throw ApiException.upstream("Phản hồi của dịch vụ AI không đúng định dạng");
             return result;
         } catch (IOException ex) {
-            throw ApiException.upstream("LLM returned invalid visual program JSON");
+            throw ApiException.upstream("Dữ liệu cảnh minh họa của AI không hợp lệ");
         }
     }
 
@@ -250,7 +252,7 @@ public class AIClient {
         String output = completion.path("output_text").asText("");
         if (!output.isBlank())
             return output;
-        throw ApiException.upstream("LLM response did not include output text");
+        throw ApiException.upstream("Dịch vụ AI không trả về nội dung");
     }
 
     private JsonNode post(URI uri, String apiKey, JsonNode payload, Duration timeout) {
@@ -259,7 +261,7 @@ public class AIClient {
 
     private JsonNode post(URI uri, String apiKey, JsonNode payload, Duration timeout, boolean gemini) {
         if (apiKey == null || apiKey.isBlank())
-            throw ApiException.unavailable("AI provider API key is not configured");
+            throw ApiException.unavailable("Dịch vụ AI chưa được cấu hình");
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder(uri).timeout(timeout)
                     .header("Content-Type", MediaType.APPLICATION_JSON_VALUE);
@@ -276,14 +278,15 @@ public class AIClient {
                 } catch (IOException ignored) {
                     // Provider errors need not be JSON; never return the raw response body.
                 }
-                throw ApiException.upstream("AI routing/provider request failed with HTTP " + response.statusCode() + detail);
+                log.warn("AI provider returned HTTP {}{}", response.statusCode(), detail);
+                throw ApiException.upstream("Yêu cầu đến dịch vụ AI thất bại với mã HTTP " + response.statusCode() + ". Vui lòng thử lại.");
             }
             return json.readTree(response.body());
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw ApiException.unavailable("AI request was interrupted");
+            throw ApiException.unavailable("Yêu cầu AI bị gián đoạn. Vui lòng thử lại");
         } catch (IOException ex) {
-            throw ApiException.upstream("AI request could not be completed");
+            throw ApiException.upstream("Không thể hoàn tất yêu cầu AI. Vui lòng thử lại");
         }
     }
 

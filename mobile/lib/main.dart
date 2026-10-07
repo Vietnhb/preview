@@ -61,18 +61,18 @@ class _WorkspacePageState extends State<WorkspacePage> {
   Future<void> run() async {
     final spec = problem?['currentSpecification'] as Map<String, dynamic>?; if (spec?['id'] == null) return; setState(() => busy = true);
     try { final ready = await api.confirm(problem!['id'].toString(), {}); final readySpec = ready['currentSpecification'] as Map<String, dynamic>; final result = await api.simulate(readySpec['id'].toString(), 'kinematics_projectile'); if (mounted) setState(() { problem = ready; simulation = result; }); }
-    on DioException catch (exception) { if (mounted) setState(() => error = exception.response?.data?['message']?.toString() ?? 'Simulation bị lỗi'); }
+    on DioException catch (exception) { if (mounted) setState(() => error = exception.response?.data?['message']?.toString() ?? 'Mô phỏng gặp lỗi'); }
     finally { if (mounted) setState(() => busy = false); }
   }
   @override
   Widget build(BuildContext context) {
     final spec = problem?['currentSpecification'] as Map<String, dynamic>?;
     return Scaffold(appBar: AppBar(title: const Text('PhysLive')), body: ListView(padding: const EdgeInsets.all(16), children: [
-      const Text('Teacher / Student workspace', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(height: 16),
+      const Text('Không gian giáo viên / học sinh', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(height: 16),
       TextField(controller: text, maxLines: 5, decoration: const InputDecoration(labelText: 'Đề bài', border: OutlineInputBorder())), const SizedBox(height: 12),
       FilledButton(onPressed: busy ? null : understand, child: Text(busy ? 'Đang xử lý…' : 'Hiểu đề bài')),
-      if (spec != null) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Chủ đề: ${spec['topic'] ?? 'chưa rõ'}'), Text('Confidence: ${spec['confidence'] ?? 0}'), const SizedBox(height: 8), const Text('Tôi đã kiểm tra specification và cho phép chạy:'), FilledButton(onPressed: busy ? null : run, child: const Text('Xác nhận & chạy'))]))),
-      if (simulation != null) Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Validation: ${simulation!['valid']} · ${(simulation!['time'] as List).length} mốc dữ liệu'))),
+      if (spec != null) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Chủ đề: ${spec['topic'] ?? 'chưa rõ'}'), Text('Độ tin cậy: ${spec['confidence'] ?? 0}'), const SizedBox(height: 8), const Text('Tôi đã kiểm tra đặc tả mô phỏng và cho phép chạy:'), FilledButton(onPressed: busy ? null : run, child: const Text('Xác nhận & chạy'))]))),
+      if (simulation != null) Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Kết quả kiểm định: ${simulation!['valid']} · ${(simulation!['time'] as List).length} mốc dữ liệu'))),
       if (error.isNotEmpty) Text(error, style: const TextStyle(color: Colors.red)),
     ]));
   }

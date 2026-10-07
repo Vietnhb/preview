@@ -36,7 +36,7 @@ public class LibraryFolderService {
         String name = normalizedName(request.name());
         String nameKey = nameKey(name);
         if (folderRepository.existsByOwnerIdAndActiveTrueAndNameKey(owner.getId(), nameKey)) {
-            throw ApiException.conflict("A library folder with this name already exists");
+            throw ApiException.conflict("Đã có thư mục thư viện trùng tên");
         }
         LibraryFolder folder = new LibraryFolder();
         folder.setOwner(owner);
@@ -45,7 +45,7 @@ public class LibraryFolderService {
         try {
             return toResponse(folderRepository.saveAndFlush(folder));
         } catch (DataIntegrityViolationException exception) {
-            throw ApiException.conflict("A library folder with this name already exists");
+            throw ApiException.conflict("Đã có thư mục thư viện trùng tên");
         }
     }
 
@@ -56,14 +56,14 @@ public class LibraryFolderService {
         String name = normalizedName(request.name());
         String nameKey = nameKey(name);
         if (folderRepository.existsByOwnerIdAndActiveTrueAndNameKeyAndIdNot(owner.getId(), nameKey, id)) {
-            throw ApiException.conflict("A library folder with this name already exists");
+            throw ApiException.conflict("Đã có thư mục thư viện trùng tên");
         }
         folder.setName(name);
         folder.setNameKey(nameKey);
         try {
             return toResponse(folderRepository.saveAndFlush(folder));
         } catch (DataIntegrityViolationException exception) {
-            throw ApiException.conflict("A library folder with this name already exists");
+            throw ApiException.conflict("Đã có thư mục thư viện trùng tên");
         }
     }
 
@@ -72,7 +72,7 @@ public class LibraryFolderService {
         User owner = currentUserService.requireCurrentUser();
         LibraryFolder folder = requireOwned(id, owner);
         if (itemRepository.existsByFolderIdAndActiveTrue(folder.getId())) {
-            throw ApiException.conflict("Move or remove simulations before deleting this folder");
+            throw ApiException.conflict("Vui lòng di chuyển hoặc xóa các mô phỏng trước khi xóa thư mục");
         }
         folder.setActive(false);
         folder.setNameKey(folder.getId().toString());
@@ -81,7 +81,7 @@ public class LibraryFolderService {
 
     private LibraryFolder requireOwned(UUID id, User owner) {
         return folderRepository.findByIdAndOwnerIdAndActiveTrue(id, owner.getId())
-                .orElseThrow(() -> ApiException.notFound("Library folder not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy thư mục thư viện"));
     }
 
     private String normalizedName(String value) {

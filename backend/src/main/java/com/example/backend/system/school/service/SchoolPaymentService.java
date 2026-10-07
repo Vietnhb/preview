@@ -56,7 +56,7 @@ public class SchoolPaymentService {
     private static final String FAILED = "FAILED";
     private static final String REGISTRATION = "REGISTRATION";
     private static final String REQUIRES_REVIEW = "REQUIRES_REVIEW";
-    private static final String ORDER_NOT_FOUND = "Order not found";
+    private static final String ORDER_NOT_FOUND = "Không tìm thấy đơn hàng";
     private static final String VNP_AMOUNT = "vnp_Amount";
     private static final String VNP_COMMAND = "vnp_Command";
     private static final String VNP_ORDER_INFO = "vnp_OrderInfo";
@@ -432,7 +432,7 @@ public class SchoolPaymentService {
     }
 
     private School lockedSchool(UUID id) {
-        var school = schools.findByIdForUpdate(id).orElseThrow(() -> ApiException.notFound("School not found"));
+        var school = schools.findByIdForUpdate(id).orElseThrow(() -> ApiException.notFound("Không tìm thấy trường"));
         entityManager.refresh(school, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
         return school;
     }

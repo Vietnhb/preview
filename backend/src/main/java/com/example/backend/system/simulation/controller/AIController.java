@@ -31,9 +31,9 @@ public class AIController {
     public ObjectNode understandImage(@RequestPart("file") MultipartFile file,
             @RequestParam(required = false) String text) {
         if (file.isEmpty() || file.getSize() > upload.maxImageBytes())
-            throw ApiException.badRequest("Image is empty or exceeds the configured size limit");
+            throw ApiException.badRequest("Ảnh trống hoặc vượt quá giới hạn dung lượng");
         try { return ai.understandImage(file.getBytes(), file.getContentType(), text); }
-        catch (IOException ex) { throw ApiException.badRequest("Could not read the uploaded image"); }
+        catch (IOException ex) { throw ApiException.badRequest("Không thể đọc ảnh đã tải lên"); }
     }
 
     @PostMapping(path = "/generate", consumes = MediaType.APPLICATION_JSON_VALUE)

@@ -60,12 +60,12 @@ public class AIService {
         if (sessionId != null && !sessionId.isBlank()) {
             String confirmedText = correctedText == null || correctedText.isBlank() ? recognizedText : correctedText;
             if (confirmedText == null || confirmedText.isBlank()) {
-                throw ApiException.badRequest("Confirmed OCR text is required");
+                throw ApiException.badRequest("Vui lòng xác nhận nội dung nhận dạng từ ảnh");
             }
             return understand(confirmedText, sessionId);
         }
         if (description == null || description.isBlank()) {
-            throw ApiException.badRequest("Simulation description is required");
+            throw ApiException.badRequest("Vui lòng nhập mô tả mô phỏng");
         }
         return understand(description, UUID.randomUUID().toString());
     }
@@ -87,7 +87,7 @@ public class AIService {
             if (!diagnostics.path("code").isTextual() || !diagnostics.path("message").isTextual()
                     || diagnostics.path("code").asText().length() > 3 * maxProgramCharacters
                     || diagnostics.path("message").asText().length() > 4000)
-                throw ApiException.badRequest("Invalid rendering diagnostics");
+                throw ApiException.badRequest("Thông tin chẩn đoán hiển thị không hợp lệ");
             input.set("renderDiagnostics", diagnostics);
         }
         ObjectNode fieldMeta = solverFieldMeta(schema.getDefinition(), brief);
@@ -123,11 +123,11 @@ public class AIService {
         boolean hasScene = scene.isObject() && (scene.path("bodies").size() > 0
                 || !scene.path("environment").asText("").isBlank());
         if (!program.isObject() || (!hasScene && code.isEmpty()))
-            throw ApiException.upstream("Generated visual has neither SVG scene artwork nor PixiJS code");
+            throw ApiException.upstream("Mô phỏng được tạo chưa có cảnh minh họa");
         if (code.length() > maxProgramCharacters || (hasScene && scene.toString().length() > 2L * maxProgramCharacters))
-            throw ApiException.upstream("Generated visual exceeds the code/artwork budget");
+            throw ApiException.upstream("Cảnh minh họa được tạo vượt quá giới hạn tài nguyên");
         if (!code.isEmpty() && (!code.startsWith("async function") || !code.contains("update")))
-            throw ApiException.upstream("Generated PixiJS program must be an async function(PIXI, app, api) returning {update}");
+            throw ApiException.upstream("Chương trình mô phỏng được tạo không đúng định dạng yêu cầu");
         ObjectNode spec = (ObjectNode) brief.deepCopy();
         spec.remove("scene");
         spec.set("visualProgram", program);
@@ -207,25 +207,25 @@ public class AIService {
         String actual = request.path("planSignature").asText();
         if (!java.security.MessageDigest.isEqual(signPlan(request).getBytes(StandardCharsets.UTF_8),
                 actual.getBytes(StandardCharsets.UTF_8)))
-            throw ApiException.conflict("The simulation plan changed; submit the revised description for understanding first");
+            throw ApiException.conflict("Kế hoạch mô phỏng đã thay đổi. Vui lòng gửi lại mô tả đã sửa để phân tích trước");
     }
 
     public ObjectNode understandImage(byte[] imageBytes, String mediaType, String text) {
         if (imageBytes == null || imageBytes.length == 0 || imageBytes.length > upload.maxImageBytes()) {
-            throw ApiException.badRequest("Image is empty or exceeds the configured size limit");
+            throw ApiException.badRequest("Ảnh trống hoặc vượt quá giới hạn dung lượng");
         }
         if (mediaType == null || !upload.allowedImageTypes().contains(mediaType.toLowerCase(java.util.Locale.ROOT))) {
-            throw ApiException.unsupportedMedia("Image type is not allowed");
+            throw ApiException.unsupportedMedia("Định dạng ảnh không được hỗ trợ");
         }
         if (text != null && text.length() > jev.maximumQueryCharacters()) {
-            throw ApiException.badRequest("Image context text is too long");
+            throw ApiException.badRequest("Nội dung mô tả kèm ảnh quá dài");
         }
         JsonNode transcription = client.transcribe(imageBytes, mediaType, text, () -> {
             try {
                 return new DefaultResourceLoader().getResource(ai.provider().ocrPromptResource())
                         .getContentAsString(StandardCharsets.UTF_8);
             } catch (IOException ex) {
-                throw ApiException.upstream("Vision provider returned an invalid transcription response");
+                throw ApiException.upstream("Kết quả nhận dạng ảnh không hợp lệ");
             }
         });
         String recognized = transcription.path("text").asText("").trim();
@@ -243,11 +243,11 @@ public class AIService {
 
     private JsonNode understand(String description, String sessionId) {
         if (description.length() > jev.maximumQueryCharacters()) {
-            throw ApiException.badRequest("Simulation description exceeds the configured limit");
+            throw ApiException.badRequest("Mô tả mô phỏng vượt quá giới hạn độ dài");
         }
         var approved = schemas.approvedSchemas();
         if (approved.isEmpty()) {
-            throw ApiException.unprocessable("No approved topic schema is available");
+            throw ApiException.unprocessable("Chưa có mô hình chủ đề được phê duyệt");
         }
         Map<String, SchemaVersion> byId = new LinkedHashMap<>();
         ObjectNode criteria = json.createObjectNode();
@@ -256,7 +256,7 @@ public class AIService {
         int schemaTextBudget = Math.min(ROUTING_SUMMARY_MAX, Math.max(0,
                 (jev.maximumPromptCharacters() - description.length() - 2048) / (approved.size() + 1) - 64));
         if (schemaTextBudget == 0) {
-            throw ApiException.unprocessable("Simulation description leaves no room for approved schema routing context");
+            throw ApiException.unprocessable("Mô tả quá dài để phân tích và chọn mô hình. Vui lòng rút gọn nội dung");
         }
         approved.forEach(schema -> {
             byId.put(schema.getSchemaId(), schema);
@@ -504,7 +504,7 @@ public class AIService {
         JsonNode result = client.text(input, () -> resource("prompts/simulation-understanding-system.txt")
                 + resource("prompts/simulation-understanding-response-schema.json"));
         if (result == null || !result.isObject() || !result.path("status").isTextual())
-            throw ApiException.upstream("LLM returned an invalid simulation understanding response");
+            throw ApiException.upstream("Kết quả phân tích mô phỏng của AI không hợp lệ");
         return result;
     }
 

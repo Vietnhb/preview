@@ -49,9 +49,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(errors -> errors
                 .authenticationEntryPoint((request, response, error) ->
-                    writeError(response, 401, "Authentication is required"))
+                    writeError(response, 401, "Vui lòng đăng nhập để tiếp tục"))
                 .accessDeniedHandler((request, response, error) ->
-                    writeError(response, 403, "You do not have permission for this action")))
+                    writeError(response, 403, "Bạn không có quyền thực hiện thao tác này")))
             .authorizeHttpRequests(auth -> auth
                 // Anonymous read access is restricted further by publication scope in the services.
                 .requestMatchers(GET, "/api/library/community", "/api/library/*/discussion",

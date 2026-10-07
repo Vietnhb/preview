@@ -70,10 +70,10 @@ public class AdminOperationsService {
         String code = normalizeCode(request.code());
         String name = request.name().trim();
         if (schoolRepository.existsByCode(code)) {
-            throw ApiException.conflict("School code already exists");
+            throw ApiException.conflict("Mã trường đã tồn tại");
         }
         if (schoolRepository.findByName(name).isPresent()) {
-            throw ApiException.conflict("School name already exists");
+            throw ApiException.conflict("Tên trường đã tồn tại");
         }
         School school = new School();
         school.setCode(code);
@@ -83,14 +83,14 @@ public class AdminOperationsService {
     @Transactional
     public SchoolContracts.Response updateSchool(UUID id, SchoolContracts.Save request) {
         School school = schoolRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("School not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy trường"));
         if (!school.getCode().equals(normalizeCode(request.code()))) {
-            throw ApiException.conflict("School code cannot be changed");
+            throw ApiException.conflict("Không thể thay đổi mã trường");
         }
         schoolRepository.findByName(request.name().trim())
                 .filter(existing -> !existing.getId().equals(id))
                 .ifPresent(existing -> {
-                    throw ApiException.conflict("School name already exists");
+                    throw ApiException.conflict("Tên trường đã tồn tại");
                 });
         return saveSchool(school, request);
     }
@@ -103,7 +103,7 @@ public class AdminOperationsService {
     @Transactional
     public TopicStatus toggleTopic(UUID id) {
         var topic = topicRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("Topic not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy chủ đề"));
         topic.setEnabled(!topic.isEnabled());
         topicRepository.save(topic);
         return new TopicStatus(topic.getId(), topic.getName(), topic.isEnabled());
@@ -141,7 +141,7 @@ public class AdminOperationsService {
     private SchoolContracts.Response saveSchool(School school, SchoolContracts.Save request) {
         if ((request.licenseStart() == null) != (request.licenseEnd() == null)
                 || (request.licenseStart() != null && request.licenseEnd().isBefore(request.licenseStart()))) {
-            throw ApiException.badRequest("Provide a valid license date range");
+            throw ApiException.badRequest("Vui lòng nhập khoảng thời gian hiệu lực hợp lệ");
         }
         school.setLicenseStart(request.licenseStart());
         school.setLicenseEnd(request.licenseEnd());

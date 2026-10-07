@@ -30,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ExportService {
-    private static final String SPECIFICATION_NOT_FOUND = "Specification not found";
+    private static final String SPECIFICATION_NOT_FOUND = "Không tìm thấy đặc tả mô phỏng";
     private static final String SPECIFICATION = "specification";
     private static final String SIMULATION = "simulation";
     private final SpecificationRepository specificationRepository;
@@ -69,7 +69,7 @@ public class ExportService {
         try {
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(document);
         } catch (Exception ex) {
-            throw ApiException.internal("Could not export specification");
+            throw ApiException.internal("Không thể xuất đặc tả mô phỏng");
         }
     }
 
@@ -136,7 +136,7 @@ public class ExportService {
             document.save(output);
             return output.toByteArray();
         } catch (Exception ex) {
-            throw ApiException.internal("Could not export PDF report");
+            throw ApiException.internal("Không thể xuất báo cáo PDF");
         }
     }
 
@@ -147,9 +147,9 @@ public class ExportService {
                 .orElseThrow(() -> ApiException.notFound(SPECIFICATION_NOT_FOUND));
         Simulation simulation = simulationRepository.findByOwnerIdOrderByCreatedAtDesc(user.getId()).stream()
                 .filter(item -> item.getSpecification().getId().equals(specificationId))
-                .findFirst().orElseThrow(() -> ApiException.notFound("No simulation run found"));
+                .findFirst().orElseThrow(() -> ApiException.notFound("Không tìm thấy lượt chạy mô phỏng"));
         if (!"PASSED".equals(specification.getValidationStatus())) {
-            throw ApiException.conflict("Only validated simulations can be exported for offline replay");
+            throw ApiException.conflict("Chỉ có thể xuất bản phát lại ngoại tuyến cho mô phỏng đã kiểm định");
         }
         SimulationResponse response = simulationService.get(simulation.getId());
         ObjectNode bundle = objectMapper.createObjectNode();
@@ -159,7 +159,7 @@ public class ExportService {
         try {
             payload = objectMapper.writeValueAsString(bundle).replace("</", "<\\/");
         } catch (Exception exception) {
-            throw ApiException.internal("Could not create offline replay");
+            throw ApiException.internal("Không thể tạo bản phát lại ngoại tuyến");
         }
         String html = """
                 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -186,7 +186,7 @@ public class ExportService {
         Specification specification = specificationRepository.findByIdAndSubmissionOwner(specificationId, user)
                 .orElseThrow(() -> ApiException.notFound(SPECIFICATION_NOT_FOUND));
         if (!"PASSED".equals(specification.getValidationStatus())) {
-            throw ApiException.conflict("Only validated simulations can be exported as slides");
+            throw ApiException.conflict("Chỉ có thể xuất bản trình chiếu cho mô phỏng đã kiểm định");
         }
         Simulation simulation = findSimulation(specificationId, user);
         SimulationResponse response = simulationService.get(simulation.getId());
@@ -205,19 +205,19 @@ public class ExportService {
                     """.formatted(payload);
             return html.getBytes(StandardCharsets.UTF_8);
         } catch (Exception exception) {
-            throw ApiException.internal("Could not create slides export");
+            throw ApiException.internal("Không thể xuất bản trình chiếu");
         }
     }
 
     private Simulation findSimulation(java.util.UUID specificationId, User user) {
         return simulationRepository.findByOwnerIdOrderByCreatedAtDesc(user.getId()).stream()
                 .filter(item -> item.getSpecification().getId().equals(specificationId))
-                .findFirst().orElseThrow(() -> ApiException.notFound("No simulation run found"));
+                .findFirst().orElseThrow(() -> ApiException.notFound("Không tìm thấy lượt chạy mô phỏng"));
     }
 
     private String resolveSchema(Specification specification) {
         if (specification.getSchemaId() != null && !specification.getSchemaId().isBlank())
             return specification.getSchemaId();
-        throw ApiException.conflict("Specification schemaId is missing");
+        throw ApiException.conflict("Đặc tả mô phỏng thiếu định danh mô hình");
     }
 }

@@ -54,7 +54,7 @@ public class AccountAccessService {
      * @param grantedBy the SCHOOL or MANAGER account performing the change; recorded on new grants
      */
     public void applyPermissions(User user, String roleName, Collection<String> requested, User grantedBy) {
-        RoleName role = RoleName.from(roleName).orElseThrow(() -> ApiException.badRequest("Unsupported role"));
+        RoleName role = RoleName.from(roleName).orElseThrow(() -> ApiException.badRequest("Vai trò không được hỗ trợ"));
         List<PermissionCode> allowed = PermissionCode.forRole(role);
         if (allowed.isEmpty()) {
             if (requested != null && !requested.isEmpty())

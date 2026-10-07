@@ -39,7 +39,7 @@ public class AuthService {
     public LoginResponse login(String email, String password) {
         String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
         User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> ApiException.unauthorized("Email or password is incorrect"));
+                .orElseThrow(() -> ApiException.unauthorized("Email hoặc mật khẩu không đúng"));
 
         // Only an explicit active flag allows authentication. Legacy null rows
         // are treated as locked instead of silently bypassing this check.
@@ -49,11 +49,11 @@ public class AuthService {
 
         // Check if school is deactivated
         if (user.getSchool() != null && Boolean.FALSE.equals(user.getSchool().isActive())) {
-            throw ApiException.forbidden("School account is deactivated. Please contact administrator.");
+            throw ApiException.forbidden("Tài khoản trường đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.");
         }
 
         if (!PasswordPolicy.matches(password, user.getPassword(), passwordEncoder)) {
-            throw ApiException.unauthorized("Email or password is incorrect");
+            throw ApiException.unauthorized("Email hoặc mật khẩu không đúng");
         }
 
         // Upgrade legacy credentials on successful authentication; never persist raw passwords again.
@@ -65,7 +65,7 @@ public class AuthService {
 
         String role = user.getRole() == null ? null : user.getRole().getName();
         RoleName roleName = RoleName.from(role)
-                .orElseThrow(() -> ApiException.forbidden("Account role is not configured"));
+                .orElseThrow(() -> ApiException.forbidden("Tài khoản chưa được thiết lập vai trò"));
         if (!user.isMustChangePassword() && (roleName == RoleName.STAFF || roleName == RoleName.STUDENT)
                 && !licenseCheckService.isLicenseActive(user)) {
             throw ApiException.forbidden("Gói của trường chưa có hiệu lực. Vui lòng liên hệ quản lý trường.");

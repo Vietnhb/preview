@@ -47,7 +47,7 @@ public class SchemaService {
     public SchemaVersion get(String schemaId) {
         return schemaRepository.findTopBySchemaIdIgnoreCaseAndLifecycleStatusOrderByCreatedAtDesc(
                 schemaId.trim(), LifecycleStatus.APPROVED)
-                .orElseThrow(() -> ApiException.notFound("Schema not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy mô hình"));
     }
 
     @Transactional
@@ -55,7 +55,7 @@ public class SchemaService {
         schemaDefinitions.validateTopicPackForAuthoring(request.definition(), request.schemaId());
         schemaDefinitions.validateDefinition(request.definition(), request.schemaId(), request.version(), request.topic());
         if (schemaRepository.existsBySchemaIdAndVersion(request.schemaId().trim(), request.version().trim())) {
-            throw ApiException.conflict("Schema version already exists");
+            throw ApiException.conflict("Phiên bản mô hình đã tồn tại");
         }
         SchemaVersion schema = new SchemaVersion();
         schema.setSchemaId(request.schemaId().trim());
@@ -69,17 +69,17 @@ public class SchemaService {
 
     @Transactional
     public SchemaVersion changeLifecycle(String schemaId, LifecycleStatus status) {
-        if (status == null) throw ApiException.badRequest("Lifecycle status is required");
+        if (status == null) throw ApiException.badRequest("Vui lòng chọn trạng thái");
         SchemaVersion schema = schemaRepository.findTopBySchemaIdIgnoreCaseOrderByCreatedAtDesc(schemaId.trim())
-                .orElseThrow(() -> ApiException.notFound("Schema not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy mô hình"));
         transition(schema, status);
         return schemaRepository.save(schema);
     }
 
     @Transactional
     public SchemaVersion changeVersionLifecycle(java.util.UUID id, LifecycleStatus status) {
-        if (status == null) throw ApiException.badRequest("Lifecycle status is required");
-        SchemaVersion schema = schemaRepository.findById(id).orElseThrow(() -> ApiException.notFound("Schema version not found"));
+        if (status == null) throw ApiException.badRequest("Vui lòng chọn trạng thái");
+        SchemaVersion schema = schemaRepository.findById(id).orElseThrow(() -> ApiException.notFound("Không tìm thấy phiên bản mô hình"));
         transition(schema, status);
         return schemaRepository.save(schema);
     }
@@ -87,17 +87,17 @@ public class SchemaService {
     private void transition(SchemaVersion schema, LifecycleStatus status) {
         if (schema.getLifecycleStatus() == status) return;
         if (schema.getLifecycleStatus() == LifecycleStatus.RETIRED || status == LifecycleStatus.DRAFT)
-            throw ApiException.conflict("Create a new draft version instead of reopening a published version");
+            throw ApiException.conflict("Vui lòng tạo bản nháp mới thay vì mở lại phiên bản đã xuất bản");
         if (schema.getLifecycleStatus() == LifecycleStatus.DRAFT && status != LifecycleStatus.APPROVED) {
-            throw ApiException.conflict("A draft can only move to APPROVED after evidence validation");
+            throw ApiException.conflict("Chỉ có thể phê duyệt bản nháp sau khi kiểm định minh chứng");
         }
         if (status == LifecycleStatus.APPROVED) {
             schemaDefinitions.validateDefinition(schema.getDefinition(), schema.getSchemaId(), schema.getVersion(),
                     schema.getTopic());
             String actualChecksum = schemaDefinitions.compiledChecksum(schema.getDefinition());
             if (schema.getDefinitionChecksum() != null && !schema.getDefinitionChecksum().equals(actualChecksum)) {
-                throw ApiException.conflict("Schema checksum drift detected for " + schema.getSchemaId() + "@" + schema.getVersion()
-                                + "; create a new schema version");
+                throw ApiException.conflict("Phát hiện dữ liệu mô hình không nhất quán: " + schema.getSchemaId() + "@" + schema.getVersion()
+                                + "; vui lòng tạo phiên bản mô hình mới");
             }
             schema.setDefinitionChecksum(actualChecksum);
         }
@@ -106,10 +106,10 @@ public class SchemaService {
 
     @Transactional
     public SchemaVersion updateDraft(java.util.UUID id, SchemaContracts.Request request) {
-        SchemaVersion schema = schemaRepository.findById(id).orElseThrow(() -> ApiException.notFound("Schema version not found"));
-        if (schema.getLifecycleStatus() != LifecycleStatus.DRAFT) throw ApiException.conflict("Only drafts can be edited");
+        SchemaVersion schema = schemaRepository.findById(id).orElseThrow(() -> ApiException.notFound("Không tìm thấy phiên bản mô hình"));
+        if (schema.getLifecycleStatus() != LifecycleStatus.DRAFT) throw ApiException.conflict("Chỉ có thể chỉnh sửa bản nháp");
         if (!schema.getSchemaId().equals(request.schemaId()) || !schema.getVersion().equals(request.version()))
-            throw ApiException.conflict("Schema/version identity cannot be changed");
+            throw ApiException.conflict("Không thể thay đổi định danh mô hình hoặc phiên bản");
         schemaDefinitions.validateTopicPackForAuthoring(request.definition(), request.schemaId());
         schemaDefinitions.validateDefinition(request.definition(), request.schemaId(), request.version(), request.topic());
         schema.setName(request.name().trim()); schema.setTopic(request.topic().trim()); schema.setDefinition(request.definition());

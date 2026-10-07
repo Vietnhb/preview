@@ -66,7 +66,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 var user = currentUser.get();
                 RoleName currentRole = RoleName.from(user.getRole().getName()).orElse(null);
                 if (currentRole == null) {
-                    writeForbidden(response, "Account role is not configured");
+                    writeForbidden(response, "Tài khoản chưa được thiết lập vai trò");
                     return;
                 }
                 String role = currentRole.name();
@@ -100,7 +100,7 @@ public class JwtFilter extends OncePerRequestFilter {
                     response.setContentType("application/json");
                     response.setCharacterEncoding(StandardCharsets.UTF_8.name());
                     objectMapper.writeValue(response.getOutputStream(), new ErrorResponse(
-                            HttpServletResponse.SC_FORBIDDEN, "School license does not allow writes"));
+                            HttpServletResponse.SC_FORBIDDEN, "Gói sử dụng của trường hiện không cho phép thay đổi dữ liệu"));
                     return;
                 }
                 String authority = currentRole.authority();

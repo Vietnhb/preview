@@ -51,7 +51,7 @@ public class AssignmentService {
     private static final String TOLERANCE = "tolerance";
     private static final String ANSWER_TEXT = "answerText";
     private static final String ESTIMATED_VALUE = "estimatedValue";
-    private static final String ASSIGNMENT_NOT_FOUND = "Assignment not found";
+    private static final String ASSIGNMENT_NOT_FOUND = "Không tìm thấy bài tập";
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmissionRepository submissionRepository;
     private final LibraryItemRepository libraryItemRepository;
@@ -75,7 +75,7 @@ public class AssignmentService {
 
     private static double sampleSeries(SimulationResponse simulation, String source, double sampleTime) {
         String[] path = source.split("\\.", 2);
-        if (path.length != 2) throw ApiException.badRequest("Invalid simulation series source");
+        if (path.length != 2) throw ApiException.badRequest("Nguồn chuỗi dữ liệu mô phỏng không hợp lệ");
         java.util.Map<String, java.util.List<Double>> group = switch (path[0]) {
             case "positions" -> simulation.positions();
             case "velocities" -> simulation.velocities();
@@ -87,7 +87,7 @@ public class AssignmentService {
         java.util.List<Double> times = simulation.time();
         if (values == null || values.isEmpty() || times == null || times.size() != values.size()
                 || sampleTime < times.getFirst() || sampleTime > times.getLast())
-            throw ApiException.badRequest("Measurement target is not available at the selected time");
+            throw ApiException.badRequest("Không có dữ liệu đo tại thời điểm đã chọn");
         if (sampleTime <= times.getFirst()) return values.getFirst();
         for (int i = 1; i < times.size(); i++) {
             if (times.get(i) >= sampleTime) {
@@ -106,33 +106,33 @@ public class AssignmentService {
         User teacher = currentUserService.requireCurrentUser();
         if (request.questions() == null || !request.questions().path("prompt").isTextual()
                 || request.questions().path("prompt").asText().isBlank())
-            throw ApiException.badRequest("Assignment question is required");
+            throw ApiException.badRequest("Vui lòng nhập câu hỏi bài tập");
         if (request.dueAt() != null && !request.dueAt().isAfter(Instant.now()))
-            throw ApiException.badRequest("Due date must be in the future");
+            throw ApiException.badRequest("Hạn nộp phải sau thời điểm hiện tại");
         if (request.maxScore() != null && request.maxScore().signum() <= 0)
-            throw ApiException.badRequest("Maximum score must be positive");
+            throw ApiException.badRequest("Điểm tối đa phải lớn hơn 0");
         if (RoleName.STAFF.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
                 && request.classId() == null)
-            throw ApiException.badRequest("Select a class before assigning this activity");
+            throw ApiException.badRequest("Vui lòng chọn lớp trước khi giao bài");
         String activityType = activityType(request.questions());
         if (Boolean.TRUE.equals(request.autoGrade()) && !MEASUREMENT.equals(activityType)) {
             JsonNode criteria = request.gradingCriteria();
             if (criteria == null || !finiteNumber(criteria.path(EXPECTED_VALUE))
                     || !finiteNumber(criteria.path(TOLERANCE)) || criteria.path(TOLERANCE).asDouble() < 0)
-                throw ApiException.badRequest("A numeric answer and non-negative tolerance are required");
+                throw ApiException.badRequest("Vui lòng nhập đáp án dạng số và sai số cho phép không âm");
         }
         LibraryItem libraryItem = libraryItemRepository.findByIdAndOwnerIdAndActiveTrue(request.libraryItemId(), teacher.getId())
-                .orElseThrow(() -> ApiException.notFound("Personal library item not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy mục trong thư viện cá nhân"));
         Specification specification = libraryItem.getSpecification();
         if (libraryItem.getSimulation() == null || libraryItem.getSimulation().getStatus() != SimulationStatus.READY
                 || !"PASSED".equals(specification.getValidationStatus()))
-            throw ApiException.conflict("Only saved validated simulations can be assigned");
+            throw ApiException.conflict("Chỉ có thể giao mô phỏng đã lưu và đã kiểm định");
         for (Integer studentId : request.studentIds()) {
             User student = userRepository.findById(studentId)
-                    .orElseThrow(() -> ApiException.badRequest("Student not found: " + studentId));
+                    .orElseThrow(() -> ApiException.badRequest("Không tìm thấy học sinh: " + studentId));
             String role = student.getRole() == null ? "" : student.getRole().getName();
             if (!RoleName.STUDENT.matches(role)) {
-                throw ApiException.badRequest("Every assignee must have STUDENT role");
+                throw ApiException.badRequest("Tất cả người được giao bài phải có vai trò học sinh");
             }
             validateTeacherClassAccess(teacher, student);
         }
@@ -141,14 +141,14 @@ public class AssignmentService {
             if (classTeacherAssignments == null || classEnrollments == null
                     || (!RoleName.MANAGER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
                     && !classTeacherAssignments.existsBySchoolClassIdAndTeacherIdAndIsActiveTrue(request.classId(), teacher.getId())))
-                throw ApiException.forbidden("Teacher is not assigned to the selected class");
+                throw ApiException.forbidden("Giáo viên chưa được phân công vào lớp đã chọn");
             targetClass = classTeacherAssignments.findByClassIdAndIsActiveTrue(request.classId()).stream()
                     .map(item -> item.getSchoolClass()).findFirst()
-                    .orElseThrow(() -> ApiException.badRequest("Selected class is not active"));
+                    .orElseThrow(() -> ApiException.badRequest("Lớp đã chọn không còn hoạt động"));
             Set<Integer> classStudentIds = classEnrollments.findActiveStudentsByClassId(request.classId()).stream()
                     .map(item -> item.getStudent().getId()).collect(java.util.stream.Collectors.toSet());
             if (!classStudentIds.containsAll(request.studentIds()))
-                throw ApiException.badRequest("Every selected student must belong to the selected class");
+                throw ApiException.badRequest("Tất cả học sinh được chọn phải thuộc lớp đã chọn");
         }
         Assignment assignment = new Assignment();
         assignment.setLibraryItem(libraryItem);
@@ -168,7 +168,7 @@ public class AssignmentService {
             double sampleTime = measurement.path("sampleTime").asDouble(Double.NaN);
             double tolerance = measurement.path(TOLERANCE).asDouble(Double.NaN);
             if (source.isBlank() || !Double.isFinite(sampleTime) || !Double.isFinite(tolerance) || tolerance < 0)
-                throw ApiException.badRequest("Measurement assignments require a series, sample time and non-negative tolerance");
+                throw ApiException.badRequest("Bài tập đo lường cần có chuỗi dữ liệu, thời điểm đo và sai số cho phép không âm");
             SimulationResponse snapshot = simulationService.replay(libraryItem.getSimulation(), assignedRunId);
             double expected = sampleSeries(snapshot, source, sampleTime);
             ObjectNode derived = JsonNodeFactory.instance.objectNode();
@@ -183,7 +183,7 @@ public class AssignmentService {
             String parameterKey = request.questions().path("investigation").path("parameterKey").asText("");
             SimulationResponse snapshot = simulationService.replay(libraryItem.getSimulation(), assignedRunId);
             if (parameterKey.isBlank() || snapshot.adjustableParams() == null || !snapshot.adjustableParams().containsKey(parameterKey))
-                throw ApiException.badRequest("Investigation parameter is not adjustable in this simulation");
+                throw ApiException.badRequest("Không thể điều chỉnh tham số khảo sát trong mô phỏng này");
             autoGrade = false;
             gradingCriteria = null;
         }
@@ -202,14 +202,14 @@ public class AssignmentService {
         if (teacher.getRole() != null && RoleName.MANAGER.matches(teacher.getRole().getName())) return;
         if (teacher.getSchool() == null || student.getSchool() == null
                 || !teacher.getSchool().getId().equals(student.getSchool().getId()))
-            throw ApiException.forbidden("Teacher and student must belong to the same school");
+            throw ApiException.forbidden("Giáo viên và học sinh phải thuộc cùng một trường");
         boolean assigned = classEnrollments.findActiveEnrollmentsByStudentId(student.getId()).stream()
                 .filter(enrollment -> enrollment.getSchoolClass() != null
                         && enrollment.getSchoolClass().getSchool() != null
                         && teacher.getSchool().getId().equals(enrollment.getSchoolClass().getSchool().getId()))
                 .anyMatch(enrollment -> classTeacherAssignments.existsBySchoolClassIdAndTeacherIdAndIsActiveTrue(
                         enrollment.getSchoolClass().getId(), teacher.getId()));
-        if (!assigned) throw ApiException.forbidden("Teacher is not assigned to the student's class");
+        if (!assigned) throw ApiException.forbidden("Giáo viên chưa được phân công vào lớp của học sinh");
     }
 
     @Transactional(readOnly = true)
@@ -250,13 +250,13 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> ApiException.notFound(ASSIGNMENT_NOT_FOUND));
         if (!assignment.getAssignedStudentIds().contains(student.getId())) {
-            throw ApiException.forbidden("Assignment is not assigned to this student");
+            throw ApiException.forbidden("Bài tập chưa được giao cho học sinh này");
         }
         if (requiresPrediction(assignment) && !submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, student.getId())) {
-            throw ApiException.forbidden("Submit a prediction before viewing the simulation");
+            throw ApiException.forbidden("Vui lòng nộp dự đoán trước khi xem mô phỏng");
         }
         if (assignment.getLibraryItem() == null || assignment.getLibraryItem().getSimulation() == null) {
-            throw ApiException.notFound("Assigned simulation not found");
+            throw ApiException.notFound("Không tìm thấy mô phỏng đã giao");
         }
         java.util.UUID runId = assignment.getAssignedSimulationRunId();
         if (runId == null) {
@@ -276,18 +276,18 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> ApiException.notFound(ASSIGNMENT_NOT_FOUND));
         if (!assignment.getAssignedStudentIds().contains(student.getId())) {
-            throw ApiException.forbidden("Assignment is not assigned to this student");
+            throw ApiException.forbidden("Bài tập chưa được giao cho học sinh này");
         }
         if (requiresPrediction(assignment) && !submissionRepository.existsByAssignmentIdAndStudentId(assignmentId, student.getId())) {
-            throw ApiException.forbidden("Submit a prediction before adjusting the simulation");
+            throw ApiException.forbidden("Vui lòng nộp dự đoán trước khi điều chỉnh mô phỏng");
         }
         if (assignment.getLibraryItem() == null || assignment.getLibraryItem().getSimulation() == null) {
-            throw ApiException.notFound("Assigned simulation not found");
+            throw ApiException.notFound("Không tìm thấy mô phỏng đã giao");
         }
 
         var simulation = assignment.getLibraryItem().getSimulation();
         if (request.simulationId() == null || !simulation.getId().equals(request.simulationId())) {
-            throw ApiException.badRequest("Simulation does not belong to this assignment");
+            throw ApiException.badRequest("Mô phỏng không thuộc bài tập này");
         }
         java.util.UUID runId = assignment.getAssignedSimulationRunId();
         if (runId == null) {
@@ -302,7 +302,7 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> ApiException.notFound(ASSIGNMENT_NOT_FOUND));
         if (!assignment.getAssignedStudentIds().contains(student.getId())) {
-            throw ApiException.forbidden("Assignment is not assigned to this student");
+            throw ApiException.forbidden("Bài tập chưa được giao cho học sinh này");
         }
         AssignmentSubmission submission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId()).orElse(null);
         if (assignment.getStatus() != com.example.backend.system.assignment.model.enums.AssignmentStatus.ACTIVE)
@@ -311,11 +311,11 @@ public class AssignmentService {
         JsonNode prediction = request.predictions();
         if (prediction == null || !prediction.path(ANSWER_TEXT).isTextual()
                 || prediction.path(ANSWER_TEXT).asText().isBlank())
-            throw ApiException.badRequest("Prediction answer is required");
+            throw ApiException.badRequest("Vui lòng nhập dự đoán");
         if (assignment.isAutoGrade() && !finiteNumber(prediction.path(ESTIMATED_VALUE)))
-            throw ApiException.badRequest("A numeric prediction is required for this assignment");
+            throw ApiException.badRequest("Vui lòng nhập dự đoán dạng số cho bài tập này");
         if (submission != null && !submission.isRetryAllowed())
-            throw ApiException.conflict("Prediction already submitted");
+            throw ApiException.conflict("Dự đoán đã được nộp");
         if (submission == null) submission = new AssignmentSubmission();
         submission.setAssignment(assignment);
         submission.setStudent(student);
@@ -334,12 +334,12 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> ApiException.notFound(ASSIGNMENT_NOT_FOUND));
         if (!assignment.getAssignedStudentIds().contains(student.getId()))
-            throw ApiException.forbidden("Assignment is not assigned to this student");
+            throw ApiException.forbidden("Bài tập chưa được giao cho học sinh này");
         if (assignment.getStatus() != com.example.backend.system.assignment.model.enums.AssignmentStatus.ACTIVE)
             throw ApiException.badRequest("Bài tập đã đóng, không nhận thêm bài làm.");
         AssignmentSubmission submission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId()).orElse(null);
         if (submission == null && requiresPrediction(assignment))
-            throw ApiException.badRequest("Submit a prediction before completing the assignment");
+            throw ApiException.badRequest("Vui lòng nộp dự đoán trước khi hoàn thành bài tập");
         if (submission == null) {
             submission = new AssignmentSubmission();
             submission.setAssignment(assignment);
@@ -348,9 +348,9 @@ public class AssignmentService {
             submission.setPredictions(JsonNodeFactory.instance.objectNode());
         }
         if (submission.getCompletedAt() != null && !submission.isRetryAllowed())
-            throw ApiException.conflict("Assignment already submitted");
+            throw ApiException.conflict("Bài tập đã được nộp");
         if (!(submission.getPredictions() instanceof ObjectNode prediction))
-            throw ApiException.badRequest("Prediction answer is invalid");
+            throw ApiException.badRequest("Nội dung dự đoán không hợp lệ");
         // The prediction made before the simulation opened is the record of a predict-observe-explain
         // activity; completing the work must never replace it with the conclusion.
         boolean keepsPrediction = requiresPrediction(assignment) && prediction.path(ANSWER_TEXT).isTextual()
@@ -364,7 +364,7 @@ public class AssignmentService {
         if (request.estimatedValue() != null && Double.isFinite(request.estimatedValue()))
             prediction.put(ESTIMATED_VALUE, request.estimatedValue());
         if (assignment.isAutoGrade() && !finiteNumber(prediction.path(ESTIMATED_VALUE)))
-            throw ApiException.badRequest("A numeric measurement is required for this assignment");
+            throw ApiException.badRequest("Vui lòng nhập kết quả đo dạng số cho bài tập này");
         submission.setCompletedAt(Instant.now());
         submission.setRetryAllowed(false);
         submission.setGradingStatus(com.example.backend.system.assignment.model.enums.GradingStatus.PENDING);
@@ -398,14 +398,14 @@ public class AssignmentService {
                 .orElseThrow(() -> ApiException.notFound(ASSIGNMENT_NOT_FOUND));
         if (!RoleName.MANAGER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
                 && !assignment.getTeacher().getId().equals(teacher.getId()))
-            throw ApiException.forbidden("Only the assignment teacher can grade submissions");
+            throw ApiException.forbidden("Chỉ giáo viên giao bài mới được chấm bài nộp");
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
                 .filter(item -> item.getAssignment().getId().equals(assignmentId))
-                .orElseThrow(() -> ApiException.notFound("Submission not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy bài nộp"));
         if (submission.getCompletedAt() == null)
-            throw ApiException.badRequest("The student has not submitted this assignment yet");
+            throw ApiException.badRequest("Học sinh chưa nộp bài tập này");
         BigDecimal assignmentMaxScore = assignment.getMaxScore();
-        if (score.compareTo(assignmentMaxScore) > 0) throw ApiException.badRequest("Score cannot exceed assignment max score");
+        if (score.compareTo(assignmentMaxScore) > 0) throw ApiException.badRequest("Điểm không được vượt quá điểm tối đa của bài tập");
         submission.setScore(score); submission.setMaxScore(assignmentMaxScore); submission.setFeedback(feedback == null ? null : feedback.trim());
         submission.setGradingStatus(confirm ? com.example.backend.system.assignment.model.enums.GradingStatus.TEACHER_CONFIRMED : com.example.backend.system.assignment.model.enums.GradingStatus.AI_GRADED);
         submission.setGradedAt(Instant.now()); submission.setGradedBy(teacher); submission.setRetryAllowed(false);
@@ -419,10 +419,10 @@ public class AssignmentService {
                 .orElseThrow(() -> ApiException.notFound(ASSIGNMENT_NOT_FOUND));
         if (!RoleName.MANAGER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())
                 && !assignment.getTeacher().getId().equals(teacher.getId()))
-            throw ApiException.forbidden("Only the assignment teacher can reopen submissions");
+            throw ApiException.forbidden("Chỉ giáo viên giao bài mới được mở lại bài nộp");
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
                 .filter(item -> item.getAssignment().getId().equals(assignmentId))
-                .orElseThrow(() -> ApiException.notFound("Submission not found"));
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy bài nộp"));
         if (assignment.getStatus() != AssignmentStatus.ACTIVE)
             throw ApiException.badRequest("Bài tập đã đóng. Hãy mở lại bài tập trước khi trả bài cho học sinh.");
         if (submission.getCompletedAt() == null)
@@ -454,7 +454,7 @@ public class AssignmentService {
                 .orElseThrow(() -> ApiException.notFound(ASSIGNMENT_NOT_FOUND));
         if (!assignment.getTeacher().getId().equals(teacher.getId())
                 && !RoleName.MANAGER.matches(teacher.getRole() == null ? null : teacher.getRole().getName())) {
-            throw ApiException.forbidden("Only the teacher can view submissions");
+            throw ApiException.forbidden("Chỉ giáo viên mới được xem bài nộp");
         }
         return submissionRepository.findByAssignmentIdOrderBySubmittedAtDesc(assignmentId).stream().map(this::toSubmission).toList();
     }
@@ -466,7 +466,7 @@ public class AssignmentService {
                 .orElseThrow(() -> ApiException.notFound(ASSIGNMENT_NOT_FOUND));
         boolean admin = teacher.getRole() != null && RoleName.MANAGER.matches(teacher.getRole().getName());
         if (!admin && !assignment.getTeacher().getId().equals(teacher.getId()))
-            throw ApiException.forbidden("Only the assignment teacher can view reports");
+            throw ApiException.forbidden("Chỉ giáo viên giao bài mới được xem báo cáo");
         List<AssignmentSubmission> rows = submissionRepository.findByAssignmentIdOrderBySubmittedAtDesc(assignmentId);
         List<AssignmentSubmission> completed = rows.stream().filter(row -> row.getCompletedAt() != null).toList();
         BigDecimal total = completed.stream().map(AssignmentSubmission::getScore).filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);

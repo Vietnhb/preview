@@ -28,7 +28,7 @@ public class StudentActionLogService {
                 .map(item -> item.getAssignedStudentIds().contains(studentId))
                 .orElse(false);
         if (!assigned) {
-            throw ApiException.forbidden("Assignment is not assigned to this student");
+            throw ApiException.forbidden("Bài tập chưa được giao cho học sinh này");
         }
         StudentActionLog log = new StudentActionLog();
         log.setStudentId(studentId);

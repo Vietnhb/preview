@@ -4,7 +4,7 @@ export type SolverTimeline = { durationSeconds: number; frames: Array<{ t: numbe
 
 export function sampleTimeline(timeline: SolverTimeline, time: number): Record<string, number> {
   const frames = timeline.frames;
-  if (!frames.length) throw new Error("Solver timeline is empty.");
+  if (!frames.length) throw new Error("Dữ liệu diễn tiến mô phỏng đang trống.");
   const t = Math.max(0, Math.min(timeline.durationSeconds, time));
   let lo = 0, hi = frames.length - 1;
   while (lo + 1 < hi) {
@@ -15,7 +15,7 @@ export function sampleTimeline(timeline: SolverTimeline, time: number): Record<s
   const ratio = b.t === a.t ? 0 : Math.max(0, Math.min(1, (t - a.t) / (b.t - a.t)));
   const result: Record<string, number> = { t };
   for (const [key, value] of Object.entries(a.values)) {
-    if (!Number.isFinite(value) || !Number.isFinite(b.values[key])) throw new Error("Invalid solver sample.");
+    if (!Number.isFinite(value) || !Number.isFinite(b.values[key])) throw new Error("Dữ liệu mẫu của bộ giải không hợp lệ.");
     if (key !== "t") result[key] = value + (b.values[key] - value) * ratio;
   }
   return result;

@@ -50,7 +50,7 @@ public class SchoolClassService {
     public List<StudentClassSummary> mineForStudent() {
         User student = currentUser.requireCurrentUser();
         if (student.getRole() == null || !RoleName.STUDENT.matches(student.getRole().getName()))
-            throw ApiException.forbidden("Only students can view their classes");
+            throw ApiException.forbidden("Chỉ học sinh mới được xem danh sách lớp của mình");
         return enrollments.findActiveEnrollmentsByStudentId(student.getId()).stream()
                 .filter(item -> item.getSchoolClass() != null && Boolean.TRUE.equals(item.getSchoolClass().getIsActive()))
                 .filter(item -> student.getSchool() != null && item.getSchoolClass().getSchool() != null
@@ -217,7 +217,7 @@ public class SchoolClassService {
         boolean departmentAccess = accountAccess.isDepartmentHead(actor)
                 && actor.getSchool() != null && schoolId.equals(actor.getSchool().getId());
         if (!roleValidation.canManageSchool(actor, schoolId) && !departmentAccess)
-            throw ApiException.forbidden("School access denied");
+            throw ApiException.forbidden("Bạn không có quyền truy cập trường này");
         return actor;
     }
 
