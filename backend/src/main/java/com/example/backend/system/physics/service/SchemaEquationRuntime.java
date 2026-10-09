@@ -85,7 +85,8 @@ public class SchemaEquationRuntime {
             if (!binding.isTextual() || parameterNames.contains(binding.asText())) return;
             int dot = binding.asText().lastIndexOf('.');
             String source = dot > 0 ? binding.asText().substring(0, dot) : "";
-            require(models.containsKey(source), "Tham số đầu vào không xác định: " + binding.asText());
+            require(models.containsKey(source), "Tham số đầu vào không xác định: " + binding.asText()
+                    + " (dùng tên một tham số, hoặc id của vật khác, dấu chấm và tên đầu ra; id hiện có: " + String.join(", ", models.keySet()) + ")");
             visit(source, models, parameterNames, done, visiting, order);
         });
         visiting.remove(id);
@@ -105,7 +106,9 @@ public class SchemaEquationRuntime {
         String key = reference.substring(dot + 1);
         JsonNode output = null;
         for (JsonNode candidate : source.capability.path("outputs")) if (candidate.path("key").asText().equals(key)) output = candidate;
-        require(output != null, "Tham số đầu vào không xác định: " + reference);
+        java.util.List<String> available = new ArrayList<>();
+        for (JsonNode candidate : source.capability.path("outputs")) available.add(candidate.path("key").asText());
+        require(output != null, "Tham số đầu vào không xác định: " + reference + " (đầu ra của " + source.id + ": " + String.join(", ", available) + ")");
         require(sameUnit(output.path("unit").asText(), input.path("unit").asText()), "Đầu vào phải sử dụng đơn vị SI chuẩn: "
                 + input.path("key").asText() + " cần đơn vị " + input.path("unit").asText() + ", kết quả " + reference + " có đơn vị " + output.path("unit").asText());
         double absTolerance = source.capability.path("validation").path("absoluteTolerance").asDouble(0);

@@ -178,7 +178,7 @@
             },
             "instruments": {
               "type": "array",
-              "description": "One instrument per state quantity to show (temperature, current, voltage, charge, pressure, nuclei count, coil angle …) and, with drive.property 'none', a static picture of a participant that does not move. You draw the static body and, separately, the moving part; you declare how the solver field moves the part. The kit applies that mapping every frame, adds scale marks and prints the verified value.",
+              "description": "The drawing of the set-up and the moving parts that show state quantities (temperature, current, voltage, charge, pressure, nuclei count, coil angle …) where they happen in it: the set-up is an instrument with its own svg (field '' when the drawing itself shows no quantity); quantities that happen in it are parts drawn on it (on = its position in the list or its field). A separate instrument only for a quantity with no place in the set-up; drive.property 'none' = a static picture of a participant that does not move. You draw the static art and, separately, each moving part; you declare how the solver field moves the part. The kit applies that mapping every frame, adds scale marks and prints the verified value.",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -193,7 +193,7 @@
                 "properties": {
                   "field": {
                     "type": "string",
-                    "description": "Exact solver field key '<participantId>.<quantity>' that drives the part."
+                    "description": "Exact solver field key '<participantId>.<quantity>' that drives the part; '' for a static drawing of the set-up that other instruments draw their parts on."
                   },
                   "label": {
                     "type": "string",
@@ -305,7 +305,7 @@
                   },
                   "on": {
                     "type": "string",
-                    "description": "'' for an instrument with its own artwork. The field of another instrument (listed earlier) to draw this one's moving part ON that instrument's artwork, in its viewBox coordinates: one apparatus showing several fields (then svg may be ''). Its reading is shown under that apparatus."
+                    "description": "'' for an instrument with its own artwork. Otherwise the drawing this instrument's moving part is drawn ON, in that drawing's viewBox coordinates: its position in this list ('0' = first) or its field. Then svg is '' and the part sits where the quantity happens in the drawing."
                   }
                 }
               }

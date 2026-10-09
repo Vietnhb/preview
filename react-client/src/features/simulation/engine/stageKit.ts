@@ -451,7 +451,10 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           label.position.set(at.x + dx * 4, at.y + dy * 4); ins.ticks.addChild(label);
         };
         const values: Array<[number, number]> = [[ins.lo, 0], [(ins.lo + ins.hi) / 2, 0.5], [ins.hi, 1]];
-        if (d.property === "rotate" && !d.useFieldAngle && ins.parts[0]) {
+        /* a part drawn on a set-up has its reading printed under the drawing; its scale is the generator's own art */
+        if (ins.on) {
+          /* no scale marks */
+        } else if (d.property === "rotate" && !d.useFieldAngle && ins.parts[0]) {
           /* on the largest circle about the pivot that stays inside the instrument body */
           const b = ins.art.getLocalBounds();
           const reach = Math.max(1, Math.min(d.pivot.x - b.x, b.x + b.width - d.pivot.x, d.pivot.y - b.y, b.y + b.height - d.pivot.y)) * 1.04;
@@ -467,6 +470,18 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           }
         }
       });
+      /* parts travelling on one drawing in the same unit share one speed scale, so the drawing compares them
+         (twice the current = twice as fast, whatever the length of each path); the first one sets the scale */
+      const scales = new Map<string, number>();
+      for (const ins of instruments) {
+        if (ins.drive.property !== "travel" || !ins.flow || !Number.isFinite(ins.flow.norm) || ins.drive.path.length < 2) continue;
+        const group = instruments.indexOf(ins.on ?? ins) + "\u0000" + (scene.fields[ins.key]?.unit ?? "");
+        const length = pointAlong(ins.drive.path, 0, false).total;
+        if (!(length > 0)) continue;
+        const perUnit = scales.get(group);
+        if (perUnit === undefined) scales.set(group, length / ins.flow.norm);
+        else ins.flow.norm = length / perUnit;
+      }
     }
     function drawInstrument(ins: Instrument, value: number, time: number) {
       const d = ins.drive, f = fractionOf(ins, value), amount = lerp(ins, f);
@@ -504,7 +519,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         });
       }
       const meta = host.data().scene.fields[ins.key];
-      if (ins.readout) ins.readout.text = d.property === "none" ? "" : meta && meta.kind === "angle" && meta.unit === "rad"
+      if (ins.readout) ins.readout.text = d.property === "none" || !meta ? "" : meta && meta.kind === "angle" && meta.unit === "rad"
         ? format(value * 180 / Math.PI, "°").replace(" °", "°") : format(value, meta?.unit ?? "", 3, scaleOf(ins));
       ins.shown = { t: time, value, fraction: f };
     }
@@ -513,13 +528,15 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
      * drive = how the field moves it (see Drive). Without part/drive it is a static picture of the participant.
      */
     function instrument(spec: { field: string; art?: PixiNS.Container | null; part?: PixiNS.Container | null; drive?: Partial<Drive>; label?: string;
-      on?: string }) {
+      on?: string | PixiNS.Container }) {
       const scene = host.data().scene, meta = spec && scene.fields[spec.field];
-      if (!spec || !meta) throw Error('instrument(): unknown solver field "' + (spec && spec.field) + '". Fields: ' + Object.keys(scene.fields).join(", "));
-      /* on = the field of an instrument already registered: this part is drawn on that instrument's artwork,
-         in its coordinates (one apparatus showing several fields, e.g. the currents of several branches) */
-      const on = spec.on ? instruments.find(item => item.key === spec.on && !item.on) ?? null : null;
-      if (spec.on && !on) throw Error('instrument(): "on" must name the field of an instrument registered before ("' + spec.on + '").');
+      /* field "" = a drawing of the set-up itself: static, no reading; other instruments draw their parts on it */
+      const setup = !!spec && spec.field === "" && !spec.part;
+      if (!spec || (!meta && !setup)) throw Error('instrument(): unknown solver field "' + (spec && spec.field) + '". Fields: ' + Object.keys(scene.fields).join(", "));
+      /* on = an instrument registered before (its field, or the container instrument() returned for it): this part
+         is drawn on that instrument's artwork, in its coordinates (one set-up showing several fields) */
+      const on = spec.on ? instruments.find(item => !item.on && (typeof spec.on === "string" ? item.key === spec.on : item.inner === spec.on)) ?? null : null;
+      if (spec.on && !on) throw Error('instrument(): "on" must name an instrument registered before ("' + String(spec.on) + '").');
       if (on && !spec.art) spec.art = new PIXI.Container();
       if (!spec.art || typeof spec.art.getLocalBounds !== "function")
         throw Error("instrument(): pass the instrument body as a PIXI display object (e.g. new PIXI.Sprite(await api.svgTexture(svg))).");
@@ -565,7 +582,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         if (property === "reveal") { mask = new PIXI.Graphics(); inner.addChild(mask); }
       }
       instrumentLayer.addChild(inner, ticks);
-      instruments.push({ key: spec.field, participantId: meta.participantId, drive, art: spec.art, parts, movers, mask,
+      instruments.push({ key: spec.field, participantId: meta ? meta.participantId : "", drive, art: spec.art, parts, movers, mask,
         label: typeof spec.label === "string" ? spec.label.slice(0, 60) : "", inner, caption: null, readout: null, ticks,
         baseW, baseH, lo: 0, hi: 1, k: 1, center: { x: 0, y: 0 }, flow: null, shown: null, on });
       build();
@@ -759,7 +776,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       const legendBottom = 12 + legendRows * legendRowH + (scene.participants.length > legendRows ? 16 : 0);
       /* instrument strip: meters for participants without spatial motion, when something else moves in space */
       const stateOnly = scene.participants.filter(needsMeter);
-      const stripKeys = mode === "board" ? [] : meterKeys(stateOnly, METER_STRIP_MAX);
+      /* values are listed under the stage; the stage only carries meter cards when it would otherwise be empty */
+      const stripKeys: FieldMeta[] = [];
       const cells = instruments.filter(item => !item.on).length;
       const stripCount = mode === "board" ? 0 : cells + stripKeys.length;
       const stripH = stripCount ? Math.max(88, Math.min(170, H * 0.26)) : 0;
@@ -1102,9 +1120,11 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         /* every participant's main quantity first, then the rest, so no participant is left without a meter */
         const shown = Object.values(scene.fields).filter(meta => !bound.has(meta.key) && (meta.kind !== "angle" || meta.unit !== "rad"));
         const primary = meterKeys(scene.participants.filter(item => !meterCovered.has(item.id)), Infinity);
-        cardKeys = [...primary, ...shown.filter(meta => !primary.includes(meta))].slice(0, Math.max(primary.length, instruments.length ? 6 : 12));
+        /* with drawings on stage the drawings get the room: one card per participant they do not show (every value
+           is also listed under the stage); without drawings the cards are the stage */
+        cardKeys = instruments.length ? [] : [...primary, ...shown.filter(meta => !primary.includes(meta))].slice(0, Math.max(primary.length, 12));
         if (instruments.length) {
-          const cardRows = Math.ceil(cardKeys.length / 3), cardsH = cardKeys.length ? Math.min(view.h * 0.4, cardRows * 62 + (cardRows - 1) * 14 + 10) : 0;
+          const cardRows = Math.ceil(cardKeys.length / 4), cardsH = cardKeys.length ? Math.min(view.h * 0.3, cardRows * 62 + (cardRows - 1) * 14 + 10) : 0;
           placeInstruments({ x: view.x, y: view.y, w: view.w, h: view.h - cardsH }, p);
           cardRect = { x: view.x, y: view.y + view.h - cardsH, w: view.w, h: cardsH };
         }
@@ -1120,7 +1140,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       for (const meta of cardKeys) meterCovered.add(meta.participantId);
       if (cardKeys.length) {
         const keys = cardKeys, box = cardRect;
-        const columns = mode !== "board" ? keys.length : instruments.length ? Math.min(3, keys.length) : keys.length > 6 ? 3 : keys.length > 2 ? 2 : 1;
+        const columns = mode !== "board" ? keys.length : instruments.length ? Math.min(4, keys.length) : keys.length > 6 ? 3 : keys.length > 2 ? 2 : 1;
         const gap = 14, cardW = Math.min(360, (box.w - gap * (columns - 1)) / columns), cardH = 62;
         const rows = Math.ceil(keys.length / columns), blockH = rows * cardH + (rows - 1) * gap;
         const left = box.x + (box.w - (cardW * columns + gap * (columns - 1))) / 2;
@@ -1541,7 +1561,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         if (rider.placed) item.position.set(rider.placed.x, rider.placed.y);
         item.visible = !!rider.placed;
       }
-      for (const ins of instruments) drawInstrument(ins, values[ins.key], frame.t);
+      for (const ins of instruments) drawInstrument(ins, ins.key ? values[ins.key] : NaN, frame.t);
       // keep lane labels from colliding with velocity labels in 1-D lanes
       for (const gauge of gauges) {
         const v = values[gauge.key], span = gauge.max - gauge.min || 1;
@@ -1692,9 +1712,12 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         }
         // 2. every state-only participant has a meter or instrument showing the verified value
         const metered = scene.participants.filter(needsMeter);
-        if (mode === "board" || metered.length <= METER_STRIP_MAX) for (const participant of metered) if (!meterCovered.has(participant.id))
+        /* only a stage made of meter cards must show every value itself; otherwise values are listed under the stage */
+        if (mode === "board" && !instruments.length) for (const participant of metered) if (!meterCovered.has(participant.id))
           add(participant.id + ": its solver state is not shown on stage (add an instrument for one of its fields).");
         for (const ins of instruments) {
+          if (shown(ins.art) < 0.2 && !ins.key) add("instrument drawing \"" + ins.label + "\": artwork is hidden" + when + ".");
+          if (!ins.key) continue;
           const value = values[ins.key];
           if (!ins.shown || Math.abs(ins.shown.t - t) > 1e-9 * Math.max(1, t) || Math.abs(ins.shown.fraction - fractionOf(ins, value)) > 1e-6)
             add("instrument " + ins.key + ": indicator does not match the solver value " + fmt(value) + when + ".");
@@ -1925,15 +1948,20 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     };
     /* an apparatus first, then the parts drawn on it ("on" = its field; their points are in its viewBox) */
     const frames = new Map<string, { vb: { x: number; y: number; w: number; h: number }; sx: number; sy: number }>();
-    const items = (Array.isArray(spec.instruments) ? spec.instruments : []).filter(item => item && typeof item.field === "string" && item.field);
+    /* an instrument with field "" is a drawing of the set-up; "on" names the drawing a part belongs to, by its field
+       or by its position in the list ("0", "1", …) */
+    const listed = Array.isArray(spec.instruments) ? spec.instruments : [];
+    const items = listed.filter(item => item && typeof item.field === "string");
+    const hosts = new Map<string, PixiNS.Container>();
     for (const item of [...items.filter(item => !text_(item.on)), ...items.filter(item => text_(item.on))]) {
       const onto = text_(item.on) ? frames.get(item.on!) : undefined;
-      if (text_(item.on) && !onto) continue;
+      if (text_(item.on) && !onto)
+        throw Error('instrument "' + item.field + '": on = "' + item.on + '" names no drawing. Use the field of an instrument that has its own svg, or its position in the list (0 = first); field "" marks a drawing of the set-up.');
       if (!onto && !text_(item.svg)) continue;
       const sprite = onto ? null : new PIXI.Sprite(await host.svg!(item.svg));
       const vb = onto ? onto.vb : viewBox(item.svg) ?? { x: 0, y: 0, w: sprite!.texture.width, h: sprite!.texture.height };
       const sx = onto ? onto.sx : sprite!.texture.width / vb.w, sy = onto ? onto.sy : sprite!.texture.height / vb.h;
-      if (!onto) frames.set(item.field, { vb, sx, sy });
+      const reference = String(listed.indexOf(item));
       const toLocal = (q: unknown): Pt | undefined => {
         const r = q as Pt;
         return r && Number.isFinite(Number(r.x)) && Number.isFinite(Number(r.y)) ? { x: (Number(r.x) - vb.x) * sx, y: (Number(r.y) - vb.y) * sy } : undefined;
@@ -1946,10 +1974,11 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         part.scale.set(pvb.w * sx / Math.max(1e-9, part.texture.width), pvb.h * sy / Math.max(1e-9, part.texture.height));
       }
       const d = item.drive ?? {};
-      base.instrument({ field: item.field, art: sprite, part, label: item.label, on: onto ? item.on : undefined,
+      const registered = base.instrument({ field: item.field, art: sprite, part, label: item.label, on: onto ? hosts.get(item.on!) : undefined,
         drive: part ? { property: d.property as DriveName, pivot: toLocal(d.pivot), from: d.from, to: d.to, copies: d.copies,
           useFieldAngle: d.useFieldAngle, min: d.min ?? null, max: d.max ?? null,
           path: (Array.isArray(d.path) ? d.path : []).map(toLocal).filter((q): q is Pt => !!q) } : undefined });
+      if (!onto) for (const key of item.field ? [reference, item.field] : [reference]) { frames.set(key, { vb, sx, sy }); hosts.set(key, registered); }
     }
     /* fixtures: static art at a world position (number or plan parameter); anchor in the SVG viewBox */
     for (const item of Array.isArray(spec.fixtures) ? spec.fixtures : []) {

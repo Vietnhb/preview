@@ -94,8 +94,10 @@ public class AIService {
         input.set("solverFields", visualFields(fieldMeta, computed.path("solverTimeline").path("frames")));
         JsonNode program = client.visual(input, resource("prompts/simulation-visual-system.txt"),
                 jsonResource("prompts/simulation-response-schema.json")).path("visualProgram");
-        // Whether the stage really shows the verified numbers is checked where it runs: the renderer
-        // cross-checks every frame against the solver timeline and falls back to the standard scene.
+        // Whether the stage really shows the verified numbers is checked where it runs:
+        // the renderer
+        // cross-checks every frame against the solver timeline and falls back to the
+        // standard scene.
         String code = program.path("code").asText("").trim();
         JsonNode scene = program.path("scene");
         if (!program.isObject() || (!scene.isObject() && code.isEmpty()))
@@ -181,7 +183,8 @@ public class AIService {
         String actual = request.path("planSignature").asText();
         if (!java.security.MessageDigest.isEqual(signPlan(request).getBytes(StandardCharsets.UTF_8),
                 actual.getBytes(StandardCharsets.UTF_8)))
-            throw ApiException.conflict("Kế hoạch mô phỏng đã thay đổi. Vui lòng gửi lại mô tả đã sửa để phân tích trước");
+            throw ApiException
+                    .conflict("Kế hoạch mô phỏng đã thay đổi. Vui lòng gửi lại mô tả đã sửa để phân tích trước");
     }
 
     public ObjectNode understandImage(byte[] imageBytes, String mediaType, String text) {
@@ -291,8 +294,10 @@ public class AIService {
     }
 
     /**
-     * One plan check: the solver computes the plan, and the plan is compared with what the planner itself
-     * declared in it. Problems are reported in the planner's terms so it can correct them.
+     * One plan check: the solver computes the plan, and the plan is compared with
+     * what the planner itself
+     * declared in it. Problems are reported in the planner's terms so it can
+     * correct them.
      */
     private record PlanCheck(ObjectNode preview, java.util.List<String> problems, ApiException solverError) {
     }
@@ -301,7 +306,8 @@ public class AIService {
         normalizePlan(spec);
         java.util.List<String> problems = new java.util.ArrayList<>(selfContradictions(spec));
         try {
-            return new PlanCheck(equations.compute(selected.getDefinition(), spec, json.createObjectNode()), problems, null);
+            return new PlanCheck(equations.compute(selected.getDefinition(), spec, json.createObjectNode()), problems,
+                    null);
         } catch (ApiException error) {
             problems.add(0, String.valueOf(error.getMessage()));
             return new PlanCheck(null, problems, error);
@@ -309,8 +315,10 @@ public class AIService {
     }
 
     /**
-     * Checks the plan and, when anything is wrong, gives the planner one chance to correct it. A plan the
-     * solver can compute is never lost: the correction is adopted only when it computes and has fewer
+     * Checks the plan and, when anything is wrong, gives the planner one chance to
+     * correct it. A plan the
+     * solver can compute is never lost: the correction is adopted only when it
+     * computes and has fewer
      * problems. Returns the solver preview of the plan that stands.
      */
     private ObjectNode settlePlan(String description, SchemaVersion selected, ObjectNode response) {
@@ -336,13 +344,16 @@ public class AIService {
         }
         if (first.preview() != null)
             return first.preview();
-        throw ApiException.unprocessable("Chưa dựng được mô hình tính toán từ mô tả này. Hãy mô tả rõ hơn tình huống hoặc thử lại. (Chi tiết: "
-                + first.solverError().getMessage() + ")");
+        throw ApiException.unprocessable(
+                "Chưa dựng được mô hình tính toán từ mô tả này. Hãy mô tả rõ hơn tình huống hoặc thử lại. (Chi tiết: "
+                        + first.solverError().getMessage() + ")");
     }
 
     /**
-     * Where the plan contradicts its own declarations: fewer computed participants than the objects it
-     * counted, or a parameter several participants use that it did not declare shared. Structural only.
+     * Where the plan contradicts its own declarations: fewer computed participants
+     * than the objects it
+     * counted, or a parameter several participants use that it did not declare
+     * shared. Structural only.
      */
     private java.util.List<String> selfContradictions(JsonNode spec) {
         java.util.List<String> found = new java.util.ArrayList<>();
@@ -363,7 +374,8 @@ public class AIService {
         for (JsonNode model : spec.path("physicsModels"))
             model.path("inputs").forEach(value -> {
                 if (value.isTextual() && parameterNames.contains(value.asText()))
-                    users.computeIfAbsent(value.asText(), name -> new java.util.HashSet<>()).add(model.path("id").asText());
+                    users.computeIfAbsent(value.asText(), name -> new java.util.HashSet<>())
+                            .add(model.path("id").asText());
             });
         java.util.List<String> undeclared = new java.util.ArrayList<>();
         users.forEach((name, models) -> {
@@ -378,7 +390,8 @@ public class AIService {
     }
 
     /**
-     * Resolves what the plan states twice (a parameter's value and its range; the duration and its slider)
+     * Resolves what the plan states twice (a parameter's value and its range; the
+     * duration and its slider)
      * without guessing intent: the stated value wins.
      */
     private void normalizePlan(ObjectNode spec) {
@@ -404,7 +417,10 @@ public class AIService {
         }
     }
 
-    /** The plan as the server signs it: always tied to the topic it was planned against. */
+    /**
+     * The plan as the server signs it: always tied to the topic it was planned
+     * against.
+     */
     private ObjectNode stamped(JsonNode spec, SchemaVersion selected) {
         ObjectNode copy = spec.deepCopy();
         copy.put("schemaId", selected.getSchemaId());
@@ -417,7 +433,10 @@ public class AIService {
         return result.path("stage").asText(result.path("status").asText());
     }
 
-    /** The approved formulas behind every participant, with the value that feeds each input. */
+    /**
+     * The approved formulas behind every participant, with the value that feeds
+     * each input.
+     */
     private ArrayNode formulas(JsonNode definition, JsonNode spec, JsonNode firstValues) {
         ArrayNode formulas = json.createArrayNode();
         for (JsonNode model : spec.path("physicsModels")) {
@@ -485,7 +504,10 @@ public class AIService {
         return result;
     }
 
-    /** A second opinion that only improves an already usable plan: when it cannot be obtained, the plan stands. */
+    /**
+     * A second opinion that only improves an already usable plan: when it cannot be
+     * obtained, the plan stands.
+     */
     private JsonNode askLlmOptional(String description, SchemaVersion selected, JsonNode planFeedback) {
         try {
             return askLlm(description, selected, planFeedback);
@@ -585,14 +607,16 @@ public class AIService {
                 row.set("value", parameter.path("value"));
             } else if (binding.isTextual()) {
                 // "<participant>.<output>": the result of another participant's approved law
-                String reference = binding.asText(), source = reference.substring(0, Math.max(0, reference.lastIndexOf('.')));
+                String reference = binding.asText(),
+                        source = reference.substring(0, Math.max(0, reference.lastIndexOf('.')));
                 row.put("source", "OUTPUT");
                 row.put("participant", source);
                 for (JsonNode other : spec.path("physicsModels"))
                     if (other.path("id").asText().equals(source))
                         row.put("participantLabel", other.path("label").asText(source));
                 row.put("output", reference.substring(reference.lastIndexOf('.') + 1));
-                row.put("outputLabel", labels.getOrDefault(reference.substring(reference.lastIndexOf('.') + 1), reference));
+                row.put("outputLabel",
+                        labels.getOrDefault(reference.substring(reference.lastIndexOf('.') + 1), reference));
                 if (firstValues.path(reference).isNumber())
                     row.set("value", firstValues.path(reference));
                 else
@@ -721,6 +745,5 @@ public class AIService {
         }
         return selected - second;
     }
-
 
 }
