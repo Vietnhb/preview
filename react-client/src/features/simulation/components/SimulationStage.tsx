@@ -2,6 +2,7 @@ import { useState } from "react";
 import Icon from "../../../shared/ui/LearningIcon";
 import SimulationComplaintDialog from "../../support/components/SimulationComplaintDialog";
 import SvgPixiScene from "./SvgPixiScene";
+import ClarifyQuestion from "./ClarifyQuestion";
 import { RecognitionDisplay, FormulaReview } from "./SimulationReview";
 import { visualSource, type SimulationWorkspaceModel } from "../hooks/useSimulationWorkspace";
 
@@ -220,24 +221,8 @@ export default function SimulationStage({ input, preview, complaint }: Readonly<
                 {intent.stage === "CLARIFY" && (
                   <>
                     <h2>Cần làm rõ một chút</h2>
-                    <p className="simulation-explanation">{intent.question || intent.message}</p>
-                    <form onSubmit={handleRevision}>
-                      <label htmlFor="simulation-answer">Câu trả lời của bạn</label>
-                      <textarea
-                        id="simulation-answer"
-                        rows={3}
-                        value={revision}
-                        onChange={(event) => setRevision(event.target.value)}
-                      />
-                      <div className="simulation-actions">
-                        <button
-                          className="simulation-primary-button"
-                          disabled={busy || !revision.trim()}
-                        >
-                          {busy ? "Đang xử lý…" : "Trả lời"}
-                        </button>
-                      </div>
-                    </form>
+                    <ClarifyQuestion question={intent.question || intent.message || ""} choices={intent.choices ?? []} answer={revision}
+                      onAnswerChange={setRevision} onSubmit={handleRevision} busy={busy} />
                   </>
                 )}
                 {intent.stage === "UNSUPPORTED" && (

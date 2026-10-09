@@ -187,7 +187,8 @@
                   "label",
                   "svg",
                   "part",
-                  "drive"
+                  "drive",
+                  "on"
                 ],
                 "properties": {
                   "field": {
@@ -200,7 +201,7 @@
                   },
                   "svg": {
                     "type": "string",
-                    "description": "Complete SVG of the static body only (case, dial face, tube, lamp housing, circuit…): nothing that should move or change, no numbers."
+                    "description": "Complete SVG of the static body only (case, dial face, tube, lamp housing, circuit…): nothing that should move or change, no numbers. '' only when 'on' names the apparatus this part is drawn on."
                   },
                   "part": {
                     "type": "string",
@@ -301,6 +302,10 @@
                         "description": "High end of the field scale in its unit, or null for the solver range."
                       }
                     }
+                  },
+                  "on": {
+                    "type": "string",
+                    "description": "'' for an instrument with its own artwork. The field of another instrument (listed earlier) to draw this one's moving part ON that instrument's artwork, in its viewBox coordinates: one apparatus showing several fields (then svg may be ''). Its reading is shown under that apparatus."
                   }
                 }
               }

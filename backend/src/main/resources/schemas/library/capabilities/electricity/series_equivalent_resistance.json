@@ -1,0 +1,99 @@
+{
+  "capabilityId": "series_equivalent_resistance",
+  "title": "Điện trở tương đương của hai đoạn mạch mắc nối tiếp",
+  "version": "1.0",
+  "applicability": {
+    "objectTypes": [
+      "resistor",
+      "node"
+    ],
+    "quantities": [
+      "resistance_1",
+      "resistance_2"
+    ]
+  },
+  "canonicalInputs": [
+    {
+      "key": "resistance_1",
+      "unit": "ohm",
+      "min": 1e-09
+    },
+    {
+      "key": "resistance_2",
+      "unit": "ohm",
+      "min": 1e-09
+    }
+  ],
+  "outputs": [
+    {
+      "key": "elapsed_time",
+      "unit": "s"
+    },
+    {
+      "key": "equivalent_resistance",
+      "unit": "ohm"
+    }
+  ],
+  "assumptions": [
+    "Hai đoạn mạch (điện trở hoặc nhóm điện trở) mắc nối tiếp; kết quả dùng làm đầu vào cho định luật khác để ghép mạch."
+  ],
+  "equationSet": {
+    "canonical": [
+      "R_td = R1 + R2"
+    ],
+    "derived": []
+  },
+  "execution": {
+    "primary": "analytical",
+    "numerical": {
+      "solverId": "schema_ast_rk4",
+      "method": "rk4"
+    },
+    "closedForm": {
+      "solverId": "schema_ast_reference",
+      "method": "approved_ast"
+    },
+    "math": {
+      "initial": {
+        "elapsed_time": 0
+      },
+      "rates": {
+        "elapsed_time": 1
+      },
+      "outputs": {
+        "elapsed_time": "elapsed_time",
+        "equivalent_resistance": [
+          "add",
+          "resistance_1",
+          "resistance_2"
+        ]
+      },
+      "closedForm": {
+        "elapsed_time": "t",
+        "equivalent_resistance": [
+          "add",
+          "resistance_1",
+          "resistance_2"
+        ]
+      }
+    }
+  },
+  "validation": {
+    "absoluteTolerance": 0.0001,
+    "relativeTolerance": 0.0001,
+    "strategy": "closed_form_checkpoints",
+    "invariants": [
+      "finite_output"
+    ],
+    "benchmarks": []
+  },
+  "validityDomain": {
+    "durationPositive": true
+  },
+  "rendererBindings": [
+    {
+      "source": "equivalent_resistance",
+      "role": "state_value"
+    }
+  ]
+}

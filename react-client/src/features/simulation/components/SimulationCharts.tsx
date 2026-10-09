@@ -165,7 +165,7 @@ export default function SimulationCharts({ scene, timeline, time, theme, onSeek 
           const scale = Math.max(Math.abs(low.value), Math.abs(high.value));
           return <tr key={meta.key}>
             <td>{labelOf.get(meta.participantId) ?? meta.participantId}</td>
-            <td>{meta.label} <span className="sim-muted">({meta.symbol})</span></td>
+            <td>{meta.label}{meta.symbol.toLowerCase() !== meta.label.toLowerCase() && <> <span className="sim-muted">({meta.symbol})</span></>}</td>
             <td className="sim-num">{formatNumber(now.value, 4, scale)} {now.unit}</td>
             <td className="sim-num">{formatNumber(low.value, 4, scale)} {low.unit}</td>
             <td className="sim-num">{formatNumber(high.value, 4, scale)} {high.unit}</td>

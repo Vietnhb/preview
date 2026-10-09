@@ -36,6 +36,8 @@
     "dc_source_with_internal_resistance",
     "series_resistor_pair",
     "parallel_resistor_pair",
+    "series_equivalent_resistance",
+    "parallel_equivalent_resistance",
     "drift_velocity_current",
     "resistance_temperature_sweep",
     "rc_circuit"

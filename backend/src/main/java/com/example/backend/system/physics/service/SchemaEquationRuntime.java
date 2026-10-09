@@ -24,6 +24,8 @@ public class SchemaEquationRuntime {
     private final int maxDepth;
     private final int maxNodes;
     private final Map<String, Map<String, Double>> unitDimensions = new LinkedHashMap<>();
+    /** Every spelling of a unit (canonical or exact alias, factor 1) → its canonical spelling, from the unit catalog. */
+    private final Map<String, String> canonicalUnit = new LinkedHashMap<>();
 
     public SchemaEquationRuntime(ObjectMapper json,
             @Value("${physlive.simulation.runtime.default-step-seconds}") double defaultStep,
@@ -43,10 +45,77 @@ public class SchemaEquationRuntime {
             for (JsonNode unit : json.readTree(input)) {
                 Map<String, Double> dimension = new LinkedHashMap<>();
                 unit.path("dimensions").fields().forEachRemaining(field -> dimension.put(field.getKey(), field.getValue().asDouble()));
-                unitDimensions.put(unit.path("canonical").asText(), dimension);
-                if (unit.path("factor").asDouble() == 1) for (JsonNode alias : unit.path("aliases")) unitDimensions.put(alias.asText(), dimension);
+                String canonical = unit.path("canonical").asText();
+                unitDimensions.put(canonical, dimension);
+                canonicalUnit.put(canonical, canonical);
+                if (unit.path("factor").asDouble() == 1) for (JsonNode alias : unit.path("aliases")) {
+                    unitDimensions.put(alias.asText(), dimension);
+                    canonicalUnit.putIfAbsent(alias.asText(), canonical);
+                }
             }
         } catch (java.io.IOException ex) { throw new IllegalStateException("Unit dimensions are unavailable", ex); }
+    }
+
+    /** Two spellings of the same unit (exact aliases only; a scaled unit such as cm is never the same as m). */
+    private boolean sameUnit(String a, String b) {
+        return canonicalUnit.getOrDefault(a, a).equals(canonicalUnit.getOrDefault(b, b));
+    }
+
+    /**
+     * Participants in the order their inputs are available: an input written "<participantId>.<outputKey>"
+     * takes that participant's result, so it is computed first. Cycles are rejected.
+     */
+    private List<JsonNode> dependencyOrder(JsonNode spec, java.util.Set<String> parameterNames) {
+        Map<String, JsonNode> models = new LinkedHashMap<>();
+        for (JsonNode model : spec.path("physicsModels")) {
+            String id = model.path("id").asText();
+            require(!id.isBlank() && models.put(id, model) == null, "Định danh mô hình bị trùng hoặc bị thiếu");
+        }
+        List<JsonNode> order = new ArrayList<>();
+        java.util.Set<String> done = new java.util.HashSet<>(), visiting = new java.util.HashSet<>();
+        for (String id : models.keySet()) visit(id, models, parameterNames, done, visiting, order);
+        return order;
+    }
+
+    private void visit(String id, Map<String, JsonNode> models, java.util.Set<String> parameterNames,
+            java.util.Set<String> done, java.util.Set<String> visiting, List<JsonNode> order) {
+        if (done.contains(id)) return;
+        require(visiting.add(id), "Các vật lấy kết quả của nhau theo vòng tròn: " + id);
+        models.get(id).path("inputs").forEach(binding -> {
+            if (!binding.isTextual() || parameterNames.contains(binding.asText())) return;
+            int dot = binding.asText().lastIndexOf('.');
+            String source = dot > 0 ? binding.asText().substring(0, dot) : "";
+            require(models.containsKey(source), "Tham số đầu vào không xác định: " + binding.asText());
+            visit(source, models, parameterNames, done, visiting, order);
+        });
+        visiting.remove(id);
+        done.add(id);
+        order.add(models.get(id));
+    }
+
+    private static final int UPSTREAM_CHECK_STEPS = 64;
+
+    /**
+     * The result "<participantId>.<outputKey>" used as an input. Inputs are constants, so the result must stay
+     * constant over the whole run (within that law's own tolerance) and have the input's unit.
+     */
+    private double upstreamValue(String reference, JsonNode input, Map<String, Bound> computed, double duration) {
+        int dot = reference.lastIndexOf('.');
+        Bound source = computed.get(reference.substring(0, dot));
+        String key = reference.substring(dot + 1);
+        JsonNode output = null;
+        for (JsonNode candidate : source.capability.path("outputs")) if (candidate.path("key").asText().equals(key)) output = candidate;
+        require(output != null, "Tham số đầu vào không xác định: " + reference);
+        require(sameUnit(output.path("unit").asText(), input.path("unit").asText()), "Đầu vào phải sử dụng đơn vị SI chuẩn: "
+                + input.path("key").asText() + " cần đơn vị " + input.path("unit").asText() + ", kết quả " + reference + " có đơn vị " + output.path("unit").asText());
+        double absTolerance = source.capability.path("validation").path("absoluteTolerance").asDouble(0);
+        double relTolerance = source.capability.path("validation").path("relativeTolerance").asDouble(0);
+        List<Map<String, Double>> samples = integrate(source, duration, UPSTREAM_CHECK_STEPS);
+        double value = samples.get(0).get(key);
+        for (Map<String, Double> sample : samples)
+            require(Math.abs(sample.get(key) - value) <= absTolerance + relTolerance * Math.abs(value),
+                    "Kết quả " + reference + " thay đổi theo thời gian nên không dùng làm đầu vào cố định được");
+        return value;
     }
 
     private static final int MIN_STEPS = 200;
@@ -71,17 +140,17 @@ public class SchemaEquationRuntime {
             String key = spec.path("durationParameter").asText();
             require(parameters.containsKey(key), "Tham số thời gian không xác định");
             for (JsonNode parameter : spec.path("parameters")) if (parameter.path("name").asText().equals(key)) {
-                require(parameter.path("unit").asText().equals("s") && parameter.path("value").asDouble() == duration,
+                require(sameUnit(parameter.path("unit").asText(), "s") && parameter.path("value").asDouble() == duration,
                         "Tham số thời gian phải khớp thời lượng ban đầu và dùng đơn vị giây");
             }
             duration = parameters.get(key);
         }
         require(Double.isFinite(duration) && duration > 0 && duration <= maxDuration, "Thời lượng mô phỏng không hợp lệ");
         List<Bound> bindings = new ArrayList<>();
-        for (JsonNode model : spec.path("physicsModels")) {
+        Map<String, Bound> computed = new LinkedHashMap<>();
+        for (JsonNode model : dependencyOrder(spec, parameters.keySet())) {
             require(bindings.size() < maxParticipants, "Số lượng vật thể vượt quá giới hạn cho phép");
             String id = model.path("id").asText();
-            require(!id.isBlank() && bindings.stream().noneMatch(b -> b.id.equals(id)), "Định danh mô hình bị trùng hoặc bị thiếu");
             JsonNode capability = null;
             for (JsonNode candidate : definition.path("capabilities")) {
                 if (candidate.path("capabilityId").asText().equals(model.path("capabilityId").asText())) capability = candidate;
@@ -94,12 +163,14 @@ public class SchemaEquationRuntime {
                 String key = input.path("key").asText();
                 JsonNode binding = model.path("inputs").path(key);
                 double value;
-                if (binding.isTextual()) {
-                    require(parameters.containsKey(binding.asText()), "Tham số đầu vào không xác định: " + binding.asText());
+                if (binding.isTextual() && !parameters.containsKey(binding.asText())) {
+                    value = upstreamValue(binding.asText(), input, computed, duration);
+                } else if (binding.isTextual()) {
                     value = parameters.get(binding.asText());
                     for (JsonNode parameter : spec.path("parameters")) {
                         if (parameter.path("name").asText().equals(binding.asText()))
-                            require(parameter.path("unit").asText().equals(input.path("unit").asText()), "Đầu vào phải sử dụng đơn vị SI chuẩn: " + key);
+                            require(sameUnit(parameter.path("unit").asText(), input.path("unit").asText()), "Đầu vào phải sử dụng đơn vị SI chuẩn: "
+                                    + key + " cần đơn vị " + input.path("unit").asText() + ", tham số " + binding.asText() + " đang dùng " + parameter.path("unit").asText());
                     }
                 } else value = binding.isNumber() ? binding.asDouble() : input.path("defaultValue").asDouble(Double.NaN);
                 require(Double.isFinite(value), "Thiếu đầu vào chuẩn: " + key);
@@ -107,7 +178,9 @@ public class SchemaEquationRuntime {
                         && value <= input.path("max").asDouble(Double.MAX_VALUE), "Giá trị nằm ngoài miền tính toán của bộ giải: " + key);
                 inputs.put(key, value);
             }
-            bindings.add(new Bound(id, capability, inputs));
+            Bound bound = new Bound(id, capability, inputs);
+            bindings.add(bound);
+            computed.put(id, bound);
         }
         // Physical time scales range from milliseconds (AC, RC) to years (decay, orbits).
         // Start from a presentation-friendly resolution and refine (h -> h/2) only while

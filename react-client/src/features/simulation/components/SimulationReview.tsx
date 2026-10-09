@@ -79,6 +79,7 @@ function prettyEquation(equation: string) {
 
 const bindingSource = (row: SimulationFormulaBinding) =>
   row.source === "PARAMETER" ? `thanh trượt “${row.parameterLabel || row.parameter}”`
+    : row.source === "OUTPUT" ? `${row.outputLabel || row.output} của “${row.participantLabel || row.participant}”`
     : row.source === "FIXED" ? "giá trị cố định (không có thanh trượt)" : "giá trị mặc định của định luật";
 
 /** Value → law-input table taken from the signed plan, so a wrong binding is visible before confirming. */

@@ -13,8 +13,10 @@ export type SimulationParameter = {
 };
 /** Which value feeds each input of the law (built by the backend from the signed plan). */
 export type SimulationFormulaBinding = {
-  quantity: string; label: string; unit: string; source: "PARAMETER" | "FIXED" | "DEFAULT";
+  quantity: string; label: string; unit: string; source: "PARAMETER" | "FIXED" | "DEFAULT" | "OUTPUT";
   parameter?: string; parameterLabel?: string; value?: number | null;
+  /** source OUTPUT: the result of another participant's law feeds this input. */
+  participant?: string; participantLabel?: string; output?: string; outputLabel?: string;
 };
 export type SimulationFormula = {
   modelId: string; label?: string; capabilityId: string; canonical: string[]; derived?: string[]; assumptions?: string[];
@@ -31,7 +33,7 @@ export type SimulationSpec = {
 export type IntentResult = {
   sessionId: string; stage: "CLARIFY" | "EXPLAIN" | "UNSUPPORTED";
   description: string; schemaId: string; schemaVersion: string; planSignature?: string;
-  question?: string; explanation?: string; defaults?: string[]; message?: string;
+  question?: string; choices?: string[]; explanation?: string; defaults?: string[]; message?: string;
   simulationSpec?: SimulationSpec; formulas?: SimulationFormula[]; validation?: SimulationValidation;
 };
 export type SimulationValidation = {

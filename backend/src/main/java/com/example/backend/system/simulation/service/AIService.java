@@ -92,42 +92,16 @@ public class AIService {
         }
         ObjectNode fieldMeta = solverFieldMeta(schema.getDefinition(), brief);
         input.set("solverFields", visualFields(fieldMeta, computed.path("solverTimeline").path("frames")));
-        JsonNode renderingContract = jsonResource("prompts/simulation-response-schema.json");
-        ObjectNode visual = (ObjectNode) client.visual(input,
-                resource("prompts/simulation-visual-system.txt"),
-                renderingContract);
-        JsonNode program = visual.path("visualProgram");
-        java.util.List<String> unbound = unboundParticipants(program, brief);
-        if (!unbound.isEmpty()) {
-            // Validation step 1 (generic, data-bound): every participant the solver
-            // computes is shown through a kit binding (body or instrument) so the renderer
-            // can cross-check the stage against the verified solver timeline. Give the
-            // director one chance to fix it. Whether the program really uses the kit is
-            // checked by the renderer at run time, not by matching the code text.
-            ObjectNode retryDiagnostics = input.putObject("renderDiagnostics");
-            retryDiagnostics.put("code", truncate(program.toString(), 3 * maxProgramCharacters));
-            retryDiagnostics.put("message", "Not bound to solver data: participant(s) " + String.join(", ", unbound)
-                    + " have no body in scene.bodies, no instrument in scene.instruments and are never bound in code,"
-                    + " so the learner cannot see their computed behaviour. Keep your design, but give every participant"
-                    + " a kit binding (moving body or instrument) and keep your own drawings static.");
-            JsonNode retried = client.visual(input,
-                    resource("prompts/simulation-visual-system.txt"),
-                    renderingContract);
-            if (retried.isObject() && unboundParticipants(retried.path("visualProgram"), brief).size() < unbound.size()) {
-                visual = (ObjectNode) retried;
-                program = visual.path("visualProgram");
-            }
-        }
+        JsonNode program = client.visual(input, resource("prompts/simulation-visual-system.txt"),
+                jsonResource("prompts/simulation-response-schema.json")).path("visualProgram");
+        // Whether the stage really shows the verified numbers is checked where it runs: the renderer
+        // cross-checks every frame against the solver timeline and falls back to the standard scene.
         String code = program.path("code").asText("").trim();
         JsonNode scene = program.path("scene");
-        boolean hasScene = scene.isObject() && (scene.path("bodies").size() > 0
-                || !scene.path("environment").asText("").isBlank());
-        if (!program.isObject() || (!hasScene && code.isEmpty()))
+        if (!program.isObject() || (!scene.isObject() && code.isEmpty()))
             throw ApiException.upstream("Mô phỏng được tạo chưa có cảnh minh họa");
-        if (code.length() > maxProgramCharacters || (hasScene && scene.toString().length() > 2L * maxProgramCharacters))
+        if (code.length() > maxProgramCharacters || scene.toString().length() > 2L * maxProgramCharacters)
             throw ApiException.upstream("Cảnh minh họa được tạo vượt quá giới hạn tài nguyên");
-        if (!code.isEmpty() && (!code.startsWith("async function") || !code.contains("update")))
-            throw ApiException.upstream("Chương trình mô phỏng được tạo không đúng định dạng yêu cầu");
         ObjectNode spec = (ObjectNode) brief.deepCopy();
         spec.remove("scene");
         spec.set("visualProgram", program);
@@ -295,328 +269,178 @@ public class AIService {
             return clarify;
         }
 
-        JsonNode result = askLlm(description, selected);
-        ObjectNode response = result.isObject() ? (ObjectNode) result.deepCopy() : json.createObjectNode();
-        if (!response.hasNonNull("stage") && response.hasNonNull("status")) {
-            response.set("stage", response.get("status").deepCopy());
-        }
+        ObjectNode response = askLlm(description, selected, null).deepCopy();
+        if (!response.hasNonNull("stage"))
+            response.set("stage", response.path("status").deepCopy());
         response.put("sessionId", sessionId);
         response.put("schemaId", selected.getSchemaId());
         response.put("topic", selected.getTopic());
         response.put("schemaVersion", selected.getVersion());
         response.put("description", description);
-        JsonNode spec = response.path("simulationSpec");
-        if (spec.isObject()) {
-            ((ObjectNode) spec).put("schemaId", selected.getSchemaId());
-            ((ObjectNode) spec).put("topic", selected.getTopic());
-            ((ObjectNode) spec).put("topicVersion", selected.getVersion());
-            if (response.path("stage").asText().equals("EXPLAIN")) {
-                reconcileParticipantCount(description, selected, response);
-                reconcileSharedParameters(description, selected, response);
-                ObjectNode preview = previewWithRepair(description, selected, response);
-                response.set("validation", preview.path("validation"));
-                response.put("planSignature", signPlan(response));
-            }
-            var formulas = response.putArray("formulas");
-            for (JsonNode model : response.path("simulationSpec").path("physicsModels")) {
-                for (JsonNode capability : selected.getDefinition().path("capabilities")) {
-                    if (model.path("capabilityId").asText().equals(capability.path("capabilityId").asText())) {
-                        ObjectNode formula = formulas.addObject();
-                        formula.put("modelId", model.path("id").asText());
-                        formula.put("label", model.path("label").asText(model.path("id").asText()));
-                        formula.put("capabilityId", capability.path("capabilityId").asText());
-                        formula.set("canonical", capability.path("equationSet").path("canonical"));
-                        formula.set("derived", capability.path("equationSet").path("derived"));
-                        formula.set("assumptions", capability.path("assumptions"));
-                        formula.set("bindings", formulaBindings(selected.getDefinition(), capability, model,
-                                response.path("simulationSpec")));
-                    }
-                }
-            }
-
-        }
+        if (!"EXPLAIN".equals(stageOf(response)))
+            return response;
+        if (!response.path("simulationSpec").isObject())
+            throw ApiException.upstream("Kết quả phân tích mô phỏng của AI không hợp lệ");
+        response.set("simulationSpec", stamped(response.path("simulationSpec"), selected));
+        ObjectNode preview = settlePlan(description, selected, response);
+        response.set("validation", preview.path("validation"));
+        response.put("planSignature", signPlan(response));
+        response.set("formulas", formulas(selected.getDefinition(), response.path("simulationSpec"),
+                preview.path("solverTimeline").path("frames").path(0).path("values")));
         return response;
     }
 
     /**
-     * Compute the preview; when the model's plan is internally inconsistent, first
-     * apply mechanical normalisations, then give the model one chance to correct
-     * the plan using the solver's own error message.
+     * One plan check: the solver computes the plan, and the plan is compared with what the planner itself
+     * declared in it. Problems are reported in the planner's terms so it can correct them.
      */
-    private ObjectNode previewWithRepair(String description, SchemaVersion selected, ObjectNode response) {
-        normalizePlan((ObjectNode) response.path("simulationSpec"));
+    private record PlanCheck(ObjectNode preview, java.util.List<String> problems, ApiException solverError) {
+    }
+
+    private PlanCheck check(SchemaVersion selected, ObjectNode spec) {
+        normalizePlan(spec);
+        java.util.List<String> problems = new java.util.ArrayList<>(selfContradictions(spec));
         try {
-            return equations.compute(selected.getDefinition(), response.path("simulationSpec"),
-                    json.createObjectNode());
-        } catch (ApiException first) {
-            ObjectNode feedback = json.createObjectNode();
-            feedback.put("error", String.valueOf(first.getMessage()));
-            feedback.set("previousPlan", response.path("simulationSpec"));
-            JsonNode retry = askLlm(description, selected, feedback);
-            JsonNode spec = retry.path("simulationSpec");
-            if (!spec.isObject() || !"EXPLAIN".equals(retry.path("status").asText(retry.path("stage").asText())))
-                throw planFailure(first);
-            ObjectNode fixed = (ObjectNode) spec.deepCopy();
-            fixed.put("schemaId", selected.getSchemaId());
-            fixed.put("topic", selected.getTopic());
-            fixed.put("topicVersion", selected.getVersion());
-            normalizePlan(fixed);
-            ObjectNode preview;
-            try {
-                preview = equations.compute(selected.getDefinition(), fixed, json.createObjectNode());
-            } catch (ApiException second) {
-                throw planFailure(second);
-            }
-            response.set("simulationSpec", fixed);
-            for (String field : java.util.List.of("explanation", "defaults"))
-                if (retry.has(field))
-                    response.set(field, retry.get(field));
-            return preview;
+            return new PlanCheck(equations.compute(selected.getDefinition(), spec, json.createObjectNode()), problems, null);
+        } catch (ApiException error) {
+            problems.add(0, String.valueOf(error.getMessage()));
+            return new PlanCheck(null, problems, error);
         }
     }
 
     /**
-     * The plan must contain every object the planner itself read from the description: the
-     * non-contextual requiredObjects (with their counts) are compared with the computed
-     * participants. Fewer participants than counted objects means objects would silently be
-     * missing from the simulation, so the planner gets one chance to add them (it may keep the
-     * plan when one capability computes several objects together).
+     * Checks the plan and, when anything is wrong, gives the planner one chance to correct it. A plan the
+     * solver can compute is never lost: the correction is adopted only when it computes and has fewer
+     * problems. Returns the solver preview of the plan that stands.
      */
-    private void reconcileParticipantCount(String description, SchemaVersion selected, ObjectNode response) {
-        JsonNode spec = response.path("simulationSpec");
-        int declared = 0;
+    private ObjectNode settlePlan(String description, SchemaVersion selected, ObjectNode response) {
+        PlanCheck first = check(selected, (ObjectNode) response.path("simulationSpec"));
+        if (first.problems().isEmpty())
+            return first.preview();
+        ObjectNode feedback = json.createObjectNode();
+        feedback.put("error", String.join(" ", first.problems()));
+        feedback.set("previousPlan", response.path("simulationSpec"));
+        JsonNode retry = first.preview() == null ? askLlm(description, selected, feedback)
+                : askLlmOptional(description, selected, feedback);
+        if (retry != null && "EXPLAIN".equals(stageOf(retry)) && retry.path("simulationSpec").isObject()) {
+            ObjectNode fixed = stamped(retry.path("simulationSpec"), selected);
+            PlanCheck second = check(selected, fixed);
+            if (second.preview() != null
+                    && (first.preview() == null || second.problems().size() < first.problems().size())) {
+                response.set("simulationSpec", fixed);
+                for (String field : java.util.List.of("explanation", "defaults"))
+                    if (retry.has(field))
+                        response.set(field, retry.get(field));
+                return second.preview();
+            }
+        }
+        if (first.preview() != null)
+            return first.preview();
+        throw ApiException.unprocessable("Chưa dựng được mô hình tính toán từ mô tả này. Hãy mô tả rõ hơn tình huống hoặc thử lại. (Chi tiết: "
+                + first.solverError().getMessage() + ")");
+    }
+
+    /**
+     * Where the plan contradicts its own declarations: fewer computed participants than the objects it
+     * counted, or a parameter several participants use that it did not declare shared. Structural only.
+     */
+    private java.util.List<String> selfContradictions(JsonNode spec) {
+        java.util.List<String> found = new java.util.ArrayList<>();
+        int counted = 0;
         for (JsonNode object : spec.path("requiredObjects"))
             if (!object.path("contextual").asBoolean(false))
-                declared += Math.max(1, object.path("count").asInt(1));
-        int bound = spec.path("physicsModels").size();
-        if (bound == 0 || declared <= bound)
-            return;
-        ObjectNode feedback = json.createObjectNode();
-        feedback.put("error", "requiredObjects lists " + declared + " computed objects but physicsModels has only " + bound
-                + " participant(s). Give every counted object its own physicsModels entry (distinct id and label, shared"
-                + " parameters are fine) unless one capability computes several of them together, and update the explanation.");
-        feedback.set("previousPlan", spec);
-        JsonNode retry = askLlmOptional(description, selected, feedback);
-        if (retry == null)
-            return;
-        JsonNode fixed = retry.path("simulationSpec");
-        if (!fixed.isObject() || !"EXPLAIN".equals(retry.path("status").asText(retry.path("stage").asText()))
-                || fixed.path("physicsModels").size() <= bound)
-            return;
-        ObjectNode copy = (ObjectNode) fixed.deepCopy();
-        copy.put("schemaId", selected.getSchemaId());
-        copy.put("topic", selected.getTopic());
-        copy.put("topicVersion", selected.getVersion());
-        response.set("simulationSpec", copy);
-        for (String field : java.util.List.of("explanation", "defaults"))
-            if (retry.has(field))
-                response.set(field, retry.get(field));
-    }
-
-    /**
-     * Sliders that several participants of the same law feed into the same input, and that the planner
-     * has not declared common on purpose (simulationSpec.sharedQuantities). Found from the plan's
-     * structure only.
-     */
-    private java.util.List<String> undeclaredSharing(JsonNode spec) {
+                counted += Math.max(1, object.path("count").asInt(1));
+        int participants = spec.path("physicsModels").size();
+        if (participants > 0 && counted > participants)
+            found.add("requiredObjects counts " + counted + " computed objects but physicsModels has " + participants
+                    + " participant(s): give every counted object its own entry, unless one capability computes"
+                    + " several of them together.");
         java.util.Set<String> declared = new java.util.HashSet<>();
         spec.path("sharedQuantities").forEach(name -> declared.add(name.asText()));
-        declared.add(spec.path("durationParameter").asText(""));
-        Map<String, Integer> uses = new LinkedHashMap<>();
+        java.util.Set<String> parameterNames = new java.util.HashSet<>();
+        spec.path("parameters").forEach(parameter -> parameterNames.add(parameter.path("name").asText()));
+        Map<String, java.util.Set<String>> users = new LinkedHashMap<>();
         for (JsonNode model : spec.path("physicsModels"))
-            model.path("inputs").fields().forEachRemaining(input -> {
-                if (input.getValue().isTextual())
-                    uses.merge(model.path("capabilityId").asText() + "\n" + input.getKey() + "\n" + input.getValue().asText(),
-                            1, Integer::sum);
+            model.path("inputs").forEach(value -> {
+                if (value.isTextual() && parameterNames.contains(value.asText()))
+                    users.computeIfAbsent(value.asText(), name -> new java.util.HashSet<>()).add(model.path("id").asText());
             });
-        java.util.Set<String> shared = new java.util.LinkedHashSet<>();
-        uses.forEach((use, count) -> {
-            String name = use.substring(use.lastIndexOf('\n') + 1);
-            if (count > 1 && !declared.contains(name))
-                shared.add(name);
+        java.util.List<String> undeclared = new java.util.ArrayList<>();
+        users.forEach((name, models) -> {
+            if (models.size() > 1 && !declared.contains(name))
+                undeclared.add(name);
         });
-        return new java.util.ArrayList<>(shared);
+        if (!undeclared.isEmpty())
+            found.add("Parameter(s) " + String.join(", ", undeclared) + " are used by several participants but are not"
+                    + " listed in simulationSpec.sharedQuantities: give each participant its own parameter for a"
+                    + " property of its own, or list the parameter there when it is one physical quantity they share.");
+        return found;
     }
 
     /**
-     * Whether like objects share one slider or each has its own is a judgement about the described
-     * situation, so the planner makes it — but it must make it explicitly: when participants of the
-     * same kind share a slider that the plan does not declare common, the planner gets one chance to
-     * either give each object its own parameter or declare the quantity common.
+     * Resolves what the plan states twice (a parameter's value and its range; the duration and its slider)
+     * without guessing intent: the stated value wins.
      */
-    private void reconcileSharedParameters(String description, SchemaVersion selected, ObjectNode response) {
-        JsonNode spec = response.path("simulationSpec");
-        java.util.List<String> shared = undeclaredSharing(spec);
-        if (shared.isEmpty())
-            return;
-        int bound = spec.path("physicsModels").size();
-        ObjectNode feedback = json.createObjectNode();
-        feedback.put("error", "Participants of the same kind share the slider(s) " + String.join(", ", shared)
-                + " for the same input, so the user cannot change one object without changing the others. For each of"
-                + " them decide: a property of the object itself gets one parameter per participant (same label, value"
-                + " and range); a quantity that is physically one and the same for these participants stays a single"
-                + " parameter and its name is listed in simulationSpec.sharedQuantities. Keep everything else unchanged.");
-        feedback.set("previousPlan", spec);
-        JsonNode retry = askLlmOptional(description, selected, feedback);
-        if (retry == null)
-            return;
-        JsonNode fixed = retry.path("simulationSpec");
-        if (!fixed.isObject() || !"EXPLAIN".equals(retry.path("status").asText(retry.path("stage").asText()))
-                || fixed.path("physicsModels").size() < bound
-                || undeclaredSharing(fixed).size() >= shared.size())
-            return;
-        ObjectNode copy = (ObjectNode) fixed.deepCopy();
+    private void normalizePlan(ObjectNode spec) {
+        Map<String, ObjectNode> parameters = new LinkedHashMap<>();
+        for (JsonNode parameter : spec.path("parameters"))
+            if (parameter instanceof ObjectNode p)
+                parameters.put(p.path("name").asText(), p);
+        ObjectNode control = parameters.get(spec.path("durationParameter").asText(""));
+        if (control == null || !"s".equals(control.path("unit").asText()))
+            spec.remove("durationParameter");
+        else if (spec.path("durationSeconds").asDouble(0) > 0)
+            control.put("value", spec.path("durationSeconds").asDouble());
+        else
+            spec.put("durationSeconds", control.path("value").asDouble());
+        for (ObjectNode p : parameters.values()) {
+            double value = p.path("value").asDouble(Double.NaN);
+            if (!Double.isFinite(value))
+                continue;
+            if (p.has("min") && p.path("min").asDouble() > value)
+                p.put("min", value);
+            if (p.has("max") && p.path("max").asDouble() < value)
+                p.put("max", value);
+        }
+    }
+
+    /** The plan as the server signs it: always tied to the topic it was planned against. */
+    private ObjectNode stamped(JsonNode spec, SchemaVersion selected) {
+        ObjectNode copy = spec.deepCopy();
         copy.put("schemaId", selected.getSchemaId());
         copy.put("topic", selected.getTopic());
         copy.put("topicVersion", selected.getVersion());
-        response.set("simulationSpec", copy);
-        for (String field : java.util.List.of("explanation", "defaults"))
-            if (retry.has(field))
-                response.set(field, retry.get(field));
+        return copy;
     }
 
-    private ApiException planFailure(ApiException cause) {
-        return ApiException.unprocessable("Chưa dựng được mô hình tính toán từ mô tả này. Hãy mô tả rõ hơn tình huống hoặc thử lại. (Chi tiết: "
-                        + cause.getMessage() + ")");
+    private static String stageOf(JsonNode result) {
+        return result.path("stage").asText(result.path("status").asText());
     }
 
-    /**
-     * Intent-preserving fixes for common plan inconsistencies (no topic knowledge
-     * involved).
-     */
-    /**
-     * Participants bound identically (same law and the same binding for every input) are independent
-     * copies of one object: nothing in the plan relates one copy to another, so each may have its own
-     * value. Every slider such copies share is therefore split into one slider per copy (same label,
-     * value and range), which lets the interface change the copies together or one by one. This is
-     * only the fallback for what the planner left undecided: a slider it declared common
-     * (sharedQuantities) is never split, nor is one used outside the group, the duration, or one that
-     * feeds two different inputs of a participant (one quantity seen from two sides of an interaction).
-     * Purely structural: no knowledge of topics, laws or quantity names is involved.
-     */
-    private void splitReplicaParameters(ObjectNode spec) {
-        if (!(spec.path("parameters") instanceof ArrayNode parameters) || !spec.path("physicsModels").isArray())
-            return;
-        String duration = spec.path("durationParameter").asText("");
-        java.util.Set<String> common = new java.util.HashSet<>();
-        spec.path("sharedQuantities").forEach(name -> common.add(name.asText()));
-        Map<String, java.util.List<ObjectNode>> groups = new LinkedHashMap<>();
-        Map<String, Integer> usage = new LinkedHashMap<>();
-        for (JsonNode node : spec.path("physicsModels")) {
-            if (!(node instanceof ObjectNode model) || !model.path("inputs").isObject())
+    /** The approved formulas behind every participant, with the value that feeds each input. */
+    private ArrayNode formulas(JsonNode definition, JsonNode spec, JsonNode firstValues) {
+        ArrayNode formulas = json.createArrayNode();
+        for (JsonNode model : spec.path("physicsModels")) {
+            JsonNode capability = capabilityOf(definition, model.path("capabilityId").asText());
+            if (capability == null)
                 continue;
-            java.util.TreeMap<String, String> bindings = new java.util.TreeMap<>();
-            java.util.Set<String> bound = new java.util.HashSet<>();
-            model.path("inputs").fields().forEachRemaining(input -> {
-                bindings.put(input.getKey(), input.getValue().toString());
-                if (input.getValue().isTextual())
-                    bound.add(input.getValue().asText());
-            });
-            bound.forEach(name -> usage.merge(name, 1, Integer::sum));
-            groups.computeIfAbsent(model.path("capabilityId").asText() + "\n" + bindings, key -> new java.util.ArrayList<>())
-                    .add(model);
+            ObjectNode formula = formulas.addObject();
+            formula.put("modelId", model.path("id").asText());
+            formula.put("label", model.path("label").asText(model.path("id").asText()));
+            formula.put("capabilityId", capability.path("capabilityId").asText());
+            formula.set("canonical", capability.path("equationSet").path("canonical"));
+            formula.set("derived", capability.path("equationSet").path("derived"));
+            formula.set("assumptions", capability.path("assumptions"));
+            formula.set("bindings", formulaBindings(definition, capability, model, spec, firstValues));
         }
-        java.util.Set<String> names = new java.util.HashSet<>();
-        parameters.forEach(parameter -> names.add(parameter.path("name").asText()));
-        Map<String, java.util.List<ObjectNode>> copies = new LinkedHashMap<>();
-        for (java.util.List<ObjectNode> group : groups.values()) {
-            if (group.size() < 2)
-                continue;
-            java.util.Set<String> shared = new java.util.LinkedHashSet<>(), twoSided = new java.util.HashSet<>();
-            group.get(0).path("inputs").forEach(value -> {
-                if (value.isTextual() && !shared.add(value.asText()))
-                    twoSided.add(value.asText());
-            });
-            shared.removeAll(twoSided);
-            shared.removeAll(common);
-            for (String name : shared) {
-                ObjectNode original = null;
-                for (JsonNode parameter : parameters)
-                    if (parameter instanceof ObjectNode candidate && candidate.path("name").asText().equals(name))
-                        original = candidate;
-                if (original == null || name.equals(duration) || usage.getOrDefault(name, 0) != group.size())
-                    continue;
-                java.util.List<ObjectNode> split = new java.util.ArrayList<>();
-                for (ObjectNode model : group) {
-                    String base = name + "_" + model.path("id").asText().replaceAll("[^A-Za-z0-9_]", "_");
-                    String unique = base;
-                    for (int suffix = 2; names.contains(unique); suffix++)
-                        unique = base + "_" + suffix;
-                    names.add(unique);
-                    ObjectNode copy = original.deepCopy();
-                    copy.put("name", unique);
-                    split.add(copy);
-                    ObjectNode inputs = (ObjectNode) model.path("inputs");
-                    java.util.List<String> keys = new java.util.ArrayList<>();
-                    inputs.fields().forEachRemaining(input -> {
-                        if (input.getValue().isTextual() && input.getValue().asText().equals(name))
-                            keys.add(input.getKey());
-                    });
-                    for (String key : keys)
-                        inputs.put(key, unique);
-                }
-                copies.put(name, split);
-            }
-        }
-        if (copies.isEmpty())
-            return;
-        ArrayNode rebuilt = json.createArrayNode();
-        for (JsonNode parameter : parameters) {
-            java.util.List<ObjectNode> split = copies.get(parameter.path("name").asText());
-            if (split == null)
-                rebuilt.add(parameter);
-            else
-                rebuilt.addAll(split);
-        }
-        spec.set("parameters", rebuilt);
+        return formulas;
     }
 
-    private void normalizePlan(ObjectNode spec) {
-        if (spec == null || spec.isMissingNode())
-            return;
-        splitReplicaParameters(spec);
-        Map<String, ObjectNode> parameters = new LinkedHashMap<>();
-        for (JsonNode parameter : spec.path("parameters")) {
-            if (!(parameter instanceof ObjectNode p))
-                continue;
-            parameters.put(p.path("name").asText(), p);
-            double value = p.path("value").asDouble(Double.NaN);
-            if (Double.isFinite(value)) {
-                if (p.has("min") && p.path("min").asDouble() > value)
-                    p.put("min", value);
-                if (p.has("max") && p.path("max").asDouble() < value)
-                    p.put("max", value);
-            }
-        }
-        double duration = spec.path("durationSeconds").asDouble(Double.NaN);
-        String key = spec.path("durationParameter").asText("");
-        if (spec.has("durationParameter") && (spec.path("durationParameter").isNull() || key.isBlank()))
-            spec.remove("durationParameter");
-        else if (!key.isBlank()) {
-            ObjectNode named = parameters.get(key);
-            if (named == null || !"s".equals(named.path("unit").asText())) {
-                ObjectNode match = null;
-                for (ObjectNode p : parameters.values())
-                    if ("s".equals(p.path("unit").asText()) && p.path("value").asDouble(Double.NaN) == duration)
-                        match = p;
-                if (match != null)
-                    spec.put("durationParameter", match.path("name").asText());
-                else
-                    spec.remove("durationParameter");
-            } else if (!Double.isFinite(duration) || duration <= 0) {
-                spec.put("durationSeconds", named.path("value").asDouble());
-            } else if (named.path("value").asDouble() != duration) {
-                named.put("value", duration);
-                if (named.path("max").asDouble(Double.MAX_VALUE) < duration)
-                    named.put("max", duration);
-                if (named.path("min").asDouble(0) > duration)
-                    named.put("min", duration);
-            }
-        }
-    }
-
-    private JsonNode askLlm(String description, SchemaVersion selected) {
-        return askLlm(description, selected, null);
+    private static JsonNode capabilityOf(JsonNode definition, String capabilityId) {
+        for (JsonNode capability : definition.path("capabilities"))
+            if (capability.path("capabilityId").asText().equals(capabilityId))
+                return capability;
+        return null;
     }
 
     /**
@@ -700,10 +524,7 @@ public class AIService {
             quantities.put(quantity.path("key").asText(), quantity);
         for (JsonNode model : brief.path("physicsModels")) {
             String id = model.path("id").asText();
-            JsonNode capability = null;
-            for (JsonNode candidate : definition.path("capabilities"))
-                if (candidate.path("capabilityId").asText().equals(model.path("capabilityId").asText()))
-                    capability = candidate;
+            JsonNode capability = capabilityOf(definition, model.path("capabilityId").asText());
             if (id.isBlank() || capability == null)
                 continue;
             Map<String, String> roles = new LinkedHashMap<>();
@@ -721,6 +542,8 @@ public class AIService {
                 JsonNode quantity = quantities.get(key);
                 if (quantity != null)
                     field.put("label", quantity.path("label").asText(key));
+                if (quantity != null && !quantity.path("aliases").path(0).asText("").isBlank())
+                    field.put("symbol", quantity.path("aliases").path(0).asText());
                 String role = roles.get(key);
                 if (role != null)
                     field.put("rendererRole", role);
@@ -738,7 +561,8 @@ public class AIService {
      * a wrong binding
      * (e.g. a "half-life" slider feeding a decay constant) before confirming.
      */
-    private ArrayNode formulaBindings(JsonNode definition, JsonNode capability, JsonNode model, JsonNode spec) {
+    private ArrayNode formulaBindings(JsonNode definition, JsonNode capability, JsonNode model, JsonNode spec,
+            JsonNode firstValues) {
         Map<String, String> labels = new LinkedHashMap<>();
         for (JsonNode quantity : definition.path("quantityDefinitions"))
             labels.put(quantity.path("key").asText(), quantity.path("label").asText());
@@ -759,6 +583,20 @@ public class AIService {
                 row.put("parameter", binding.asText());
                 row.put("parameterLabel", parameter.path("label").asText(binding.asText()));
                 row.set("value", parameter.path("value"));
+            } else if (binding.isTextual()) {
+                // "<participant>.<output>": the result of another participant's approved law
+                String reference = binding.asText(), source = reference.substring(0, Math.max(0, reference.lastIndexOf('.')));
+                row.put("source", "OUTPUT");
+                row.put("participant", source);
+                for (JsonNode other : spec.path("physicsModels"))
+                    if (other.path("id").asText().equals(source))
+                        row.put("participantLabel", other.path("label").asText(source));
+                row.put("output", reference.substring(reference.lastIndexOf('.') + 1));
+                row.put("outputLabel", labels.getOrDefault(reference.substring(reference.lastIndexOf('.') + 1), reference));
+                if (firstValues.path(reference).isNumber())
+                    row.set("value", firstValues.path(reference));
+                else
+                    row.putNull("value");
             } else if (binding.isNumber()) {
                 row.put("source", "FIXED");
                 row.set("value", binding);
@@ -819,41 +657,6 @@ public class AIService {
             });
         }
         return result;
-    }
-
-    /**
-     * Participants nothing on stage illustrates: no scene body, no scene instrument
-     * on one of its fields
-     * and no reference to "<id>" in the program. Programs that iterate
-     * api.scene.participants bind every participant.
-     */
-    private static java.util.List<String> unboundParticipants(JsonNode program, JsonNode brief) {
-        String code = program.path("code").asText("");
-        java.util.Set<String> bodies = new java.util.HashSet<>();
-        program.path("scene").path("bodies").forEach(body -> {
-            if (!body.path("svg").asText("").isBlank())
-                bodies.add(body.path("id").asText());
-        });
-        program.path("scene").path("instruments").forEach(instrument -> {
-            String field = instrument.path("field").asText("");
-            if (field.indexOf('.') > 0 && !instrument.path("svg").asText("").isBlank())
-                bodies.add(field.substring(0, field.indexOf('.')));
-        });
-        boolean generic = code.contains(".participants");
-        java.util.List<String> unbound = new java.util.ArrayList<>();
-        for (JsonNode model : brief.path("physicsModels")) {
-            String id = model.path("id").asText();
-            if (id.isBlank() || bodies.contains(id) || generic)
-                continue;
-            if (!code.contains("'" + id + ".") && !code.contains("\"" + id + ".") && !code.contains("`" + id + ".")
-                    && !code.contains("'" + id + "'") && !code.contains("\"" + id + "\""))
-                unbound.add(id);
-        }
-        return unbound;
-    }
-
-    private static String truncate(String value, int max) {
-        return value.length() <= max ? value : value.substring(0, max);
     }
 
     /**
@@ -921,4 +724,3 @@ public class AIService {
 
 
 }
-

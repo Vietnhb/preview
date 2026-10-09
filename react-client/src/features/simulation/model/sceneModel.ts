@@ -19,7 +19,7 @@ export type FieldMeta = QuantityInfo & { key: string; participantId: string; qua
   /** Renderer role declared by the approved capability (state_value, position …), when the backend supplied it. */
   role?: string };
 /** Optional per-field metadata from the backend (units/labels taken from the approved schema). */
-export type BackendFieldMeta = Record<string, { unit?: string; label?: string; quantity?: string; rendererRole?: string }>;
+export type BackendFieldMeta = Record<string, { unit?: string; label?: string; symbol?: string; quantity?: string; rendererRole?: string }>;
 /** Input names that mean "uniform gravitational field" (not the gravitational constant). */
 const GRAVITY_INPUT = /gravitational_acceleration|(^|_)gravity(_|$)/i;
 /** Display form of SI unit strings used in schemas (m/s^2 → m/s², degC → °C, ohm → Ω, m3 → m³). */
@@ -141,7 +141,9 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
     let min = Infinity, max = -Infinity;
     for (const value of series[key]) { if (value < min) min = value; if (value > max) max = value; }
     const info = quantityInfo(quantity), supplied = backendMeta[key];
-    fields[key] = { ...info, key, participantId, quantity, min, max,
+    /* a quantity outside the shared vocabulary takes its name and symbol from the approved catalog */
+    const symbol = QUANTITIES[quantity] ? info.symbol : supplied?.symbol || supplied?.label || info.symbol;
+    fields[key] = { ...info, key, participantId, quantity, min, max, symbol,
       unit: supplied?.unit ? prettyUnit(supplied.unit) : info.unit,
       label: info.kind === "scalar" && supplied?.label ? supplied.label.charAt(0).toUpperCase() + supplied.label.slice(1) : info.label,
       ...(supplied?.rendererRole ? { role: supplied.rendererRole } : {}) };

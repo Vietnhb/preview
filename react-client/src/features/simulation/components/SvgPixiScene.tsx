@@ -3,7 +3,8 @@ import pixiBundle from "../../../../node_modules/pixi.js/dist/webworker.min.js?r
 import purifierBundle from "../../../../node_modules/dompurify/dist/purify.min.js?raw";
 import Icon from "../../../shared/ui/LearningIcon";
 import { sampleTimeline, type SolverTimeline, type PixiVisualProgram } from "../model/svgScene";
-import { describeScene, formatNumber, formatTime, presentationRate, replayTooFast, type BackendFieldMeta, type SimulationModelRef } from "../model/sceneModel";
+import { describeScene, displayValue, formatNumber, formatTime, presentationRate, prettyUnit, replayTooFast, seriesColor,
+  type BackendFieldMeta, type SceneDescriptor, type SimulationModelRef } from "../model/sceneModel";
 import { createStageKit } from "../engine/stageKit";
 import SimulationCharts from "./SimulationCharts";
 import { useWorkspaceTheme } from "../hooks/useWorkspaceTheme";
@@ -223,7 +224,7 @@ function svgRoot(source) {
   });
   if (!/^<svg[\s>]/i.test(markup)) markup = '<svg xmlns="' + SVG_NS + '">' + markup + '</svg>';
   const cleaned = DOMPurify.sanitize(markup, {USE_PROFILES: {svg: true, svgFilters: true},
-    FORBID_TAGS: ['script','foreignObject','image','a','style','animate','animateTransform','set'],
+    FORBID_TAGS: ['script','foreignObject','image','a','style','animate','animateTransform','set','text','tspan','textPath'],
     FORBID_ATTR: ['href','xlink:href','style']});
   const root = new DOMParser().parseFromString(cleaned, 'text/html').body.firstElementChild;
   if (!root || root.localName !== 'svg') throw Error('SVG asset must contain drawable SVG elements.');
@@ -509,6 +510,7 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
       {error && <p role="alert" className="simulation-error">{error}</p>}
       {!error && !ready && <div className="sim-stage__loading" role="status"><span className="sim-spinner" /> Đang dựng cảnh…</div>}
     </div>
+    {!error && timeline.frames.length > 0 && <SceneReadouts scene={scene} values={sampleTimeline(timeline, time)} theme={theme} />}
     <div className="sim-transport">
       <button type="button" className="sim-icon-button sim-icon-button--primary" onClick={togglePlay}
         aria-label={playing ? "Tạm dừng" : "Phát"} title={playing ? "Tạm dừng" : "Phát"}>
@@ -531,4 +533,39 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
     </div>
     <SimulationCharts scene={scene} timeline={timeline} time={time} theme={theme} onSeek={seek} />
   </div>;
+}
+
+/**
+ * Live values of every participant at the current instant, outside the stage: the place and velocity
+ * quantities the participant has, or its first quantities when it has no place in space.
+ */
+function SceneReadouts({ scene, values, theme }: { scene: SceneDescriptor; values: Record<string, number>; theme: "LIGHT" | "DARK" }) {
+  if (!scene.participants.length) return null;
+  const item = (label: string, value: number, unit: string, scale = 0) =>
+    ({ label, text: formatNumber(value, 4, scale) + (unit ? " " + prettyUnit(unit) : "") });
+  return <dl className="sim-readouts" aria-label="Giá trị tại thời điểm đang xem">
+    {scene.participants.map(participant => {
+      const f = participant.fields, items: Array<{ label: string; text: string }> = [];
+      const add = (key: string | undefined) => {
+        const meta = key ? scene.fields[key] : undefined;
+        if (!key || !meta) return;
+        const shown = displayValue(meta, values[key]);
+        const factor = values[key] ? shown.value / values[key] : 1;
+        items.push(item(meta.symbol, shown.value, shown.unit, Math.max(Math.abs(meta.min), Math.abs(meta.max)) * Math.abs(factor)));
+      };
+      if (participant.dims === 2) { add(f.x); add(f.y); add(f.angle); } else add(f.position);
+      if (participant.dims === 2 && f.vx && f.vy && scene.fields[f.vx])
+        items.push(item("|v|", Math.hypot(values[f.vx], values[f.vy]), scene.fields[f.vx].unit));
+      else add(f.velocity);
+      if (!items.length) {
+        /* no place in space: the quantities its approved law declares for display first */
+        const own = Object.values(scene.fields).filter(meta => meta.participantId === participant.id);
+        for (const meta of [...own.filter(meta => meta.role), ...own.filter(meta => !meta.role)].slice(0, 2)) add(meta.key);
+      }
+      return <div className="sim-readouts__row" key={participant.id}>
+        <dt><span className="sim-readouts__dot" style={{ background: seriesColor(theme, participant.colorIndex) }} />{participant.label}</dt>
+        {items.map(entry => <dd key={entry.label}><span>{entry.label}</span>{entry.text}</dd>)}
+      </div>;
+    })}
+  </dl>;
 }

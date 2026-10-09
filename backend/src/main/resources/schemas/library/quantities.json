@@ -421,6 +421,13 @@
     "description": "từ hóa cân bằng",
     "aliases": []
   },
+  "equivalent_resistance": {
+    "label": "điện trở tương đương",
+    "description": "điện trở tương đương của một đoạn mạch",
+    "aliases": [
+      "R_td"
+    ]
+  },
   "expansion_coefficient": {
     "label": "hệ số nở dài",
     "description": "hệ số nở dài",
