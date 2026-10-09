@@ -21,6 +21,25 @@ function buildGroups(scene: SceneDescriptor, timeline: SolverTimeline, theme: Th
   const colorOf = new Map(scene.participants.map(item => [item.id, item.colorIndex]));
   const labelOf = new Map(scene.participants.map(item => [item.id, item.label]));
   const every = Math.max(1, Math.floor(timeline.frames.length / 480));
+  const pointsOf = (meta: FieldMeta) => {
+    const points: Array<[number, number]> = [], frames = timeline.frames;
+    for (let i = 0; i < frames.length; i += every) points.push([frames[i].t, displayValue(meta, frames[i].values[meta.key]).value]);
+    const lastFrame = frames[frames.length - 1];
+    if (lastFrame && points[points.length - 1]?.[0] !== lastFrame.t)
+      points.push([lastFrame.t, displayValue(meta, lastFrame.values[meta.key]).value]);
+    return points;
+  };
+  /* when the plan names the values the learner watches, the charts show those: one chart per unit, so values that
+     can be compared share an axis, each line named in the user's words (the table still lists every value) */
+  if (scene.observables.length) {
+    scene.observables.forEach((key, index) => {
+      const meta = scene.fields[key], unit = displayValue(meta, 0).unit, id = "watch:" + unit;
+      const group = groups.get(id) ?? { id, title: meta.label + " – thời gian", axis: meta.symbol, unit, series: [] };
+      groups.set(id, group);
+      group.series.push({ key, meta, points: pointsOf(meta), dashed: false, color: seriesColor(theme, index), name: meta.caption ?? meta.label });
+    });
+    return [...groups.values()];
+  }
   const groupOf = (meta: FieldMeta) => meta.kind === "scalar" ? "scalar:" + meta.quantity : meta.kind;
   const metas = Object.values(scene.fields).sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
   for (const meta of metas) {
@@ -32,14 +51,8 @@ function buildGroups(scene: SceneDescriptor, timeline: SolverTimeline, theme: Th
     const participantCount = new Set(members.map(item => item.participantId)).size;
     const ownCount = members.filter(item => item.participantId === meta.participantId).length;
     const who = labelOf.get(meta.participantId) ?? meta.participantId;
-    const points: Array<[number, number]> = [];
-    const frames = timeline.frames;
-    for (let i = 0; i < frames.length; i += every) points.push([frames[i].t, displayValue(meta, frames[i].values[meta.key]).value]);
-    const lastFrame = frames[frames.length - 1];
-    if (lastFrame && points[points.length - 1]?.[0] !== lastFrame.t)
-      points.push([lastFrame.t, displayValue(meta, lastFrame.values[meta.key]).value]);
     group.series.push({
-      key: meta.key, meta, points,
+      key: meta.key, meta, points: pointsOf(meta),
       dashed: group.series.some(item => item.meta.participantId === meta.participantId),
       color: seriesColor(theme, colorOf.get(meta.participantId) ?? 0),
       name: participantCount > 1 ? who + (ownCount > 1 ? " · " + meta.symbol : "") : meta.symbol + " (" + who + ")",
@@ -164,8 +177,8 @@ export default function SimulationCharts({ scene, timeline, time, theme, onSeek 
           const now = displayValue(meta, values[meta.key]), low = displayValue(meta, meta.min), high = displayValue(meta, meta.max);
           const scale = Math.max(Math.abs(low.value), Math.abs(high.value));
           return <tr key={meta.key}>
-            <td>{labelOf.get(meta.participantId) ?? meta.participantId}</td>
-            <td>{meta.label}{meta.symbol.toLowerCase() !== meta.label.toLowerCase() && <> <span className="sim-muted">({meta.symbol})</span></>}</td>
+            <td>{meta.object ?? labelOf.get(meta.participantId) ?? meta.participantId}</td>
+            <td>{meta.caption ?? meta.label}{!meta.caption && meta.symbol.toLowerCase() !== meta.label.toLowerCase() && <> <span className="sim-muted">({meta.symbol})</span></>}</td>
             <td className="sim-num">{formatNumber(now.value, 4, scale)} {now.unit}</td>
             <td className="sim-num">{formatNumber(low.value, 4, scale)} {low.unit}</td>
             <td className="sim-num">{formatNumber(high.value, 4, scale)} {high.unit}</td>

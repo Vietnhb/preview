@@ -138,6 +138,7 @@ export default function SimulationThumb({ simulationId }: Readonly<{ simulationI
         parameters={scene.savedParameters ?? Object.fromEntries(scene.parameters.map(parameter => [parameter.name, parameter.value]))}
         models={scene.simulationSpec.physicsModels}
         fieldMeta={scene.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
+        observables={scene.simulationSpec.observables}
         verificationStatus={scene.validation?.status ?? "VISUAL_ONLY_UNVERIFIED"} />
       : curve ? <>
         <svg className="simulation-thumb__plot" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Bản xem trước: ${curve.label.toLocaleLowerCase("vi")}`} preserveAspectRatio="xMidYMid meet">

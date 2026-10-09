@@ -60,6 +60,19 @@
             },
             "required": ["label", "count"]
           }
+        },
+        "observables": {
+          "type": "array",
+          "description": "The computed results the learner watches, most important first.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": { "type": "string", "description": "A participant id, a dot and one of its output keys." },
+              "object": { "type": "string", "description": "The object it belongs to, named as in requiredObjects." },
+              "label": { "type": "string", "description": "Its name in the user's words." }
+            },
+            "required": ["field", "object", "label"]
+          }
         }
       },
       "required": []

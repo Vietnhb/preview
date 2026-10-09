@@ -27,6 +27,8 @@ export type StageHost = {
   fail?(message: string): void;
   /** Average luminance (0–1) of a viewport texture, when the bridge measured it. */
   luma?(texture: PixiNS.Texture): number | undefined;
+  /** Where an artwork texture is drawn: a coarse grid over the whole texture, 1 = ink, 0 = transparent. */
+  ink?(texture: PixiNS.Texture): { w: number; h: number; data: Uint8Array } | undefined;
   /**
    * Private channel to the trusted runtime (never exposed to generated code): every kit
    * scene registers its internals so the runtime can keep solver-bound visuals in place
@@ -86,8 +88,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * power;
   }
   /** scale: typical magnitude of the quantity; only values negligible against it print as 0 (so 5×10⁻²⁹ kg is shown). */
-  /** "label (symbol)", or the label alone when the quantity has no symbol of its own. */
-  function named(meta: { label: string; symbol: string }) {
+  /** The name a watched value has in the user's words, else "label (symbol)" (the label alone when the symbol says the same). */
+  function named(meta: { label: string; symbol: string; caption?: string }) {
+    if (meta.caption) return meta.caption;
     return meta.symbol && meta.symbol.toLowerCase() !== meta.label.toLowerCase() ? meta.label + " (" + meta.symbol + ")" : meta.label;
   }
   /** Shortens a one-line label with an ellipsis until it fits the given width. */
@@ -201,7 +204,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
   function standardScene(options: SceneOptions = {}) {
     /* The stage shows the phenomenon only: clock, legend, live values and the verification state belong to
        the surrounding interface, which renders them from the same solver data. */
-    const show = { bodies: true, labels: true, hud: false, strobe: true, vectors: true, axes: true, trails: true,
+    const show = { bodies: true, labels: true, strobe: true, vectors: true, axes: true, trails: true,
       links: true, supports: true, angles: true, ...options, hud: false };
     const root = new PIXI.Container();
     root.label = "physlive-standard-scene";
@@ -253,7 +256,12 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       flow: { t: number[]; q: number[]; norm: number } | null;
       shown: { t: number; value: number; fraction: number } | null;
       /** the instrument whose artwork this one's moving part is drawn on (one apparatus, several fields) */
-      on: Instrument | null };
+      on: Instrument | null; labelAnchor: Pt | null;
+      /** relative area in the layout (1 = ordinary drawing, larger = the main drawing) */
+      size: number;
+      /** where each described object is in this drawing (art pixels), so values can be checked against their object */
+      components: Array<{ object: string; box: Rect }>;
+      ink: { w: number; h: number; data: Uint8Array } | null };
     let instruments: Instrument[] = [];
     /**
      * Fixtures: generated artwork of things that do not move (wall, stop, pulley block, fixed charge, platform…)
@@ -271,8 +279,6 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       frame: string;
       baseW: number; baseH: number; world: Pt | null; screen: Pt | null; k: number; rotation: number; mirror: number };
     let fixtures: Fixture[] = [];
-    /** Participants whose non-spatial state is visible on stage (instrument or meter card), rebuilt by build(). */
-    let meterCovered = new Set<string>();
     let updatedThisFrame = false;
     let laneHeight = 80;
     /** Viewport-sized environment artwork (generated SVG) redrawn from the physics layout. */
@@ -330,8 +336,6 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     }
 
     // ---------------------------------------------------------------- instruments
-    /** Readable number of meter cards beside a moving scene; beyond it the values stay in the data table. */
-    const METER_STRIP_MAX = 8;
     /** A participant whose changing state is not shown by motion: no place in space, or a fixed place (probe, source). */
     function needsMeter(participant: SceneParticipant) {
       if (participant.dims === 0) return true;
@@ -339,11 +343,17 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       return Object.values(host.data().scene.fields).some(meta => meta.participantId === participant.id
         && meta.max - meta.min > 1e-12 * Math.max(1, Math.abs(meta.max), Math.abs(meta.min)));
     }
-    /** Meter-card fields for state-only participants that have no instrument (the declared state_value first). */
-    function meterKeys(stateOnly: SceneParticipant[], max: number): FieldMeta[] {
-      const scene = host.data().scene, out: FieldMeta[] = [];
-      for (const participant of stateOnly) {
-        if (out.length >= max || instruments.some(item => item.participantId === participant.id && item.drive.property !== "none")) continue;
+    /** The values the plan asks the learner to watch, most important first. */
+    function watched(): FieldMeta[] {
+      const scene = host.data().scene;
+      return (scene.observables ?? []).map(key => scene.fields[key]).filter((meta): meta is FieldMeta => !!meta);
+    }
+    /** Values a stage of meter cards shows: the watched values, or else the main quantity of every participant whose
+        state is not shown by motion (the declared state_value first). */
+    function meterKeys(): FieldMeta[] {
+      const scene = host.data().scene, out = watched();
+      if (out.length) return out;
+      for (const participant of scene.participants.filter(needsMeter)) {
         const own = Object.values(scene.fields).filter(meta => meta.participantId === participant.id && (meta.kind !== "angle" || meta.unit !== "rad"));
         const pick = own.find(meta => meta.role === "state_value") ?? own.find(meta => meta.max - meta.min > 1e-12 * Math.max(1, Math.abs(meta.max))) ?? own[0];
         if (pick) out.push(pick);
@@ -400,10 +410,47 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     }
     const scaleOf = (ins: Instrument) => Math.max(Math.abs(ins.lo), Math.abs(ins.hi));
     const lerp = (ins: Instrument, f: number) => ins.drive.from + f * (ins.drive.to - ins.drive.from);
+    /** Share of a box (in the drawing's own pixels) where the drawing has ink; 1 when its ink is unknown. */
+    function inkShare(drawing: Instrument, box: Rect) {
+      const ink = drawing.ink;
+      if (!ink) return 1;
+      const sx = ink.w / drawing.baseW, sy = ink.h / drawing.baseH;
+      const i0 = Math.max(0, Math.floor(box.x * sx)), i1 = Math.min(ink.w, Math.ceil((box.x + box.w) * sx));
+      const j0 = Math.max(0, Math.floor(box.y * sy)), j1 = Math.min(ink.h, Math.ceil((box.y + box.h) * sy));
+      let hits = 0;
+      for (let j = j0; j < j1; j++) for (let i = i0; i < i1; i++) hits += ink.data[j * ink.w + i];
+      return hits / Math.max(1, box.w * sx * box.h * sy);
+    }
     /** Lay out instrument cells inside rect (null = none visible) and draw their scale marks where the mapping has a place for them. */
     function placeInstruments(rect: Rect | null, p: ReturnType<typeof palette>) {
       const scene = host.data().scene;
-      instruments.forEach((ins, index) => {
+      const standalone = instruments.filter(item => !item.on);
+      /* Drawings share the rect by their declared size (relative area), in list order: the list is cut where the
+         sizes balance, along whichever side lets the drawings appear larger. */
+      const fitted = (item: Instrument, cell: Rect) => {
+        const k = Math.max(0, Math.min((cell.w - 16) / item.baseW, (cell.h - 16) / item.baseH));
+        return item.baseW * item.baseH * k * k;
+      };
+      const partition = (items: Instrument[], area: Rect): { cells: Map<Instrument, Rect>; score: number } => {
+        if (items.length === 1) return { cells: new Map([[items[0], area]]), score: fitted(items[0], area) };
+        const total = items.reduce((sum, item) => sum + item.size, 0);
+        let cut = 1, before = items[0].size;
+        while (cut < items.length - 1 && Math.abs(2 * (before + items[cut].size) - total) < Math.abs(2 * before - total)) before += items[cut++].size;
+        let best: { cells: Map<Instrument, Rect>; score: number } | null = null;
+        for (const across of [true, false]) {
+          const first: Rect = across ? { ...area, w: area.w * before / total } : { ...area, h: area.h * before / total };
+          const second: Rect = across ? { x: area.x + first.w, y: area.y, w: area.w - first.w, h: area.h }
+            : { x: area.x, y: area.y + first.h, w: area.w, h: area.h - first.h };
+          const a = partition(items.slice(0, cut), first), b = partition(items.slice(cut), second);
+          if (!best || a.score + b.score > best.score) best = { cells: new Map([...a.cells, ...b.cells]), score: a.score + b.score };
+        }
+        return best!;
+      };
+      const cells = rect && standalone.length ? partition(standalone, rect).cells : new Map<Instrument, Rect>();
+      const occupied: Rect[] = [];
+      const overlap = (a: Rect, b: Rect) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x))
+        * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+      instruments.forEach(ins => {
         /* the scale follows the current solver timeline unless the generator fixed it (parameter edits recompute it) */
         const current = scene.fields[ins.key], d = ins.drive;
         if (current) {
@@ -416,42 +463,79 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         ins.caption = null; ins.readout = null;
         ins.inner.visible = !!rect;
         if (!rect) return;
-        const standalone = instruments.filter(item => !item.on), slot = standalone.indexOf(ins.on ?? ins);
-        const n = standalone.length, columns = mode === "board" ? Math.min(n, 4) : n, rows = Math.ceil(n / columns);
-        const cw = rect.w / columns, ch = rect.h / rows;
-        const cell = { x: rect.x + (slot % columns) * cw, y: rect.y + Math.floor(slot / columns) * ch, w: cw, h: ch };
-        const captionH = 34, area = { x: cell.x + 6, y: cell.y + 4, w: Math.max(10, cell.w - 12), h: Math.max(10, cell.h - captionH - 8) };
+        const cell = cells.get(ins.on ?? ins)!;
+        const captionH = ins.on || instruments.some(item => item.on === ins) ? 0 : 40, area = { x: cell.x + 6, y: cell.y + 4, w: Math.max(10, cell.w - 12), h: Math.max(10, cell.h - captionH - 8) };
         if (ins.on) {
           /* drawn in the frame of the apparatus it belongs to */
           ins.k = ins.on.k; ins.center = ins.on.center;
           ins.inner.pivot.set(ins.on.baseW / 2, ins.on.baseH / 2);
         } else {
-          ins.k = Math.min(area.w / Math.max(1, ins.baseW), area.h / Math.max(1, ins.baseH)) * 0.9;
+          ins.k = Math.min(area.w / Math.max(1, ins.baseW), area.h / Math.max(1, ins.baseH));
           ins.center = { x: area.x + area.w / 2, y: area.y + area.h / 2 };
           ins.inner.pivot.set(ins.baseW / 2, ins.baseH / 2);
         }
         const k = ins.k;
-        /* the apparatus's readings share its caption row, one column per field */
-        const group = instruments.filter(item => (item.on ?? item) === (ins.on ?? ins)), column = group.indexOf(ins);
-        const colW = cell.w / group.length, colX = cell.x + colW * (column + 0.5);
         const meta = scene.fields[ins.key];
-        const track = tracks.find(item => item.p.id === ins.participantId);
-        const who = scene.participants.length > 1 && track && group.length === 1 ? track.p.label + " · " : "";
-        ins.caption = fit(text(ins.label || (who + (meta ? named(meta) : ins.key)),
-          { size: 11.5, weight: "600", color: p.muted, anchorX: 0.5, anchorY: 0 }), colW - 8);
-        ins.caption.position.set(colX, cell.y + cell.h - captionH);
-        ins.readout = text("", { size: 14, weight: "700", color: p.ink, anchorX: 0.5, anchorY: 0, mono: true });
-        ins.readout.position.set(colX, cell.y + cell.h - captionH + 15);
-        ins.ticks.addChild(ins.caption, ins.readout);
-        /* scale marks (lo / mid / hi) wherever the declared mapping puts those values */
         const local = (x: number, y: number): Pt => ({ x: ins.center.x + (x - ins.baseW / 2) * k, y: ins.center.y + (y - ins.baseH / 2) * k });
+        // Labels belong to the part they explain. Old scenes acquire an anchor from their mapping.
+        const anchor = ins.labelAnchor ?? (ins.on && ins.drive.path.length > 1
+          ? alongPath(ins.drive.path, 0.5, false) : ins.on ? ins.drive.pivot : null);
+        const hasChildren = instruments.some(item => item.on === ins);
+        if (!hasChildren || ins.key) {
+          const labelWidth = Math.max(48, Math.min(172, cell.w - 24));
+          ins.caption = fit(text(ins.label || (meta ? named(meta) : ""),
+            { size: 13, weight: "600", color: p.ink, halo: false }), labelWidth);
+          ins.readout = text("", { size: 15, weight: "700", color: p.ink, halo: false, mono: true });
+          const samples = meta ? [meta.min, meta.max].map(value => format(value, meta.unit, 3, scaleOf(ins))) : [];
+          const measure = text(samples.sort((a, b) => b.length - a.length)[0] || "", { size: 15, mono: true });
+          const w = Math.min(cell.w - 8, Math.max(ins.caption.width, measure.width) + 20), h = ins.key ? 49 : 30;
+          measure.destroy();
+          const at = anchor ? local(anchor.x, anchor.y) : { x: cell.x + cell.w / 2, y: cell.y + cell.h - h - 4 };
+          const gap = Math.max(ins.caption.height, ins.readout.height) * 1.6;
+          const candidates = anchor ? [
+            { x: at.x + gap, y: at.y - h / 2 }, { x: at.x - w - gap, y: at.y - h / 2 },
+            { x: at.x - w / 2, y: at.y - h - gap }, { x: at.x - w / 2, y: at.y + gap },
+          ] : [{ x: at.x - w / 2, y: at.y }];
+          // Search available space as well as the four nearby positions. Dense scenes are not
+          // forced into a fixed list of corners; the sampling follows the measured label size.
+          if (anchor) {
+            const nx = Math.max(1, Math.ceil(cell.w / Math.max(w, 1)));
+            const ny = Math.max(1, Math.ceil(cell.h / Math.max(h, 1)));
+            for (let y = 0; y <= ny; y++) for (let x = 0; x <= nx; x++)
+              candidates.push({ x: cell.x + (cell.w - w) * x / nx, y: cell.y + (cell.h - h) * y / ny });
+          }
+          const boxes = candidates.map(q => ({ x: Math.max(cell.x + 4, Math.min(cell.x + cell.w - w - 4, q.x)),
+            y: Math.max(cell.y + 4, Math.min(cell.y + cell.h - h - 4, q.y)), w, h }));
+          const protectedPoints = instruments.filter(item => (item.on ?? item) === (ins.on ?? ins)).flatMap(item => {
+            const point = item.labelAnchor ?? (item.on && item.drive.path.length > 1
+              ? alongPath(item.drive.path, 0.5, false) : item.on ? item.drive.pivot : null);
+            return point ? [local(point.x, point.y)] : [];
+          });
+          const drawing = ins.on ?? ins;
+          /* share of the box over the drawing's ink (components, wires): callouts go on empty paper where they can */
+          const covered = (q: Rect) => !drawing.ink ? 0 : inkShare(drawing, { x: (q.x - drawing.center.x) / drawing.k + drawing.baseW / 2,
+            y: (q.y - drawing.center.y) / drawing.k + drawing.baseH / 2, w: q.w / drawing.k, h: q.h / drawing.k });
+          const score = (q: Rect) => occupied.reduce((sum, other) => sum + overlap(q, other) * 1000, 0) + covered(q) * q.w * q.h * 3
+            + protectedPoints.reduce((sum, point) => sum + overlap(q, { x: point.x - gap, y: point.y - gap, w: gap * 2, h: gap * 2 }) * 100, 0)
+            + Math.hypot(q.x + q.w / 2 - at.x, q.y + q.h / 2 - at.y);
+          const box = boxes.reduce((best, q) => score(q) < score(best) ? q : best);
+          occupied.push(box);
+          const panel = new PIXI.Graphics();
+          if (anchor) panel.moveTo(at.x, at.y).lineTo(Math.max(box.x, Math.min(box.x + box.w, at.x)),
+            Math.max(box.y, Math.min(box.y + box.h, at.y))).stroke({ color: p.faint, width: 1 }).circle(at.x, at.y, 2.5).fill({ color: p.muted });
+          panel.roundRect(box.x, box.y, box.w, box.h, 7).fill({ color: p.panel, alpha: 0.94 }).stroke({ color: p.gridMajor, width: 1 });
+          ins.caption.position.set(box.x + 10, box.y + 6);
+          ins.readout.position.set(box.x + 10, box.y + 25);
+          ins.ticks.addChild(panel, ins.caption, ins.readout);
+        }
+        /* scale marks (lo / mid / hi) wherever the declared mapping puts those values */
         const unit = meta?.unit ?? "";
         const mark = (value: number, at: Pt, dx: number, dy: number) => {
           const label = text(format(value, unit, 3, scaleOf(ins)), { size: 10, color: p.muted, anchorX: 0.5 - dx * 0.5, anchorY: 0.5 - dy * 0.5, weight: "500" });
           label.position.set(at.x + dx * 4, at.y + dy * 4); ins.ticks.addChild(label);
         };
         const values: Array<[number, number]> = [[ins.lo, 0], [(ins.lo + ins.hi) / 2, 0.5], [ins.hi, 1]];
-        /* a part drawn on a set-up has its reading printed under the drawing; its scale is the generator's own art */
+        /* Attached parts use callouts; scales stay on standalone instruments. */
         if (ins.on) {
           /* no scale marks */
         } else if (d.property === "rotate" && !d.useFieldAngle && ins.parts[0]) {
@@ -470,6 +554,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
           }
         }
       });
+      for (const ins of instruments) instrumentLayer.addChild(ins.ticks);
       /* parts travelling on one drawing in the same unit share one speed scale, so the drawing compares them
          (twice the current = twice as fast, whatever the length of each path); the first one sets the scale */
       const scales = new Map<string, number>();
@@ -482,6 +567,11 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         if (perUnit === undefined) scales.set(group, length / ins.flow.norm);
         else ins.flow.norm = length / perUnit;
       }
+    }
+    function instrumentReading(ins: Instrument, value: number) {
+      const meta = host.data().scene.fields[ins.key];
+      return !meta ? "" : meta.kind === "angle" && meta.unit === "rad"
+        ? format(value * 180 / Math.PI, "°").replace(" °", "°") : format(value, meta.unit, 3, scaleOf(ins));
     }
     function drawInstrument(ins: Instrument, value: number, time: number) {
       const d = ins.drive, f = fractionOf(ins, value), amount = lerp(ins, f);
@@ -514,13 +604,12 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         const phase = Number.isFinite(ins.flow.norm) ? flowAt(ins.flow, time) / ins.flow.norm : 0;
         const closed = Math.hypot(d.path[0].x - d.path[d.path.length - 1].x, d.path[0].y - d.path[d.path.length - 1].y) < 1e-6;
         ins.movers.forEach((copy, i) => {
-          const q = alongPath(d.path, i / ins.movers.length + phase, closed);
+          /* copies keep circulating: one that leaves the end of an open path enters again at its start */
+          const s = i / ins.movers.length + phase, q = alongPath(d.path, s - Math.floor(s), closed);
           copy.position.set(q.x - d.path[0].x, q.y - d.path[0].y);
         });
       }
-      const meta = host.data().scene.fields[ins.key];
-      if (ins.readout) ins.readout.text = d.property === "none" || !meta ? "" : meta && meta.kind === "angle" && meta.unit === "rad"
-        ? format(value * 180 / Math.PI, "°").replace(" °", "°") : format(value, meta?.unit ?? "", 3, scaleOf(ins));
+      if (ins.readout) ins.readout.text = instrumentReading(ins, value);
       ins.shown = { t: time, value, fraction: f };
     }
     /**
@@ -528,7 +617,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
      * drive = how the field moves it (see Drive). Without part/drive it is a static picture of the participant.
      */
     function instrument(spec: { field: string; art?: PixiNS.Container | null; part?: PixiNS.Container | null; drive?: Partial<Drive>; label?: string;
-      on?: string | PixiNS.Container }) {
+      on?: string | PixiNS.Container; labelAnchor?: Pt; size?: number; components?: Array<{ object: string; box: Rect }> }) {
       const scene = host.data().scene, meta = spec && scene.fields[spec.field];
       /* field "" = a drawing of the set-up itself: static, no reading; other instruments draw their parts on it */
       const setup = !!spec && spec.field === "" && !spec.part;
@@ -548,6 +637,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         const q = value as Pt;
         return q && Number.isFinite(Number(q.x)) && Number.isFinite(Number(q.y)) ? { x: Number(q.x), y: Number(q.y) } : null;
       };
+      const labelAnchor = spec.labelAnchor === undefined ? null : point(spec.labelAnchor);
+      if (spec.labelAnchor !== undefined && !labelAnchor) throw Error("instrument(): labelAnchor must be a finite point.");
       const path = (Array.isArray(raw.path) ? raw.path : []).map(point).filter((q): q is Pt => !!q);
       if (["translate", "reveal", "travel"].includes(property) && path.length < 2)
         throw Error('instrument(): drive.property "' + property + '" needs drive.path with at least 2 points.');
@@ -558,6 +649,17 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       spec.art.position.set(0, 0); spec.art.scale.set(1); spec.art.rotation = 0;
       const b = spec.art.getLocalBounds();
       const baseW = on ? on.baseW : Math.max(1, b.x + b.width), baseH = on ? on.baseH : Math.max(1, b.y + b.height);
+      if (labelAnchor && (labelAnchor.x < 0 || labelAnchor.y < 0 || labelAnchor.x > baseW || labelAnchor.y > baseH))
+        throw Error("instrument(): labelAnchor must be inside its apparatus viewBox.");
+      const components = (Array.isArray(spec.components) ? spec.components : []).map(item => {
+        const box = item && item.box, name = item && typeof item.object === "string" ? item.object.trim() : "";
+        if (!name || !box || ![box.x, box.y, box.w, box.h].every(Number.isFinite) || !(box.w > 0 && box.h > 0))
+          throw Error("instrument(): every component needs an object name and a box {x, y, w, h} with positive size.");
+        if (box.x < -1e-6 * baseW || box.y < -1e-6 * baseH || box.x + box.w > baseW * (1 + 1e-6) || box.y + box.h > baseH * (1 + 1e-6))
+          throw Error('instrument(): component "' + name + '" lies outside its drawing.');
+        return { object: name, box: { x: box.x, y: box.y, w: box.w, h: box.h } };
+      });
+      if (on && components.length) throw Error("instrument(): components belong to the drawing itself, not to a part drawn on it.");
       const drive: Drive = { property, pivot: point(raw.pivot) ?? { x: baseW / 2, y: baseH / 2 }, path,
         from: number(raw.from, 0),
         to: number(raw.to, 1), copies: Math.max(1, Math.min(60, Math.round(number(raw.copies, 1)))),
@@ -584,7 +686,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       instrumentLayer.addChild(inner, ticks);
       instruments.push({ key: spec.field, participantId: meta ? meta.participantId : "", drive, art: spec.art, parts, movers, mask,
         label: typeof spec.label === "string" ? spec.label.slice(0, 60) : "", inner, caption: null, readout: null, ticks,
-        baseW, baseH, lo: 0, hi: 1, k: 1, center: { x: 0, y: 0 }, flow: null, shown: null, on });
+        baseW, baseH, lo: 0, hi: 1, k: 1, center: { x: 0, y: 0 }, flow: null, shown: null, on, labelAnchor,
+        size: Math.max(0.25, Math.min(6, Number(spec.size) > 0 ? Number(spec.size) : 1)), components,
+        ink: spec.art instanceof PIXI.Sprite ? host.ink?.(spec.art.texture) ?? null : null });
       build();
       return inner;
     }
@@ -774,12 +878,9 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       const compactLegend = scene.participants.length > 2;
       const legendRowH = compactLegend ? 19 : 36, legendRows = Math.min(scene.participants.length, compactLegend ? 6 : 3);
       const legendBottom = 12 + legendRows * legendRowH + (scene.participants.length > legendRows ? 16 : 0);
-      /* instrument strip: meters for participants without spatial motion, when something else moves in space */
-      const stateOnly = scene.participants.filter(needsMeter);
-      /* values are listed under the stage; the stage only carries meter cards when it would otherwise be empty */
-      const stripKeys: FieldMeta[] = [];
+      /* drawings share a strip under the motion when something moves in space; values are listed under the stage */
       const cells = instruments.filter(item => !item.on).length;
-      const stripCount = mode === "board" ? 0 : cells + stripKeys.length;
+      const stripCount = mode === "board" ? 0 : cells;
       const stripH = stripCount ? Math.max(88, Math.min(170, H * 0.26)) : 0;
       const top = show.hud ? Math.max(68, legendBottom + 16) : 20, bottom = H - (show.axes ? 46 : 20) - (stripH ? stripH + 10 : 0);
       const left = show.axes ? 58 : 20, right = W - 24;
@@ -1112,52 +1213,38 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       // --- instrument panel when nothing moves in space (circuits, heat, decay …)
       for (const child of gaugeLayer.removeChildren()) child.destroy({ children: true });
       gauges = [];
-      meterCovered = new Set(instruments.filter(item => item.drive.property !== "none").map(item => item.participantId));
-      const bound = new Set(instruments.filter(item => item.drive.property !== "none").map(item => item.key));
-      // Always shown in board mode: without it a non-spatial phenomenon would render an empty stage.
-      let cardKeys: FieldMeta[] = [], cardRect: Rect = view;
-      if (mode === "board") {
-        /* every participant's main quantity first, then the rest, so no participant is left without a meter */
-        const shown = Object.values(scene.fields).filter(meta => !bound.has(meta.key) && (meta.kind !== "angle" || meta.unit !== "rad"));
-        const primary = meterKeys(scene.participants.filter(item => !meterCovered.has(item.id)), Infinity);
-        /* with drawings on stage the drawings get the room: one card per participant they do not show (every value
-           is also listed under the stage); without drawings the cards are the stage */
-        cardKeys = instruments.length ? [] : [...primary, ...shown.filter(meta => !primary.includes(meta))].slice(0, Math.max(primary.length, 12));
-        if (instruments.length) {
-          const cardRows = Math.ceil(cardKeys.length / 4), cardsH = cardKeys.length ? Math.min(view.h * 0.3, cardRows * 62 + (cardRows - 1) * 14 + 10) : 0;
-          placeInstruments({ x: view.x, y: view.y, w: view.w, h: view.h - cardsH }, p);
-          cardRect = { x: view.x, y: view.y + view.h - cardsH, w: view.w, h: cardsH };
-        }
-      } else {
-        const strip: Rect = { x: 12, y: H - stripH - 8, w: W - 24, h: stripH };
-        if (stripCount) {
-          const cellW = strip.w / stripCount;
-          placeInstruments({ x: strip.x, y: strip.y, w: cellW * cells, h: strip.h }, p);
-          cardKeys = stripKeys;
-          cardRect = { x: strip.x + cellW * cells, y: strip.y, w: cellW * stripKeys.length, h: strip.h };
-        } else placeInstruments(null, p);
+      // Without drawings a non-spatial phenomenon is shown on meter cards; with drawings the drawings get the room
+      // (every value is also listed under the stage).
+      let cardKeys: FieldMeta[] = [];
+      if (mode !== "board") placeInstruments(stripCount ? { x: 12, y: H - stripH - 8, w: W - 24, h: stripH } : null, p);
+      else if (instruments.length) placeInstruments(view, p);
+      else {
+        /* the watched values (or every state-only participant's main quantity), then further values when the plan names none */
+        const primary = meterKeys();
+        const extra = watched().length ? [] : Object.values(scene.fields).filter(meta => !primary.includes(meta) && (meta.kind !== "angle" || meta.unit !== "rad"));
+        cardKeys = [...primary, ...extra].slice(0, Math.max(primary.length, 12));
       }
-      for (const meta of cardKeys) meterCovered.add(meta.participantId);
       if (cardKeys.length) {
-        const keys = cardKeys, box = cardRect;
-        const columns = mode !== "board" ? keys.length : instruments.length ? Math.min(4, keys.length) : keys.length > 6 ? 3 : keys.length > 2 ? 2 : 1;
+        const keys = cardKeys, box = view;
+        const columns = keys.length > 6 ? 3 : keys.length > 2 ? 2 : 1;
         const gap = 14, cardW = Math.min(360, (box.w - gap * (columns - 1)) / columns), cardH = 62;
         const rows = Math.ceil(keys.length / columns), blockH = rows * cardH + (rows - 1) * gap;
         const left = box.x + (box.w - (cardW * columns + gap * (columns - 1))) / 2;
         const top = Math.max(box.y, box.y + (box.h - blockH) / 2);
         keys.forEach((meta, index) => {
           const x = left + (index % columns) * (cardW + gap), y = top + Math.floor(index / columns) * (cardH + gap);
-          const track = tracks.find(item => item.p.id === meta.participantId);
-          const color = track ? track.color : p.axis;
+          /* a watched value keeps the colour it has in the charts; other values take their participant's */
+          const track = tracks.find(item => item.p.id === meta.participantId), watchIndex = scene.observables.indexOf(meta.key);
+          const tone = watchIndex >= 0 ? color(watchIndex) : track ? track.color : p.axis;
           const card = new PIXI.Graphics().roundRect(x, y, cardW, cardH, 10).fill({ color: p.panel, alpha: 0.9 }).stroke({ color: p.grid, width: 1 });
-          const who = scene.participants.length > 1 && track ? track.p.label + " · " : "";
+          const who = !meta.object && scene.participants.length > 1 && track ? track.p.label + " · " : "";
           const name = fit(text(who + named(meta), { size: 12, weight: "600", color: p.muted, halo: false }), cardW - 24);
           name.position.set(x + 12, y + 7);
           const value = text("", { size: 17, weight: "700", color: p.ink, halo: false, mono: true, anchorX: 1 });
           value.position.set(x + cardW - 12, y + 22);
           const bar = new PIXI.Graphics();
           gaugeLayer.addChild(card, bar, name, value);
-          gauges.push({ key: meta.key, x: x + 12, y: y + cardH - 18, w: cardW - 24, bar, value, min: Math.min(0, meta.min), max: Math.max(0, meta.max), color });
+          gauges.push({ key: meta.key, x: x + 12, y: y + cardH - 18, w: cardW - 24, bar, value, min: Math.min(0, meta.min), max: Math.max(0, meta.max), color: tone });
         });
       }
       // --- HUD: time, legend with live readouts, verification badge
@@ -1675,6 +1762,24 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
       const fmt = (v: number) => format(v, "", 4);
       type Snap = { t: number; nodes: Map<PixiNS.Container, { cx: number; cy: number; w: number; h: number; on: boolean; text: boolean }> };
       const snaps: Snap[] = [];
+      // 0. where a drawing says its objects are (components), they are drawn there and their values are shown on them
+      for (const drawing of instruments.filter(item => !item.on && item.components.length)) {
+        const name = '"' + (drawing.label || drawing.key || "set-up") + '"';
+        const reach = 0.04 * Math.max(drawing.baseW, drawing.baseH);
+        for (const c of drawing.components) if (inkShare(drawing, c.box) < 0.02)
+          add("drawing " + name + ': component "' + c.object + '" marks an empty region; its box must cover where that object is drawn.');
+        for (const item of instruments.filter(entry => (entry.on ?? entry) === drawing && entry.key && scene.fields[entry.key]?.object)) {
+          const object = scene.fields[item.key].object!, c = drawing.components.find(entry => entry.object === object);
+          if (!c) { add("drawing " + name + ': add components[] {object: "' + object + '", box} for where ' + item.key + " belongs."); continue; }
+          const d = item.drive, points: Pt[] = [];
+          if (d.path.length >= 2) for (let i = 0; i <= 24; i++) points.push(alongPath(d.path, i / 24, false));
+          if (["rotate", "scale", "opacity"].includes(d.property)) points.push(d.pivot);
+          if (item.labelAnchor) points.push(item.labelAnchor);
+          const inside = (q: Pt) => q.x >= c.box.x - reach && q.x <= c.box.x + c.box.w + reach && q.y >= c.box.y - reach && q.y <= c.box.y + c.box.h + reach;
+          if (points.length && !points.some(inside))
+            add(item.key + ' ("' + named(scene.fields[item.key]) + '") is shown away from "' + object + '": place its part or label on that object in the drawing.');
+        }
+      }
       for (const t of times) {
         run(t);
         const values = host.sample(t), W = app.screen.width, H = app.screen.height;
@@ -1710,15 +1815,15 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
             if (shown(art.item) < 0.2) add(track.p.id + ": artwork is hidden or transparent" + when + ".");
           } else if (!show.bodies) add(track.p.id + ": moving participant has no visible body (attach artwork or keep the kit body marker).");
         }
-        // 2. every state-only participant has a meter or instrument showing the verified value
-        const metered = scene.participants.filter(needsMeter);
-        /* only a stage made of meter cards must show every value itself; otherwise values are listed under the stage */
-        if (mode === "board" && !instruments.length) for (const participant of metered) if (!meterCovered.has(participant.id))
-          add(participant.id + ": its solver state is not shown on stage (add an instrument for one of its fields).");
+        // 2. a stage made of meter cards shows every value it is meant to show (otherwise values are listed under the stage)
+        if (mode === "board" && !instruments.length) for (const meta of meterKeys()) if (!gauges.some(gauge => gauge.key === meta.key))
+          add(meta.key + ": its solver value is not shown on stage (add an instrument for it).");
         for (const ins of instruments) {
           if (shown(ins.art) < 0.2 && !ins.key) add("instrument drawing \"" + ins.label + "\": artwork is hidden" + when + ".");
           if (!ins.key) continue;
           const value = values[ins.key];
+          if (ins.readout && (ins.readout.text !== instrumentReading(ins, value) || shown(ins.readout) < 0.2))
+            add("instrument " + ins.key + ": its visible readout does not match the solver value" + when + ".");
           if (!ins.shown || Math.abs(ins.shown.t - t) > 1e-9 * Math.max(1, t) || Math.abs(ins.shown.fraction - fractionOf(ins, value)) > 1e-6)
             add("instrument " + ins.key + ": indicator does not match the solver value " + fmt(value) + when + ".");
           if (shown(ins.art) < 0.2) add("instrument " + ins.key + ": artwork is hidden" + when + ".");
@@ -1894,7 +1999,8 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
 
   type BodySpec = { id: string; svg: string; facing?: "right" | "left" | "none"; rotate?: "none" | "velocity" | "link";
     anchor?: "auto" | "bottom" | "center"; sizeMeters?: number; size?: number; line?: string; solid?: boolean };
-  type InstrumentSpec = { field: string; svg: string; part?: string; label?: string; on?: string;
+  type InstrumentSpec = { field: string; svg: string; part?: string; label?: string; on?: string; labelAnchor?: Pt | null; size?: number;
+    components?: Array<{ object: string; box: Rect }>;
     drive?: { property?: string; pivot?: Pt; path?: Pt[]; from?: number; to?: number; copies?: number; useFieldAngle?: boolean;
       min?: number | null; max?: number | null } };
   type DriveName = "rotate" | "translate" | "scale" | "reveal" | "opacity" | "travel" | "none";
@@ -1902,7 +2008,7 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
     anchor?: Pt; sizeMeters?: number; solid?: boolean; angle?: number | null; angleParameter?: string; angleScale?: number; flipBy?: string; frame?: string };
   type LinkSpec = { from: string; to: string; color?: string; width?: number; dashed?: boolean };
   type IllustratedSpec = { environment?: string; environmentAnchorY?: number; surface?: string; support?: string; connector?: string; bodies?: BodySpec[];
-    instruments?: InstrumentSpec[]; links?: LinkSpec[]; fixtures?: FixtureSpec[];
+    instruments?: InstrumentSpec[]; annotations?: Array<{ on: string; label: string; field: string; anchor: Pt }>; links?: LinkSpec[]; fixtures?: FixtureSpec[];
     overlay?: { links?: boolean; axes?: boolean; grid?: boolean; trails?: boolean; strobe?: boolean; vectors?: boolean; labels?: boolean; angles?: boolean } };
   /**
    * Declarative illustrated scene: every visual comes from generated SVG, the kit
@@ -1974,11 +2080,24 @@ export function createStageKit(PIXI: typeof PixiNS, app: PixiNS.Application, hos
         part.scale.set(pvb.w * sx / Math.max(1e-9, part.texture.width), pvb.h * sy / Math.max(1e-9, part.texture.height));
       }
       const d = item.drive ?? {};
-      const registered = base.instrument({ field: item.field, art: sprite, part, label: item.label, on: onto ? hosts.get(item.on!) : undefined,
+      if (item.labelAnchor != null && !toLocal(item.labelAnchor)) throw Error('instrument: invalid labelAnchor.');
+      const components = (Array.isArray(item.components) ? item.components : []).map(c => ({ object: c && c.object,
+        box: c && c.box ? { x: (Number(c.box.x) - vb.x) * sx, y: (Number(c.box.y) - vb.y) * sy, w: Number(c.box.w) * sx, h: Number(c.box.h) * sy } : (null as unknown as Rect) }));
+      const registered = base.instrument({ field: item.field, art: sprite, part, label: item.label, labelAnchor: item.labelAnchor == null ? undefined : toLocal(item.labelAnchor), on: onto ? hosts.get(item.on!) : undefined,
+        size: item.size, components: onto ? undefined : components,
         drive: part ? { property: d.property as DriveName, pivot: toLocal(d.pivot), from: d.from, to: d.to, copies: d.copies,
           useFieldAngle: d.useFieldAngle, min: d.min ?? null, max: d.max ?? null,
           path: (Array.isArray(d.path) ? d.path : []).map(toLocal).filter((q): q is Pt => !!q) } : undefined });
       if (!onto) for (const key of item.field ? [reference, item.field] : [reference]) { frames.set(key, { vb, sx, sy }); hosts.set(key, registered); }
+    }
+    // Annotations are semantic labels, not SVG text. Values always come from solver fields.
+    for (const note of spec.annotations ?? []) {
+      const frame = frames.get(note.on), owner = hosts.get(note.on);
+      if (!frame || !owner) throw Error('annotation: unknown apparatus "' + note.on + '".');
+      if (!note.anchor || !Number.isFinite(note.anchor.x) || !Number.isFinite(note.anchor.y))
+        throw Error('annotation: anchor must be a finite point.');
+      base.instrument({ field: note.field, label: note.label, on: owner,
+        labelAnchor: { x: (note.anchor.x - frame.vb.x) * frame.sx, y: (note.anchor.y - frame.vb.y) * frame.sy } });
     }
     /* fixtures: static art at a world position (number or plan parameter); anchor in the SVG viewBox */
     for (const item of Array.isArray(spec.fixtures) ? spec.fixtures : []) {

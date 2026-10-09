@@ -17,7 +17,11 @@ export type QuantityAxis = "x" | "y" | "along" | "none";
 export type QuantityInfo = { kind: QuantityKind; axis: QuantityAxis; label: string; symbol: string; unit: string };
 export type FieldMeta = QuantityInfo & { key: string; participantId: string; quantity: string; min: number; max: number;
   /** Renderer role declared by the approved capability (state_value, position …), when the backend supplied it. */
-  role?: string };
+  role?: string;
+  /** A value the learner watches: its name in the user's words and the described object it belongs to. */
+  caption?: string; object?: string };
+/** A value the plan asks the learner to watch: a solver field, the object it belongs to and its name in the user's words. */
+export type SceneObservable = { field: string; object?: string; label?: string };
 /** Optional per-field metadata from the backend (units/labels taken from the approved schema). */
 export type BackendFieldMeta = Record<string, { unit?: string; label?: string; symbol?: string; quantity?: string; rendererRole?: string }>;
 /** Input names that mean "uniform gravitational field" (not the gravitational constant). */
@@ -51,6 +55,8 @@ export type SceneDescriptor = {
   participants: SceneParticipant[];
   fields: Record<string, FieldMeta>;
   durationSeconds: number;
+  /** Keys of the values the learner watches, most important first (empty when the plan names none). */
+  observables: string[];
 };
 
 const Q = (kind: QuantityKind, axis: QuantityAxis, label: string, symbol: string, unit: string): QuantityInfo =>
@@ -118,7 +124,7 @@ function pearson(a: number[], b: number[]) {
 
 /** Build a render-ready description of the solver output. Pure and serialisable. */
 export function describeScene(timeline: SolverTimeline, models: readonly SimulationModelRef[] = [],
-  backendMeta: BackendFieldMeta = {}): SceneDescriptor {
+  backendMeta: BackendFieldMeta = {}, observables: readonly SceneObservable[] = []): SceneDescriptor {
   const fields: Record<string, FieldMeta> = {};
   const series: Record<string, number[]> = {};
   for (const frame of timeline.frames) for (const [key, value] of Object.entries(frame.values)) {
@@ -210,7 +216,16 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
     const stationary = dims > 0 && still(f.x) && still(f.y) && still(f.position);
     participants.push({ id, label: model?.label?.trim() || id, colorIndex: participants.length, dims, vertical, fields: f, link, spring, stationary });
   }
-  return { participants, fields, durationSeconds: timeline.durationSeconds };
+  /* the plan names what the learner watches: such a value carries its name in the user's words and its object */
+  const watched: string[] = [];
+  for (const item of observables) {
+    const meta = item && typeof item.field === "string" ? fields[item.field] : undefined;
+    if (!meta || watched.includes(meta.key)) continue;
+    watched.push(meta.key);
+    if (typeof item.label === "string" && item.label.trim()) meta.caption = item.label.trim();
+    if (typeof item.object === "string" && item.object.trim()) meta.object = item.object.trim();
+  }
+  return { participants, fields, durationSeconds: timeline.durationSeconds, observables: watched };
 }
 
 /** Participant colours — validated for contrast on both workspace themes. */

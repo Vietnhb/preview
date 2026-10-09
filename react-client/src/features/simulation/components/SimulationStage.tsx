@@ -38,6 +38,7 @@ export default function SimulationStage({ input, preview, complaint }: Readonly<
                 parameters={runValues}
                 models={simulation.simulationSpec.physicsModels}
                 fieldMeta={simulation.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
+                observables={simulation.simulationSpec.observables}
                 verificationStatus={validation?.status ?? "VISUAL_ONLY_UNVERIFIED"}
                 onRenderError={setRenderError}
                 toolbarActions={stageActions}

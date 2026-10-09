@@ -4,8 +4,9 @@ import purifierBundle from "../../../../node_modules/dompurify/dist/purify.min.j
 import Icon from "../../../shared/ui/LearningIcon";
 import { sampleTimeline, type SolverTimeline, type PixiVisualProgram } from "../model/svgScene";
 import { describeScene, displayValue, formatNumber, formatTime, presentationRate, prettyUnit, replayTooFast, seriesColor,
-  type BackendFieldMeta, type SceneDescriptor, type SimulationModelRef } from "../model/sceneModel";
+  type BackendFieldMeta, type SceneDescriptor, type SceneObservable, type SimulationModelRef } from "../model/sceneModel";
 import { createStageKit } from "../engine/stageKit";
+import { presentedFields } from "../model/scenePresentation";
 import SimulationCharts from "./SimulationCharts";
 import { useWorkspaceTheme } from "../hooks/useWorkspaceTheme";
 import { diagnoseGeneratedCode, formatIssues, repairGeneratedCode } from "../model/codeRepair";
@@ -33,7 +34,7 @@ const KIT_GUIDE = ' Build the stage with api.kit.illustratedScene(api.sceneSpec)
   + ' moving charges …) -> scene.instruments / base.instrument({field, art, part, drive}) with your own mapping; things standing at a physical place'
   + ' (wall, stop, fixed charge) -> scene.fixtures / base.fixture(sprite, {x, y, anchor, solid}). Your own objects must stay static (add them to base.props).';
 let frames = 0, lastSent = -1;
-const assets = new Map(), textureIds = new WeakMap(), textureLuma = new WeakMap();
+const assets = new Map(), textureIds = new WeakMap(), textureLuma = new WeakMap(), textureInk = new WeakMap();
 const QUIET_KEYS = new Set(['toJSON', 'then', 'asymmetricMatch', 'nodeType', '$$typeof']);
 function ranges(timeline) {
   const result = {};
@@ -107,7 +108,7 @@ async function start(message) {
     try { texture?.destroy(true); } catch {}
   };
   kit = createStageKit(PIXI, app, {data: () => data, sample: time => sampleTimeline(data.timeline, time),
-    svg: svgTexture, release: releaseTexture, luma: texture => textureLuma.get(texture),
+    svg: svgTexture, release: releaseTexture, luma: texture => textureLuma.get(texture), ink: texture => textureInk.get(texture),
     fail: message => { send('error', {message: String(message)}); close(); },
     register: scene => { kitScenes.push(scene); }});
   const api = Object.freeze({
@@ -151,8 +152,8 @@ async function start(message) {
   stage = kitScenes[0];
   crossCheck();
   step(frame(0)); app.render();
-  send('ready', {t}); last = performance.now();
-  setInterval(() => {
+  last = performance.now();
+  const renderFrame = () => {
     try {
       const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000) * speed; last = now;
       const duration = data.timeline.durationSeconds;
@@ -163,11 +164,20 @@ async function start(message) {
         }
       }
       step(frame(dt)); app.render(); frames++;
+      // Shown once an animation frame has reached the screen (the previous one was committed), so the stage never flashes blank.
+      if (frames === 2) send('ready', {t});
       if (frames === 20) checkVisible();
-      if (t !== lastSent && (frames % 2 === 0 || !playing)) { lastSent = t; send('tick', {t}); }
+      if (t !== lastSent && (frames % 6 === 0 || !playing)) { lastSent = t; send('tick', {t}); }
       else if (frames % 30 === 0) send('tick', {t});
     } catch (error) { send('error', {message: String(error && error.message || error)}); close(); }
-  }, 1000 / 60);
+  };
+  // OffscreenCanvas follows display refresh; older workers retain the timer fallback.
+  if (typeof requestAnimationFrame === 'function') {
+    const animate = () => { renderFrame(); requestAnimationFrame(animate); };
+    requestAnimationFrame(animate);
+    // Background tabs may suspend animation frames; keep the watchdog informed without redrawing.
+    setInterval(() => send('tick', {t}), 1000);
+  } else setInterval(renderFrame, 1000 / 60);
 }
 // Errors thrown in un-awaited async callbacks (e.g. forEach(async …)) must not vanish.
 if (typeof addEventListener === 'function') addEventListener('unhandledrejection', event => {
@@ -199,6 +209,7 @@ onmessage = async ({data: message}) => {
         else {
           const texture = textureFrom(message.bitmap, message.resolution);
           if (typeof message.luma === 'number') textureLuma.set(texture, message.luma);
+          if (message.ink) textureInk.set(texture, message.ink);
           pending.resolve(texture);
         }
         break;
@@ -294,6 +305,17 @@ async function svgBitmap(source, screen, fitWidth, fitHeight) {
     texturePixels += surface.width * surface.height;
     if (texturePixels > limits.maxTexturePixels) throw Error('SVG texture memory budget exceeded.');
     surface.getContext('2d').drawImage(image, 0, 0, surface.width, surface.height);
+    // Where an artwork is drawn (a coarse ink mask): the kit keeps callouts off the drawing and checks declared object boxes.
+    let ink = null;
+    if (!screen) {
+      const s = Math.min(1, 160 / Math.max(surface.width, surface.height));
+      const probe = document.createElement('canvas');
+      probe.width = Math.max(1, Math.round(surface.width * s)); probe.height = Math.max(1, Math.round(surface.height * s));
+      const pc = probe.getContext('2d'); pc.drawImage(surface, 0, 0, probe.width, probe.height);
+      const px = pc.getImageData(0, 0, probe.width, probe.height).data, data = new Uint8Array(probe.width * probe.height);
+      for (let i = 0; i < data.length; i++) data[i] = px[i * 4 + 3] > 24 ? 1 : 0;
+      ink = {w: probe.width, h: probe.height, data};
+    }
     let luma = null;
     if (screen) {
       // Average brightness of viewport art so in-scene labels pick a readable tone.
@@ -307,7 +329,7 @@ async function svgBitmap(source, screen, fitWidth, fitHeight) {
       }
       if (weight > 32 * 18 * 0.5) luma = sum / weight;
     }
-    return {bitmap: await createImageBitmap(surface), resolution: surface.width / width, pixels: surface.width * surface.height, luma};
+    return {bitmap: await createImageBitmap(surface), resolution: surface.width / width, pixels: surface.width * surface.height, luma, ink};
   } finally { URL.revokeObjectURL(url); }
 }
 addEventListener('message', ({source, data}) => {
@@ -321,10 +343,10 @@ addEventListener('message', ({source, data}) => {
       if (stopped) return;
       if (result.type === 'svg') {
         try {
-          const {bitmap, resolution, pixels, luma} = await svgBitmap(result.svg, result.screen, result.width, result.height);
+          const {bitmap, resolution, pixels, luma, ink} = await svgBitmap(result.svg, result.screen, result.width, result.height);
           assetPixels.set(result.id, pixels);
           if (stopped) { bitmap.close(); return; }
-          worker.postMessage({type: 'asset', id: result.id, bitmap, resolution, luma}, [bitmap]);
+          worker.postMessage({type: 'asset', id: result.id, bitmap, resolution, luma, ink}, [bitmap]);
         } catch (error) { worker.postMessage({type: 'asset', id: result.id, error: String(error.message)}); }
       } else if (result.type === 'release') {
         texturePixels = Math.max(0, texturePixels - (assetPixels.get(result.id) || 0)); assetPixels.delete(result.id);
@@ -357,9 +379,11 @@ const formatRate = (value: number) => formatNumber(value >= 100 ? value : Math.r
 
 type ViewMode = "ai" | "standard";
 
-export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, onRenderError, toolbarActions, cover = false, coverPlaying = false, onCoverFailed }: Readonly<{
+export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, observables, onRenderError, toolbarActions, cover = false, coverPlaying = false, onCoverFailed }: Readonly<{
   program: PixiVisualProgram; timeline: SolverTimeline; parameters: Record<string, number>; verificationStatus: string;
   models?: readonly SimulationModelRef[]; fieldMeta?: BackendFieldMeta; onRenderError?: (message: string) => void;
+  /** The values the plan asks the learner to watch (simulationSpec.observables). */
+  observables?: readonly SceneObservable[];
   /** Page-level buttons shown at the end of the toolbar so the page needs no heading row of its own. */
   toolbarActions?: ReactNode;
   /** Card cover: only the scene, no toolbar, playback bar or charts. It rests on the first frame. */
@@ -388,7 +412,7 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
   const [loop, setLoop] = useState(cover);
   const [run, setRun] = useState(0);
   const iframe = useRef<HTMLIFrameElement>(null);
-  const scene = useMemo(() => describeScene(timeline, models ?? [], fieldMeta ?? {}), [timeline, models, fieldMeta]);
+  const scene = useMemo(() => describeScene(timeline, models ?? [], fieldMeta ?? {}, observables ?? []), [timeline, models, fieldMeta, observables]);
   const dataRef = useRef({ timeline, parameters, verificationStatus, scene });
   const callbackRef = useRef(onRenderError);
   const modeRef = useRef(mode);
@@ -457,7 +481,7 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
     if (!code.trim() || code.length > limits.maxCode) { setError("Generated code exceeds its resource budget."); return; }
     setReady(false); setError("");
     send({ type: "start", code, sceneSpec, ...dataRef.current, theme, limits, bundle: pixiBundle, runtime: RUNTIME });
-    send({ type: "speed", speed: speed * rate }); send({ type: "loop", loop }); send({ type: "play", playing });
+    send({ type: "speed", speed: speed * rate }); send({ type: "loop", loop }); send({ type: "play", playing: cover ? coverPlaying : playing });
   };
   const togglePlay = () => { const next = !playing; setPlaying(next); send({ type: "play", playing: next }); };
   const restart = () => { send({ type: "seek", t: 0 }); setTime(0); setPlaying(true); send({ type: "play", playing: true }); };
@@ -472,14 +496,13 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
   useEffect(() => { if (cover && error) coverFailedRef.current?.(); }, [cover, error]);
   useEffect(() => {
     if (!cover) return;
-    setPlaying(coverPlaying);
     if (!coverPlaying) send({ type: "seek", t: 0 });
     send({ type: "play", playing: coverPlaying });
   }, [cover, coverPlaying, send]);
   const progress = timeline.durationSeconds > 0 ? Math.min(100, time / timeline.durationSeconds * 100) : 0;
 
   if (cover) return <div className="sim-player sim-player--cover" data-theme={theme === "DARK" ? "dark" : "light"}>
-    <div className="sim-stage">
+    <div className="sim-stage" data-ready={ready}>
       {!error && <iframe key={mode + ":" + run} ref={iframe} className="sim-stage__frame" title={program.description || "Mô phỏng vật lý"}
         sandbox="allow-scripts" referrerPolicy="no-referrer" tabIndex={-1} srcDoc={html} onLoad={start} />}
       {!error && !ready && <div className="sim-stage__loading" role="status"><span className="sim-spinner" /></div>}
@@ -503,14 +526,14 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
       <strong>Cảnh AI chưa hiển thị được</strong> — đang dùng cảnh chuẩn học thuật dựng từ dữ liệu backend.
       <details><summary>Chi tiết lỗi</summary><code>{aiError}</code></details>
     </div>}
-    <div className="sim-stage">
+    <div className="sim-stage" data-ready={ready}>
       {!error && <iframe key={mode + ":" + run + ":" + aiCode + ":" + JSON.stringify(sceneSpec ?? "").length} ref={iframe} className="sim-stage__frame"
         title={program.description || "Mô phỏng vật lý"} sandbox="allow-scripts" referrerPolicy="no-referrer"
         srcDoc={html} onLoad={start} />}
       {error && <p role="alert" className="simulation-error">{error}</p>}
       {!error && !ready && <div className="sim-stage__loading" role="status"><span className="sim-spinner" /> Đang dựng cảnh…</div>}
     </div>
-    {!error && timeline.frames.length > 0 && <SceneReadouts scene={scene} values={sampleTimeline(timeline, time)} theme={theme} />}
+    {!error && timeline.frames.length > 0 && <SceneReadouts scene={scene} spec={mode === "ai" ? sceneSpec : null} values={sampleTimeline(timeline, time)} theme={theme} />}
     <div className="sim-transport">
       <button type="button" className="sim-icon-button sim-icon-button--primary" onClick={togglePlay}
         aria-label={playing ? "Tạm dừng" : "Phát"} title={playing ? "Tạm dừng" : "Phát"}>
@@ -535,37 +558,31 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
   </div>;
 }
 
-/**
- * Live values of every participant at the current instant, outside the stage: the place and velocity
- * quantities the participant has, or its first quantities when it has no place in space.
- */
-function SceneReadouts({ scene, values, theme }: { scene: SceneDescriptor; values: Record<string, number>; theme: "LIGHT" | "DARK" }) {
+/** Scene bindings select focused readings; intermediate calculations remain available in full. */
+function SceneReadouts({ scene, spec, values, theme }: {
+  scene: SceneDescriptor; spec: Record<string, unknown> | null; values: Record<string, number>; theme: "LIGHT" | "DARK";
+}) {
   if (!scene.participants.length) return null;
-  const item = (label: string, value: number, unit: string, scale = 0) =>
-    ({ label, text: formatNumber(value, 4, scale) + (unit ? " " + prettyUnit(unit) : "") });
-  return <dl className="sim-readouts" aria-label="Giá trị tại thời điểm đang xem">
-    {scene.participants.map(participant => {
-      const f = participant.fields, items: Array<{ label: string; text: string }> = [];
-      const add = (key: string | undefined) => {
-        const meta = key ? scene.fields[key] : undefined;
-        if (!key || !meta) return;
-        const shown = displayValue(meta, values[key]);
-        const factor = values[key] ? shown.value / values[key] : 1;
-        items.push(item(meta.symbol, shown.value, shown.unit, Math.max(Math.abs(meta.min), Math.abs(meta.max)) * Math.abs(factor)));
-      };
-      if (participant.dims === 2) { add(f.x); add(f.y); add(f.angle); } else add(f.position);
-      if (participant.dims === 2 && f.vx && f.vy && scene.fields[f.vx])
-        items.push(item("|v|", Math.hypot(values[f.vx], values[f.vy]), scene.fields[f.vx].unit));
-      else add(f.velocity);
-      if (!items.length) {
-        /* no place in space: the quantities its approved law declares for display first */
-        const own = Object.values(scene.fields).filter(meta => meta.participantId === participant.id);
-        for (const meta of [...own.filter(meta => meta.role), ...own.filter(meta => !meta.role)].slice(0, 2)) add(meta.key);
-      }
-      return <div className="sim-readouts__row" key={participant.id}>
-        <dt><span className="sim-readouts__dot" style={{ background: seriesColor(theme, participant.colorIndex) }} />{participant.label}</dt>
-        {items.map(entry => <dd key={entry.label}><span>{entry.label}</span>{entry.text}</dd>)}
-      </div>;
-    })}
-  </dl>;
+  const focus = presentedFields(scene, spec);
+  const reading = (key: string) => {
+    const meta = scene.fields[key], shown = displayValue(meta, values[key]);
+    const factor = values[key] ? shown.value / values[key] : 1;
+    return formatNumber(shown.value, 4, Math.max(Math.abs(meta.min), Math.abs(meta.max)) * Math.abs(factor))
+      + (shown.unit ? " " + prettyUnit(shown.unit) : "");
+  };
+  return <section className="sim-measurements" aria-label="Số liệu mô phỏng">
+    {focus.length > 0 && <dl className="sim-focus-readouts">
+      {focus.map(item => <div key={item.key}><dt>{item.label}</dt><dd>{reading(item.key)}</dd></div>)}
+    </dl>}
+    <details className="sim-data-details">
+      <summary>Toàn bộ đại lượng và kết quả tính ({Object.keys(scene.fields).length})</summary>
+      <dl className="sim-readouts">
+        {scene.participants.map(participant => <div className="sim-readouts__row" key={participant.id}>
+          <dt><span className="sim-readouts__dot" style={{ background: seriesColor(theme, participant.colorIndex) }} />{participant.label}</dt>
+          {Object.values(scene.fields).filter(meta => meta.participantId === participant.id).map(meta =>
+            <dd key={meta.key}><span title={meta.label}>{meta.symbol}</span>{reading(meta.key)}</dd>)}
+        </div>)}
+      </dl>
+    </details>
+  </section>;
 }

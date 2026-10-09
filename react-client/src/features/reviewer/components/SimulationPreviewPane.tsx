@@ -38,6 +38,7 @@ export function SimulationPreviewPane({ simulationId, onLoaded }: Readonly<{ sim
       parameters={generated.savedParameters ?? Object.fromEntries(generated.parameters.map(parameter => [parameter.name, parameter.value]))}
       models={generated.simulationSpec.physicsModels}
       fieldMeta={generated.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
+      observables={generated.simulationSpec.observables}
       verificationStatus={generated.validation?.status ?? "VISUAL_ONLY_UNVERIFIED"} />
   </div>;
   if (!simulation) return <div className="reviewer-preview reviewer-preview-message" role="status"><Spinner /><Text size="2">Đang mở mô phỏng…</Text></div>;

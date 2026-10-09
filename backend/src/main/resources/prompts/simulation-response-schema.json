@@ -20,7 +20,7 @@
           "additionalProperties": false,
           "required": [
             "concept",
-            "participants",
+            "objects",
             "layout",
             "animation",
             "palette"
@@ -28,51 +28,46 @@
           "properties": {
             "concept": {
               "type": "string",
-              "description": "What the learner should notice and the representation you chose for it, derived from the user's description (or your best judgement where it is silent)."
+              "description": "What the learner should notice and the representation chosen for it."
             },
-            "participants": {
+            "objects": {
               "type": "array",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "id",
                   "object",
                   "representation"
                 ],
                 "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "participant id (confirmedBrief.participants)"
-                  },
                   "object": {
                     "type": "string",
-                    "description": "The real thing this participant is."
+                    "description": "An object of confirmedBrief.objects."
                   },
                   "representation": {
                     "type": "string",
-                    "description": "How it looks and which kit binding shows its solver fields (body moved along its position, or an instrument: its moving part and the drive mapping from the field)."
+                    "description": "How it looks and which body, part or annotation shows its values."
                   }
                 }
               }
             },
             "layout": {
               "type": "string",
-              "description": "Composition, camera/scale mapping and setting."
+              "description": "Composition and framing."
             },
             "animation": {
               "type": "string",
-              "description": "How each changing field is animated on the stage."
+              "description": "Which field moves what."
             },
             "palette": {
               "type": "string",
-              "description": "Colours readable in light and dark themes."
+              "description": "Colours readable on light and dark backgrounds."
             }
           }
         },
         "description": {
           "type": "string",
-          "description": "One or two sentences in the user's language describing the illustrated scene."
+          "description": "One or two sentences in the user's language describing the scene."
         },
         "scene": {
           "type": "object",
@@ -87,28 +82,29 @@
             "instruments",
             "links",
             "fixtures",
-            "overlay"
+            "overlay",
+            "annotations"
           ],
           "properties": {
             "environment": {
               "type": "string",
-              "description": "Full-scene SVG document (the world behind everything, drawn for a ~16:9 frame, scaled to cover the stage). Empty string if none."
+              "description": "Full-stage backdrop Complete SVG document (~16:9, static); '' if none."
             },
             "environmentAnchorY": {
               "type": "number",
-              "description": "y coordinate (in the environment viewBox) of the horizontal line in your environment that must sit on the physical reference line: the support line if bodies hang from supports, otherwise the ground / lowest track surface. -1 if nothing in the environment needs alignment."
+              "description": "viewBox y of the backdrop line that must sit on the physical reference line (support line or ground); -1 if none."
             },
             "surface": {
               "type": "string",
-              "description": "Seamless horizontally tileable SVG strip of what bodies move or rest on; its top edge is the contact line. Empty string if no surface applies."
+              "description": "Horizontally tileable SVG strip bodies move or rest on, top edge = contact line; '' if none."
             },
             "support": {
               "type": "string",
-              "description": "SVG of the fixed fixture a connector is attached to; its bottom-centre is the attachment point and the kit turns that edge towards the body. Empty string if unused."
+              "description": "SVG of the fixed support a connector hangs from, bottom-centre = attachment point; '' if unused."
             },
             "connector": {
               "type": "string",
-              "description": "SVG of the connector (string, rod, cord, spring, chain...) drawn along +x; the kit stretches its length between support and body; its viewBox height is the thickness in pixels (1.5-30). Empty string if unused."
+              "description": "SVG of a string, rod or spring drawn along +x, stretched by the kit; viewBox height = thickness in px (1.5-30); '' if unused."
             },
             "bodies": {
               "type": "array",
@@ -128,11 +124,11 @@
                 "properties": {
                   "id": {
                     "type": "string",
-                    "description": "participant id this body is."
+                    "description": "Participant id."
                   },
                   "svg": {
                     "type": "string",
-                    "description": "Complete standalone SVG document of the body only (no connectors, supports, labels or vectors), drawn facing +x, tightly framed, rich but compact."
+                    "description": "Complete SVG document of the body only (no connector, support, label or vector), facing +x, tightly framed."
                   },
                   "facing": {
                     "type": "string",
@@ -141,7 +137,7 @@
                       "left",
                       "none"
                     ],
-                    "description": "Which way the drawing faces; the kit mirrors it when the body moves the other way. none = symmetric."
+                    "description": "The kit mirrors the drawing when the body moves the other way; none = symmetric."
                   },
                   "rotate": {
                     "type": "string",
@@ -150,7 +146,7 @@
                       "velocity",
                       "link"
                     ],
-                    "description": "velocity: nose follows the direction of motion; link: hangs along its connector; none: stays upright."
+                    "description": "velocity: nose follows the motion; link: hangs along its connector; none: upright."
                   },
                   "anchor": {
                     "type": "string",
@@ -159,26 +155,26 @@
                       "bottom",
                       "center"
                     ],
-                    "description": "bottom = rests on its surface; center = the solver point is the body's centre; auto = kit default."
+                    "description": "bottom: rests on its surface; center: the solver point is its centre; auto: kit default."
                   },
                   "sizeMeters": {
                     "type": "number",
-                    "description": "Real-world size of the body's largest dimension in metres (0 = let the kit choose a readable size)."
+                    "description": "Real size of its largest dimension in metres (0 = readable default)."
                   },
                   "line": {
                     "type": "string",
-                    "description": "Name of the road/track/line the body moves on: bodies given the same name share one line (a car and the wall it hits, wagons of one train). '' = let the kit decide from the motion (bodies that touch share a line, bodies that pass each other get separate lines)."
+                    "description": "Name of the line it moves on; bodies with the same name share it. '' = decided from the motion."
                   },
                   "solid": {
                     "type": "boolean",
-                    "description": "A rigid body that nothing solid on its line may pass through (car, block, wall, ball). The renderer checks this against the solver motion of every pair."
+                    "description": "Rigid: nothing solid on its line may pass through it."
                   }
                 }
-              }
+              },
+              "description": "One per participant that moves in space."
             },
             "instruments": {
               "type": "array",
-              "description": "The drawing of the set-up and the moving parts that show state quantities (temperature, current, voltage, charge, pressure, nuclei count, coil angle …) where they happen in it: the set-up is an instrument with its own svg (field '' when the drawing itself shows no quantity); quantities that happen in it are parts drawn on it (on = its position in the list or its field). A separate instrument only for a quantity with no place in the set-up; drive.property 'none' = a static picture of a participant that does not move. You draw the static art and, separately, each moving part; you declare how the solver field moves the part. The kit applies that mapping every frame, adds scale marks and prints the verified value.",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -188,24 +184,27 @@
                   "svg",
                   "part",
                   "drive",
-                  "on"
+                  "on",
+                  "labelAnchor",
+                  "size",
+                  "components"
                 ],
                 "properties": {
                   "field": {
                     "type": "string",
-                    "description": "Exact solver field key '<participantId>.<quantity>' that drives the part; '' for a static drawing of the set-up that other instruments draw their parts on."
+                    "description": "Exact solver key that drives the part; '' for a drawing of the set-up that shows no value itself."
                   },
                   "label": {
                     "type": "string",
-                    "description": "Short caption in the user's language ('' = the quantity name)."
+                    "description": "Short caption in the user's language ('' = the value's name)."
                   },
                   "svg": {
                     "type": "string",
-                    "description": "Complete SVG of the static body only (case, dial face, tube, lamp housing, circuit…): nothing that should move or change, no numbers. '' only when 'on' names the apparatus this part is drawn on."
+                    "description": "Complete SVG document of the static drawing; '' for a part drawn on another drawing."
                   },
                   "part": {
                     "type": "string",
-                    "description": "Complete SVG of the moving part only (needle, liquid column at FULL level, glow, electron, piston, coil…), drawn in the SAME viewBox coordinate system as svg so it sits in place. '' when drive.property is 'none'."
+                    "description": "Complete SVG document of the moving part only, in the same viewBox as its drawing; '' when drive.property is none."
                   },
                   "drive": {
                     "type": "object",
@@ -221,7 +220,6 @@
                       "min",
                       "max"
                     ],
-                    "description": "Mapping from the field to the part. The field's scale runs from min to max (null = the kit uses the solver range); its low end gives 'from', its high end gives 'to', linearly in between. All points in the body's viewBox units.",
                     "properties": {
                       "property": {
                         "type": "string",
@@ -234,7 +232,7 @@
                           "travel",
                           "none"
                         ],
-                        "description": "rotate: part turns about pivot, from/to = angles in degrees clockwise from the drawing (a needle, a lever); translate: part slides along path, from/to = fractions 0…1 of the path (piston, pointer); reveal: part is shown from path[0] towards the last path point up to fraction from/to (liquid column, bar, charge level); scale: part scales about pivot by factor from/to (balloon); opacity: part alpha from/to (glow, brightness); travel: 'copies' copies of part (drawn at path[0]) circulate along path at a speed proportional to the field, 'to' = laps over the run at the peak value (charges in a wire; close the path by repeating the first point for a loop); none: static picture."
+                        "description": "rotate: turns about pivot, from/to = degrees clockwise; translate: slides along path, from/to = fractions 0…1 of it; reveal: shown from path[0] towards the last point up to fraction from/to (a level, a bar); scale: factor from/to about pivot; opacity: alpha from/to; travel: 'copies' copies drawn at path[0] move along path at a speed proportional to the field, to = laps over the whole run at the peak value (about 1 reads calmly; repeat the first point to close a loop); none: static picture."
                       },
                       "pivot": {
                         "type": "object",
@@ -250,8 +248,7 @@
                           "y": {
                             "type": "number"
                           }
-                        },
-                        "description": "Centre for rotate / scale."
+                        }
                       },
                       "path": {
                         "type": "array",
@@ -271,7 +268,7 @@
                             }
                           }
                         },
-                        "description": "Points for translate / reveal / travel (at least 2); [] otherwise."
+                        "description": "At least 2 points for translate, reveal and travel; [] otherwise."
                       },
                       "from": {
                         "type": "number"
@@ -281,38 +278,109 @@
                       },
                       "copies": {
                         "type": "number",
-                        "description": "travel: number of copies (1-60); 1 otherwise."
+                        "description": "travel: 1-60 copies; 1 otherwise."
                       },
                       "useFieldAngle": {
                         "type": "boolean",
-                        "description": "rotate only: turn by the field's own angle (the field is an angle, e.g. a rotating coil) instead of from/to."
+                        "description": "rotate only: turn by the field's own angle instead of from/to."
                       },
                       "min": {
                         "type": [
                           "number",
                           "null"
                         ],
-                        "description": "Low end of the field scale in its unit, or null for the solver range."
+                        "description": "Field value giving 'from' (null = solver minimum)."
                       },
                       "max": {
                         "type": [
                           "number",
                           "null"
                         ],
-                        "description": "High end of the field scale in its unit, or null for the solver range."
+                        "description": "Field value giving 'to' (null = solver maximum)."
                       }
-                    }
+                    },
+                    "description": "How the field moves the part; points in the drawing's viewBox."
                   },
                   "on": {
                     "type": "string",
-                    "description": "'' for an instrument with its own artwork. Otherwise the drawing this instrument's moving part is drawn ON, in that drawing's viewBox coordinates: its position in this list ('0' = first) or its field. Then svg is '' and the part sits where the quantity happens in the drawing."
+                    "description": "'' for an instrument with its own svg; otherwise the drawing the part is drawn on: its position in this list ('0' = first) or its field."
+                  },
+                  "labelAnchor": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "x",
+                          "y"
+                        ],
+                        "properties": {
+                          "x": {
+                            "type": "number"
+                          },
+                          "y": {
+                            "type": "number"
+                          }
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Point on the object where the value is shown (drawing's viewBox); null = path midpoint or pivot."
+                  },
+                  "size": {
+                    "type": "number",
+                    "description": "Relative share of the stage for a drawing with its own svg (1 = default)."
+                  },
+                  "components": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "object",
+                        "box"
+                      ],
+                      "properties": {
+                        "object": {
+                          "type": "string",
+                          "description": "An object name from observables, exactly."
+                        },
+                        "box": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "x",
+                            "y",
+                            "w",
+                            "h"
+                          ],
+                          "properties": {
+                            "x": {
+                              "type": "number"
+                            },
+                            "y": {
+                              "type": "number"
+                            },
+                            "w": {
+                              "type": "number"
+                            },
+                            "h": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "description": "On a drawing with its own svg: where each object named in observables is drawn (viewBox units); [] otherwise."
                   }
                 }
-              }
+              },
+              "description": "The set-up drawing and the parts on it that show changing values."
             },
             "links": {
               "type": "array",
-              "description": "Straight solver-bound connections redrawn every frame: a rope over a pulley, a wire from a charge to a probe, a rod between two bodies. Empty if none.",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -326,29 +394,29 @@
                 "properties": {
                   "from": {
                     "type": "string",
-                    "description": "A moving participant id; or a fixed point 'x,y' in metres of the common scene frame; or '<participant id>:x,y' = a fixed point in that participant's own frame (needed when participants are independent systems laid out side by side, e.g. the pivot of pendulum p2 is 'p2:0,0')."
+                    "description": "A moving participant id, a fixed point 'x,y' in metres, or '<participant id>:x,y' in that participant's own frame."
                   },
                   "to": {
                     "type": "string",
-                    "description": "A moving participant id; or a fixed point 'x,y' in metres of the common scene frame; or '<participant id>:x,y' = a fixed point in that participant's own frame (needed when participants are independent systems laid out side by side, e.g. the pivot of pendulum p2 is 'p2:0,0')."
+                    "description": "A moving participant id, a fixed point 'x,y' in metres, or '<participant id>:x,y' in that participant's own frame."
                   },
                   "color": {
                     "type": "string",
-                    "description": "CSS colour ('' = kit default)."
+                    "description": "CSS colour ('' = default)."
                   },
                   "width": {
                     "type": "number",
-                    "description": "Line width in px (1-12)."
+                    "description": "1-12 px."
                   },
                   "dashed": {
                     "type": "boolean"
                   }
                 }
-              }
+              },
+              "description": "Connections whose ends move, redrawn every frame."
             },
             "fixtures": {
               "type": "array",
-              "description": "Things that do not move but stand at a physical place (wall, stop, barrier, pulley block, fixed charge, platform, target…). The kit places each at its position in metres on the same measured frame as the moving bodies, and moves it when a slider changes that position. [] if none.",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -370,29 +438,29 @@
                 "properties": {
                   "svg": {
                     "type": "string",
-                    "description": "Complete SVG of the fixture only."
+                    "description": "Complete SVG document of the fixture only."
                   },
                   "x": {
                     "type": [
                       "number",
                       "null"
                     ],
-                    "description": "Horizontal position in metres (null when xParameter is used or it does not matter)."
+                    "description": "Position in metres (null when xParameter is used or it does not matter)."
                   },
                   "xParameter": {
                     "type": "string",
-                    "description": "Name of the plan parameter that holds the horizontal position (e.g. the position of the obstacle the solver uses); '' if x is a number."
+                    "description": "Plan parameter holding the position; '' if x is used."
                   },
                   "y": {
                     "type": [
                       "number",
                       "null"
                     ],
-                    "description": "Vertical position (height) in metres, or null."
+                    "description": "Height in metres, or null."
                   },
                   "yParameter": {
                     "type": "string",
-                    "description": "Name of the plan parameter that holds the height; '' if unused."
+                    "description": "Plan parameter holding the height; '' if unused."
                   },
                   "anchor": {
                     "type": "object",
@@ -409,7 +477,7 @@
                         "type": "number"
                       }
                     },
-                    "description": "Point of the SVG (viewBox units) that sits exactly at the position, e.g. the contact face of a wall at ground level."
+                    "description": "Point of the SVG (viewBox units) that sits at the position."
                   },
                   "sizeMeters": {
                     "type": "number",
@@ -417,33 +485,34 @@
                   },
                   "solid": {
                     "type": "boolean",
-                    "description": "true when moving bodies must not pass through it (a wall, a floor, a barrier); the renderer then checks this against the solver motion."
+                    "description": "Moving bodies must not pass through it."
                   },
                   "angle": {
                     "type": [
                       "number",
                       "null"
                     ],
-                    "description": "Rotation in screen degrees, clockwise (null = as drawn)."
+                    "description": "Rotation in screen degrees clockwise (null = as drawn)."
                   },
                   "angleParameter": {
                     "type": "string",
-                    "description": "Plan parameter that gives the rotation instead (e.g. an incline angle); '' if unused."
+                    "description": "Plan parameter giving the rotation instead; '' if unused."
                   },
                   "angleScale": {
                     "type": "number",
-                    "description": "Multiplier from the angle (or parameter) to screen degrees clockwise, e.g. -57.2958 for a counter-clockwise angle in radians; 1 for plain degrees."
+                    "description": "Factor from angle or parameter to screen degrees clockwise (1 for degrees, -57.2958 for counter-clockwise radians)."
                   },
                   "flipBy": {
                     "type": "string",
-                    "description": "Plan parameter whose NEGATIVE value mirrors the drawing horizontally: the sense of a field, a polarity, a current direction drawn pointing +x. '' if unused."
+                    "description": "Plan parameter whose negative value mirrors the drawing; '' if unused."
                   },
                   "frame": {
                     "type": "string",
-                    "description": "Participant id whose own coordinate frame x / y are measured in. Independent systems (several pendulums, several tracks) are laid out side by side by the kit, each with its own origin, so a fixture belonging to one of them names it here. '' = the common scene frame (only when all participants share one frame)."
+                    "description": "Participant id whose own frame x, y are measured in (independent systems side by side); '' = common frame."
                   }
                 }
-              }
+              },
+              "description": "Things that stand still at a physical place."
             },
             "overlay": {
               "type": "object",
@@ -459,11 +528,11 @@
               "properties": {
                 "links": {
                   "type": "boolean",
-                  "description": "Draw a plain line for a declared connector when no connector artwork is given."
+                  "description": "Plain line for a connector without artwork."
                 },
                 "axes": {
                   "type": "boolean",
-                  "description": "Measured axes/ruler with SI units."
+                  "description": "Measured axes with SI units."
                 },
                 "trails": {
                   "type": "boolean",
@@ -471,7 +540,7 @@
                 },
                 "vectors": {
                   "type": "boolean",
-                  "description": "Velocity/acceleration/force arrows with magnitudes."
+                  "description": "Velocity, acceleration and force arrows."
                 },
                 "labels": {
                   "type": "boolean",
@@ -482,13 +551,56 @@
                   "description": "Angle marks for bodies on connectors."
                 }
               }
+            },
+            "annotations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "on",
+                  "label",
+                  "field",
+                  "anchor"
+                ],
+                "properties": {
+                  "on": {
+                    "type": "string",
+                    "description": "The drawing: its position in instruments or its field."
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "Short name in the user's language, no numbers."
+                  },
+                  "field": {
+                    "type": "string",
+                    "description": "Exact solver key for a live value; '' for a name only."
+                  },
+                  "anchor": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "x",
+                      "y"
+                    ],
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              },
+              "description": "Names of components (optionally with a live value) at points of a drawing."
             }
-          },
-          "description": "The stage the kit assembles and keeps bound to the verified solver data: environment and surface art (static), one SVG body per moving participant (moved by the kit), instruments for state quantities (driven by the kit) and links. Every changing visual must come from here or from the kit calls in code."
+          }
         },
         "code": {
           "type": "string",
-          "description": "Optional PixiJS v8 program async function(PIXI, app, api) { const base = await api.kit.illustratedScene(api.sceneSpec); … return { update(frame) { base.update(frame); … }, resize() { base.resize(); }, setData() { base.setData(); } } } that extends the kit stage with static props, base.follow / base.link / base.instrument / base.attach. Empty string when the scene alone is enough (preferred)."
+          "description": "Optional PixiJS v8 program extending the kit scene; '' when the scene is enough."
         }
       }
     }

@@ -81,7 +81,8 @@ public class AIService {
         // notice).
         if (request.path("explanation").isTextual())
             input.put("planExplanation", request.path("explanation").asText());
-        input.set("confirmedBrief", visualBrief(brief));
+        ObjectNode fieldMeta = solverFieldMeta(schema.getDefinition(), brief);
+        input.set("confirmedBrief", visualBrief(brief, fieldMeta));
         JsonNode diagnostics = request.path("renderDiagnostics");
         if (!diagnostics.isMissingNode()) {
             if (!diagnostics.path("code").isTextual() || !diagnostics.path("message").isTextual()
@@ -90,7 +91,6 @@ public class AIService {
                 throw ApiException.badRequest("Thông tin chẩn đoán hiển thị không hợp lệ");
             input.set("renderDiagnostics", diagnostics);
         }
-        ObjectNode fieldMeta = solverFieldMeta(schema.getDefinition(), brief);
         input.set("solverFields", visualFields(fieldMeta, computed.path("solverTimeline").path("frames")));
         JsonNode program = client.visual(input, resource("prompts/simulation-visual-system.txt"),
                 jsonResource("prompts/simulation-response-schema.json")).path("visualProgram");
@@ -304,7 +304,7 @@ public class AIService {
 
     private PlanCheck check(SchemaVersion selected, ObjectNode spec) {
         normalizePlan(spec);
-        java.util.List<String> problems = new java.util.ArrayList<>(selfContradictions(spec));
+        java.util.List<String> problems = new java.util.ArrayList<>(selfContradictions(spec, selected.getDefinition()));
         try {
             return new PlanCheck(equations.compute(selected.getDefinition(), spec, json.createObjectNode()), problems,
                     null);
@@ -351,11 +351,11 @@ public class AIService {
 
     /**
      * Where the plan contradicts its own declarations: fewer computed participants
-     * than the objects it
-     * counted, or a parameter several participants use that it did not declare
-     * shared. Structural only.
+     * than the objects it counted, a parameter several participants use that it did
+     * not declare shared, or a watched value that no participant computes.
+     * Structural only.
      */
-    private java.util.List<String> selfContradictions(JsonNode spec) {
+    private java.util.List<String> selfContradictions(JsonNode spec, JsonNode definition) {
         java.util.List<String> found = new java.util.ArrayList<>();
         int counted = 0;
         for (JsonNode object : spec.path("requiredObjects"))
@@ -386,6 +386,24 @@ public class AIService {
             found.add("Parameter(s) " + String.join(", ", undeclared) + " are used by several participants but are not"
                     + " listed in simulationSpec.sharedQuantities: give each participant its own parameter for a"
                     + " property of its own, or list the parameter there when it is one physical quantity they share.");
+        // What the learner watches must be something the plan computes, named and tied to its object.
+        java.util.List<String> results = new java.util.ArrayList<>();
+        for (JsonNode model : spec.path("physicsModels")) {
+            JsonNode capability = capabilityOf(definition, model.path("capabilityId").asText());
+            if (capability != null)
+                capability.path("outputs").forEach(output -> results.add(model.path("id").asText() + "."
+                        + output.path("key").asText()));
+        }
+        java.util.List<String> unusable = new java.util.ArrayList<>();
+        for (JsonNode observable : spec.path("observables"))
+            if (!results.contains(observable.path("field").asText()) || observable.path("object").asText("").isBlank()
+                    || observable.path("label").asText("").isBlank())
+                unusable.add("\"" + observable.path("field").asText() + "\"");
+        if (!results.isEmpty() && spec.path("observables").isEmpty())
+            found.add("simulationSpec.observables is empty: list the results the learner watches.");
+        else if (!unusable.isEmpty())
+            found.add("observables " + String.join(", ", unusable) + " must each name one computed result ("
+                    + String.join(", ", results) + ") with the object it belongs to and a label.");
         return found;
     }
 
@@ -633,12 +651,27 @@ public class AIService {
     }
 
     /**
-     * What the illustrator needs from the signed plan: participants, adjustable
-     * parameters, duration.
+     * What the illustrator needs from the signed plan: the described objects, the
+     * values the learner watches, the participants (calculation units), adjustable
+     * parameters and duration.
      */
-    private ObjectNode visualBrief(JsonNode brief) {
+    private ObjectNode visualBrief(JsonNode brief, ObjectNode fieldMeta) {
         ObjectNode result = json.createObjectNode();
         result.set("durationSeconds", brief.path("durationSeconds"));
+        ArrayNode objects = result.putArray("objects");
+        for (JsonNode object : brief.path("requiredObjects")) {
+            ObjectNode item = objects.addObject();
+            for (String field : java.util.List.of("label", "count", "shape", "contextual"))
+                if (object.hasNonNull(field))
+                    item.set(field, object.get(field));
+        }
+        ArrayNode observables = result.putArray("observables");
+        for (JsonNode observable : brief.path("observables"))
+            if (fieldMeta.has(observable.path("field").asText())) {
+                ObjectNode item = observables.addObject();
+                for (String field : java.util.List.of("field", "object", "label"))
+                    item.put(field, observable.path(field).asText(""));
+            }
         ArrayNode participants = result.putArray("participants");
         for (JsonNode model : brief.path("physicsModels")) {
             ObjectNode item = participants.addObject();

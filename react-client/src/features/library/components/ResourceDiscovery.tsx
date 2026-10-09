@@ -189,6 +189,7 @@ export function ResourceDiscovery({ items, curriculum = null, generated = null, 
           parameters={generated.savedParameters ?? Object.fromEntries(generated.parameters.map(parameter => [parameter.name, parameter.value]))}
           models={generated.simulationSpec.physicsModels}
           fieldMeta={generated.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
+          observables={generated.simulationSpec.observables}
           verificationStatus={generated.validation?.status ?? "VISUAL_ONLY_UNVERIFIED"} />
       </div>}
       {!simulationLoading && !simulationError && !generated && simulation && <motion.div initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={transition}><div className={styles.scene}><PhysicsScene simulation={simulation} index={frame} overlays={vectors} time={time} playing={playing} onTimeChange={onTimeChange} onPlaybackEnd={onPlaybackEnd} /></div><div className={styles.playback}><Button onClick={onTogglePlaying}>{playing ? <PauseIcon /> : <PlayIcon />}{playing ? "Tạm dừng" : "Chạy mô phỏng"}</Button><Button color="gray" variant="soft" onClick={onReset}><ResetIcon /> Về đầu</Button><input aria-label="Thời gian mô phỏng" type="range" min={0} max={Math.max(0, simulation.time.length - 1)} value={frame} onChange={event => onFrameChange(Number(event.target.value))} /><span>{time.toFixed(2)} s</span></div></motion.div>}

@@ -27,6 +27,8 @@ export type SimulationSpec = {
   physicsCoverage: "COMPLETE" | "PARTIAL" | "NONE";
   physicsModels: Array<{ id: string; label?: string; capabilityId: string; inputs: Record<string, string | number> }>;
   requiredObjects?: Array<{ count?: number; label?: string; shape?: string }>;
+  /** The values the learner watches: a participant output, the object it belongs to and its name in the user's words. */
+  observables?: Array<{ field: string; object?: string; label?: string }>;
   runtimeKind?: string; visualProgram?: PixiVisualProgram; solverTimeline?: SolverTimeline;
   [key: string]: unknown;
 };

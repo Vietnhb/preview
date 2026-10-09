@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene presentation regression</title>
+<style>body{margin:0;background:#101722;color:#e2e8f0;font-family:system-ui}main{max-width:1060px;margin:24px auto;padding:16px}button,input,select{font:inherit}:root{--ink:#17233a;--surface:#fff;--muted:#64748b;--line:#dbe2ec;--accent:#2563eb}#status{font-size:13px;color:#94a3b8}</style>
+</head><body><main><p id="status">Regression fixture · three branches, solver-bound readings</p><div id="root"></div></main>
+<script type="module">
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import SvgPixiScene from '../src/features/simulation/components/SvgPixiScene.tsx';
+import '../src/features/simulation/styles/simulation.css';
+const svg = content => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240">${content}</svg>`;
+// A deterministic electrical regression fixture, not a generated/verified backend run.
+const setup = svg('<path d="M40 90V35H360V205H40V145M250 35V205" fill="none" stroke="#94a3b8" stroke-width="3"/><path d="M25 104H55M31 116H49M40 90V104M40 116V145" stroke="#e2e8f0" stroke-width="3"/><rect x="130" y="26" width="64" height="18" rx="4" fill="#1e293b" stroke="#60a5fa" stroke-width="2"/><rect x="241" y="93" width="18" height="54" rx="4" fill="#1e293b" stroke="#fbbf24" stroke-width="2"/><rect x="351" y="93" width="18" height="54" rx="4" fill="#1e293b" stroke="#a78bfa" stroke-width="2"/>');
+const flow = (field,label,color,path,labelAnchor) => ({field,label,labelAnchor,on:'0',svg:'',
+  part:svg(`<circle cx="${path[0].x}" cy="${path[0].y}" r="3" fill="${color}"/>`),
+  drive:{property:'travel',path,from:0,to:1,copies:7}});
+const baseSpec = {instruments:[{field:'',label:'Mạch điện',svg:setup},
+  flow('main.current','Dòng mạch chính','#60a5fa',[{x:40,y:35},{x:250,y:35}],{x:160,y:35}),
+  flow('r2.current','Qua R2','#fbbf24',[{x:250,y:35},{x:250,y:205},{x:40,y:205}],{x:250,y:120}),
+  flow('r3.current','Qua R3','#a78bfa',[{x:250,y:35},{x:360,y:35},{x:360,y:205},{x:40,y:205}],{x:360,y:120})],
+  annotations:[{on:'0',label:'Nguồn',field:'source.voltage',anchor:{x:40,y:110}}],
+  overlay:{axes:false,grid:false,trails:false,vectors:false,strobe:false,labels:false}};
+const params = new URLSearchParams(location.search);
+if(params.has('legacy')) { delete baseSpec.annotations; baseSpec.instruments.forEach(item=>delete item.labelAnchor); }
+if(params.has('bad-anchor')) baseSpec.annotations[0].anchor={x:500,y:20};
+if(params.has('invalid')) baseSpec.annotations[0].field='invented.voltage';
+const timeline = multiplier => ({durationSeconds:10,frames:[0,10].map(t=>({t,values:{
+  'main.current':12/7*multiplier,'r2.current':4/7*multiplier,'r3.current':8/7*multiplier,
+  'source.voltage':12*multiplier,'equivalent.resistance':6}}))});
+// Rename every binding to another domain to check the renderer has no circuit-specific dispatch.
+const remap = key => params.has('renamed') ? 'apparatus_' + key.split('.')[0] + '.pressure' : key;
+if(params.has('renamed')) {
+  baseSpec.instruments.forEach(item => { if(item.field) item.field=remap(item.field); });
+  baseSpec.annotations.forEach(item => { if(item.field) item.field=remap(item.field); });
+}
+const renderTimeline = factor => {
+  const data=timeline(factor);
+  return {...data,frames:data.frames.map(frame=>({...frame,values:Object.fromEntries(Object.entries(frame.values).map(([key,value])=>[remap(key),value]))}))};
+};
+const fields=Object.fromEntries(Object.keys(timeline(1).frames[0].values).map(key=>[remap(key),{unit:params.has('renamed')?'Pa':key.endsWith('current')?'A':key.endsWith('voltage')?'V':'ohm',rendererRole:'state_value'}]));
+function App(){
+ const [factor,setFactor]=React.useState(1);
+ window.changeValues=()=>setFactor(2);
+ return React.createElement(SvgPixiScene,{program:{code:'',scene:baseSpec},timeline:renderTimeline(factor),parameters:{},fieldMeta:fields,
+ verificationStatus:'VISUAL_ONLY_UNVERIFIED',onRenderError:error=>document.querySelector('#status').textContent=error});
+}
+createRoot(document.querySelector('#root')).render(React.createElement(App));
+</script></body></html>
