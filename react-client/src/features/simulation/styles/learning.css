@@ -754,10 +754,11 @@
 
 .learn-inspector {
   display: grid;
-  grid-template-rows: 48px minmax(0, 1fr) 39px;
+  grid-template-rows: auto minmax(0, 1fr) 39px;
 }
 .learn-inspector-nav {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   align-items: center;
   gap: 6px;
@@ -765,12 +766,49 @@
   border-bottom: 1px solid var(--learn-line);
 }
 .learn-inspector-nav .learn-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  flex: 1 1 100%;
+  width: 100%;
+  box-sizing: border-box;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;
+  gap: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
-.learn-inspector-nav .learn-tabs::-webkit-scrollbar {
-  display: none;
+.learn-inspector-nav .learn-tabs button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  justify-content: center;
+  white-space: nowrap;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.learn-inspector-nav .learn-tabs button:hover {
+  color: var(--ink);
+  background: transparent;
+}
+.learn-inspector-nav .learn-tabs button[aria-selected="true"] {
+  color: var(--accent-strong);
+  border-bottom-color: var(--accent);
+  background: transparent;
+  box-shadow: none;
+  font-weight: 650;
+}
+.learn-inspector-nav .learn-tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
 }
 
 .learn-inspector-nav .learn-save-button {
@@ -1202,6 +1240,15 @@
   border-color: #465466;
   color: #f3f6fb;
   background: #202936;
+}
+
+:root[data-theme-effective="dark"] .learning-app .learn-inspector-nav .learn-tabs,
+:root[data-theme-effective="dark"] .learning-app .learn-inspector-nav .learn-tabs button {
+  background: transparent;
+}
+:root[data-theme-effective="dark"] .learning-app .learn-inspector-nav .learn-tabs button[aria-selected="true"] {
+  border-bottom-color: #60a5fa;
+  color: #93c5fd;
 }
 
 @media (max-width: 850px) {

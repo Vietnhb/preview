@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import pixiBundle from "../../../../node_modules/pixi.js/dist/webworker.min.js?raw";
 import purifierBundle from "../../../../node_modules/dompurify/dist/purify.min.js?raw";
@@ -379,13 +380,15 @@ const formatRate = (value: number) => formatNumber(value >= 100 ? value : Math.r
 
 type ViewMode = "ai" | "standard";
 
-export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, observables, onRenderError, toolbarActions, cover = false, coverPlaying = false, onCoverFailed }: Readonly<{
+export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, observables, onRenderError, toolbarActions, cover = false, coverPlaying = false, onCoverFailed, readoutsTarget }: Readonly<{
   program: PixiVisualProgram; timeline: SolverTimeline; parameters: Record<string, number>; verificationStatus: string;
   models?: readonly SimulationModelRef[]; fieldMeta?: BackendFieldMeta; onRenderError?: (message: string) => void;
   /** The values the plan asks the learner to watch (simulationSpec.observables). */
   observables?: readonly SceneObservable[];
   /** Page-level buttons shown at the end of the toolbar so the page needs no heading row of its own. */
   toolbarActions?: ReactNode;
+  /** undefined: inline for standalone previews; null: workspace target not mounted yet. */
+  readoutsTarget?: HTMLElement | null;
   /** Card cover: only the scene, no toolbar, playback bar or charts. It rests on the first frame. */
   cover?: boolean;
   /** In cover mode, plays (looping) while true, e.g. while the card is hovered. */
@@ -407,7 +410,8 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
   /* simulated seconds per real second at 1× (nanosecond and year-long runs stay watchable) */
   const rate = useMemo(() => presentationRate(timeline.durationSeconds, timeline), [timeline]);
   const tooFast = useMemo(() => replayTooFast(timeline), [timeline]);
-  const rateNote = (rate > 1.5 ? "Tua nhanh ×" + formatRate(rate) : rate < 1 / 1.5 ? "Chiếu chậm ×" + formatRate(1 / rate) : "")
+  const effectiveRate = rate * speed;
+  const rateNote = (effectiveRate > 1.5 ? "Nhanh hơn thời gian thực " + formatRate(effectiveRate) + " lần" : effectiveRate < 1 / 1.5 ? "Chậm hơn thời gian thực " + formatRate(1 / effectiveRate) + " lần" : "")
     + (tooFast ? " · dao động quá nhanh để hiện hết, xem đồ thị" : "");
   const [loop, setLoop] = useState(cover);
   const [run, setRun] = useState(0);
@@ -509,6 +513,8 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
     </div>
   </div>;
 
+  const readouts = !error && timeline.frames.length > 0
+    ? <SceneReadouts scene={scene} spec={mode === "ai" ? sceneSpec : null} values={sampleTimeline(timeline, time)} theme={theme} /> : null;
   return <div className="sim-player" data-theme={theme === "DARK" ? "dark" : "light"}>
     <div className="sim-player__toolbar">
       <div className="sim-segmented" role="tablist" aria-label="Kiểu hiển thị">
@@ -533,7 +539,8 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
       {error && <p role="alert" className="simulation-error">{error}</p>}
       {!error && !ready && <div className="sim-stage__loading" role="status"><span className="sim-spinner" /> Đang dựng cảnh…</div>}
     </div>
-    {!error && timeline.frames.length > 0 && <SceneReadouts scene={scene} spec={mode === "ai" ? sceneSpec : null} values={sampleTimeline(timeline, time)} theme={theme} />}
+    {readoutsTarget === undefined ? readouts : readoutsTarget ? createPortal(
+      <div className="sim-player" data-theme={theme === "DARK" ? "dark" : "light"}>{readouts}</div>, readoutsTarget) : null}
     <div className="sim-transport">
       <button type="button" className="sim-icon-button sim-icon-button--primary" onClick={togglePlay}
         aria-label={playing ? "Tạm dừng" : "Phát"} title={playing ? "Tạm dừng" : "Phát"}>
@@ -542,17 +549,18 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
         <Icon name="reset" /></button>
       <input className="sim-scrubber" aria-label="Thời gian mô phỏng" type="range" min={0} max={timeline.durationSeconds} step="any"
         value={time} style={{ "--progress": progress + "%" } as CSSProperties} onChange={event => seek(Number(event.target.value))} />
-      <output className="sim-clock">{formatTime(time, timeline.durationSeconds).split(" ")[0]} <span>/ {formatTime(timeline.durationSeconds, timeline.durationSeconds)}</span></output>
+      <output className="sim-clock" aria-label="Thời gian mô phỏng" title="Thời gian của hiện tượng trong mô phỏng">
+        {formatTime(time, timeline.durationSeconds)} <span>/ {formatTime(timeline.durationSeconds, timeline.durationSeconds)}</span>
+      </output>
       <select className="sim-select" aria-label="Tốc độ phát" value={speed}
         onChange={event => { const value = Number(event.target.value); setSpeed(value); send({ type: "speed", speed: value * rate }); }}>
-        {SPEEDS.map(value => <option key={value} value={value}>{value}×</option>)}
+        {SPEEDS.map(value => <option key={value} value={value}>Phát {value}×</option>)}
       </select>
-      {rateNote && <span className="sim-muted" style={{ fontSize: 12, whiteSpace: "nowrap" }}
-        title="Thời gian thực của hiện tượng được co giãn để quan sát được">{rateNote}</span>}
       <label className="sim-toggle" title="Lặp lại khi hết thời gian">
         <input type="checkbox" checked={loop} onChange={event => { setLoop(event.target.checked); send({ type: "loop", loop: event.target.checked }); }} />
         Lặp
       </label>
+      {rateNote && <span className="sim-rate-note">{rateNote}</span>}
     </div>
     <SimulationCharts scene={scene} timeline={timeline} time={time} theme={theme} onSeek={seek} />
   </div>;

@@ -9,7 +9,7 @@ import { visualSource, type SimulationWorkspaceModel } from "../hooks/useSimulat
 /** What a complaint about the simulation on screen should carry; absent for accounts that cannot file one. */
 type ComplaintContext = { simulationId?: string; description?: string; parameters?: Record<string, number> };
 
-export default function SimulationStage({ input, preview, complaint }: Readonly<Pick<SimulationWorkspaceModel, "input" | "preview"> & { complaint?: ComplaintContext }>) {
+export default function SimulationStage({ input, preview, complaint, readoutsTarget }: Readonly<Pick<SimulationWorkspaceModel, "input" | "preview"> & { complaint?: ComplaintContext; readoutsTarget?: HTMLElement | null }>) {
   const [complaintOpen, setComplaintOpen] = useState(false);
   const {
     sourceMode, setSourceMode, text, setText, sourceFile, previewUrl, busy, error, acceptImage,
@@ -42,6 +42,7 @@ export default function SimulationStage({ input, preview, complaint }: Readonly<
                 verificationStatus={validation?.status ?? "VISUAL_ONLY_UNVERIFIED"}
                 onRenderError={setRenderError}
                 toolbarActions={stageActions}
+                readoutsTarget={readoutsTarget}
               />
               {recomputing && <div className="simulation-recomputing" role="status"><span className="simulation-recomputing__spinner" aria-hidden="true" />Đang tính lại với thông số mới…</div>}
               </div>

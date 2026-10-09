@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import Icon from "../../../shared/ui/LearningIcon";
 import SaveSimulationPanel from "../../library/components/SaveSimulationPanel";
 import { FormulaReview, SimulationParameterControl } from "./SimulationReview";
@@ -25,14 +25,14 @@ const QUICK_EXAMPLES = [
   },
 ];
 
-export default function SimulationInspector({ experiment, explanation, save }: Readonly<Pick<SimulationWorkspaceModel, "experiment" | "explanation" | "save">>) {
+export default function SimulationInspector({ experiment, explanation, save, readoutsRef }: Readonly<Pick<SimulationWorkspaceModel, "experiment" | "explanation" | "save"> & { readoutsRef?: Ref<HTMLDivElement> }>) {
   const { simulation, values, validation, updateParameter, resetParameters, applyExample } = experiment;
   const { intent, revision, setRevision, handleRevision } = explanation;
   const { busy, saveOpen, savedMessage, renderError, currentSimulationId, canManageLearningContent,
     folders, onBusyChange, onFolder, onSaved, onClose, onOpen } = save;
   const [navigation, setNavigation] = useState({
     simulation,
-    tab: "experiment" as "experiment" | "understand" | "details",
+    tab: "experiment" as "experiment" | "understand" | "details" | "readouts",
   });
   const inspectorTab = navigation.simulation !== simulation && simulation ? "experiment" : navigation.tab;
   if (navigation.simulation !== simulation) setNavigation({ simulation, tab: inspectorTab });
@@ -48,8 +48,15 @@ export default function SimulationInspector({ experiment, explanation, save }: R
             disabled={saveOpen && busy}
             onClick={() => { onClose(); setInspectorTab("experiment"); }}
           >
-            <Icon name="sliders" /> Thử nghiệm
+            Thử nghiệm
           </button>
+          {simulation && <button role="tab" type="button" id="simulation-readouts-tab"
+            aria-controls="simulation-readouts-panel"
+            aria-selected={!saveOpen && inspectorTab === "readouts"}
+            disabled={saveOpen && busy}
+            onClick={() => { onClose(); setInspectorTab("readouts"); }}>
+            Số liệu
+          </button>}
           <button
             role="tab"
             type="button"
@@ -57,7 +64,7 @@ export default function SimulationInspector({ experiment, explanation, save }: R
             disabled={saveOpen && busy}
             onClick={() => { onClose(); setInspectorTab("understand"); }}
           >
-            <Icon name="book" /> Giải thích
+            Giải thích
           </button>
           <button
             role="tab"
@@ -66,7 +73,7 @@ export default function SimulationInspector({ experiment, explanation, save }: R
             disabled={saveOpen && busy}
             onClick={() => { onClose(); setInspectorTab("details"); }}
           >
-            <Icon name="atom" /> Chi tiết
+            Chi tiết
           </button>
         </div>
         {simulation && canManageLearningContent && !currentSimulationId && (
@@ -79,6 +86,10 @@ export default function SimulationInspector({ experiment, explanation, save }: R
       </div>
 
       <div className="learn-inspector-body">
+        <div id="simulation-readouts-panel" role="tabpanel" aria-labelledby="simulation-readouts-tab"
+          hidden={!simulation || saveOpen || inspectorTab !== "readouts"}>
+          <div ref={readoutsRef} />
+        </div>
         {canManageLearningContent && savedMessage && <div className="simulation-actions">
           <span role="status">{savedMessage}</span>
         </div>}

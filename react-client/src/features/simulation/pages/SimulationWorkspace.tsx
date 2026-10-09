@@ -12,6 +12,7 @@ import "../styles/simulation.css";
 export default function SimulationWorkspace() {
   const [libraryCollapsed, setLibraryCollapsed] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<"observe" | "inspect">("observe");
+  const [readoutsTarget, setReadoutsTarget] = useState<HTMLDivElement | null>(null);
   const libraryState = useTeacherLibrary();
   const { canManageLearningContent, events, library, input, preview, experiment, explanation, save } = useSimulationWorkspace(libraryState);
   return (
@@ -32,9 +33,9 @@ export default function SimulationWorkspace() {
         <div className="learn-layout" data-mobile-panel={mobilePanel} data-library-pane={canManageLearningContent}
           data-library-collapsed={libraryCollapsed}>
           {canManageLearningContent && <TeacherLibraryPane {...library} />}
-          <SimulationStage input={input} preview={preview}
+          <SimulationStage input={input} preview={preview} readoutsTarget={readoutsTarget}
             complaint={canManageLearningContent ? { simulationId: save.currentSimulationId || undefined, description: experiment.simulation?.description, parameters: experiment.values } : undefined} />
-          <SimulationInspector experiment={experiment} explanation={explanation} save={save} />
+          <SimulationInspector experiment={experiment} explanation={explanation} save={save} readoutsRef={setReadoutsTarget} />
         </div>
       </main>
     </div>

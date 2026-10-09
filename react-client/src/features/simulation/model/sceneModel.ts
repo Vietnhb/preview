@@ -316,9 +316,9 @@ const TIME_UNITS: Array<[number, string]> = [[31557600, "năm"], [86400, "ngày"
   [1e-3, "ms"], [1e-6, "µs"], [1e-9, "ns"]];
 /** Unit that suits a whole run (e.g. 6000 s → h, 1.3e-7 s → ns). */
 export function timeUnitFor(durationSeconds: number): [number, string] {
-  return TIME_UNITS.find(([size]) => durationSeconds / size >= 1.5) ?? TIME_UNITS[TIME_UNITS.length - 1];
+  return TIME_UNITS.find(([size]) => durationSeconds / size >= 1) ?? TIME_UNITS[TIME_UNITS.length - 1];
 }
 export function formatTime(seconds: number, durationSeconds: number, digits = 2) {
   const [size, unit] = timeUnitFor(durationSeconds);
-  return (seconds / size).toFixed(digits) + " " + unit;
+  return Number((seconds / size).toFixed(digits)) + " " + unit;
 }
