@@ -38,7 +38,9 @@
     "charge_in_uniform_electric_field",
     "series_capacitor_pair",
     "parallel_capacitor_pair",
-    "rc_circuit"
+    "rc_circuit",
+    "series_equivalent_capacitance",
+    "parallel_equivalent_capacitance"
   ],
   "curriculum": [
     {

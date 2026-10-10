@@ -1,6 +1,5 @@
 import { useState, type CSSProperties } from "react";
-import katex from "katex";
-import "katex/dist/katex.min.css";
+import MathFormula from "../../../shared/ui/MathFormula";
 import { formatNumber, prettyUnit } from "../model/sceneModel";
 import { parameterBounds } from "../hooks/useSimulationWorkspace";
 import type { IntentResult, RecognitionResult, SimulationParameter, SimulationFormulaBinding } from "../api/simulationUnderstandingApi";
@@ -8,14 +7,9 @@ import type { IntentResult, RecognitionResult, SimulationParameter, SimulationFo
 export function RecognitionDisplay({ recognition }: Readonly<{ recognition: RecognitionResult }>) {
   const source = (recognition.displayText || recognition.recognizedText || "").trim();
   if (recognition.sourceMode === "LATEX") {
-    const rendered = katex.renderToString(recognition.recognizedText, {
-      throwOnError: false,
-      trust: false,
-      strict: "warn",
-      output: "htmlAndMathml",
-    });
-    return <div className="simulation-recognized-math" aria-label={source}
-      dangerouslySetInnerHTML={{ __html: rendered }} />;
+    return <div className="simulation-recognized-math" aria-label={source}>
+      <MathFormula latex={recognition.recognizedText} />
+    </div>;
   }
   return <div className="simulation-recognized-text">
     {source.split(/\n\s*\n/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
@@ -63,20 +57,6 @@ export function SimulationParameterControl({ parameter, value, onChange }: Reado
 
 const formatBound = (bound: number) => String(Number(bound.toPrecision(4)));
 
-/** Textbook-style rendering of approved ASCII equations (symbols only, no topic knowledge). */
-function prettyEquation(equation: string) {
-  const greek: Record<string, string> = { theta: "θ", omega: "ω", alpha: "α", beta: "β", gamma: "γ", lambda: "λ", phi: "φ",
-    rho: "ρ", mu: "μ", tau: "τ", sigma: "σ", Delta: "Δ", delta: "δ", epsilon: "ε", pi: "π" };
-  return equation
-    .replace(/d2([A-Za-z_]\w*)\/dt2/g, "$1″")
-    .replace(/d([A-Za-z_]\w*)\/dt/g, "$1′")
-    .replace(/\b([A-Za-z]+)\b/g, word => greek[word] ?? word)
-    .replace(/sqrt\(/g, "√(")
-    .replace(/\^2\b/g, "²").replace(/\^3\b/g, "³")
-    .replace(/\*/g, "·")
-    .replace(/([=+])/g, " $1 ").replace(/\s+/g, " ").trim();
-}
-
 const bindingSource = (row: SimulationFormulaBinding) =>
   row.source === "PARAMETER" ? `thanh trượt “${row.parameterLabel || row.parameter}”`
     : row.source === "OUTPUT" ? `${row.outputLabel || row.output} của “${row.participantLabel || row.participant}”`
@@ -102,8 +82,8 @@ export function FormulaReview({ intent }: Readonly<{ intent: IntentResult }>) {
     <h3>Công thức áp dụng</h3>
     {intent.formulas?.length ? intent.formulas.map(formula => <div key={formula.modelId}>
       <strong>{formula.label || labels.get(formula.modelId) || "Đối tượng"}</strong>
-      {formula.canonical.map((equation, index) => <p key={index}><code>{prettyEquation(equation)}</code></p>)}
-      {!!formula.derived?.length && <p>Suy ra: {formula.derived.map(prettyEquation).join("; ")}</p>}
+      {formula.canonical.map((equation, index) => <MathFormula key={index} equation={equation} block />)}
+      {!!formula.derived?.length && <div><span>Suy ra: </span>{formula.derived.map((equation, index) => <span key={index}>{index > 0 && "; "}<MathFormula equation={equation} /></span>)}</div>}
       {!!formula.bindings?.length && <BindingTable bindings={formula.bindings} />}
     </div>) : <p>Hiện chưa có công thức tính toán đã kiểm duyệt cho tình huống này; hình sẽ chỉ mang tính minh họa.</p>}
   </div>;

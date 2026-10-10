@@ -29,22 +29,26 @@
     },
     {
       "key": "speed",
-      "unit": "m/s"
+      "unit": "m/s",
+      "timeVarying": true
     },
     {
       "key": "heading_angle",
       "unit": "rad",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "timeVarying": true
     },
     {
       "key": "drift_velocity_x",
       "unit": "m/s",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "timeVarying": true
     },
     {
       "key": "drift_velocity_y",
       "unit": "m/s",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "timeVarying": true
     }
   ],
   "outputs": [

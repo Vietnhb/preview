@@ -1,0 +1,8 @@
+.math-formula{display:inline-block;max-width:100%;min-width:0;vertical-align:middle;color:inherit;line-height:1.65}
+.math-formula__math{display:block;max-width:100%;overflow-x:auto;overflow-y:hidden;box-sizing:border-box;padding:.4em .25em}
+.math-formula .katex{font-size:1.08em;color:inherit}
+.math-formula--block{display:block;margin:8px 0}
+.math-formula .katex-display{margin:.25em 0;text-align:left}
+.math-formula .katex-display > .katex{text-align:left}
+.math-formula__note{font-family:inherit;font-size:.92em}
+.math-formula__source{white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit}

@@ -2,7 +2,12 @@
   "type": "object",
   "additionalProperties": true,
   "properties": {
-    "status": { "type": "string", "enum": ["CLARIFY", "EXPLAIN", "UNSUPPORTED"] },
+    "status": { "type": "string", "enum": ["CLARIFY", "EXPLAIN", "EXTEND", "UNSUPPORTED"] },
+    "relatedSchemas": {
+      "type": "array",
+      "description": "EXTEND only: schemaId of each topic in otherTopics whose laws the plan needs. Empty otherwise.",
+      "items": { "type": "string" }
+    },
     "question": { "type": ["string", "null"] },
     "choices": {
       "type": "array",
@@ -32,12 +37,23 @@
         },
         "physicsModels": {
           "type": "array",
-          "description": "Bindings to approved capability equations. Every model has a unique id, capabilityId and inputs mapping canonical input keys to parameter names or SI numeric constants. Do not put executable formulas here.",
+          "description": "Bindings to approved capability equations. Every model has a unique id, capabilityId and inputs mapping canonical input keys to a parameter name, another participant's result (its id, a dot and an output key) or an SI numeric constant. Do not put executable formulas here.",
           "items": {
             "type": "object",
             "properties": {
               "id": { "type": "string" }, "label": { "type": "string" }, "capabilityId": { "type": "string" },
-              "inputs": { "type": "object", "additionalProperties": { "type": ["string", "number"] } }
+              "inputs": { "type": "object", "additionalProperties": { "type": ["string", "number"] } },
+              "after": { "type": "string", "description": "Optional: id of the participant whose end starts this one." },
+              "until": {
+                "type": "object",
+                "description": "Optional: this participant ends when the watched result reaches the value.",
+                "properties": {
+                  "field": { "type": "string", "description": "A participant id, a dot and an output key, or the id, a dot and t for the time since that participant started." },
+                  "direction": { "enum": ["rising", "falling"] },
+                  "value": { "type": ["number", "string"], "description": "An SI number in the field's unit, or a parameter name." }
+                },
+                "required": ["field", "direction", "value"]
+              }
             },
             "required": ["id", "capabilityId", "inputs"]
           }

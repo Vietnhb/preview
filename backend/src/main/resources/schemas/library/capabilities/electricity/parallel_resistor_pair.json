@@ -17,17 +17,20 @@
   "canonicalInputs": [
     {
       "key": "source_voltage",
-      "unit": "V"
+      "unit": "V",
+      "timeVarying": true
     },
     {
       "key": "resistance_1",
       "unit": "ohm",
-      "min": 1e-09
+      "min": 1e-09,
+      "timeVarying": true
     },
     {
       "key": "resistance_2",
       "unit": "ohm",
-      "min": 1e-09
+      "min": 1e-09,
+      "timeVarying": true
     }
   ],
   "outputs": [

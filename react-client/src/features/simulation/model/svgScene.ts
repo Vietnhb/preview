@@ -1,6 +1,8 @@
-/** AI visual: optional declarative SVG scene (roles) and/or custom PixiJS code extending it. */
-export type PixiVisualProgram = { code: string; description?: string; scene?: Record<string, unknown> | null };
-export type SolverTimeline = { durationSeconds: number; frames: Array<{ t: number; values: Record<string, number> }> };
+/** LLM-authored PixiJS lifecycle. `scene` is retained only to diagnose older saved programs. */
+export type PixiVisualProgram = { code: string; description?: string; playbackRate?: number; scene?: Record<string, unknown> | null };
+export type SolverTimeline = { durationSeconds: number; frames: Array<{ t: number; values: Record<string, number> }>;
+  /** For a plan made of stages: when each participant ran, in seconds (null when it did not start or did not end). */
+  phases?: Record<string, { start: number | null; end: number | null }> };
 
 export function sampleTimeline(timeline: SolverTimeline, time: number): Record<string, number> {
   const frames = timeline.frames;

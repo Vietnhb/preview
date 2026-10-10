@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getSharedSimulation } from "../../simulation/api/simulationApi";
 import { openSharedGeneratedSimulation, type GeneratedSimulationResult } from "../../simulation/api/simulationUnderstandingApi";
-import SvgPixiScene from "../../simulation/components/SvgPixiScene";
-import "../../simulation/styles/simulation.css";
+import SavedScene from "../../simulation/components/SavedScene";
 import "../styles/simulation-thumb.css";
 
 /** A lightweight curve drawn from the simulation's own data, used when the live scene is not mounted. */
@@ -35,25 +34,18 @@ const varies = (series: number[]) => Math.max(...series) - Math.min(...series) >
 type Series = Record<string, number[]>;
 type Meta = Record<string, { label?: string; unit?: string } | undefined>;
 
-/** Real x–y trajectories when the motion is planar, otherwise the main quantity over time. */
-function buildCurve(time: number[], series: Series, meta: Meta = {}): Curve | null {
-  const tracks: { xs: number[]; ys: number[] }[] = [];
-  for (const key of Object.keys(series)) {
-    if (!/x$/i.test(key)) continue;
-    const partner = key.replace(/x$/i, match => (match === "X" ? "Y" : "y"));
-    const xs = series[key], ys = series[partner];
-    if (usable(xs) && usable(ys) && xs.length === ys.length && varies(ys) && varies(xs)) tracks.push({ xs, ys });
-  }
-  let label = "Quỹ đạo";
-  if (tracks.length === 0) {
-    const rank = (key: string) => /position|\.x$|\.y$|displacement|height/i.test(key) ? 0 : /velocity|speed/i.test(key) ? 1 : /acceleration/i.test(key) ? 3 : 2;
-    const keys = Object.keys(series).filter(key => usable(series[key]) && usable(time) && series[key].length === time.length && varies(series[key])).sort((a, b) => rank(a) - rank(b));
-    if (keys.length === 0) return null;
-    const first = keys[0];
-    for (const key of keys.filter(key => rank(key) === rank(first)).slice(0, MAX_TRACKS)) tracks.push({ xs: time, ys: series[key] });
-    const name = meta[first]?.label?.trim();
-    label = `${name ? name.charAt(0).toUpperCase() + name.slice(1) : "Đại lượng"} theo thời gian`;
-  }
+/**
+ * The simulation's own results over time: the values its plan asks the learner to watch (in the plan's order), or
+ * its results in the order the solver lists them. Lines drawn together share the unit of the first, so they can be compared.
+ */
+function buildCurve(time: number[], series: Series, meta: Meta = {}, watched: readonly string[] = []): Curve | null {
+  const drawable = (key: string) => usable(series[key]) && usable(time) && series[key].length === time.length && varies(series[key]);
+  const keys = [...watched, ...Object.keys(series)].filter((key, index, all) => all.indexOf(key) === index && drawable(key));
+  if (keys.length === 0) return null;
+  const first = keys[0], unit = meta[first]?.unit;
+  const tracks = keys.filter(key => meta[key]?.unit === unit).slice(0, MAX_TRACKS).map(key => ({ xs: time, ys: series[key] }));
+  const name = meta[first]?.label?.trim();
+  const label = `${name ? name.charAt(0).toUpperCase() + name.slice(1) : "Kết quả"} theo thời gian`;
   const chosen = tracks.slice(0, MAX_TRACKS).map(track => ({ xs: pick(track.xs, POINTS), ys: pick(track.ys, POINTS) }));
   const allX = chosen.flatMap(track => track.xs), allY = chosen.flatMap(track => track.ys);
   const minX = Math.min(...allX), maxX = Math.max(...allX), minY = Math.min(...allY), maxY = Math.max(...allY);
@@ -72,7 +64,8 @@ async function fetchPreview(simulationId: string): Promise<Preview> {
   if (scene && frames && frames.length > 1) {
     const series: Series = {};
     for (const key of Object.keys(frames[0].values ?? {})) if (key !== "t") series[key] = frames.map(frame => frame.values?.[key]);
-    return { scene, curve: buildCurve(frames.map(frame => frame.t), series, scene.simulationSpec.solverFieldMeta as Meta | undefined) };
+    return { scene, curve: buildCurve(frames.map(frame => frame.t), series, scene.simulationSpec.solverFieldMeta as Meta | undefined,
+      (scene.simulationSpec.observables ?? []).map(item => item.field)) };
   }
   // Saves that predate stored scenes only have the plain solver series.
   const plain = await getSharedSimulation(simulationId).catch(() => null);
@@ -133,14 +126,7 @@ export default function SimulationThumb({ simulationId }: Readonly<{ simulationI
   const timeline = scene?.simulationSpec.solverTimeline;
   return <div ref={host} className="simulation-thumb" data-state={!preview ? "loading" : hasSlot ? "live" : curve ? "curve" : "none"}
     onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}>
-    {hasSlot && scene && timeline ? <SvgPixiScene cover coverPlaying={hover} onCoverFailed={() => setFailedId(simulationId)}
-        program={scene.simulationSpec.visualProgram ?? { code: "" }} timeline={timeline}
-        parameters={scene.savedParameters ?? Object.fromEntries(scene.parameters.map(parameter => [parameter.name, parameter.value]))}
-        parameterInfo={scene.parameters}
-        models={scene.simulationSpec.physicsModels}
-        fieldMeta={scene.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
-        observables={scene.simulationSpec.observables}
-        verificationStatus={scene.validation?.status ?? "VISUAL_ONLY_UNVERIFIED"} />
+    {hasSlot && scene && timeline ? <SavedScene scene={scene} cover coverPlaying={hover} onCoverFailed={() => setFailedId(simulationId)} />
       : curve ? <>
         <svg className="simulation-thumb__plot" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Bản xem trước: ${curve.label.toLocaleLowerCase("vi")}`} preserveAspectRatio="xMidYMid meet">
           <line className="simulation-thumb__axis" x1={PAD} x2={WIDTH - PAD} y1={HEIGHT - PAD} y2={HEIGHT - PAD} />

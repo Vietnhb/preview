@@ -28,7 +28,8 @@
     },
     {
       "key": "field_strength",
-      "unit": "N/C"
+      "unit": "N/C",
+      "timeVarying": true
     },
     {
       "key": "initial_velocity",

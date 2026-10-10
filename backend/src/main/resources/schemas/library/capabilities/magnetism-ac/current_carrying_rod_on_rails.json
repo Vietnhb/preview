@@ -20,11 +20,13 @@
   "canonicalInputs": [
     {
       "key": "flux_density",
-      "unit": "T"
+      "unit": "T",
+      "timeVarying": true
     },
     {
       "key": "current",
-      "unit": "A"
+      "unit": "A",
+      "timeVarying": true
     },
     {
       "key": "rod_length",

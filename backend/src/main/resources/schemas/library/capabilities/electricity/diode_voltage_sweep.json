@@ -42,7 +42,8 @@
     },
     {
       "key": "sweep_rate",
-      "unit": "V/s"
+      "unit": "V/s",
+      "timeVarying": true
     }
   ],
   "outputs": [

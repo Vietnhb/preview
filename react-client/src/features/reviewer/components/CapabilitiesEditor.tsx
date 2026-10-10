@@ -1,4 +1,5 @@
 import { useState } from "react";
+import MathFormula from "../../../shared/ui/MathFormula";
 import { Badge, Button, Text, TextArea, TextField } from "@radix-ui/themes";
 import { normalizeNumbers, objectRows, RowsEditor } from "./JsonEditor";
 import { capabilityMath, capabilityProblems, FORMULA_PHASES, formatFormula, FormulaError, newCapability, parseFormula, withPhase } from "../model/equationAst";
@@ -32,7 +33,7 @@ export function CapabilitiesSummary({ capabilities }: Readonly<{ capabilities: C
       <QuantityLine label="Xuất ra" rows={objectRows(capability.outputs)} />
       {FORMULA_PHASES.filter(phase => Object.keys(math[phase.key]).length > 0).map(phase => <div key={phase.key} className="reviewer-formula-group">
         <Text as="div" size="2" weight="medium">{phase.label}</Text>
-        <dl className="reviewer-formulas">{Object.entries(math[phase.key]).map(([name, ast]) => <div key={name}><dt>{phase.key === "rates" ? `d(${name})/dt` : name}</dt><dd>{safeFormat(ast)}</dd></div>)}</dl>
+        <div className="reviewer-formulas">{Object.entries(math[phase.key]).map(([name, ast]) => <MathFormula key={name} name={name} expression={ast} derivative={phase.key === "rates"} block />)}</div>
       </div>)}
       {Array.isArray(capability.assumptions) && capability.assumptions.length > 0 && <Text as="p" size="1" color="gray">Giả thiết: {capability.assumptions.map(String).join(" ")}</Text>}
     </details>;
@@ -77,14 +78,15 @@ function CapabilityForm({ capability, problems, onChange, onRemove }: Readonly<{
 
     <Text as="div" size="2" weight="medium">Đại lượng đầu vào</Text>
     <RowsEditor rows={objectRows(capability.canonicalInputs)} onChange={rows => set("canonicalInputs", normalizeNumbers(rows, ["min", "max", "defaultValue"]))} addLabel="Thêm đầu vào" empty="Chưa có đại lượng đầu vào."
-      columns={[{ key: "key", label: "Mã đại lượng", placeholder: "resistance", width: "34%" }, { key: "unit", label: "Đơn vị chuẩn", placeholder: "ohm", width: "18%" }, { key: "min", label: "Nhỏ nhất", type: "number" }, { key: "max", label: "Lớn nhất", type: "number" }, { key: "defaultValue", label: "Mặc định", type: "number" }]} />
+      columns={[{ key: "key", label: "Mã đại lượng", placeholder: "resistance", width: "28%" }, { key: "unit", label: "Đơn vị chuẩn", placeholder: "ohm", width: "18%" }, { key: "min", label: "Nhỏ nhất", type: "number" }, { key: "max", label: "Lớn nhất", type: "number" }, { key: "defaultValue", label: "Mặc định", type: "number" }, { key: "timeVarying", label: "Nhận giá trị đang thay đổi", type: "flag" }]} />
+    <Text as="p" size="1" color="gray">Đánh dấu “Nhận giá trị đang thay đổi” khi định luật đúng tại từng thời điểm với đầu vào đó, để đầu vào có thể lấy kết quả đang biến thiên của một vật khác. Hệ thống bỏ qua dấu này nếu công thức dùng đầu vào đó được viết theo thời gian trôi qua.</Text>
 
     <Text as="div" size="2" weight="medium">Đại lượng xuất ra</Text>
     <Text as="p" size="1" color="gray">Mọi tên dùng trong công thức (kể cả biến trạng thái) phải có đơn vị ở đây để hệ thống kiểm tra thứ nguyên.</Text>
     <RowsEditor rows={objectRows(capability.outputs)} onChange={rows => set("outputs", rows)} addLabel="Thêm đại lượng xuất ra" empty="Chưa có đại lượng xuất ra."
       columns={[{ key: "key", label: "Mã đại lượng", placeholder: "voltage", width: "50%" }, { key: "unit", label: "Đơn vị chuẩn", placeholder: "V" }]} />
 
-    <Text as="p" size="1" color="gray" className="reviewer-formula-help">Viết công thức như trên giấy: <code>+ - * / ^</code>, ngoặc tròn, <code>t</code> là thời gian. Hàm dùng được: sin, cos, sqrt, exp, abs, log, asin, acos, atan (góc tính bằng radian).</Text>
+    <Text as="p" size="1" color="gray" className="reviewer-formula-help">Viết công thức như trên giấy: <code>+ - * / ^</code>, ngoặc tròn, <code>t</code> là thời gian. Hàm dùng được: sin, cos, tan, sqrt, exp, abs, log, asin, acos, atan, sign, floor (góc tính bằng radian); nhiều giá trị: min(a, b), max(a, b), mod(a, b), atan2(y, x), if(điều kiện, giá trị khi điều kiện dương, giá trị còn lại).</Text>
     {FORMULA_PHASES.map(phase => <FormulaGroup key={phase.key} label={phase.label} hint={phase.hint} rate={phase.key === "rates"} formulas={math[phase.key]} onChange={formulas => onChange(withPhase(capability, phase.key, formulas))} />)}
 
     <div className="reviewer-form-row">
@@ -143,6 +145,9 @@ function FormulaGroup({ label, hint, rate, formulas, onChange }: Readonly<{ labe
       <input aria-label="Công thức" className="reviewer-formula-text" spellCheck={false} placeholder="(E - q / C) / R" value={row.text} aria-invalid={Boolean(errors[row.id])} ref={element => element?.setCustomValidity(errors[row.id] ?? "")} onChange={event => edit(row.id, { text: event.target.value })} />
       <button type="button" className="reviewer-row-remove" aria-label="Xóa công thức" onClick={() => update(rows.filter(item => item.id !== row.id))}>×</button>
       {errors[row.id] && <Text size="1" color="red" role="alert" className="reviewer-formula-error">{errors[row.id]}</Text>}
+      {!errors[row.id] && row.name.trim() && row.text.trim() && <div className="reviewer-formula-preview" aria-label="Xem trước công thức">
+        <MathFormula name={row.name.trim()} expression={parseFormula(row.text)} derivative={rate} block />
+      </div>}
     </div>)}
     <Button type="button" size="1" variant="ghost" onClick={() => setRows([...rows, { id: nextRowId++, name: "", text: "" }])}>+ Thêm công thức</Button>
   </div>;

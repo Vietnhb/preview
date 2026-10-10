@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Spinner, Text } from "@radix-ui/themes";
 import { getSharedSimulation } from "../../simulation/api/simulationApi";
 import { openSharedGeneratedSimulation, type GeneratedSimulationResult } from "../../simulation/api/simulationUnderstandingApi";
-import SvgPixiScene from "../../simulation/components/SvgPixiScene";
-import "../../simulation/styles/simulation.css";
+import SavedScene from "../../simulation/components/SavedScene";
 import PhysicsScene from "../../simulation/components/CanvasPhysicsScene";
 import type { Simulation } from "../../../shared/types/physlive";
 import { indexAtTime } from "../../simulation/model/learningModel";
@@ -34,13 +33,7 @@ export function SimulationPreviewPane({ simulationId, onLoaded }: Readonly<{ sim
   const error = state.id === simulationId ? state.error : undefined;
   if (error) return <div className="reviewer-preview reviewer-preview-message" role="alert"><ReviewerIcon name="ban" size={22} /><Text size="2">{error}</Text></div>;
   if (generated?.simulationSpec.solverTimeline) return <div className="reviewer-preview">
-    <SvgPixiScene program={generated.simulationSpec.visualProgram ?? { code: "" }} timeline={generated.simulationSpec.solverTimeline}
-      parameters={generated.savedParameters ?? Object.fromEntries(generated.parameters.map(parameter => [parameter.name, parameter.value]))}
-      parameterInfo={generated.parameters}
-      models={generated.simulationSpec.physicsModels}
-      fieldMeta={generated.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
-      observables={generated.simulationSpec.observables}
-      verificationStatus={generated.validation?.status ?? "VISUAL_ONLY_UNVERIFIED"} />
+    <SavedScene scene={generated} />
   </div>;
   if (!simulation) return <div className="reviewer-preview reviewer-preview-message" role="status"><Spinner /><Text size="2">Đang mở mô phỏng…</Text></div>;
   const end = simulation.time.at(-1) ?? 0;

@@ -26,7 +26,8 @@
     {
       "key": "heater_power",
       "unit": "W",
-      "min": 1e-09
+      "min": 1e-09,
+      "timeVarying": true
     },
     {
       "key": "initial_temperature",

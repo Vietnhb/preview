@@ -31,7 +31,8 @@
     },
     {
       "key": "heating_rate",
-      "unit": "K/s"
+      "unit": "K/s",
+      "timeVarying": true
     }
   ],
   "outputs": [

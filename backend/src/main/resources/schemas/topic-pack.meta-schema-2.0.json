@@ -215,7 +215,8 @@
         "description": { "type": "string" },
         "defaultValue": { "type": "number" },
         "min": { "type": "number" },
-        "max": { "type": "number" }
+        "max": { "type": "number" },
+        "timeVarying": { "type": "boolean", "description": "Inputs only. True when the law holds at every instant for a changing value of this input, so the input may read another participant's result that changes during the run. Ignored when a result or rate using the input is written as a function of elapsed time." }
       }
     },
     "solverBinding": {
@@ -245,8 +246,9 @@
         { "type": "number" },
         { "type": "string", "description": "Canonical quantity reference; never executable source code." },
         {
-          "type": "array", "minItems": 2, "maxItems": 3,
-          "prefixItems": [{ "enum": ["add", "sub", "mul", "div", "pow", "neg", "sin", "cos", "sqrt", "exp", "abs"] }],
+          "type": "array", "minItems": 2, "maxItems": 4,
+          "description": "Operator followed by its operands. One operand: neg, abs, sign, floor, sqrt, exp, log, sin, cos, tan, asin, acos, atan. Two: add, sub, mul, div, pow, min, max, mod, atan2 (y, x). Three: if (condition, value when the condition is positive, value otherwise); only the chosen branch is evaluated.",
+          "prefixItems": [{ "enum": ["add", "sub", "mul", "div", "pow", "min", "max", "mod", "atan2", "neg", "abs", "sign", "floor", "sqrt", "exp", "log", "sin", "cos", "tan", "asin", "acos", "atan", "if"] }],
           "items": { "$ref": "#/$defs/arithmeticExpression" }
         }
       ]

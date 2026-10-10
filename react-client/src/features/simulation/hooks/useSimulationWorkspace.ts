@@ -35,9 +35,10 @@ export function parameterBounds(parameter: SimulationParameter): [number, number
   return min <= max ? [min, max] : [center, center];
 }
 
-/** What the AI produced for the visual: custom code, otherwise its declarative SVG scene. */
+/** The exact program currently displayed; legacy content is retained for regeneration diagnostics. */
 export function visualSource(simulation: GeneratedSimulationResult) {
   const program = simulation.simulationSpec.visualProgram;
+  if (program?.code?.trim()) return program.code;
   if (simulation.code?.trim()) return simulation.code;
   return program?.scene ? JSON.stringify(program.scene, null, 1) : "";
 }

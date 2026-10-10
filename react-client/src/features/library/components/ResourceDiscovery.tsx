@@ -4,9 +4,8 @@ import { Avatar, Badge, Button, Dialog, IconButton, SegmentedControl, Select, Sp
 import { ArrowTopRightIcon, ChevronRightIcon, Cross2Icon, MagnifyingGlassIcon, PauseIcon, PlayIcon, ReaderIcon, ResetIcon, StarFilledIcon } from "@radix-ui/react-icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import PhysicsScene from "../../simulation/components/CanvasPhysicsScene";
-import SvgPixiScene from "../../simulation/components/SvgPixiScene";
+import SavedScene from "../../simulation/components/SavedScene";
 import type { GeneratedSimulationResult } from "../../simulation/api/simulationUnderstandingApi";
-import "../../simulation/styles/simulation.css";
 import type { Curriculum, LibraryItem, Simulation } from "../../../shared/types/physlive";
 import { SpotlightCard } from "../../../shared/effects/Motion";
 import { buildCatalog, filterLibrary, indexLessonPaths, type CatalogSelection, type CatalogSubject, type LibraryScope } from "../model/catalogModel";
@@ -185,13 +184,7 @@ export function ResourceDiscovery({ items, curriculum = null, generated = null, 
       {simulationLoading && <div className={styles.playerState}><Spinner size="3" /> Đang mở mô phỏng…</div>}
       {!simulationLoading && simulationError && <p className={`${styles.playerState} ${styles.error}`}>{simulationError}</p>}
       {!simulationLoading && !simulationError && generated?.simulationSpec.solverTimeline && <div>
-        <SvgPixiScene program={generated.simulationSpec.visualProgram ?? { code: "" }} timeline={generated.simulationSpec.solverTimeline}
-          parameters={generated.savedParameters ?? Object.fromEntries(generated.parameters.map(parameter => [parameter.name, parameter.value]))}
-          parameterInfo={generated.parameters}
-          models={generated.simulationSpec.physicsModels}
-          fieldMeta={generated.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
-          observables={generated.simulationSpec.observables}
-          verificationStatus={generated.validation?.status ?? "VISUAL_ONLY_UNVERIFIED"} />
+        <SavedScene scene={generated} />
       </div>}
       {!simulationLoading && !simulationError && !generated && simulation && <motion.div initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={transition}><div className={styles.scene}><PhysicsScene simulation={simulation} index={frame} overlays={vectors} time={time} playing={playing} onTimeChange={onTimeChange} onPlaybackEnd={onPlaybackEnd} /></div><div className={styles.playback}><Button onClick={onTogglePlaying}>{playing ? <PauseIcon /> : <PlayIcon />}{playing ? "Tạm dừng" : "Chạy mô phỏng"}</Button><Button color="gray" variant="soft" onClick={onReset}><ResetIcon /> Về đầu</Button><input aria-label="Thời gian mô phỏng" type="range" min={0} max={Math.max(0, simulation.time.length - 1)} value={frame} onChange={event => onFrameChange(Number(event.target.value))} /><span>{time.toFixed(2)} s</span></div></motion.div>}
       {selectedItem && <ResourceDiscussion key={selectedItem.id} resourceId={selectedItem.id} />}

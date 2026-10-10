@@ -28,7 +28,8 @@
     {
       "key": "thickness_rate",
       "unit": "m/s",
-      "min": 0
+      "min": 0,
+      "timeVarying": true
     }
   ],
   "outputs": [

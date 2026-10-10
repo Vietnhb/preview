@@ -21,7 +21,8 @@
   "canonicalInputs": [
     {
       "key": "pulling_force",
-      "unit": "N"
+      "unit": "N",
+      "timeVarying": true
     },
     {
       "key": "total_mass",

@@ -37,12 +37,14 @@
     {
       "key": "volume_rate",
       "unit": "m3/s",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "timeVarying": true
     },
     {
       "key": "temperature_rate",
       "unit": "K/s",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "timeVarying": true
     },
     {
       "key": "gas_constant",

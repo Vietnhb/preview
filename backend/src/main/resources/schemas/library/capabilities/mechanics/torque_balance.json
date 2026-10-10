@@ -18,22 +18,26 @@
     {
       "key": "force_1",
       "unit": "N",
-      "min": 0
+      "min": 0,
+      "timeVarying": true
     },
     {
       "key": "lever_arm_1",
       "unit": "m",
-      "min": 0
+      "min": 0,
+      "timeVarying": true
     },
     {
       "key": "force_2",
       "unit": "N",
-      "min": 0
+      "min": 0,
+      "timeVarying": true
     },
     {
       "key": "lever_arm_2",
       "unit": "m",
-      "min": 0
+      "min": 0,
+      "timeVarying": true
     }
   ],
   "outputs": [

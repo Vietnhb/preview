@@ -3,7 +3,9 @@ import { motion, useReducedMotion } from "motion/react";
 import PhysicsScene from "../../simulation/components/CanvasPhysicsScene";
 import LearningIcon from "../../../shared/ui/LearningIcon";
 import type { Assignment, AssignmentActivityType, Simulation } from "../../../shared/types/physlive";
-import { interpolateAtTime, learningSeries, lessonKind, numberLabel, type LearningControl } from "../../simulation/model/learningModel";
+import SavedScene from "../../simulation/components/SavedScene";
+import { hasSavedScene } from "../../simulation/api/simulationUnderstandingApi";
+import { interpolateAtTime, learningSeries, numberLabel, type LearningControl } from "../../simulation/model/learningModel";
 import { StudentParameterPanel } from "./StudentParameterPanel";
 import { StudentSlider } from "./StudentSlider";
 import type { VectorVisibility } from "../model/studentTypes";
@@ -97,7 +99,7 @@ export function AssignmentWorkbench({
   onParameterChange,
   onParameterReset,
 }: Readonly<AssignmentWorkbenchProps>) {
-  const kind = lessonKind(simulation?.schemaId ?? "");
+  const savedScene = simulation && hasSavedScene(simulation.result) ? simulation.result : null;
   const questions = typeof assignment.questions === "object" ? assignment.questions : null;
   const measurement = questions?.measurement;
   const investigation = questions?.investigation;
@@ -145,16 +147,13 @@ export function AssignmentWorkbench({
     </div> : <motion.div className="student-experiment-layout" initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .18 }}>
       <Card asChild className="student-panel student-simulation-panel" size="3"><section>
         <header className="student-panel-heading"><Heading as="h2" size="4">2. {steps[1]}</Heading><Badge color="cyan" size="2">Mô phỏng</Badge></header>
-        <div className="student-view-toggles" role="group" aria-label="Thành phần hiển thị">{([
-          ["grid", "Lưới"],
-          ["trajectory", kind === "circuit" ? "Tín hiệu" : "Quỹ đạo"],
-          ["velocity", kind === "circuit" ? "Dòng điện" : "Vận tốc"],
-          ...(["circuit", "collision"].includes(kind) ? [] : [["acceleration", "Gia tốc"]]),
-        ] as [keyof VectorVisibility, string][]).map(([key, label]) => <Button key={key} type="button" size="1" variant={vectors[key] ? "soft" : "surface"} color={vectors[key] ? "indigo" : "gray"} aria-pressed={vectors[key]} onClick={() => onToggleVector(key)}><span className={`student-overlay-dot ${key}`} aria-hidden="true" />{label}</Button>)}</div>
-        {simLoading ? <div className="student-simulation-state" role="status"><Spinner size="3" /><Text color="gray">Đang tải mô phỏng…</Text></div> : simError ? <div className="student-simulation-state" role="alert"><Text as="p" color="red">{simError}</Text><Button type="button" variant="soft" onClick={onRetrySimulation}>Thử lại</Button></div> : simulation ? <>
+        {!savedScene && <div className="student-view-toggles" role="group" aria-label="Thành phần hiển thị">{([
+          ["grid", "Lưới"], ["trajectory", "Đường đi"], ["velocity", "Vận tốc"], ["acceleration", "Gia tốc"],
+        ] as [keyof VectorVisibility, string][]).map(([key, label]) => <Button key={key} type="button" size="1" variant={vectors[key] ? "soft" : "surface"} color={vectors[key] ? "indigo" : "gray"} aria-pressed={vectors[key]} onClick={() => onToggleVector(key)}><span className={`student-overlay-dot ${key}`} aria-hidden="true" />{label}</Button>)}</div>}
+        {simLoading ? <div className="student-simulation-state" role="status"><Spinner size="3" /><Text color="gray">Đang tải mô phỏng…</Text></div> : simError ? <div className="student-simulation-state" role="alert"><Text as="p" color="red">{simError}</Text><Button type="button" variant="soft" onClick={onRetrySimulation}>Thử lại</Button></div> : savedScene ? <SavedScene scene={savedScene} /> : simulation ? <>
           <div className="student-simulation-stage"><PhysicsScene simulation={simulation} index={frame} overlays={vectors} time={time} seekRevision={seekRevision} playing={playing} onTimeChange={onTimeChange} onPlaybackEnd={onPlaybackEnd} /></div>
           <div className="student-playback-controls"><Button type="button" onClick={onTogglePlaying}><LearningIcon name={playing ? "pause" : "play"} />{playing ? "Tạm dừng" : "Chạy"}</Button><IconButton type="button" variant="soft" onClick={onReset} aria-label="Tua mô phỏng về đầu"><LearningIcon name="reset" /></IconButton><StudentSlider label="Thời điểm mô phỏng" min={0} max={Math.max(1, simulation.time.length - 1)} step={1} value={[frame]} disabled={simulation.time.length < 2} onValueChange={values => onFrameChange(values[0])} /><Text asChild size="2" color="gray"><output>{time.toFixed(2)} s</output></Text></div>
-          <section className="student-readouts" aria-label="Đại lượng tại thời điểm đang xem"><header><Heading as="h3" size="3">Đại lượng tức thời</Heading><Badge color="cyan">t = {numberLabel(time, 2)} s</Badge></header><dl>{displayedSeries.map(({ series, value }) => <div key={series.key}><dt><span style={{ background: series.color }} aria-hidden="true" />{series.label}</dt><dd>{numberLabel(value, kind === "circuit" ? 4 : 2)} <small>{series.unit}</small></dd></div>)}</dl>{displayedSeries.length === 0 && <Text as="p" color="gray" size="2">Chưa có dữ liệu tại thời điểm này.</Text>}</section>
+          <section className="student-readouts" aria-label="Đại lượng tại thời điểm đang xem"><header><Heading as="h3" size="3">Đại lượng tức thời</Heading><Badge color="cyan">t = {numberLabel(time, 2)} s</Badge></header><dl>{displayedSeries.map(({ series, value }) => <div key={series.key}><dt><span style={{ background: series.color }} aria-hidden="true" />{series.label}</dt><dd>{numberLabel(value, 3)} <small>{series.unit}</small></dd></div>)}</dl>{displayedSeries.length === 0 && <Text as="p" color="gray" size="2">Chưa có dữ liệu tại thời điểm này.</Text>}</section>
         </> : <div className="student-simulation-state"><Text color="gray">Không có dữ liệu mô phỏng.</Text></div>}
       </section></Card>
       <div className="student-response-column">

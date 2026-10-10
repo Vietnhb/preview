@@ -28,6 +28,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class AIService {
     private static final String NO_MATCH = "NO_MATCH";
+    /** How many times the planner may ask for the laws of further topics before it must plan. */
+    private static final int MAX_TOPIC_EXTENSIONS = 2;
     private final SchemaDefinitionService schemas;
     private final SchemaEquationRuntime equations;
     private final GeneratedSimulationStorage storage;
@@ -74,15 +76,10 @@ public class AIService {
         requireSignedPlan(request);
         SchemaVersion schema = selectedSchema(request);
         JsonNode brief = request.path("simulationSpec");
-        ObjectNode computed = equations.compute(schema.getDefinition(), brief, json.createObjectNode());
-        ObjectNode input = json.createObjectNode();
-        input.put("description", request.path("description").asText());
-        // The planner's plain-language explanation carries the teaching intent (what to
-        // notice).
-        if (request.path("explanation").isTextual())
-            input.put("planExplanation", request.path("explanation").asText());
-        ObjectNode fieldMeta = solverFieldMeta(schema.getDefinition(), brief);
-        input.set("confirmedBrief", visualBrief(brief, fieldMeta));
+        JsonNode definition = definition(request, schema);
+        ObjectNode computed = equations.compute(definition, brief, json.createObjectNode());
+        ObjectNode fieldMeta = solverFieldMeta(definition, brief);
+        ObjectNode input = completeVisualInput(json, request, definition, fieldMeta, computed);
         JsonNode diagnostics = request.path("renderDiagnostics");
         if (!diagnostics.isMissingNode()) {
             if (!diagnostics.path("code").isTextual() || !diagnostics.path("message").isTextual()
@@ -91,15 +88,10 @@ public class AIService {
                 throw ApiException.badRequest("Thông tin chẩn đoán hiển thị không hợp lệ");
             input.set("renderDiagnostics", diagnostics);
         }
-        input.set("solverFields", visualFields(fieldMeta, computed.path("solverTimeline").path("frames")));
         JsonNode program = client.visual(input, resource("prompts/simulation-visual-system.txt"),
                 jsonResource("prompts/simulation-response-schema.json")).path("visualProgram");
-        // Whether the stage really shows the verified numbers is checked where it runs: the renderer cross-checks
-        // the scene against the solver timeline and falls back to the standard scene.
-        if (!program.path("scene").isObject())
-            throw ApiException.upstream("Mô phỏng được tạo chưa có cảnh minh họa");
-        if (program.path("scene").toString().length() > 2L * maxProgramCharacters)
-            throw ApiException.upstream("Cảnh minh họa được tạo vượt quá giới hạn tài nguyên");
+        // The LLM owns the presentation. The frontend executes its lifecycle without assembling or correcting a scene.
+        requireVisualProgram(program, maxProgramCharacters);
         ObjectNode spec = (ObjectNode) brief.deepCopy();
         spec.remove("scene");
         spec.set("visualProgram", program);
@@ -123,10 +115,20 @@ public class AIService {
         return response;
     }
 
+    static void requireVisualProgram(JsonNode program, int maxCharacters) {
+        if (!program.path("code").isTextual() || program.path("code").asText().isBlank())
+            throw ApiException.upstream("Mô phỏng được tạo chưa có mã hình minh họa");
+        if (program.path("code").asText().length() > maxCharacters)
+            throw ApiException.upstream("Mã hình minh họa được tạo vượt quá giới hạn tài nguyên");
+        double rate = program.path("playbackRate").asDouble(Double.NaN);
+        if (!program.path("playbackRate").isNumber() || !Double.isFinite(rate) || rate <= 0 || rate < 1e-15 || rate > 1e15)
+            throw ApiException.upstream("Tỉ lệ thời gian hiển thị không hợp lệ");
+    }
+
     public ObjectNode compute(JsonNode request) {
         requireSignedPlan(request);
         SchemaVersion schema = selectedSchema(request);
-        ObjectNode result = equations.compute(schema.getDefinition(), request.path("simulationSpec"),
+        ObjectNode result = equations.compute(definition(request, schema), request.path("simulationSpec"),
                 request.path("parameters"));
         ((ObjectNode) result.path("validation")).put("topicVersion", schema.getVersion());
         return result;
@@ -135,8 +137,8 @@ public class AIService {
     public LibraryItemResponse save(SimulationRequests.Save request) {
         requireSignedPlan(request.simulation());
         SchemaVersion schema = selectedSchema(request.simulation());
-        ObjectNode computed = equations.compute(schema.getDefinition(), request.simulation().path("simulationSpec"),
-                request.parameters());
+        ObjectNode computed = equations.compute(definition(request.simulation(), schema),
+                request.simulation().path("simulationSpec"), request.parameters());
         ((ObjectNode) computed.path("validation")).put("topicVersion", schema.getVersion());
         return storage.save(request, schema, computed);
     }
@@ -156,10 +158,48 @@ public class AIService {
     }
 
     /**
+     * The laws a plan was made from: its own topic and every further topic the signed plan names
+     * (simulationSpec.relatedSchemas), each at the version it was planned against.
+     */
+    private JsonNode definition(JsonNode request, SchemaVersion schema) {
+        JsonNode related = request.path("simulationSpec").path("relatedSchemas");
+        if (!related.isArray() || related.isEmpty())
+            return schema.getDefinition();
+        java.util.List<JsonNode> more = new java.util.ArrayList<>();
+        for (JsonNode entry : related)
+            more.add(schemas.requireCurrentApproved(entry.path("schemaId").asText(), entry.path("schemaVersion").asText())
+                    .getDefinition());
+        return merged(schema.getDefinition(), more);
+    }
+
+    /** One definition holding the laws and vocabulary of several topics; what the first topic defines stands. */
+    static JsonNode merged(JsonNode primary, java.util.List<JsonNode> more) {
+        if (more.isEmpty())
+            return primary;
+        ObjectNode all = primary.deepCopy();
+        Map<String, String> identity = Map.of("capabilities", "capabilityId", "quantityDefinitions", "key", "objectTypes",
+                "type", "unitCatalog", "symbol", "laws", "id");
+        identity.forEach((list, key) -> {
+            ArrayNode target = all.withArray(list);
+            java.util.Set<String> present = new java.util.HashSet<>();
+            target.forEach(item -> present.add(item.path(key).asText()));
+            for (JsonNode definition : more)
+                for (JsonNode item : definition.path(list))
+                    if (present.add(item.path(key).asText()))
+                        target.add(item.deepCopy());
+        });
+        return all;
+    }
+
+    /**
      * The plan's signature. What the learner watches is part of the confirmed plan
      * (the renderer checks the stage against it); plans signed before it was
      * (version 1) carry a signature without it.
      */
+    private String signPlan(JsonNode request) {
+        return signPlan(request, true);
+    }
+
     private String signPlan(JsonNode request, boolean watched) {
         ObjectNode contract = json.createObjectNode();
         JsonNode spec = request.path("simulationSpec");
@@ -168,6 +208,9 @@ public class AIService {
             contract.set(field, spec.path(field));
         if (watched && spec.has("observables"))
             contract.set("observables", spec.get("observables"));
+        // the further topics whose laws the plan uses; a plan made from one topic signs as before
+        if (spec.path("relatedSchemas").isArray() && !spec.path("relatedSchemas").isEmpty())
+            contract.set("relatedSchemas", spec.get("relatedSchemas"));
         String payload = "physlive-simulation-plan-v" + (watched ? 2 : 1) + "\n" + request.path("schemaId").asText() + "\n"
                 + request.path("schemaVersion").asText() + "\n" + request.path("description").asText() + "\n"
                 + schemas.compiledChecksum(contract);
@@ -274,7 +317,20 @@ public class AIService {
             return clarify;
         }
 
-        ObjectNode response = askLlm(description, selected, null).deepCopy();
+        java.util.List<SchemaVersion> related = new java.util.ArrayList<>();
+        JsonNode plan = askLlm(description, selected, related, approved, null);
+        for (int round = 0; "EXTEND".equals(stageOf(plan)); round++) {
+            int known = related.size();
+            for (JsonNode id : plan.path("relatedSchemas")) {
+                SchemaVersion more = byId.get(id.asText());
+                if (more != null && more != selected && !related.contains(more))
+                    related.add(more);
+            }
+            if (round == MAX_TOPIC_EXTENSIONS || related.size() == known)
+                throw ApiException.upstream("Kết quả phân tích mô phỏng của AI không hợp lệ");
+            plan = askLlm(description, selected, related, approved, null);
+        }
+        ObjectNode response = plan.deepCopy();
         if (!response.hasNonNull("stage"))
             response.set("stage", response.path("status").deepCopy());
         response.put("sessionId", sessionId);
@@ -286,11 +342,11 @@ public class AIService {
             return response;
         if (!response.path("simulationSpec").isObject())
             throw ApiException.upstream("Kết quả phân tích mô phỏng của AI không hợp lệ");
-        response.set("simulationSpec", stamped(response.path("simulationSpec"), selected));
-        ObjectNode preview = settlePlan(description, selected, response);
+        response.set("simulationSpec", stamped(response.path("simulationSpec"), selected, related));
+        ObjectNode preview = settlePlan(description, selected, related, approved, response);
         response.set("validation", preview.path("validation"));
         response.put("planSignature", signPlan(response, true));
-        response.set("formulas", formulas(selected.getDefinition(), response.path("simulationSpec"),
+        response.set("formulas", formulas(definition(response, selected), response.path("simulationSpec"),
                 preview.path("solverTimeline").path("frames").path(0).path("values")));
         return response;
     }
@@ -304,11 +360,11 @@ public class AIService {
     private record PlanCheck(ObjectNode preview, java.util.List<String> problems, ApiException solverError) {
     }
 
-    private PlanCheck check(SchemaVersion selected, ObjectNode spec) {
+    private PlanCheck check(JsonNode definition, ObjectNode spec) {
         normalizePlan(spec);
-        java.util.List<String> problems = new java.util.ArrayList<>(selfContradictions(spec, selected.getDefinition()));
+        java.util.List<String> problems = new java.util.ArrayList<>(selfContradictions(spec, definition));
         try {
-            return new PlanCheck(equations.compute(selected.getDefinition(), spec, json.createObjectNode()), problems,
+            return new PlanCheck(equations.compute(definition, spec, json.createObjectNode()), problems,
                     null);
         } catch (ApiException error) {
             problems.add(0, String.valueOf(error.getMessage()));
@@ -323,18 +379,20 @@ public class AIService {
      * computes and has fewer
      * problems. Returns the solver preview of the plan that stands.
      */
-    private ObjectNode settlePlan(String description, SchemaVersion selected, ObjectNode response) {
-        PlanCheck first = check(selected, (ObjectNode) response.path("simulationSpec"));
+    private ObjectNode settlePlan(String description, SchemaVersion selected, java.util.List<SchemaVersion> related,
+            java.util.List<SchemaVersion> approved, ObjectNode response) {
+        JsonNode definition = merged(selected.getDefinition(), related.stream().map(SchemaVersion::getDefinition).toList());
+        PlanCheck first = check(definition, (ObjectNode) response.path("simulationSpec"));
         if (first.problems().isEmpty())
             return first.preview();
         ObjectNode feedback = json.createObjectNode();
         feedback.put("error", String.join(" ", first.problems()));
         feedback.set("previousPlan", response.path("simulationSpec"));
-        JsonNode retry = first.preview() == null ? askLlm(description, selected, feedback)
-                : askLlmOptional(description, selected, feedback);
+        JsonNode retry = first.preview() == null ? askLlm(description, selected, related, approved, feedback)
+                : askLlmOptional(description, selected, related, approved, feedback);
         if (retry != null && "EXPLAIN".equals(stageOf(retry)) && retry.path("simulationSpec").isObject()) {
-            ObjectNode fixed = stamped(retry.path("simulationSpec"), selected);
-            PlanCheck second = check(selected, fixed);
+            ObjectNode fixed = stamped(retry.path("simulationSpec"), selected, related);
+            PlanCheck second = check(definition, fixed);
             if (second.preview() != null
                     && (first.preview() == null || second.problems().size() < first.problems().size())) {
                 response.set("simulationSpec", fixed);
@@ -389,12 +447,13 @@ public class AIService {
             if (parameter instanceof ObjectNode p)
                 parameters.put(p.path("name").asText(), p);
         ObjectNode control = parameters.get(spec.path("durationParameter").asText(""));
-        if (control == null || !"s".equals(control.path("unit").asText()))
+        String unit = control == null ? "" : control.path("unit").asText();
+        if (control == null || !equations.sameQuantity(unit, "s"))
             spec.remove("durationParameter");
         else if (spec.path("durationSeconds").asDouble(0) > 0)
-            control.put("value", spec.path("durationSeconds").asDouble());
+            control.put("value", equations.convert(spec.path("durationSeconds").asDouble(), "s", unit));
         else
-            spec.put("durationSeconds", control.path("value").asDouble());
+            spec.put("durationSeconds", equations.convert(control.path("value").asDouble(), unit, "s"));
         for (ObjectNode p : parameters.values()) {
             double value = p.path("value").asDouble(Double.NaN);
             if (!Double.isFinite(value))
@@ -410,11 +469,19 @@ public class AIService {
      * The plan as the server signs it: always tied to the topic it was planned
      * against.
      */
-    private ObjectNode stamped(JsonNode spec, SchemaVersion selected) {
+    private ObjectNode stamped(JsonNode spec, SchemaVersion selected, java.util.List<SchemaVersion> related) {
         ObjectNode copy = spec.deepCopy();
         copy.put("schemaId", selected.getSchemaId());
         copy.put("topic", selected.getTopic());
         copy.put("topicVersion", selected.getVersion());
+        // set by the server only: the further topics whose laws were offered to the planner
+        copy.remove("relatedSchemas");
+        ArrayNode others = json.createArrayNode();
+        for (SchemaVersion other : related)
+            others.addObject().put("schemaId", other.getSchemaId()).put("schemaVersion", other.getVersion())
+                    .put("topic", other.getTopic());
+        if (!others.isEmpty())
+            copy.set("relatedSchemas", others);
         return copy;
     }
 
@@ -452,12 +519,10 @@ public class AIService {
     }
 
     /**
-     * The planner sees only the selected topic, and only what it needs to bind a
-     * plan:
-     * capability contracts (inputs/outputs/equations/assumptions) plus a key →
-     * label map.
-     * Laws, relations, unit catalog and curriculum are derivable or irrelevant, so
-     * they are dropped.
+     * What the planner needs to bind a plan, and nothing else: capability contracts
+     * (inputs/outputs/equations/assumptions), a key → label map, which inputs may follow a value that changes
+     * during the run, and the spellings in which each unit may be written. Laws, relations, unit catalog and
+     * curriculum are derivable or irrelevant, so they are dropped.
      */
     private JsonNode planningView(JsonNode definition) {
         ObjectNode view = (ObjectNode) definition.deepCopy();
@@ -471,19 +536,50 @@ public class AIService {
         for (JsonNode type : view.path("objectTypes"))
             if (type instanceof ObjectNode t)
                 t.remove("description");
+        ObjectNode units = json.createObjectNode();
         for (JsonNode capability : view.path("capabilities")) {
-            if (capability instanceof ObjectNode c)
-                for (String field : java.util.List.of("execution", "validation", "rendererBindings", "validityDomain",
-                        "applicability"))
-                    c.remove(field);
+            if (!(capability instanceof ObjectNode c))
+                continue;
+            java.util.Set<String> changing = equations.changingInputs(capability);
+            for (JsonNode input : c.path("canonicalInputs")) {
+                ((ObjectNode) input).remove("timeVarying");
+                if (changing.contains(input.path("key").asText()))
+                    ((ObjectNode) input).put("acceptsChanging", true);
+                String unit = input.path("unit").asText();
+                java.util.List<String> spellings = equations.spellings(unit);
+                if (spellings.size() > 1 && !units.has(unit))
+                    spellings.forEach(units.withArray(unit)::add);
+            }
+            for (String field : java.util.List.of("execution", "validation", "rendererBindings", "validityDomain",
+                    "applicability"))
+                c.remove(field);
         }
+        view.set("unitSpellings", units);
         return view;
     }
 
-    private JsonNode askLlm(String description, SchemaVersion selected, JsonNode planFeedback) {
+    /** The approved topics the plan does not use yet, by name and by the laws each can compute. */
+    private ArrayNode otherTopics(java.util.List<SchemaVersion> approved, SchemaVersion selected,
+            java.util.List<SchemaVersion> related) {
+        ArrayNode topics = json.createArrayNode();
+        for (SchemaVersion schema : approved) {
+            if (schema == selected || related.contains(schema))
+                continue;
+            ObjectNode topic = topics.addObject().put("schemaId", schema.getSchemaId()).put("name", schema.getName());
+            for (JsonNode capability : schema.getDefinition().path("capabilities"))
+                if (!capability.path("title").asText("").isBlank())
+                    topic.withArray("laws").add(capability.path("title").asText());
+        }
+        return topics;
+    }
+
+    private JsonNode askLlm(String description, SchemaVersion selected, java.util.List<SchemaVersion> related,
+            java.util.List<SchemaVersion> approved, JsonNode planFeedback) {
         ObjectNode input = json.createObjectNode();
         input.put("description", description);
-        input.set("selectedSchema", planningView(selected.getDefinition()));
+        input.set("selectedSchema", planningView(merged(selected.getDefinition(),
+                related.stream().map(SchemaVersion::getDefinition).toList())));
+        input.set("otherTopics", otherTopics(approved, selected, related));
         if (planFeedback != null)
             input.set("planFeedback", planFeedback);
         JsonNode result = client.text(input, () -> resource("prompts/simulation-understanding-system.txt")
@@ -497,9 +593,10 @@ public class AIService {
      * A second opinion that only improves an already usable plan: when it cannot be
      * obtained, the plan stands.
      */
-    private JsonNode askLlmOptional(String description, SchemaVersion selected, JsonNode planFeedback) {
+    private JsonNode askLlmOptional(String description, SchemaVersion selected, java.util.List<SchemaVersion> related,
+            java.util.List<SchemaVersion> approved, JsonNode planFeedback) {
         try {
-            return askLlm(description, selected, planFeedback);
+            return askLlm(description, selected, related, approved, planFeedback);
         } catch (ApiException unavailable) {
             return null;
         }
@@ -539,10 +636,8 @@ public class AIService {
             if (id.isBlank() || capability == null)
                 continue;
             Map<String, String> roles = new LinkedHashMap<>();
-            for (JsonNode binding : capability.path("rendererBindings")) {
-                String source = binding.path("source").asText();
-                roles.put(source.substring(source.lastIndexOf('.') + 1), binding.path("role").asText());
-            }
+            for (JsonNode binding : capability.path("rendererBindings"))
+                roles.put(binding.path("source").asText(), binding.path("role").asText());
             for (JsonNode output : capability.path("outputs")) {
                 String key = output.path("key").asText();
                 ObjectNode field = result.putObject(id + "." + key);
@@ -610,6 +705,7 @@ public class AIService {
                 row.put("source", "PARAMETER");
                 row.put("parameter", binding.asText());
                 row.put("parameterLabel", parameter.path("label").asText(binding.asText()));
+                row.put("unit", parameter.path("unit").asText(input.path("unit").asText("")));
                 row.set("value", parameter.path("value"));
             } else if (binding.isTextual()) {
                 // "<participant>.<output>": the result of another participant's approved law
@@ -638,101 +734,19 @@ public class AIService {
         return rows;
     }
 
-    /**
-     * What the illustrator needs from the signed plan: the described objects, the
-     * values the learner watches, the participants (calculation units), adjustable
-     * parameters and duration.
-     */
-    private ObjectNode visualBrief(JsonNode brief, ObjectNode fieldMeta) {
-        ObjectNode result = json.createObjectNode();
-        result.set("durationSeconds", brief.path("durationSeconds"));
-        ArrayNode objects = result.putArray("objects");
-        for (JsonNode object : brief.path("requiredObjects")) {
-            ObjectNode item = objects.addObject();
-            for (String field : java.util.List.of("label", "count", "shape", "contextual"))
-                if (object.hasNonNull(field))
-                    item.set(field, object.get(field));
-        }
-        ArrayNode observables = result.putArray("observables");
-        for (JsonNode observable : brief.path("observables"))
-            if (fieldMeta.has(observable.path("field").asText()) && !fieldMeta.get(observable.path("field").asText()).has("constant")) {
-                ObjectNode item = observables.addObject();
-                for (String field : java.util.List.of("field", "object", "label"))
-                    item.put(field, observable.path(field).asText(""));
-            }
-        ArrayNode participants = result.putArray("participants");
-        for (JsonNode model : brief.path("physicsModels")) {
-            ObjectNode item = participants.addObject();
-            item.put("id", model.path("id").asText());
-            item.put("label", model.path("label").asText(model.path("id").asText()));
-        }
-        ArrayNode constants = result.putArray("constants");
-        fieldMeta.fields().forEachRemaining(entry -> {
-            if (!entry.getValue().has("constant"))
-                return;
-            ObjectNode item = constants.addObject();
-            item.put("name", entry.getKey());
-            for (String field : java.util.List.of("label", "unit", "participantLabel"))
-                if (entry.getValue().has(field))
-                    item.set(field, entry.getValue().get(field));
-            item.set("value", entry.getValue().get("constant"));
-        });
-        ArrayNode parameters = result.putArray("parameters");
-        for (JsonNode parameter : brief.path("parameters")) {
-            ObjectNode item = parameters.addObject();
-            for (String field : java.util.List.of("name", "label", "value", "unit", "min", "max"))
-                if (parameter.has(field))
-                    item.set(field, parameter.get(field));
-        }
-        return result;
-    }
-
-    /**
-     * One entry per solver field: meaning (label, unit, participant, renderer role)
-     * plus its first
-     * value and range over the run. Keys are exactly those the program reads from
-     * frame.fields.
-     */
-    /**
-     * The solver values the illustrator can bind, with how each one runs: start, range and, when it changes,
-     * samples at equal steps of the run. The clock, values that only repeat it and values that are not finite
-     * numbers are left out (the stage does not show them either).
-     */
-    private ObjectNode visualFields(ObjectNode fieldMeta, JsonNode frames) {
-        ObjectNode result = json.createObjectNode();
-        int count = frames.size();
-        if (count == 0)
-            return result;
-        frames.get(0).path("values").fieldNames().forEachRemaining(key -> {
-            double[] values = new double[count];
-            boolean clock = count > 2 && ("s".equals(fieldMeta.path(key).path("unit").asText())
-                    || key.matches("(?i)(.*[._])?(elapsed_)?time"));
-            for (int i = 0; i < count; i++) {
-                values[i] = frames.get(i).path("values").path(key).asDouble(Double.NaN);
-                double t = frames.get(i).path("t").asDouble();
-                clock &= Math.abs(values[i] - t) <= 1e-9 * Math.max(1, Math.abs(t));
-            }
-            if (key.equals("t") || clock || java.util.Arrays.stream(values).anyMatch(v -> !Double.isFinite(v)))
-                return;
-            ObjectNode field = result.putObject(key);
-            if (fieldMeta.has(key))
-                fieldMeta.get(key).fields().forEachRemaining(meta -> {
-                    if (!meta.getKey().equals("quantity") && !meta.getKey().equals("participantLabel"))
-                        field.set(meta.getKey(), meta.getValue());
-                });
-            double min = java.util.Arrays.stream(values).min().orElse(Double.NaN);
-            double max = java.util.Arrays.stream(values).max().orElse(Double.NaN);
-            field.put("start", values[0]);
-            field.put("min", min);
-            field.put("max", max);
-            if (max > min) {
-                ArrayNode samples = field.putArray("samples");
-                for (int k = 0; k <= 8; k++)
-                    samples.add(Double.parseDouble(String.format(java.util.Locale.ROOT, "%.4g",
-                            values[(int) Math.round(k * (count - 1) / 8.0)])));
-            }
-        });
-        return result;
+    /** Preserve the signed plan and solver data without field filtering, rounding or resampling. */
+    static ObjectNode completeVisualInput(ObjectMapper json, JsonNode request, JsonNode schemaDefinition,
+            JsonNode fieldMeta, JsonNode computed) {
+        ObjectNode input = json.createObjectNode();
+        input.set("description", request.path("description").deepCopy());
+        if (request.has("explanation"))
+            input.set("planExplanation", request.get("explanation").deepCopy());
+        input.set("confirmedPlan", request.path("simulationSpec").deepCopy());
+        input.set("physicsSchema", schemaDefinition.deepCopy());
+        input.set("solverFieldMeta", fieldMeta.deepCopy());
+        input.set("solverTimeline", computed.path("solverTimeline").deepCopy());
+        input.set("solverValidation", computed.path("validation").deepCopy());
+        return input;
     }
 
     /**

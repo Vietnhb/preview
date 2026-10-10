@@ -1,28 +1,28 @@
 {
-  "capabilityId": "parallel_equivalent_resistance",
-  "title": "Điện trở tương đương của hai đoạn mạch mắc song song",
+  "capabilityId": "series_equivalent_capacitance",
+  "title": "Điện dung tương đương của hai tụ (hoặc hai bộ tụ) ghép nối tiếp",
   "version": "1.0",
   "applicability": {
     "objectTypes": [
-      "resistor",
+      "capacitor",
       "node"
     ],
     "quantities": [
-      "resistance_1",
-      "resistance_2"
+      "capacitance_1",
+      "capacitance_2"
     ]
   },
   "canonicalInputs": [
     {
-      "key": "resistance_1",
-      "unit": "ohm",
-      "min": 1e-09,
+      "key": "capacitance_1",
+      "unit": "F",
+      "min": 1e-15,
       "timeVarying": true
     },
     {
-      "key": "resistance_2",
-      "unit": "ohm",
-      "min": 1e-09,
+      "key": "capacitance_2",
+      "unit": "F",
+      "min": 1e-15,
       "timeVarying": true
     }
   ],
@@ -32,16 +32,16 @@
       "unit": "s"
     },
     {
-      "key": "equivalent_resistance",
-      "unit": "ohm"
+      "key": "equivalent_capacitance",
+      "unit": "F"
     }
   ],
   "assumptions": [
-    "Hai đoạn mạch (điện trở hoặc nhóm điện trở) mắc song song; kết quả dùng làm đầu vào cho định luật khác để ghép mạch."
+    "Hai tụ điện (hoặc hai bộ tụ) ghép nối tiếp; kết quả dùng làm đầu vào cho định luật khác để ghép bộ tụ."
   ],
   "equationSet": {
     "canonical": [
-      "R_td = R1*R2/(R1 + R2)"
+      "C_td = C1*C2/(C1 + C2)"
     ],
     "derived": []
   },
@@ -64,40 +64,40 @@
       },
       "outputs": {
         "elapsed_time": "elapsed_time",
-        "equivalent_resistance": [
+        "equivalent_capacitance": [
           "div",
           [
             "mul",
-            "resistance_1",
-            "resistance_2"
+            "capacitance_1",
+            "capacitance_2"
           ],
           [
             "add",
-            "resistance_1",
-            "resistance_2"
+            "capacitance_1",
+            "capacitance_2"
           ]
         ]
       },
       "closedForm": {
         "elapsed_time": "t",
-        "equivalent_resistance": [
+        "equivalent_capacitance": [
           "div",
           [
             "mul",
-            "resistance_1",
-            "resistance_2"
+            "capacitance_1",
+            "capacitance_2"
           ],
           [
             "add",
-            "resistance_1",
-            "resistance_2"
+            "capacitance_1",
+            "capacitance_2"
           ]
         ]
       }
     }
   },
   "validation": {
-    "absoluteTolerance": 0.0001,
+    "absoluteTolerance": 1e-15,
     "relativeTolerance": 0.0001,
     "strategy": "closed_form_checkpoints",
     "invariants": [
@@ -110,7 +110,7 @@
   },
   "rendererBindings": [
     {
-      "source": "equivalent_resistance",
+      "source": "equivalent_capacitance",
       "role": "state_value"
     }
   ]

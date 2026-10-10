@@ -325,15 +325,19 @@
   },
   "rendererBindings": [
     {
-      "source": "positions.x",
+      "source": "x",
       "role": "horizontal_position"
     },
     {
-      "source": "positions.y",
+      "source": "y",
       "role": "vertical_position"
     },
     {
-      "source": "velocities",
+      "source": "vx",
+      "role": "velocity_vector"
+    },
+    {
+      "source": "vy",
       "role": "velocity_vector"
     },
     {

@@ -252,7 +252,7 @@
   },
   "rendererBindings": [
     {
-      "source": "positions.x",
+      "source": "position",
       "role": "trajectory"
     }
   ]

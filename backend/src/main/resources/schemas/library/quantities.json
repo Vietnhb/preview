@@ -1753,5 +1753,31 @@
     "label": "tọa độ y",
     "description": "tọa độ y",
     "aliases": []
+  },
+  "force_angle": {
+    "label": "góc của lực kéo so với phương ngang",
+    "description": "góc của lực kéo so với phương ngang",
+    "aliases": [
+      "alpha"
+    ]
+  },
+  "normal_force": {
+    "label": "phản lực của mặt phẳng",
+    "description": "phản lực của mặt phẳng",
+    "aliases": [
+      "N"
+    ]
+  },
+  "resultant_angle": {
+    "label": "góc của hợp lực",
+    "description": "góc của hợp lực",
+    "aliases": []
+  },
+  "equivalent_capacitance": {
+    "label": "điện dung tương đương",
+    "description": "điện dung tương đương",
+    "aliases": [
+      "C_td"
+    ]
   }
 }

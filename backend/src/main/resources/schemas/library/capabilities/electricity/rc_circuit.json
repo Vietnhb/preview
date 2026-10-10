@@ -20,12 +20,14 @@
     {
       "key": "source_voltage",
       "unit": "V",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "timeVarying": true
     },
     {
       "key": "resistance",
       "unit": "ohm",
-      "min": 1e-09
+      "min": 1e-09,
+      "timeVarying": true
     },
     {
       "key": "capacitance",

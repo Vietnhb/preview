@@ -1,21 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { sampleTimeline, type SolverTimeline } from "../model/svgScene";
-import { displayValue, formatNumber, niceStep, seriesColor, type FieldMeta, type QuantityKind, type SceneDescriptor, type ThemeName } from "../model/sceneModel";
+import { formatNumber, niceStep, seriesColor, type FieldMeta, type SceneDescriptor, type ThemeName } from "../model/sceneModel";
 
 type Series = { key: string; name: string; color: string; dashed: boolean; meta: FieldMeta; points: Array<[number, number]> };
 type Group = { id: string; title: string; axis: string; unit: string; series: Series[] };
 
-const KIND_ORDER: QuantityKind[] = ["position", "velocity", "acceleration", "angle", "angular_velocity", "force", "energy", "scalar"];
-const KIND_TITLE: Partial<Record<QuantityKind, [string, string]>> = {
-  position: ["Tọa độ – thời gian", "x"],
-  velocity: ["Vận tốc – thời gian", "v"],
-  acceleration: ["Gia tốc – thời gian", "a"],
-  angle: ["Li độ góc – thời gian", "θ"],
-  angular_velocity: ["Tốc độ góc – thời gian", "ω"],
-  force: ["Lực – thời gian", "F"],
-  energy: ["Năng lượng – thời gian", "W"],
-};
-
+/**
+ * One chart per unit, so values that can be compared share an axis. The plan's watched values are charted when it
+ * names any, otherwise every result; nothing is grouped or ordered by what a quantity is called.
+ */
 function buildGroups(scene: SceneDescriptor, timeline: SolverTimeline, theme: ThemeName): Group[] {
   const groups = new Map<string, Group>();
   const colorOf = new Map(scene.participants.map(item => [item.id, item.colorIndex]));
@@ -23,40 +16,32 @@ function buildGroups(scene: SceneDescriptor, timeline: SolverTimeline, theme: Th
   const every = Math.max(1, Math.floor(timeline.frames.length / 480));
   const pointsOf = (meta: FieldMeta) => {
     const points: Array<[number, number]> = [], frames = timeline.frames;
-    for (let i = 0; i < frames.length; i += every) points.push([frames[i].t, displayValue(meta, frames[i].values[meta.key]).value]);
+    for (let i = 0; i < frames.length; i += every) points.push([frames[i].t, frames[i].values[meta.key]]);
     const lastFrame = frames[frames.length - 1];
-    if (lastFrame && points[points.length - 1]?.[0] !== lastFrame.t)
-      points.push([lastFrame.t, displayValue(meta, lastFrame.values[meta.key]).value]);
+    if (lastFrame && points[points.length - 1]?.[0] !== lastFrame.t) points.push([lastFrame.t, lastFrame.values[meta.key]]);
     return points;
   };
-  /* when the plan names the values the learner watches, the charts show those: one chart per unit, so values that
-     can be compared share an axis, each line named in the user's words (the table still lists every value) */
-  if (scene.observables.length) {
-    scene.observables.forEach((key, index) => {
-      const meta = scene.fields[key], unit = displayValue(meta, 0).unit, id = "watch:" + unit;
-      const group = groups.get(id) ?? { id, title: meta.label + " – thời gian", axis: meta.symbol, unit, series: [] };
-      groups.set(id, group);
-      group.series.push({ key, meta, points: pointsOf(meta), dashed: false, color: seriesColor(theme, index), name: meta.caption ?? meta.label });
-    });
-    return [...groups.values()];
-  }
-  const groupOf = (meta: FieldMeta) => meta.kind === "scalar" ? "scalar:" + meta.quantity : meta.kind;
-  const metas = Object.values(scene.fields).sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
-  for (const meta of metas) {
-    const id = groupOf(meta);
-    const [title, axis] = KIND_TITLE[meta.kind] ?? [meta.label + " – thời gian", meta.symbol];
-    const group = groups.get(id) ?? { id, title, axis, unit: displayValue(meta, 0).unit, series: [] };
+  const watched = scene.observables.length > 0;
+  const metas = watched ? scene.observables.map(key => scene.fields[key]) : Object.values(scene.fields);
+  const several = scene.participants.length > 1;
+  metas.forEach((meta, index) => {
+    const id = "unit:" + meta.unit;
+    const group = groups.get(id) ?? { id, title: "", axis: "", unit: meta.unit, series: [] };
     groups.set(id, group);
-    const members = metas.filter(item => groupOf(item) === id);
-    const participantCount = new Set(members.map(item => item.participantId)).size;
-    const ownCount = members.filter(item => item.participantId === meta.participantId).length;
     const who = labelOf.get(meta.participantId) ?? meta.participantId;
     group.series.push({
       key: meta.key, meta, points: pointsOf(meta),
-      dashed: group.series.some(item => item.meta.participantId === meta.participantId),
-      color: seriesColor(theme, colorOf.get(meta.participantId) ?? 0),
-      name: participantCount > 1 ? who + (ownCount > 1 ? " · " + meta.symbol : "") : meta.symbol + " (" + who + ")",
+      /* a participant's second line on the same chart is dashed; watched values each take their own colour */
+      dashed: !watched && group.series.some(item => item.meta.participantId === meta.participantId),
+      color: seriesColor(theme, watched ? index : colorOf.get(meta.participantId) ?? 0),
+      name: meta.caption ?? (several ? meta.label + " · " + who : meta.label),
     });
+  });
+  for (const group of groups.values()) {
+    const labels = [...new Set(group.series.map(series => series.meta.caption ?? series.meta.label))];
+    const symbols = [...new Set(group.series.map(series => series.meta.symbol))];
+    group.title = (labels.length > 2 ? labels.slice(0, 2).join(", ") + " +" + (labels.length - 2) : labels.join(", ")) + " – thời gian";
+    group.axis = symbols.length === 1 && symbols[0] !== labels[0] ? symbols[0] : "";
   }
   return [...groups.values()];
 }
@@ -118,7 +103,7 @@ function Chart({ group, duration, time, onSeek }: Readonly<{ group: Group; durat
       <line x1={m.l} x2={m.l + plotW} y1={m.t + plotH} y2={m.t + plotH} className="sim-chart__axis" />
       <text x={m.l + plotW} y={height - 3} className="sim-chart__label" textAnchor="end">t (s)</text>
       <text x={12} y={m.t + plotH / 2} className="sim-chart__label" textAnchor="middle"
-        transform={`rotate(-90 12 ${m.t + plotH / 2})`}>{group.axis}{group.unit ? " (" + group.unit + ")" : ""}</text>
+        transform={`rotate(-90 12 ${m.t + plotH / 2})`}>{group.axis && group.unit ? group.axis + " (" + group.unit + ")" : group.axis || group.unit}</text>
       {group.series.map((series, index) => <path key={series.key} d={layout.paths[index]} fill="none" stroke={series.color}
         strokeWidth={2.2} strokeDasharray={series.dashed ? "7 5" : undefined} strokeLinejoin="round" strokeLinecap="round" />)}
       <line x1={cursorX} x2={cursorX} y1={m.t} y2={m.t + plotH} className="sim-chart__cursor" />
@@ -161,10 +146,9 @@ export default function SimulationCharts({ scene, timeline, time, theme, onSeek 
     {active ? <>
       <div className="sim-legend">
         {active.series.map(series => {
-          const shown = displayValue(series.meta, values[series.key]);
           return <span key={series.key} className="sim-legend__item">
             <i style={{ background: series.color }} data-dashed={series.dashed || undefined} />
-            {series.name}<b>{formatNumber(shown.value, 4, Math.max(Math.abs(series.meta.min), Math.abs(series.meta.max)))} {shown.unit}</b>
+            {series.name}<b>{formatNumber(values[series.key], 4, Math.max(Math.abs(series.meta.min), Math.abs(series.meta.max)))} {series.meta.unit}</b>
           </span>;
         })}
       </div>
@@ -174,14 +158,13 @@ export default function SimulationCharts({ scene, timeline, time, theme, onSeek 
       <table className="sim-table">
         <thead><tr><th>Đối tượng</th><th>Đại lượng</th><th>Tại t = {time.toFixed(2)} s</th><th>Nhỏ nhất</th><th>Lớn nhất</th></tr></thead>
         <tbody>{Object.values(scene.fields).map(meta => {
-          const now = displayValue(meta, values[meta.key]), low = displayValue(meta, meta.min), high = displayValue(meta, meta.max);
-          const scale = Math.max(Math.abs(low.value), Math.abs(high.value));
+          const scale = Math.max(Math.abs(meta.min), Math.abs(meta.max));
           return <tr key={meta.key}>
             <td>{meta.object ?? labelOf.get(meta.participantId) ?? meta.participantId}</td>
             <td>{meta.caption ?? meta.label}{!meta.caption && meta.symbol.toLowerCase() !== meta.label.toLowerCase() && <> <span className="sim-muted">({meta.symbol})</span></>}</td>
-            <td className="sim-num">{formatNumber(now.value, 4, scale)} {now.unit}</td>
-            <td className="sim-num">{formatNumber(low.value, 4, scale)} {low.unit}</td>
-            <td className="sim-num">{formatNumber(high.value, 4, scale)} {high.unit}</td>
+            <td className="sim-num">{formatNumber(values[meta.key], 4, scale)} {meta.unit}</td>
+            <td className="sim-num">{formatNumber(meta.min, 4, scale)} {meta.unit}</td>
+            <td className="sim-num">{formatNumber(meta.max, 4, scale)} {meta.unit}</td>
           </tr>;
         })}</tbody>
       </table>

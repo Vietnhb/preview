@@ -277,6 +277,7 @@
 .reviewer-academic .reviewer-formulas > div { display: grid; grid-template-columns: minmax(110px, 24%) minmax(0, 1fr); gap: 10px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; }
 .reviewer-academic .reviewer-formulas dt { color: var(--muted); overflow-wrap: anywhere; }
 .reviewer-academic .reviewer-formulas dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.reviewer-academic .reviewer-formula-preview { grid-column: 1 / -1; min-width: 0; padding: 4px 9px 9px; color: var(--ink); }
 .reviewer-academic .reviewer-note-danger { border-color: var(--danger); background: var(--danger-soft); }
 .reviewer-academic .reviewer-note-danger ul { margin: 6px 0 0; padding-left: 18px; }
 

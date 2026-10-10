@@ -35,7 +35,7 @@ export function AdvancedJson({ value, onChange, label = "Chỉnh sửa nâng cao
 }
 
 /** Generic editable table for arrays of flat objects, preserving fields the form does not show. */
-export type ColumnSpec = { key: string; label: string; placeholder?: string; type?: "text" | "number" | "list"; width?: string };
+export type ColumnSpec = { key: string; label: string; placeholder?: string; type?: "text" | "number" | "list" | "flag"; width?: string };
 
 export function RowsEditor({ rows, columns, onChange, addLabel, empty }: Readonly<{ rows: JsonObject[]; columns: ColumnSpec[]; onChange: (rows: JsonObject[]) => void; addLabel: string; empty: string }>) {
   // The cell being typed in keeps its raw text, so "m/s, " or "0." are not reformatted mid-typing.
@@ -53,7 +53,14 @@ export function RowsEditor({ rows, columns, onChange, addLabel, empty }: Readonl
   return <div className="reviewer-rows">
     {rows.length === 0 && <Text as="p" size="2" color="gray" className="reviewer-rows-empty">{empty}</Text>}
     {rows.length > 0 && <table className="reviewer-mini-table reviewer-edit-table"><thead><tr>{columns.map(column => <th key={column.key} style={column.width ? { width: column.width } : undefined}>{column.label}</th>)}<th aria-label="Thao tác" style={{ width: 44 }} /></tr></thead><tbody>
-      {rows.map((row, index) => <tr key={index}>{columns.map(column => <td key={column.key}><input aria-label={column.label} inputMode={column.type === "number" ? "decimal" : undefined} placeholder={column.placeholder} value={editing?.cell === `${index}:${column.key}` ? editing.text : display(row, column)} onChange={event => { setEditing({ cell: `${index}:${column.key}`, text: event.target.value }); set(index, column, event.target.value); }} onBlur={() => setEditing(null)} /></td>)}
+      {rows.map((row, index) => <tr key={index}>{columns.map(column => column.type === "flag"
+        ? <td key={column.key}><input type="checkbox" aria-label={column.label} checked={row[column.key] === true} onChange={event => onChange(rows.map((item, i) => {
+          if (i !== index) return item;
+          const rest = { ...item };
+          delete rest[column.key];
+          return event.target.checked ? { ...rest, [column.key]: true } : rest;
+        }))} /></td>
+        : <td key={column.key}><input aria-label={column.label} inputMode={column.type === "number" ? "decimal" : undefined} placeholder={column.placeholder} value={editing?.cell === `${index}:${column.key}` ? editing.text : display(row, column)} onChange={event => { setEditing({ cell: `${index}:${column.key}`, text: event.target.value }); set(index, column, event.target.value); }} onBlur={() => setEditing(null)} /></td>)}
         <td><button type="button" className="reviewer-row-remove" aria-label="Xóa dòng" onClick={() => { setEditing(null); onChange(rows.filter((_, i) => i !== index)); }}>×</button></td></tr>)}
     </tbody></table>}
     <Button type="button" size="1" variant="soft" onClick={() => onChange([...rows, {}])}>+ {addLabel}</Button>

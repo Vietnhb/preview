@@ -26,21 +26,25 @@
     {
       "key": "force_1",
       "unit": "N",
-      "min": 0
+      "min": 0,
+      "timeVarying": true
     },
     {
       "key": "angle_1",
       "unit": "rad",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "timeVarying": true
     },
     {
       "key": "force_2",
       "unit": "N",
-      "min": 0
+      "min": 0,
+      "timeVarying": true
     },
     {
       "key": "angle_2",
-      "unit": "rad"
+      "unit": "rad",
+      "timeVarying": true
     },
     {
       "key": "initial_x",
@@ -81,6 +85,10 @@
     {
       "key": "resultant_force",
       "unit": "N"
+    },
+    {
+      "key": "resultant_angle",
+      "unit": "rad"
     }
   ],
   "assumptions": [
@@ -92,7 +100,8 @@
       "a = F/m"
     ],
     "derived": [
-      "F^2 = F1^2 + F2^2 + 2*F1*F2*cos(alpha)"
+      "F^2 = F1^2 + F2^2 + 2*F1*F2*cos(alpha)",
+      "tan(theta) = Fy/Fx"
     ]
   },
   "execution": {
@@ -262,6 +271,47 @@
                 ]
               ],
               2
+            ]
+          ]
+        ],
+        "resultant_angle": [
+          "atan2",
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "sin",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "sin",
+                "angle_2"
+              ]
+            ]
+          ],
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "cos",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "cos",
+                "angle_2"
+              ]
             ]
           ]
         ]
@@ -494,6 +544,47 @@
                 ]
               ],
               2
+            ]
+          ]
+        ],
+        "resultant_angle": [
+          "atan2",
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "sin",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "sin",
+                "angle_2"
+              ]
+            ]
+          ],
+          [
+            "add",
+            [
+              "mul",
+              "force_1",
+              [
+                "cos",
+                "angle_1"
+              ]
+            ],
+            [
+              "mul",
+              "force_2",
+              [
+                "cos",
+                "angle_2"
+              ]
             ]
           ]
         ]

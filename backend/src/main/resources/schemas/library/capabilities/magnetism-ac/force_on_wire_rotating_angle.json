@@ -18,11 +18,13 @@
   "canonicalInputs": [
     {
       "key": "flux_density",
-      "unit": "T"
+      "unit": "T",
+      "timeVarying": true
     },
     {
       "key": "current",
-      "unit": "A"
+      "unit": "A",
+      "timeVarying": true
     },
     {
       "key": "wire_length",
@@ -32,7 +34,8 @@
     {
       "key": "angular_velocity",
       "unit": "rad/s",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "timeVarying": true
     },
     {
       "key": "initial_angle",

@@ -45,7 +45,8 @@
     {
       "key": "applied_force",
       "unit": "N",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "timeVarying": true
     },
     {
       "key": "initial_position",

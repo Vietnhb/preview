@@ -141,11 +141,11 @@
   },
   "rendererBindings": [
     {
-      "source": "positions.x",
+      "source": "position",
       "role": "trajectory"
     },
     {
-      "source": "velocities.x",
+      "source": "velocity",
       "role": "velocity_vector"
     }
   ]

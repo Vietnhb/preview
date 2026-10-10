@@ -25,7 +25,11 @@ export type SimulationFormula = {
 export type SimulationSpec = {
   durationSeconds: number; durationParameter?: string; parameters: SimulationParameter[];
   physicsCoverage: "COMPLETE" | "PARTIAL" | "NONE";
-  physicsModels: Array<{ id: string; label?: string; capabilityId: string; inputs: Record<string, string | number> }>;
+  physicsModels: Array<{ id: string; label?: string; capabilityId: string; inputs: Record<string, string | number>;
+    /** Stages: the participant whose end starts this one, and the condition that ends this one. */
+    after?: string; until?: { field: string; direction: "rising" | "falling"; value: number | string } }>;
+  /** Further topics whose laws the signed plan uses (set by the backend). */
+  relatedSchemas?: Array<{ schemaId: string; schemaVersion: string; topic?: string }>;
   requiredObjects?: Array<{ count?: number; label?: string; shape?: string }>;
   /** The values the learner watches: a participant output, the object it belongs to and its name in the user's words. */
   observables?: Array<{ field: string; object?: string; label?: string }>;
@@ -57,6 +61,11 @@ export type GeneratedSimulationResult = {
   description: string; planSignature: string;
   parameters: SimulationParameter[]; validation: SimulationValidation; simulationSpec: SimulationSpec;
 };
+/** True when a stored run carries the scene its author built (illustration and solver timeline). */
+export function hasSavedScene(value: unknown): value is GeneratedSimulationResult {
+  const spec = (value as GeneratedSimulationResult | null | undefined)?.simulationSpec;
+  return Boolean(spec?.visualProgram && spec.solverTimeline);
+}
 export const saveGeneratedSimulation = (simulation: GeneratedSimulationResult, parameters: Record<string, number>,
   title: string, folderId: string, lessonId: string) =>
   axiosClient.post<LibraryItem>("/simulation/saved", { simulation, parameters, title, folderId, lessonId }).then(r => r.data);
@@ -102,5 +111,6 @@ export const recomputeSimulation = (simulation: GeneratedSimulationResult, param
       physicsModels: simulation.simulationSpec.physicsModels,
       physicsCoverage: simulation.simulationSpec.physicsCoverage,
       ...(simulation.simulationSpec.observables ? { observables: simulation.simulationSpec.observables } : {}),
+      ...(simulation.simulationSpec.relatedSchemas ? { relatedSchemas: simulation.simulationSpec.relatedSchemas } : {}),
     }, parameters,
   }, { signal }).then(response => response.data);
