@@ -35,3 +35,10 @@ backend/.github/java-upgrade/
 **/.cache/
 .DS_Store
 Thumbs.db
+
+# Local generated outputs and AI training experiments
+/output/
+
+# Local Claude outputs and frontend tests/previews
+/Claude outputs/
+/react-client/tests/

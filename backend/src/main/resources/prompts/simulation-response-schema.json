@@ -11,8 +11,7 @@
       "required": [
         "design",
         "description",
-        "scene",
-        "code"
+        "scene"
       ],
       "properties": {
         "design": {
@@ -46,7 +45,7 @@
                   },
                   "representation": {
                     "type": "string",
-                    "description": "How it looks and which body, part or annotation shows its values."
+                    "description": "How it looks and which body, part or note shows its values."
                   }
                 }
               }
@@ -79,11 +78,10 @@
             "support",
             "connector",
             "bodies",
-            "instruments",
+            "drawings",
             "links",
             "fixtures",
-            "overlay",
-            "annotations"
+            "overlay"
           ],
           "properties": {
             "environment": {
@@ -92,7 +90,7 @@
             },
             "environmentAnchorY": {
               "type": "number",
-              "description": "viewBox y of the backdrop line that must sit on the physical reference line (support line or ground); -1 if none."
+              "description": "viewBox y of the backdrop line that sits on the physical reference line: the ground (height 0) or the support bodies hang from; -1 if none."
             },
             "surface": {
               "type": "string",
@@ -173,86 +171,214 @@
               },
               "description": "One per participant that moves in space."
             },
-            "instruments": {
+            "drawings": {
               "type": "array",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "field",
-                  "label",
                   "svg",
-                  "part",
-                  "drive",
-                  "on",
-                  "labelAnchor",
                   "size",
-                  "components"
+                  "parts",
+                  "notes"
                 ],
                 "properties": {
-                  "field": {
-                    "type": "string",
-                    "description": "Exact solver key that drives the part; '' for a drawing of the set-up that shows no value itself."
-                  },
-                  "label": {
-                    "type": "string",
-                    "description": "Short caption in the user's language ('' = the value's name)."
-                  },
                   "svg": {
                     "type": "string",
-                    "description": "Complete SVG document of the static drawing; '' for a part drawn on another drawing."
+                    "description": "Complete SVG document of the static drawing: the set-up with its objects in their real arrangement."
                   },
-                  "part": {
-                    "type": "string",
-                    "description": "Complete SVG document of the moving part only, in the same viewBox as its drawing; '' when drive.property is none."
+                  "size": {
+                    "type": "number",
+                    "description": "Its share of the stage relative to the other drawings (1 = default); give the main set-up the largest. The frame of moving bodies takes at least as much as all drawings together."
                   },
-                  "drive": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "property",
-                      "pivot",
-                      "path",
-                      "from",
-                      "to",
-                      "copies",
-                      "useFieldAngle",
-                      "min",
-                      "max"
-                    ],
-                    "properties": {
-                      "property": {
-                        "type": "string",
-                        "enum": [
-                          "rotate",
-                          "translate",
-                          "scale",
-                          "reveal",
-                          "opacity",
-                          "travel",
-                          "none"
-                        ],
-                        "description": "rotate: turns about pivot, from/to = degrees clockwise; translate: slides along path, from/to = fractions 0…1 of it; reveal: shown from path[0] towards the last point up to fraction from/to (a level, a bar); scale: factor from/to about pivot; opacity: alpha from/to; travel: 'copies' copies drawn at path[0] move along path at a speed proportional to the field, to = laps over the whole run at the peak value (about 1 reads calmly; repeat the first point to close a loop); none: static picture."
-                      },
-                      "pivot": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "x",
-                          "y"
-                        ],
-                        "properties": {
-                          "x": {
-                            "type": "number"
+                  "parts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "svg",
+                        "channels",
+                        "pivot",
+                        "path",
+                        "copies",
+                        "label",
+                        "labelAnchor",
+                        "inline",
+                        "color"
+                      ],
+                      "properties": {
+                        "svg": {
+                          "type": "string",
+                          "description": "Complete SVG document of the moving part only, in its drawing's viewBox, drawn once at its starting place."
+                        },
+                        "channels": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "field",
+                              "property",
+                              "from",
+                              "to",
+                              "min",
+                              "max",
+                              "marks"
+                            ],
+                            "properties": {
+                              "field": {
+                                "type": "string",
+                                "description": "Exact solver key from solverFields."
+                              },
+                              "property": {
+                                "type": "string",
+                                "enum": [
+                                  "rotate",
+                                  "angle",
+                                  "x",
+                                  "y",
+                                  "along",
+                                  "reveal",
+                                  "scale",
+                                  "scaleX",
+                                  "scaleY",
+                                  "opacity",
+                                  "travel"
+                                ],
+                                "description": "How the value changes the part (the part turns and stretches about its pivot, then shifts): rotate = turns, from/to = degrees clockwise; angle = turns by the value's own angle; x, y = shift from its drawn place by from/to drawing units (y down); along = moves to fraction from/to of its path; reveal = shown from the path start up to fraction from/to (a level, a bar, a growing length); scale, scaleX, scaleY = stretch factor from/to; opacity = alpha from/to; travel = its copies flow along the path at a speed proportional to the value, completing 'to' laps over the run at max (about 1 reads calmly); they keep their drawn orientation, re-enter an open path at its start, and combine only with opacity. For angle (counter-clockwise for a positive value) from, to, min and max are not used."
+                              },
+                              "from": {
+                                "type": "number"
+                              },
+                              "to": {
+                                "type": "number"
+                              },
+                              "min": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "description": "Value that gives 'from'; values beyond stay at from. null = a range fitted to the current run (refitted when a slider changes; fix min and max to compare runs), shared by the null-range values of one unit on one drawing so they compare."
+                              },
+                              "max": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "description": "Value that gives 'to'; values beyond stay at to (null = as for min)."
+                              },
+                              "marks": {
+                                "type": "boolean",
+                                "description": "Print the value scale along the sweep (a dial, a gauge, a ruler, a plot axis)."
+                              }
+                            }
                           },
-                          "y": {
-                            "type": "number"
-                          }
+                          "description": "The values that move it; several combine (a point plotted by two values, an arrow that turns and grows). Its label shows every value they follow."
+                        },
+                        "pivot": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "properties": {
+                            "x": {
+                              "type": "number"
+                            },
+                            "y": {
+                              "type": "number"
+                            }
+                          },
+                          "description": "Point it turns or stretches about (drawing's viewBox); x and y value scales are printed along lines through it."
+                        },
+                        "path": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "x",
+                              "y"
+                            ],
+                            "properties": {
+                              "x": {
+                                "type": "number"
+                              },
+                              "y": {
+                                "type": "number"
+                              }
+                            }
+                          },
+                          "description": "At least 2 points for along, reveal and travel; [] otherwise."
+                        },
+                        "copies": {
+                          "type": "number",
+                          "description": "travel: 1-60 copies; 1 otherwise."
+                        },
+                        "label": {
+                          "type": "string",
+                          "description": "Name on its label in the user's language ('' = the value's name)."
+                        },
+                        "labelAnchor": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "x",
+                                "y"
+                              ],
+                              "properties": {
+                                "x": {
+                                  "type": "number"
+                                },
+                                "y": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Point on its object where its live value is shown (labels stay where they are put; they do not follow the part); null = no label."
+                        },
+                        "inline": {
+                          "type": "boolean",
+                          "description": "Label as text centred on labelAnchor instead of a card beside it (a card when the text has no room)."
+                        },
+                        "color": {
+                          "type": "string",
+                          "description": "Accent colour of its label, e.g. the colour of the part ('' = default)."
                         }
-                      },
-                      "path": {
-                        "type": "array",
-                        "items": {
+                      }
+                    },
+                    "description": "The parts that show changing values where they happen."
+                  },
+                  "notes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "label",
+                        "field",
+                        "at",
+                        "inline",
+                        "color"
+                      ],
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "description": "Name in the user's language: a name, never a value ('' with a field = the value's name)."
+                        },
+                        "field": {
+                          "type": "string",
+                          "description": "Exact solver key, plan parameter name or fixed-value name (confirmedBrief.constants) whose current value is shown; '' for a name only."
+                        },
+                        "at": {
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
@@ -268,116 +394,21 @@
                             }
                           }
                         },
-                        "description": "At least 2 points for translate, reveal and travel; [] otherwise."
-                      },
-                      "from": {
-                        "type": "number"
-                      },
-                      "to": {
-                        "type": "number"
-                      },
-                      "copies": {
-                        "type": "number",
-                        "description": "travel: 1-60 copies; 1 otherwise."
-                      },
-                      "useFieldAngle": {
-                        "type": "boolean",
-                        "description": "rotate only: turn by the field's own angle instead of from/to."
-                      },
-                      "min": {
-                        "type": [
-                          "number",
-                          "null"
-                        ],
-                        "description": "Field value giving 'from' (null = solver minimum)."
-                      },
-                      "max": {
-                        "type": [
-                          "number",
-                          "null"
-                        ],
-                        "description": "Field value giving 'to' (null = solver maximum)."
-                      }
-                    },
-                    "description": "How the field moves the part; points in the drawing's viewBox."
-                  },
-                  "on": {
-                    "type": "string",
-                    "description": "'' for an instrument with its own svg; otherwise the drawing the part is drawn on: its position in this list ('0' = first) or its field."
-                  },
-                  "labelAnchor": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "x",
-                          "y"
-                        ],
-                        "properties": {
-                          "x": {
-                            "type": "number"
-                          },
-                          "y": {
-                            "type": "number"
-                          }
-                        }
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "Point on the object where the value is shown (drawing's viewBox); null = path midpoint or pivot."
-                  },
-                  "size": {
-                    "type": "number",
-                    "description": "Relative share of the stage for a drawing with its own svg (1 = default)."
-                  },
-                  "components": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "object",
-                        "box"
-                      ],
-                      "properties": {
-                        "object": {
-                          "type": "string",
-                          "description": "An object name from observables, exactly."
+                        "inline": {
+                          "type": "boolean",
+                          "description": "Text centred on the point instead of a card beside it (a card when the text has no room)."
                         },
-                        "box": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "required": [
-                            "x",
-                            "y",
-                            "w",
-                            "h"
-                          ],
-                          "properties": {
-                            "x": {
-                              "type": "number"
-                            },
-                            "y": {
-                              "type": "number"
-                            },
-                            "w": {
-                              "type": "number"
-                            },
-                            "h": {
-                              "type": "number"
-                            }
-                          }
+                        "color": {
+                          "type": "string",
+                          "description": "Accent colour ('' = default)."
                         }
                       }
                     },
-                    "description": "On a drawing with its own svg: where each object named in observables is drawn (viewBox units); [] otherwise."
+                    "description": "Names, live values and slider values at points of the drawing."
                   }
                 }
               },
-              "description": "The set-up drawing and the parts on it that show changing values."
+              "description": "Set-up drawings; everything that changes without moving in space is shown on them."
             },
             "links": {
               "type": "array",
@@ -528,7 +559,7 @@
               "properties": {
                 "links": {
                   "type": "boolean",
-                  "description": "Plain line for a connector without artwork."
+                  "description": "Plain line for a connector (not drawn when connector artwork is given)."
                 },
                 "axes": {
                   "type": "boolean",
@@ -540,7 +571,7 @@
                 },
                 "vectors": {
                   "type": "boolean",
-                  "description": "Velocity, acceleration and force arrows."
+                  "description": "Velocity, acceleration and force arrows with their values."
                 },
                 "labels": {
                   "type": "boolean",
@@ -548,59 +579,11 @@
                 },
                 "angles": {
                   "type": "boolean",
-                  "description": "Angle marks for bodies on connectors."
+                  "description": "Angle marks with their live value for bodies on connectors."
                 }
               }
-            },
-            "annotations": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "on",
-                  "label",
-                  "field",
-                  "anchor"
-                ],
-                "properties": {
-                  "on": {
-                    "type": "string",
-                    "description": "The drawing: its position in instruments or its field."
-                  },
-                  "label": {
-                    "type": "string",
-                    "description": "Short name in the user's language, no numbers."
-                  },
-                  "field": {
-                    "type": "string",
-                    "description": "Exact solver key for a live value; '' for a name only."
-                  },
-                  "anchor": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "x",
-                      "y"
-                    ],
-                    "properties": {
-                      "x": {
-                        "type": "number"
-                      },
-                      "y": {
-                        "type": "number"
-                      }
-                    }
-                  }
-                }
-              },
-              "description": "Names of components (optionally with a live value) at points of a drawing."
             }
           }
-        },
-        "code": {
-          "type": "string",
-          "description": "Optional PixiJS v8 program extending the kit scene; '' when the scene is enough."
         }
       }
     }

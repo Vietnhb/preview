@@ -136,6 +136,7 @@ export default function SimulationThumb({ simulationId }: Readonly<{ simulationI
     {hasSlot && scene && timeline ? <SvgPixiScene cover coverPlaying={hover} onCoverFailed={() => setFailedId(simulationId)}
         program={scene.simulationSpec.visualProgram ?? { code: "" }} timeline={timeline}
         parameters={scene.savedParameters ?? Object.fromEntries(scene.parameters.map(parameter => [parameter.name, parameter.value]))}
+        parameterInfo={scene.parameters}
         models={scene.simulationSpec.physicsModels}
         fieldMeta={scene.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
         observables={scene.simulationSpec.observables}

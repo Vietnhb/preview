@@ -42,11 +42,6 @@
             "required": ["id", "capabilityId", "inputs"]
           }
         },
-        "sharedQuantities": {
-          "type": "array",
-          "description": "Names of the parameters that more than one participant uses.",
-          "items": { "type": "string" }
-        },
         "requiredObjects": {
           "type": "array",
           "description": "Every object the user names or counts.",
@@ -75,7 +70,7 @@
           }
         }
       },
-      "required": []
+      "required": ["durationSeconds", "physicsCoverage", "parameters", "physicsModels", "requiredObjects", "observables"]
     }
   },
   "required": ["status", "question", "explanation", "defaults", "simulationSpec"]

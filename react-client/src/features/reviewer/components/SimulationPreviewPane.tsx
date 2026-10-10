@@ -36,6 +36,7 @@ export function SimulationPreviewPane({ simulationId, onLoaded }: Readonly<{ sim
   if (generated?.simulationSpec.solverTimeline) return <div className="reviewer-preview">
     <SvgPixiScene program={generated.simulationSpec.visualProgram ?? { code: "" }} timeline={generated.simulationSpec.solverTimeline}
       parameters={generated.savedParameters ?? Object.fromEntries(generated.parameters.map(parameter => [parameter.name, parameter.value]))}
+      parameterInfo={generated.parameters}
       models={generated.simulationSpec.physicsModels}
       fieldMeta={generated.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
       observables={generated.simulationSpec.observables}

@@ -187,6 +187,7 @@ export function ResourceDiscovery({ items, curriculum = null, generated = null, 
       {!simulationLoading && !simulationError && generated?.simulationSpec.solverTimeline && <div>
         <SvgPixiScene program={generated.simulationSpec.visualProgram ?? { code: "" }} timeline={generated.simulationSpec.solverTimeline}
           parameters={generated.savedParameters ?? Object.fromEntries(generated.parameters.map(parameter => [parameter.name, parameter.value]))}
+          parameterInfo={generated.parameters}
           models={generated.simulationSpec.physicsModels}
           fieldMeta={generated.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
           observables={generated.simulationSpec.observables}

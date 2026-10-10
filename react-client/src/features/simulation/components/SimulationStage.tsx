@@ -36,6 +36,7 @@ export default function SimulationStage({ input, preview, complaint, readoutsTar
                 program={simulation.simulationSpec.visualProgram ?? { code: "" }}
                 timeline={liveTimeline}
                 parameters={runValues}
+                parameterInfo={simulation.parameters}
                 models={simulation.simulationSpec.physicsModels}
                 fieldMeta={simulation.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
                 observables={simulation.simulationSpec.observables}

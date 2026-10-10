@@ -23,11 +23,13 @@ export type FieldMeta = QuantityInfo & { key: string; participantId: string; qua
 /** A value the plan asks the learner to watch: a solver field, the object it belongs to and its name in the user's words. */
 export type SceneObservable = { field: string; object?: string; label?: string };
 /** Optional per-field metadata from the backend (units/labels taken from the approved schema). */
-export type BackendFieldMeta = Record<string, { unit?: string; label?: string; symbol?: string; quantity?: string; rendererRole?: string }>;
+export type BackendFieldMeta = Record<string, { unit?: string; label?: string; symbol?: string; quantity?: string; rendererRole?: string;
+  /** a fixed value of the plan (an input bound to a number), which the stage can show beside its object */
+  constant?: number }>;
 /** Input names that mean "uniform gravitational field" (not the gravitational constant). */
 const GRAVITY_INPUT = /gravitational_acceleration|(^|_)gravity(_|$)/i;
-/** Display form of SI unit strings used in schemas (m/s^2 → m/s², degC → °C, ohm → Ω, m3 → m³). */
-export const prettyUnit = (unit: string) => unit
+/** Display form of SI unit strings used in schemas (m/s^2 → m/s², degC → °C, ohm → Ω, m3 → m³; a pure number "1" has none). */
+export const prettyUnit = (unit: string) => unit.trim() === "1" ? "" : unit
   .replace(/\bdegC\b/g, "°C").replace(/\bdegF\b/g, "°F").replace(/\bohm\b/g, "Ω")
   .replace(/\^2|(?<=[a-zA-Z])2(?![0-9])/g, "²").replace(/\^3|(?<=[a-zA-Z])3(?![0-9])/g, "³")
   .replace(/\*/g, "·");
@@ -57,6 +59,10 @@ export type SceneDescriptor = {
   durationSeconds: number;
   /** Keys of the values the learner watches, most important first (empty when the plan names none). */
   observables: string[];
+  /** The plan's parameters (slider name → label and display unit), so a drawing can show their current value. */
+  parameters?: Record<string, { label: string; unit: string }>;
+  /** Fixed values of the plan ("<participantId>.<input>" → label, display unit, value), shown the same way. */
+  constants?: Record<string, { label: string; unit: string; value: number }>;
 };
 
 const Q = (kind: QuantityKind, axis: QuantityAxis, label: string, symbol: string, unit: string): QuantityInfo =>
@@ -124,7 +130,8 @@ function pearson(a: number[], b: number[]) {
 
 /** Build a render-ready description of the solver output. Pure and serialisable. */
 export function describeScene(timeline: SolverTimeline, models: readonly SimulationModelRef[] = [],
-  backendMeta: BackendFieldMeta = {}, observables: readonly SceneObservable[] = []): SceneDescriptor {
+  backendMeta: BackendFieldMeta = {}, observables: readonly SceneObservable[] = [],
+  parameters: readonly { name: string; label?: string; unit?: string }[] = []): SceneDescriptor {
   const fields: Record<string, FieldMeta> = {};
   const series: Record<string, number[]> = {};
   for (const frame of timeline.frames) for (const [key, value] of Object.entries(frame.values)) {
@@ -225,7 +232,11 @@ export function describeScene(timeline: SolverTimeline, models: readonly Simulat
     if (typeof item.label === "string" && item.label.trim()) meta.caption = item.label.trim();
     if (typeof item.object === "string" && item.object.trim()) meta.object = item.object.trim();
   }
-  return { participants, fields, durationSeconds: timeline.durationSeconds, observables: watched };
+  return { participants, fields, durationSeconds: timeline.durationSeconds, observables: watched,
+    parameters: Object.fromEntries(parameters.filter(item => item && typeof item.name === "string")
+      .map(item => [item.name, { label: item.label?.trim() || item.name, unit: item.unit ? prettyUnit(item.unit) : "" }])),
+    constants: Object.fromEntries(Object.entries(backendMeta).filter(([, meta]) => typeof meta.constant === "number")
+      .map(([key, meta]) => [key, { label: meta.label?.trim() || key, unit: meta.unit ? prettyUnit(meta.unit) : "", value: meta.constant! }])) };
 }
 
 /** Participant colours — validated for contrast on both workspace themes. */

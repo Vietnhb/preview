@@ -53,7 +53,7 @@ export type GeneratedSimulationResult = {
   savedParameters?: Record<string, number>;
   formulas?: SimulationFormula[];
   explanation?: string;
-  sessionId: string; stage: "SIMULATION"; code: string; schemaId: string; schemaVersion: string;
+  sessionId: string; stage: "SIMULATION"; code?: string; schemaId: string; schemaVersion: string;
   description: string; planSignature: string;
   parameters: SimulationParameter[]; validation: SimulationValidation; simulationSpec: SimulationSpec;
 };
@@ -101,5 +101,6 @@ export const recomputeSimulation = (simulation: GeneratedSimulationResult, param
       parameters: simulation.simulationSpec.parameters,
       physicsModels: simulation.simulationSpec.physicsModels,
       physicsCoverage: simulation.simulationSpec.physicsCoverage,
+      ...(simulation.simulationSpec.observables ? { observables: simulation.simulationSpec.observables } : {}),
     }, parameters,
   }, { signal }).then(response => response.data);

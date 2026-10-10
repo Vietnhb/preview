@@ -94,15 +94,11 @@ public class AIService {
         input.set("solverFields", visualFields(fieldMeta, computed.path("solverTimeline").path("frames")));
         JsonNode program = client.visual(input, resource("prompts/simulation-visual-system.txt"),
                 jsonResource("prompts/simulation-response-schema.json")).path("visualProgram");
-        // Whether the stage really shows the verified numbers is checked where it runs:
-        // the renderer
-        // cross-checks every frame against the solver timeline and falls back to the
-        // standard scene.
-        String code = program.path("code").asText("").trim();
-        JsonNode scene = program.path("scene");
-        if (!program.isObject() || (!scene.isObject() && code.isEmpty()))
+        // Whether the stage really shows the verified numbers is checked where it runs: the renderer cross-checks
+        // the scene against the solver timeline and falls back to the standard scene.
+        if (!program.path("scene").isObject())
             throw ApiException.upstream("Mô phỏng được tạo chưa có cảnh minh họa");
-        if (code.length() > maxProgramCharacters || scene.toString().length() > 2L * maxProgramCharacters)
+        if (program.path("scene").toString().length() > 2L * maxProgramCharacters)
             throw ApiException.upstream("Cảnh minh họa được tạo vượt quá giới hạn tài nguyên");
         ObjectNode spec = (ObjectNode) brief.deepCopy();
         spec.remove("scene");
@@ -115,7 +111,6 @@ public class AIService {
         ObjectNode response = json.createObjectNode();
         response.put("sessionId", request.path("sessionId").asText(UUID.randomUUID().toString()));
         response.put("stage", "SIMULATION");
-        response.set("code", program.path("code"));
         response.put("schemaId", schema.getSchemaId());
         response.put("schemaVersion", schema.getVersion());
         response.put("description", request.path("description").asText());
@@ -160,13 +155,20 @@ public class AIService {
                 request.path("schemaVersion").asText());
     }
 
-    private String signPlan(JsonNode request) {
+    /**
+     * The plan's signature. What the learner watches is part of the confirmed plan
+     * (the renderer checks the stage against it); plans signed before it was
+     * (version 1) carry a signature without it.
+     */
+    private String signPlan(JsonNode request, boolean watched) {
         ObjectNode contract = json.createObjectNode();
         JsonNode spec = request.path("simulationSpec");
         for (String field : java.util.List.of("durationSeconds", "durationParameter", "parameters", "physicsModels",
                 "physicsCoverage"))
             contract.set(field, spec.path(field));
-        String payload = "physlive-simulation-plan-v1\n" + request.path("schemaId").asText() + "\n"
+        if (watched && spec.has("observables"))
+            contract.set("observables", spec.get("observables"));
+        String payload = "physlive-simulation-plan-v" + (watched ? 2 : 1) + "\n" + request.path("schemaId").asText() + "\n"
                 + request.path("schemaVersion").asText() + "\n" + request.path("description").asText() + "\n"
                 + schemas.compiledChecksum(contract);
         try {
@@ -180,9 +182,9 @@ public class AIService {
     }
 
     private void requireSignedPlan(JsonNode request) {
-        String actual = request.path("planSignature").asText();
-        if (!java.security.MessageDigest.isEqual(signPlan(request).getBytes(StandardCharsets.UTF_8),
-                actual.getBytes(StandardCharsets.UTF_8)))
+        byte[] actual = request.path("planSignature").asText().getBytes(StandardCharsets.UTF_8);
+        if (!java.security.MessageDigest.isEqual(signPlan(request, true).getBytes(StandardCharsets.UTF_8), actual)
+                && !java.security.MessageDigest.isEqual(signPlan(request, false).getBytes(StandardCharsets.UTF_8), actual))
             throw ApiException
                     .conflict("Kế hoạch mô phỏng đã thay đổi. Vui lòng gửi lại mô tả đã sửa để phân tích trước");
     }
@@ -287,7 +289,7 @@ public class AIService {
         response.set("simulationSpec", stamped(response.path("simulationSpec"), selected));
         ObjectNode preview = settlePlan(description, selected, response);
         response.set("validation", preview.path("validation"));
-        response.put("planSignature", signPlan(response));
+        response.put("planSignature", signPlan(response, true));
         response.set("formulas", formulas(selected.getDefinition(), response.path("simulationSpec"),
                 preview.path("solverTimeline").path("frames").path(0).path("values")));
         return response;
@@ -350,43 +352,12 @@ public class AIService {
     }
 
     /**
-     * Where the plan contradicts its own declarations: fewer computed participants
-     * than the objects it counted, a parameter several participants use that it did
-     * not declare shared, or a watched value that no participant computes.
-     * Structural only.
+     * Where the plan contradicts itself: a watched value that no participant
+     * computes, or one not tied to its object. How objects map to participants is
+     * the planner's judgement, not checked here.
      */
     private java.util.List<String> selfContradictions(JsonNode spec, JsonNode definition) {
         java.util.List<String> found = new java.util.ArrayList<>();
-        int counted = 0;
-        for (JsonNode object : spec.path("requiredObjects"))
-            if (!object.path("contextual").asBoolean(false))
-                counted += Math.max(1, object.path("count").asInt(1));
-        int participants = spec.path("physicsModels").size();
-        if (participants > 0 && counted > participants)
-            found.add("requiredObjects counts " + counted + " computed objects but physicsModels has " + participants
-                    + " participant(s): give every counted object its own entry, unless one capability computes"
-                    + " several of them together.");
-        java.util.Set<String> declared = new java.util.HashSet<>();
-        spec.path("sharedQuantities").forEach(name -> declared.add(name.asText()));
-        java.util.Set<String> parameterNames = new java.util.HashSet<>();
-        spec.path("parameters").forEach(parameter -> parameterNames.add(parameter.path("name").asText()));
-        Map<String, java.util.Set<String>> users = new LinkedHashMap<>();
-        for (JsonNode model : spec.path("physicsModels"))
-            model.path("inputs").forEach(value -> {
-                if (value.isTextual() && parameterNames.contains(value.asText()))
-                    users.computeIfAbsent(value.asText(), name -> new java.util.HashSet<>())
-                            .add(model.path("id").asText());
-            });
-        java.util.List<String> undeclared = new java.util.ArrayList<>();
-        users.forEach((name, models) -> {
-            if (models.size() > 1 && !declared.contains(name))
-                undeclared.add(name);
-        });
-        if (!undeclared.isEmpty())
-            found.add("Parameter(s) " + String.join(", ", undeclared) + " are used by several participants but are not"
-                    + " listed in simulationSpec.sharedQuantities: give each participant its own parameter for a"
-                    + " property of its own, or list the parameter there when it is one physical quantity they share.");
-        // What the learner watches must be something the plan computes, named and tied to its object.
         java.util.List<String> results = new java.util.ArrayList<>();
         for (JsonNode model : spec.path("physicsModels")) {
             JsonNode capability = capabilityOf(definition, model.path("capabilityId").asText());
@@ -588,6 +559,23 @@ public class AIService {
                 if (role != null)
                     field.put("rendererRole", role);
             }
+            // A value the plan fixes (an input bound to a number) can be shown beside its object as well.
+            Map<String, String> units = new LinkedHashMap<>();
+            capability.path("canonicalInputs").forEach(input -> units.put(input.path("key").asText(), input.path("unit").asText("")));
+            model.path("inputs").fields().forEachRemaining(input -> {
+                String key = id + "." + input.getKey();
+                if (!input.getValue().isNumber() || result.has(key))
+                    return;
+                ObjectNode field = result.putObject(key);
+                field.put("participantId", id);
+                field.put("participantLabel", model.path("label").asText(id));
+                field.put("quantity", input.getKey());
+                field.put("unit", units.getOrDefault(input.getKey(), ""));
+                JsonNode quantity = quantities.get(input.getKey());
+                if (quantity != null)
+                    field.put("label", quantity.path("label").asText(input.getKey()));
+                field.set("constant", input.getValue());
+            });
         }
         return result;
     }
@@ -667,7 +655,7 @@ public class AIService {
         }
         ArrayNode observables = result.putArray("observables");
         for (JsonNode observable : brief.path("observables"))
-            if (fieldMeta.has(observable.path("field").asText())) {
+            if (fieldMeta.has(observable.path("field").asText()) && !fieldMeta.get(observable.path("field").asText()).has("constant")) {
                 ObjectNode item = observables.addObject();
                 for (String field : java.util.List.of("field", "object", "label"))
                     item.put(field, observable.path(field).asText(""));
@@ -678,6 +666,17 @@ public class AIService {
             item.put("id", model.path("id").asText());
             item.put("label", model.path("label").asText(model.path("id").asText()));
         }
+        ArrayNode constants = result.putArray("constants");
+        fieldMeta.fields().forEachRemaining(entry -> {
+            if (!entry.getValue().has("constant"))
+                return;
+            ObjectNode item = constants.addObject();
+            item.put("name", entry.getKey());
+            for (String field : java.util.List.of("label", "unit", "participantLabel"))
+                if (entry.getValue().has(field))
+                    item.set(field, entry.getValue().get(field));
+            item.set("value", entry.getValue().get("constant"));
+        });
         ArrayNode parameters = result.putArray("parameters");
         for (JsonNode parameter : brief.path("parameters")) {
             ObjectNode item = parameters.addObject();
@@ -694,25 +693,45 @@ public class AIService {
      * value and range over the run. Keys are exactly those the program reads from
      * frame.fields.
      */
+    /**
+     * The solver values the illustrator can bind, with how each one runs: start, range and, when it changes,
+     * samples at equal steps of the run. The clock, values that only repeat it and values that are not finite
+     * numbers are left out (the stage does not show them either).
+     */
     private ObjectNode visualFields(ObjectNode fieldMeta, JsonNode frames) {
         ObjectNode result = json.createObjectNode();
-        for (JsonNode frame : frames) {
-            frame.path("values").fields().forEachRemaining(value -> {
-                ObjectNode field = result.has(value.getKey()) ? (ObjectNode) result.get(value.getKey())
-                        : result.putObject(value.getKey());
-                if (!field.has("label") && fieldMeta.has(value.getKey())) {
-                    fieldMeta.get(value.getKey()).fields().forEachRemaining(meta -> {
-                        if (!meta.getKey().equals("quantity") && !meta.getKey().equals("participantLabel"))
-                            field.set(meta.getKey(), meta.getValue());
-                    });
-                }
-                double v = value.getValue().asDouble();
-                if (!field.has("start"))
-                    field.put("start", v);
-                field.put("min", Math.min(field.path("min").asDouble(v), v));
-                field.put("max", Math.max(field.path("max").asDouble(v), v));
-            });
-        }
+        int count = frames.size();
+        if (count == 0)
+            return result;
+        frames.get(0).path("values").fieldNames().forEachRemaining(key -> {
+            double[] values = new double[count];
+            boolean clock = count > 2 && ("s".equals(fieldMeta.path(key).path("unit").asText())
+                    || key.matches("(?i)(.*[._])?(elapsed_)?time"));
+            for (int i = 0; i < count; i++) {
+                values[i] = frames.get(i).path("values").path(key).asDouble(Double.NaN);
+                double t = frames.get(i).path("t").asDouble();
+                clock &= Math.abs(values[i] - t) <= 1e-9 * Math.max(1, Math.abs(t));
+            }
+            if (key.equals("t") || clock || java.util.Arrays.stream(values).anyMatch(v -> !Double.isFinite(v)))
+                return;
+            ObjectNode field = result.putObject(key);
+            if (fieldMeta.has(key))
+                fieldMeta.get(key).fields().forEachRemaining(meta -> {
+                    if (!meta.getKey().equals("quantity") && !meta.getKey().equals("participantLabel"))
+                        field.set(meta.getKey(), meta.getValue());
+                });
+            double min = java.util.Arrays.stream(values).min().orElse(Double.NaN);
+            double max = java.util.Arrays.stream(values).max().orElse(Double.NaN);
+            field.put("start", values[0]);
+            field.put("min", min);
+            field.put("max", max);
+            if (max > min) {
+                ArrayNode samples = field.putArray("samples");
+                for (int k = 0; k <= 8; k++)
+                    samples.add(Double.parseDouble(String.format(java.util.Locale.ROOT, "%.4g",
+                            values[(int) Math.round(k * (count - 1) / 8.0)])));
+            }
+        });
         return result;
     }
 

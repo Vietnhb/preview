@@ -10,7 +10,6 @@ import { createStageKit } from "../engine/stageKit";
 import { presentedFields } from "../model/scenePresentation";
 import SimulationCharts from "./SimulationCharts";
 import { useWorkspaceTheme } from "../hooks/useWorkspaceTheme";
-import { diagnoseGeneratedCode, formatIssues, repairGeneratedCode } from "../model/codeRepair";
 
 /**
  * Academic reference scene: composed only from the generic stage kit and the
@@ -28,13 +27,11 @@ const kitScenes = [];
 // Irregular fractions of the run so periodic motion cannot hide between samples.
 const VERIFY_TIMES = [0, 0.137, 0.291, 0.463, 0.618, 0.779, 0.912, 1];
 // The visual cross-check: every changing visual must be placed by the kit from the verified solver
-// timeline. Generated code only supplies artwork and static decoration.
-const KIT_GUIDE = ' Build the stage with api.kit.illustratedScene(api.sceneSpec) (or api.kit.standardScene()) and hand every changing visual to it:'
-  + ' moving bodies -> scene.bodies / base.attach(id, sprite); things riding on a body -> base.follow(id, item, {dx, dy});'
-  + ' ropes, wires, rods between bodies or fixed points -> scene.links / base.link(a, b); any changing state (a needle, a liquid level, a glow,'
-  + ' moving charges …) -> scene.instruments / base.instrument({field, art, part, drive}) with your own mapping; things standing at a physical place'
-  + ' (wall, stop, fixed charge) -> scene.fixtures / base.fixture(sprite, {x, y, anchor, solid}). Your own objects must stay static (add them to base.props).';
-let frames = 0, lastSent = -1;
+// timeline. Generated artwork stays static.
+const KIT_GUIDE = ' Every change on the stage comes from the scene bindings: bodies (participants that move in space), fixtures (placed by plan'
+  + ' parameters), links (between bodies and fixed points) and drawings whose parts follow solver fields through channels, with notes for names,'
+  + ' values and parameters. The artwork itself stays static.';
+let frames = 0, lastSent = -1, dirty = true;
 const assets = new Map(), textureIds = new WeakMap(), textureLuma = new WeakMap(), textureInk = new WeakMap();
 const QUIET_KEYS = new Set(['toJSON', 'then', 'asymmetricMatch', 'nodeType', '$$typeof']);
 function ranges(timeline) {
@@ -127,28 +124,10 @@ async function start(message) {
   const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
   const mount = await new AsyncFunction('"use strict"; return (' + message.code + '\n);')();
   if (typeof mount !== 'function') throw Error('PixiJS code must be a mount function.');
-  // Compatibility helpers for generated code; leave the PixiJS namespace untouched.
-  const compatiblePIXI = Object.assign({}, PIXI, {
-    utils: Object.assign({}, PIXI.utils || {}, {
-      hsv2rgb([h, s, v]) {
-        h = ((h % 1) + 1) % 1;
-        s = Math.max(0, Math.min(1, s));
-        v = Math.max(0, Math.min(1, v));
-        const channel = n => {
-          const k = (n + h * 6) % 6;
-          return v * (1 - s * Math.max(0, Math.min(k, 4 - k, 1)));
-        };
-        return [channel(5), channel(3), channel(1)];
-      },
-      rgb2hex(rgb) {
-        const byte = value => Math.round(Math.max(0, Math.min(1, value)) * 255);
-        return (byte(rgb[0]) << 16) | (byte(rgb[1]) << 8) | byte(rgb[2]);
-      }
-    })
-  });
-  lifecycle = await mount(compatiblePIXI, app, api);
+  lifecycle = await mount(PIXI, app, api);
   if (!lifecycle || typeof lifecycle.update !== 'function') throw Error('PixiJS code must return update(frame).');
-  if (!kitScenes.length) throw Error('Visual cross-check: the program draws its own stage, so nothing on it can be checked against the verified solver data.' + KIT_GUIDE);
+  if (!kitScenes.length) throw Error('Visual cross-check: the program draws its own stage, so nothing on it can be checked against the verified solver data;'
+    + ' build it with api.kit.illustratedScene(api.sceneSpec) or api.kit.standardScene().' + KIT_GUIDE);
   if (kitScenes.length > 1) throw Error('Visual cross-check: build exactly one kit scene (found ' + kitScenes.length + ').');
   stage = kitScenes[0];
   crossCheck();
@@ -157,6 +136,9 @@ async function start(message) {
   const renderFrame = () => {
     try {
       const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000) * speed; last = now;
+      // Paused with nothing new to show (no seek, data, theme, size or artwork): the last frame stays on screen.
+      if (!playing && !dirty && frames >= 20) return;
+      dirty = false;
       const duration = data.timeline.durationSeconds;
       if (playing) {
         t += dt;
@@ -185,6 +167,7 @@ if (typeof addEventListener === 'function') addEventListener('unhandledrejection
   send('error', {message: String(event.reason && event.reason.message || event.reason)}); close();
 });
 onmessage = async ({data: message}) => {
+  dirty = true;
   try {
     switch (message.type) {
       case 'start': await start(message); break;
@@ -306,7 +289,7 @@ async function svgBitmap(source, screen, fitWidth, fitHeight) {
     texturePixels += surface.width * surface.height;
     if (texturePixels > limits.maxTexturePixels) throw Error('SVG texture memory budget exceeded.');
     surface.getContext('2d').drawImage(image, 0, 0, surface.width, surface.height);
-    // Where an artwork is drawn (a coarse ink mask): the kit keeps callouts off the drawing and checks declared object boxes.
+    // Where an artwork is drawn (a coarse ink mask): the kit places value callouts on empty paper where it can.
     let ink = null;
     if (!screen) {
       const s = Math.min(1, 160 / Math.max(surface.width, surface.height));
@@ -314,7 +297,11 @@ async function svgBitmap(source, screen, fitWidth, fitHeight) {
       probe.width = Math.max(1, Math.round(surface.width * s)); probe.height = Math.max(1, Math.round(surface.height * s));
       const pc = probe.getContext('2d'); pc.drawImage(surface, 0, 0, probe.width, probe.height);
       const px = pc.getImageData(0, 0, probe.width, probe.height).data, data = new Uint8Array(probe.width * probe.height);
-      for (let i = 0; i < data.length; i++) data[i] = px[i * 4 + 3] > 24 ? 1 : 0;
+      // 0 = transparent, 1 = paper (the one colour that covers much of the drawing: a background panel), 2 = drawn detail.
+      const shade = i => (px[i * 4] >> 4) * 256 + (px[i * 4 + 1] >> 4) * 16 + (px[i * 4 + 2] >> 4), counts = new Map();
+      for (let i = 0; i < data.length; i++) if (px[i * 4 + 3] > 200) counts.set(shade(i), (counts.get(shade(i)) || 0) + 1);
+      const [paper, cover] = [...counts].reduce((best, entry) => entry[1] > best[1] ? entry : best, [-1, 0]);
+      for (let i = 0; i < data.length; i++) data[i] = px[i * 4 + 3] <= 24 ? 0 : cover > data.length * 0.3 && shade(i) === paper ? 1 : 2;
       ink = {w: probe.width, h: probe.height, data};
     }
     let luma = null;
@@ -380,11 +367,13 @@ const formatRate = (value: number) => formatNumber(value >= 100 ? value : Math.r
 
 type ViewMode = "ai" | "standard";
 
-export default function SvgPixiScene({ program, timeline, parameters, verificationStatus, models, fieldMeta, observables, onRenderError, toolbarActions, cover = false, coverPlaying = false, onCoverFailed, readoutsTarget }: Readonly<{
+export default function SvgPixiScene({ program, timeline, parameters, parameterInfo, verificationStatus, models, fieldMeta, observables, onRenderError, toolbarActions, cover = false, coverPlaying = false, onCoverFailed, readoutsTarget }: Readonly<{
   program: PixiVisualProgram; timeline: SolverTimeline; parameters: Record<string, number>; verificationStatus: string;
   models?: readonly SimulationModelRef[]; fieldMeta?: BackendFieldMeta; onRenderError?: (message: string) => void;
   /** The values the plan asks the learner to watch (simulationSpec.observables). */
   observables?: readonly SceneObservable[];
+  /** The plan's parameters (name, label, unit), so the drawing can show a slider's current value. */
+  parameterInfo?: readonly { name: string; label?: string; unit?: string }[];
   /** Page-level buttons shown at the end of the toolbar so the page needs no heading row of its own. */
   toolbarActions?: ReactNode;
   /** undefined: inline for standalone previews; null: workspace target not mounted yet. */
@@ -416,7 +405,8 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
   const [loop, setLoop] = useState(cover);
   const [run, setRun] = useState(0);
   const iframe = useRef<HTMLIFrameElement>(null);
-  const scene = useMemo(() => describeScene(timeline, models ?? [], fieldMeta ?? {}, observables ?? []), [timeline, models, fieldMeta, observables]);
+  const scene = useMemo(() => describeScene(timeline, models ?? [], fieldMeta ?? {}, observables ?? [], parameterInfo ?? []),
+    [timeline, models, fieldMeta, observables, parameterInfo]);
   const dataRef = useRef({ timeline, parameters, verificationStatus, scene });
   const callbackRef = useRef(onRenderError);
   const modeRef = useRef(mode);
@@ -439,11 +429,7 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
   }, [nonce]);
   const send = useCallback((message: Record<string, unknown>) => iframe.current?.contentWindow?.postMessage(
     { channel: "pixi-host", ...message }, "*"), []);
-  const prepared = useMemo(() => mode === "ai" && hasAiCode ? repairGeneratedCode(aiCode) : { code: STANDARD_SCENE_CODE, fixes: [] },
-    [mode, hasAiCode, aiCode]);
-  const code = prepared.code;
-  const codeRef = useRef(code);
-  useEffect(() => { codeRef.current = code; }, [code]);
+  const code = mode === "ai" && hasAiCode ? aiCode : STANDARD_SCENE_CODE;
 
   useEffect(() => {
     dataRef.current = { timeline, parameters, verificationStatus, scene };
@@ -454,11 +440,8 @@ export default function SvgPixiScene({ program, timeline, parameters, verificati
     const receive = (event: MessageEvent) => {
       if (event.source !== iframe.current?.contentWindow || event.data?.channel !== "pixi-runtime") return;
       if (event.data.type === "error") {
-        let message = String(event.data.message);
+        const message = String(event.data.message);
         if (modeRef.current === "ai") {
-          // Line-numbered hints make the AI repair request actionable.
-          const hints = formatIssues(diagnoseGeneratedCode(codeRef.current));
-          if (hints) message += "\nHints:\n" + hints;
           // Keep the lesson usable: show the academic reference scene and let the
           // teacher request an AI repair with the precise diagnostic.
           setAiError(message); setMode("standard"); setReady(false);
