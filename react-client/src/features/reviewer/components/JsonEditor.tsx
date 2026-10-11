@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button, Text, TextArea } from "@radix-ui/themes";
-
-type JsonObject = Record<string, unknown>;
+import { numericOrRaw, type JsonObject } from "../model/jsonRows";
 
 /** Collapsed "advanced" JSON view kept in sync with a visual form.
  *  Edits are applied only when the text parses to an object. */
@@ -65,28 +64,4 @@ export function RowsEditor({ rows, columns, onChange, addLabel, empty }: Readonl
     </tbody></table>}
     <Button type="button" size="1" variant="soft" onClick={() => onChange([...rows, {}])}>+ {addLabel}</Button>
   </div>;
-}
-
-export function objectRows(value: unknown): JsonObject[] {
-  return Array.isArray(value) ? value.filter((row): row is JsonObject => Boolean(row) && typeof row === "object" && !Array.isArray(row)) : [];
-}
-
-/** Keeps half-typed numbers ("0.", "-") as text until they parse cleanly. */
-export function numericOrRaw(raw: string): number | string | undefined {
-  const normalized = raw.trim().replace(",", ".");
-  if (normalized === "") return undefined;
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) && String(parsed) === normalized ? parsed : raw;
-}
-
-/** Converts leftover numeric text in the given columns to numbers before saving. */
-export function normalizeNumbers(rows: JsonObject[], keys: string[]): JsonObject[] {
-  return rows.map(row => {
-    const next = { ...row };
-    for (const key of keys) {
-      const value = next[key];
-      if (typeof value === "string") { const parsed = Number(value.trim().replace(",", ".")); if (value.trim() !== "" && Number.isFinite(parsed)) next[key] = parsed; }
-    }
-    return next;
-  });
 }

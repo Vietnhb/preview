@@ -90,7 +90,8 @@ function load(simulationId: string) {
 export default function SimulationThumb({ simulationId }: Readonly<{ simulationId: string }>) {
   const host = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<{ id: string; preview: Preview } | null>(null);
-  const [visible, setVisible] = useState(false);
+  /* without an IntersectionObserver every card counts as on screen */
+  const [visible, setVisible] = useState(() => typeof IntersectionObserver === "undefined");
   const [hover, setHover] = useState(false);
   const [hasSlot, setHasSlot] = useState(false);
   /** The live scene could not be drawn (for example the tab was in the background); show the data curve instead. */
@@ -99,7 +100,7 @@ export default function SimulationThumb({ simulationId }: Readonly<{ simulationI
   useEffect(() => {
     const element = host.current;
     if (!element) return;
-    if (typeof IntersectionObserver === "undefined") { setVisible(true); return; }
+    if (typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(entries => setVisible(entries.some(entry => entry.isIntersecting)), { rootMargin: "120px" });
     observer.observe(element);
     return () => observer.disconnect();
@@ -118,8 +119,10 @@ export default function SimulationThumb({ simulationId }: Readonly<{ simulationI
   useEffect(() => {
     if (!visible || !scene || failedId === simulationId || live >= MAX_LIVE) return;
     live += 1;
-    setHasSlot(true);
-    return () => { live -= 1; setHasSlot(false); };
+    let held = true;
+    // the slot is announced once it is taken, not while the effect is still running
+    queueMicrotask(() => { if (held) setHasSlot(true); });
+    return () => { held = false; live -= 1; setHasSlot(false); };
   }, [visible, scene, failedId, simulationId]);
 
   const curve = preview?.curve ?? null;

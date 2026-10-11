@@ -22,14 +22,13 @@ function useOverview(access: ReviewerAccess) {
   const [counts, setCounts] = useState<Counts>({});
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const load = useCallback(async () => {
-    setLoading(true); setFailed(false);
-    const [library, schemas, modules, benchmarks] = await Promise.all([
+  // State is set only when the requests answer; a manual refresh shows the loading state itself.
+  const load = useCallback(() => Promise.all([
       access.canReview ? settle(api.get<PendingItem[]>("/reviewer/library", { params: { status: "PENDING" } })) : undefined,
       access.canEdit ? settle(api.get<Version[]>("/reviewer/schemas")) : undefined,
       access.canEdit ? settle(api.get<ModuleRelease[]>("/reviewer/module-releases")) : undefined,
       access.canEdit ? settle(api.get<Benchmark[]>("/reviewer/benchmarks")) : undefined,
-    ]);
+  ]).then(([library, schemas, modules, benchmarks]) => {
     const next: Counts = {};
     if (access.canReview && library) {
       const oldest = library.map(item => item.createdAt).filter(Boolean).sort()[0];
@@ -49,9 +48,9 @@ function useOverview(access: ReviewerAccess) {
     const expected = (access.canReview ? 1 : 0) + (access.canEdit ? 1 : 0);
     setFailed(expected > 0 && !library && !benchmarks);
     setCounts(next); setLoading(false);
-  }, [access.canEdit, access.canReview]);
+  }), [access.canEdit, access.canReview]);
   useEffect(() => { void load(); }, [load]);
-  return { counts, loading, failed, refresh: () => void load() };
+  return { counts, loading, failed, refresh: () => { setLoading(true); setFailed(false); void load(); } };
 }
 
 export function ReviewerOverview({ access, name, onOpen }: Readonly<{ access: ReviewerAccess; name?: string; onOpen: (view: ReviewerView, extra?: Record<string, string>) => void }>) {
@@ -64,7 +63,7 @@ export function ReviewerOverview({ access, name, onOpen }: Readonly<{ access: Re
   }
   if (counts.drafts) {
     const drafts = counts.drafts.schemas + counts.drafts.modules;
-    tasks.push({ id: "drafts", view: "topics", section: counts.drafts.schemas ? "schemas" : "modules", icon: "schema", count: drafts, title: "Bản nháp chờ phê duyệt", detail: drafts ? `${counts.drafts.schemas} chủ đề · ${counts.drafts.solvers} bộ giải · ${counts.drafts.modules} gói phát hành.` : "Không có bản nháp tồn đọng.", action: "Xem bản nháp" });
+    tasks.push({ id: "drafts", view: "topics", section: counts.drafts.schemas ? "schemas" : "modules", icon: "schema", count: drafts, title: "Bản nháp chờ phê duyệt", detail: drafts ? `${counts.drafts.schemas} chủ đề · ${counts.drafts.modules} gói phát hành.` : "Không có bản nháp tồn đọng.", action: "Xem bản nháp" });
   }
   const total = tasks.reduce((sum, task) => sum + task.count, 0);
   const firstName = name?.trim().split(/\s+/).at(-1);

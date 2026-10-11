@@ -11,11 +11,6 @@ export function isWithinControlBounds(control: LearningControl, value: number): 
   return hasValidControlBounds(control) && Number.isFinite(value) && value >= control.min && value <= control.max;
 }
 
-export function clampControlValue(control: LearningControl, value: number): number {
-  if (!hasValidControlBounds(control)) return 0;
-  return Math.max(control.min, Math.min(control.max, Number.isFinite(value) ? value : control.min));
-}
-
 /** The value a control starts from: the parameter the stored run was computed with. */
 export function controlValue(control: LearningControl, simulation: Simulation): number {
   const value = simulation.parameters?.[control.key];
@@ -42,10 +37,10 @@ export function indexAtTime(times: number[], time: number): number {
 }
 
 export function interpolateAtTime(times: number[], values: number[], time: number): number {
-  if (values.length === 0) return 0;
-  if (times.length < 2 || time <= times[0]) return values[0] ?? 0;
+  if (values.length === 0) return Number.NaN;
+  if (times.length < 2 || time <= times[0]) return values[0] ?? Number.NaN;
   const lastIndex = times.length - 1;
-  if (time >= times[lastIndex]) return values[lastIndex] ?? 0;
+  if (time >= times[lastIndex]) return values[lastIndex] ?? Number.NaN;
 
   let low = 0, high = lastIndex;
   while (low <= high) {
@@ -64,9 +59,9 @@ export function interpolateAtTime(times: number[], values: number[], time: numbe
   const i = Math.min(Math.max(0, low), lastIndex - 1);
   const t0 = times[i], t1 = times[i + 1];
   const dt = t1 - t0;
-  if (dt <= 1e-9) return values[i] ?? 0;
+  if (dt <= 1e-9) return values[i] ?? Number.NaN;
   const ratio = (time - t0) / dt;
-  const v0 = values[i] ?? 0, v1 = values[i + 1] ?? v0;
+  const v0 = values[i] ?? Number.NaN, v1 = values[i + 1] ?? Number.NaN;
   return v0 + ratio * (v1 - v0);
 }
 

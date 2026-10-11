@@ -3,7 +3,7 @@ import { Button, Spinner, Text } from "@radix-ui/themes";
 import { getSharedSimulation } from "../../simulation/api/simulationApi";
 import { openSharedGeneratedSimulation, type GeneratedSimulationResult } from "../../simulation/api/simulationUnderstandingApi";
 import SavedScene from "../../simulation/components/SavedScene";
-import PhysicsScene from "../../simulation/components/CanvasPhysicsScene";
+import PhysicsScene from "../../simulation/components/BackendSimulationView";
 import type { Simulation } from "../../../shared/types/physlive";
 import { indexAtTime } from "../../simulation/model/learningModel";
 import { ReviewerIcon } from "./ReviewerKit";

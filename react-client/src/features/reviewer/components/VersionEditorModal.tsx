@@ -13,7 +13,7 @@ function plainObject(value: unknown): Definition {
 }
 
 /** 1.0 → 1.1, 2.3.4 → 2.3.5; anything else is left for the reviewer to type. */
-export function nextVersion(version?: string) {
+function nextVersion(version?: string) {
   if (!version) return "";
   const parts = version.split(".");
   const last = Number(parts.at(-1));

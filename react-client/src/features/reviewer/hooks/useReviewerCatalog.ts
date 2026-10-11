@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../shared/api/client";
-import type { Version } from "./reviewerTypes";
+import type { Version } from "../model/reviewerTypes";
 
 /** Vietnamese names for topic codes (KINEMATICS) and quantity keys (initial_velocity),
  *  read from the topic catalogue every signed-in role may read. */

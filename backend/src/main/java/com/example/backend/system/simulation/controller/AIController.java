@@ -39,6 +39,16 @@ public class AIController {
     @PostMapping(path = "/generate", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ObjectNode generate(@RequestBody JsonNode request) { return ai.generate(request); }
 
+    @PostMapping(path = "/revise", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public JsonNode revise(@Valid @RequestBody SimulationRequests.Revision request) {
+        return ai.revise(request.intent(), request.text());
+    }
+
+    @PostMapping(path = "/render-diagnostics", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public void renderDiagnostic(@Valid @RequestBody SimulationRequests.RenderDiagnostic request) {
+        ai.reportRenderDiagnostic(request.simulation(), request.message());
+    }
+
     @PostMapping(path = "/compute", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ObjectNode compute(@RequestBody JsonNode request) { return ai.compute(request); }
 

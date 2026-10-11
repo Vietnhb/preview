@@ -1,7 +1,8 @@
 import { useState } from "react";
 import MathFormula from "../../../shared/ui/MathFormula";
 import { Badge, Button, Text, TextArea, TextField } from "@radix-ui/themes";
-import { normalizeNumbers, objectRows, RowsEditor } from "./JsonEditor";
+import { RowsEditor } from "./JsonEditor";
+import { normalizeNumbers, objectRows } from "../model/jsonRows";
 import { capabilityMath, capabilityProblems, FORMULA_PHASES, formatFormula, FormulaError, newCapability, parseFormula, withPhase } from "../model/equationAst";
 
 type Capability = Record<string, unknown>;

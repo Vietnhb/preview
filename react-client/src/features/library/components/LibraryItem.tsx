@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { LibraryFolder, LibraryItem as LibraryItemModel } from "../../../shared/types/physlive";
-import LibraryItemActions, { shareStatus } from "./LibraryItemActions";
+import LibraryItemActions from "./LibraryItemActions";
+import { shareStatus } from "../model/shareStatus";
 
 /** Drag payload type: the id of the library item being moved to another folder. */
 export const LIBRARY_ITEM_DRAG_TYPE = "application/x-physlive-library-item";

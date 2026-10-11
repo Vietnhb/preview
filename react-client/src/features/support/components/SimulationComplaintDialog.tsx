@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
-import { mySupportItems, submitSimulationComplaint, type SimulationComplaint, type SupportStatus } from "../api/supportApi";
+import { mySupportItems, submitSimulationComplaint, type SimulationComplaint } from "../api/supportApi";
+import { COMPLAINT_STATUS } from "../model/complaintStatus";
 import "../styles/complaints.css";
 
 const REASONS = [
@@ -11,8 +12,6 @@ const REASONS = [
   "Thiếu hoặc sai đại lượng, đơn vị",
   "Vấn đề khác",
 ];
-
-export const COMPLAINT_STATUS: Record<SupportStatus, string> = { OPEN: "Chờ xử lý", READ: "Đang xem xét", RESOLVED: "Đã giải quyết" };
 
 type Props = {
   /** Saved simulation the complaint is about; undefined while the simulation is not saved yet. */

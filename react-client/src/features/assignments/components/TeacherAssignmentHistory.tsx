@@ -25,6 +25,8 @@ export function TeacherAssignmentHistory({
   onOpenSubmissions,
   onToggleOpen,
 }: Readonly<TeacherAssignmentHistoryProps>) {
+  /* "overdue" is judged against the moment this list was opened, so rendering stays pure */
+  const [openedAt] = useState(() => Date.now());
   const [classFilter, setClassFilter] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
   const visibleStudents = useMemo(() => {
@@ -100,7 +102,7 @@ export function TeacherAssignmentHistory({
                   </svg>
                   <span>{item.studentIds.length} học sinh nhận bài</span>
                   {item.dueAt
-                    ? <span className={item.status === "ACTIVE" && new Date(item.dueAt).getTime() < Date.now() ? "assignment-overdue" : ""}>Hạn nộp {new Date(item.dueAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}{item.status === "ACTIVE" && new Date(item.dueAt).getTime() < Date.now() ? " · đã quá hạn" : ""}</span>
+                    ? <span className={item.status === "ACTIVE" && new Date(item.dueAt).getTime() < openedAt ? "assignment-overdue" : ""}>Hạn nộp {new Date(item.dueAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}{item.status === "ACTIVE" && new Date(item.dueAt).getTime() < openedAt ? " · đã quá hạn" : ""}</span>
                     : ""}
                 </div>
                 <button

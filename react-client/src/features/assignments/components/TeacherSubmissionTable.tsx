@@ -28,7 +28,7 @@ export function TeacherSubmissionTable({ record, students, filter, query, onGrad
       const student = students.get(studentId);
       const studentName = submission?.studentName?.trim() || student?.fullName?.trim() || `Học sinh #${studentId}`;
       return { studentId, studentName, submission };
-    }).filter(({ submission, studentId, studentName }) => {
+    }).filter(({ submission, studentName }) => {
       const completed = Boolean(submission?.completedAt);
       const matchesFilter = filter === "all" || (filter === "submitted" ? completed : !completed);
       const matchesQuery = !normalizedQuery || studentName.toLocaleLowerCase("vi-VN").includes(normalizedQuery);

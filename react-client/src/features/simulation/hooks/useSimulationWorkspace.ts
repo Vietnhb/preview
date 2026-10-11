@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ClipboardEvent, type DragEvent, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
-import { confirmSimulationExplanation, openGeneratedSimulation, updateSavedSimulationVisual, confirmSimulationInput, recognizeSimulationImage, understandSimulationText, recomputeSimulation, reviseSimulationIntent, type IntentResult, type SimulationParameter, type GeneratedSimulationResult, type SimulationSourceMode, type SimulationValidation, type RecognitionResult } from "../api/simulationUnderstandingApi";
+import { confirmSimulationExplanation, openGeneratedSimulation, updateSavedSimulationVisual, confirmSimulationInput, recognizeSimulationImage, understandSimulationText, recomputeSimulation, reviseSimulationIntent, reportSimulationRenderFailure, type IntentResult, type SimulationParameter, type GeneratedSimulationResult, type SimulationSourceMode, type SimulationValidation, type RecognitionResult } from "../api/simulationUnderstandingApi";
 import type { SolverTimeline } from "../model/svgScene";
 import { createLibraryFolder } from "../../library/api/libraryApi";
 import { useSessionStore } from "../../../shared/auth/sessionStore";
@@ -25,14 +25,6 @@ function getError(error: unknown) {
   if (axios.isAxiosError<{ message?: string }>(error))
     return error.response?.data?.message || "Máy chủ không thể hoàn tất bước này. Vui lòng thử lại.";
   return error instanceof Error ? error.message : "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.";
-}
-
-export function parameterBounds(parameter: SimulationParameter): [number, number] {
-  const center = parameter.value;
-  const span = Math.max(1, Math.abs(center) * 2);
-  const min = Number.isFinite(parameter.min) ? parameter.min! : center - span;
-  const max = Number.isFinite(parameter.max) ? parameter.max! : center + span;
-  return min <= max ? [min, max] : [center, center];
 }
 
 /** The exact program currently displayed; legacy content is retained for regeneration diagnostics. */
@@ -66,14 +58,11 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
   const [recognition, setRecognition] = useState<RecognitionResult | null>(null);
   const [correction, setCorrection] = useState("");
   const [editingRecognition, setEditingRecognition] = useState(false);
-  const [manualCorrectionDone, setManualCorrectionDone] = useState(false);
   const [intent, setIntent] = useState<IntentResult | null>(null);
   const [revision, setRevision] = useState("");
   const [simulation, setSimulation] = useState<GeneratedSimulationResult | null>(null);
   const [liveTimeline, setLiveTimeline] = useState<SolverTimeline | null>(null);
   const [renderError, setRenderError] = useState("");
-  /** One automatic AI repair per user-requested design; later repairs stay manual. */
-  const [autoRepairUsed, setAutoRepairUsed] = useState(false);
   const [values, setValues] = useState<Record<string, number>>({});
   const [runValues, setRunValues] = useState<Record<string, number>>({});
   const [sandboxKey, setSandboxKey] = useState(0);
@@ -92,7 +81,7 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
     setValues(params); setRunValues(params);
     setValidation(result.validation);
     setLocallyAdjusted(false); setRecomputing(false);
-    setRenderError(""); setAutoRepairUsed(true);
+    setRenderError("");
     setSaveOpen(false); setSavedMessage("");
     setCurrentSimulationId(id);
     setSandboxKey(key => key + 1);
@@ -158,7 +147,6 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
     setRecognition(null);
     setCorrection("");
     setEditingRecognition(false);
-    setManualCorrectionDone(false);
     setIntent(null);
     setRevision("");
     setSimulation(null);
@@ -209,7 +197,6 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
         setRecognition(result);
         setCorrection(result.recognizedText || "");
         setEditingRecognition(false);
-        setManualCorrectionDone(false);
       } else {
         const result = await understandSimulationText(text);
         setRecognition(null);
@@ -238,7 +225,6 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
         setCorrection(result.recognizedText || "");
         if (!acceptCurrent) {
           setEditingRecognition(false);
-          setManualCorrectionDone(true);
         }
       } else {
         setRecognition(null);
@@ -275,7 +261,6 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
     setBusy(true);
     setError("");
     if (!renderDiagnostics) {
-      setAutoRepairUsed(false);
       setSaveOpen(false);
       setSavedMessage("");
       setCurrentSimulationId("");
@@ -328,12 +313,10 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
     }
   };
 
-  useEffect(() => {
-    if (!renderError || !simulation || busy || autoRepairUsed) return;
-    setAutoRepairUsed(true);
-    void generate({ code: visualSource(simulation), message: renderError });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- generate is recreated each render
-  }, [renderError, simulation, busy, autoRepairUsed]);
+  const reportRenderError = (message: string) => {
+    setRenderError(message);
+    if (simulation) void reportSimulationRenderFailure(simulation, message).catch(cause => setError(getError(cause)));
+  };
 
   useEffect(() => {
     if (!simulation || !locallyAdjusted) return;
@@ -351,7 +334,6 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
       }).catch((cause: unknown) => {
         if (controller.signal.aborted) return;
         setError(getError(cause));
-        setValidation({ status: "FLAGGED", flags: [getError(cause)] });
         setRecomputing(false);
       });
     }, 180);
@@ -359,18 +341,13 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
   }, [values, simulation, locallyAdjusted]);
 
   const updateParameter = (parameter: SimulationParameter, numeric: number) => {
-    const [min, max] = parameterBounds(parameter);
     if (!Number.isFinite(numeric)) return;
     setValues((current) => ({
       ...current,
-      [parameter.name]: Math.min(max, Math.max(min, numeric)),
+      [parameter.name]: numeric,
     }));
     setLocallyAdjusted(true);
     setRecomputing(true);
-    setValidation({
-      status: "PENDING",
-      flags: [],
-    });
   };
 
   const resetParameters = () => {
@@ -381,18 +358,12 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
     setValues(initial);
     setLocallyAdjusted(true);
     setRecomputing(true);
-    setValidation({ status: "PENDING", flags: [] });
   };
 
-  const recognitionLowConfidence =
-    recognition?.stage === "RECOGNITION_FAILED" ||
-    (!manualCorrectionDone &&
-      typeof recognition?.confidence === "number" &&
-      recognition.confidence < 0.6);
+  const recognitionLowConfidence = recognition?.stage === "RECOGNITION_FAILED";
 
 
   const restartPreview = () => {
-    setRunValues(values);
     setSandboxKey(key => key + 1);
   };
   const onFolder = (folder: LibraryFolder) => setFolders(current => [...current, folder]);
@@ -404,7 +375,6 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
     setSavedMessage(`Đã lưu: ${item.title}`);
     setSaveOpen(false);
   };
-  const applyExample = (description: string) => { setText(description); setSourceMode("TEXT"); };
 
   return {
     canManageLearningContent,
@@ -418,8 +388,8 @@ export function useSimulationWorkspace(libraryState: LibraryWorkspaceState) {
       recognition, correction, setCorrection, editingRecognition, setEditingRecognition, recognitionLowConfidence,
       intent, revision, setRevision, normalize, handleRecognition, handleRevision, generate, reset,
     },
-    preview: { simulation, liveTimeline, runValues, sandboxKey, validation, renderError, setRenderError, restartPreview, recomputing },
-    experiment: { simulation, values, validation, updateParameter, resetParameters, applyExample },
+    preview: { simulation, liveTimeline, runValues, sandboxKey, validation, renderError, setRenderError: reportRenderError, restartPreview, recomputing },
+    experiment: { simulation, values, validation, updateParameter, resetParameters },
     explanation: { intent, revision, setRevision, handleRevision },
     save: {
       busy, saveOpen, savedMessage, renderError, currentSimulationId, canManageLearningContent, folders,

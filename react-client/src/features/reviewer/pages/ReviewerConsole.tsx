@@ -13,6 +13,7 @@ import { BenchmarksTab } from "../components/BenchmarksTab";
 import { ComplaintsDesk } from "../components/ComplaintsDesk";
 import { complaintsForReview } from "../../support/api/supportApi";
 import "../styles/reviewer.css";
+import "../../support/styles/complaints.css";
 
 /** Older links used ?view= / ?tab=; send them to the matching route. */
 const LEGACY: Record<string, string> = { overview: "", moderation: "moderation", library: "moderation", topics: "topics", schemas: "topics", modules: "topics", benchmarks: "benchmarks" };

@@ -23,7 +23,7 @@ function LibraryRows({ items, assignable }: Readonly<{ items: LibraryItem[]; ass
 export default function Library() {
   const user = useSessionStore(state => state.user);
   if (isStudentRole(user?.role)) {
-    return <Suspense fallback={<main className="route-loading" aria-busy="true" />}><StudentAssignments initialTab="library" /></Suspense>;
+    return <Suspense fallback={<main className="route-loading" aria-busy="true" />}><StudentAssignments /></Suspense>;
   }
   return <LibraryCatalog canManage={canTeach(user)} />;
 }

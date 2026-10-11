@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Flex, Spinner } from "@radix-ui/themes";
 import { getSharedSimulation } from "../../simulation/api/simulationApi";
-import PhysicsScene from "../../simulation/components/CanvasPhysicsScene";
+import PhysicsScene from "../../simulation/components/BackendSimulationView";
 import type { LibraryItem, Simulation } from "../../../shared/types/physlive";
 import { ReviewerDialog } from "../../reviewer/components/ReviewerDialog";
 import { indexAtTime } from "../../simulation/model/learningModel";

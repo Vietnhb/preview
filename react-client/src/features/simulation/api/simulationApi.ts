@@ -1,34 +1,29 @@
 import axiosClient from "../../../shared/api/client";
-import type { ResolvedEnd, Simulation } from "../../../shared/types/physlive";
+import type { Simulation } from "../../../shared/types/physlive";
 
 /**
  * API endpoints for physics simulation
  * Handles simulation execution, parameter adjustment, and dual validation
  */
 
-export type BackendSimulation = Omit<Simulation, "runId" | "valid" | "elapsedMilliseconds" | "parameters"> & {
+export type BackendSimulation = Omit<Simulation, "runId" | "valid" | "ready" | "elapsedMilliseconds" | "parameters"> & {
   simulationRunId: string;
+  success: boolean;
   validationPassed: boolean;
   computationTimeMs: number;
   adjustableParams?: Record<string, number>;
   parameters?: Record<string, number>;
+  rawResult?: unknown;
 };
 
 export const normalizeSimulation = (value: BackendSimulation): Simulation => {
-  const resolvedEnd: ResolvedEnd = value.resolvedEnd ?? {
-    time: value.time.at(-1) ?? 0,
-    reason: "unknown",
-    conditionReached: false,
-  };
   return {
     ...value,
-    // Some saved simulations carry no visualization block; every reader expects an object.
-    visualization: value.visualization ?? ({} as Simulation["visualization"]),
     runId: value.simulationRunId,
     valid: value.validationPassed,
-    ready: value.validationPassed,
+    ready: value.success,
     parameters: value.adjustableParams ?? value.parameters ?? {},
-    resolvedEnd,
+    result: value.rawResult ?? value.result,
     elapsedMilliseconds: value.computationTimeMs
   };
 };

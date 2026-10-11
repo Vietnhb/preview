@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AIService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AIService.class);
     private static final String NO_MATCH = "NO_MATCH";
     /** How many times the planner may ask for the laws of further topics before it must plan. */
     private static final int MAX_TOPIC_EXTENSIONS = 2;
@@ -70,6 +71,33 @@ public class AIService {
             throw ApiException.badRequest("Vui lòng nhập mô tả mô phỏng");
         }
         return understand(description, UUID.randomUUID().toString());
+    }
+
+    /** The backend interprets a correction; the client submits the prior contract and raw user input. */
+    public JsonNode revise(JsonNode intent, String text) {
+        if ("EXPLAIN".equals(intent.path("stage").asText())) requireSignedPlan(intent);
+        String description = intent.path("description").asText("");
+        String question = intent.path("question").asText("");
+        String revised = "CLARIFY".equals(intent.path("stage").asText()) && !question.isBlank()
+                ? description + "\n\nCâu hỏi đã hỏi người dùng: " + question + "\nNgười dùng trả lời: " + text
+                : description + "\n\nYêu cầu bổ sung/chỉnh sửa của người dùng: " + text;
+        return understandText(revised, null, null, null);
+    }
+
+    /** Runtime reports are diagnostics, never a new physics-validation result or a client-selected repair policy. */
+    public void reportRenderDiagnostic(JsonNode simulation, String message) {
+        requireSignedPlan(simulation);
+        String code = simulation.path("simulationSpec").path("visualProgram").path("code").asText("");
+        if (code.length() > maxProgramCharacters) throw ApiException.badRequest("Mã trình bày vượt quá giới hạn");
+        ObjectNode diagnostic = json.createObjectNode();
+        diagnostic.put("event", "SIMULATION_RENDER_FAILURE");
+        diagnostic.put("sessionId", simulation.path("sessionId").asText());
+        diagnostic.put("schemaId", simulation.path("schemaId").asText());
+        diagnostic.put("schemaVersion", simulation.path("schemaVersion").asText());
+        diagnostic.put("planSignature", simulation.path("planSignature").asText());
+        diagnostic.put("sourceChecksum", schemas.compiledChecksum(json.createObjectNode().put("code", code)));
+        diagnostic.put("message", message);
+        log.warn("{}", diagnostic);
     }
 
     public ObjectNode generate(JsonNode request) {

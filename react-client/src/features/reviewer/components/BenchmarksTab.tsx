@@ -7,7 +7,8 @@ import type { Benchmark, EvaluationPage } from "../model/reviewerTypes";
 import { formatDate, matches } from "../model/reviewerUtils";
 import { ReviewerDialog } from "./ReviewerDialog";
 import { ReviewerFormSelect, ReviewerIcon, ReviewerRefresh, ReviewerSearch, ReviewStatus } from "./ReviewerKit";
-import { asSpec, EMPTY_SPEC, finalizeSpec, SpecificationForm, SpecSummary, type Spec } from "./SpecificationForm";
+import { SpecificationForm, SpecSummary } from "./SpecificationForm";
+import { asSpec, EMPTY_SPEC, finalizeSpec, type Spec } from "../model/specification";
 
 type Filter = "MINE" | "ALL" | "DRAFT" | "IN_PROGRESS" | "GOLD_READY" | "ARCHIVED";
 const IN_PROGRESS = ["ACTIVE", "ANNOTATING", "DISAGREEMENT"];

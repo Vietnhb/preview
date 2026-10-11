@@ -56,6 +56,8 @@ public class SecurityConfig {
                 // Anonymous read access is restricted further by publication scope in the services.
                 .requestMatchers(GET, "/api/library/community", "/api/library/*/discussion",
                     "/api/simulations/shared/*", "/api/curriculum").permitAll()
+                // Public replays may report renderer failures; the service requires a valid signed plan.
+                .requestMatchers(POST, "/api/simulation/render-diagnostics").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api/auth/**", "/ws/**", "/actuator/health").permitAll()
                 .requestMatchers("/api/user/me", "/api/user/me/**").hasAnyRole(ADMIN, MANAGER, REVIEWER, SCHOOL, STAFF, STUDENT)
                 // ADMIN manages only MANAGER accounts; target-role restrictions remain in the service.

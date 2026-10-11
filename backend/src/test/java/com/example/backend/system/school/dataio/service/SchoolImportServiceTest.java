@@ -156,7 +156,7 @@ class SchoolImportServiceTest {
         var preview = service.preview(schoolId, new SchoolImport.Request(SchoolImport.Kind.USERS, rows));
         assertTrue(preview.canCommit()); assertEquals(2, preview.validRows());
         assertEquals("TEACH", preview.rows().get(1).data().get("permissions"));
-        var data = new HashMap<>(preview.rows().get(1).data()); data.put("permissions", "teach; department_head");
+        var data = new HashMap<>(preview.rows().get(1).data()); data.put("permissions", "teach; department_head_physics");
         var headPreview = service.preview(schoolId, new SchoolImport.Request(SchoolImport.Kind.USERS, List.of(new SchoolImport.Row(2, data))));
         when(admin.createUser(any())).thenReturn(created(3));
         service.commit(schoolId, reviewed(headPreview));

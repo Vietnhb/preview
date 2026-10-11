@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Text, TextArea } from "@radix-ui/themes";
-import { AdvancedJson, objectRows, RowsEditor } from "./JsonEditor";
+import { AdvancedJson, RowsEditor } from "./JsonEditor";
+import { objectRows } from "../model/jsonRows";
 import { CapabilitiesEditor } from "./CapabilitiesEditor";
 
 type Definition = Record<string, unknown>;

@@ -6,6 +6,7 @@ import { deleteLibraryItem, moveLibraryItem, renameLibraryItem, shareLibraryItem
 import { teacherLibraryStore } from "../hooks/useTeacherLibrary";
 import { getToken } from "../../../shared/lib/token";
 import Icon from "../../../shared/ui/LearningIcon";
+import { shareStatus } from "../model/shareStatus";
 import "../styles/library-actions.css";
 
 const SHARE_OPTIONS: { value: LibraryItem["visibility"]; label: string; help: string }[] = [
@@ -13,14 +14,6 @@ const SHARE_OPTIONS: { value: LibraryItem["visibility"]; label: string; help: st
   { value: "SHARED", label: "Trong trường", help: "Tổ trưởng bộ môn Vật lý của trường duyệt trước khi hiển thị." },
   { value: "PUBLIC", label: "Kho cộng đồng", help: "Người kiểm duyệt của PhysLive duyệt trước khi hiển thị." },
 ];
-
-/** Short review state of a shared item, shown in the share menu and on the library row. */
-export function shareStatus(item: LibraryItem) {
-  if (item.visibility === "PERSONAL") return "Đang chọn";
-  if (item.moderationStatus === "PENDING") return "Chờ duyệt";
-  if (item.moderationStatus === "REJECTED") return "Bị từ chối";
-  return "Đã duyệt";
-}
 
 export default function LibraryItemActions({ item, folders }: Readonly<{ item: LibraryItem; folders: LibraryFolder[] }>) {
   const trigger = useRef<HTMLButtonElement>(null);

@@ -4,7 +4,8 @@ import BrandMark from "../../../shared/ui/BrandMark";
 import Aurora from "../../../shared/effects/Aurora";
 import DotField from "../../../shared/effects/DotField";
 import { useEffectiveTheme } from "../../../shared/theme/themeStore";
-import { Magnetic, Marquee, Reveal, ScrollLine, ScrollProgress, SplitWords, SpotlightCard, useScrollSpy } from "../../../shared/effects/Motion";
+import { Magnetic, Marquee, Reveal, ScrollLine, ScrollProgress, SplitWords, SpotlightCard } from "../../../shared/effects/Motion";
+import { useScrollSpy } from "../../../shared/hooks/useScrollSpy";
 import s from "./SiteInfo.module.css";
 
 type SiteInfoProps = { kind: "about" | "terms" };

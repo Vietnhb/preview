@@ -7,7 +7,7 @@ import LearningIcon from "../../../shared/ui/LearningIcon";
 import { useSessionStore } from "../../../shared/auth/sessionStore";
 import { isDepartmentHead } from "../../../shared/auth/permissions";
 import { mySupportItems, type SimulationComplaint, type SupportStatus } from "../../support/api/supportApi";
-import { COMPLAINT_STATUS } from "../../support/components/SimulationComplaintDialog";
+import { COMPLAINT_STATUS } from "../../support/model/complaintStatus";
 import "../../support/styles/complaints.css";
 import "../../simulation/styles/learning.css";
 import "../../simulation/styles/lab.css";
@@ -70,11 +70,9 @@ export function TeacherComplaintsPage() {
   const [items, setItems] = useState<SimulationComplaint[] | null>(null);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("ALL");
-  const load = useCallback(async () => {
-    setError("");
-    try { setItems(complaintsOnly(await mySupportItems())); }
-    catch { setItems(current => current ?? []); setError("Chưa tải được danh sách khiếu nại. Vui lòng thử lại."); }
-  }, []);
+  const load = useCallback(() => mySupportItems().then(
+    all => { setItems(complaintsOnly(all)); setError(""); },
+    () => { setItems(current => current ?? []); setError("Chưa tải được danh sách khiếu nại. Vui lòng thử lại."); }), []);
   useEffect(() => { void load(); }, [load]);
   const visible = useMemo(() => (items ?? []).filter(item => filter === "ALL" || item.status === filter), [items, filter]);
   const count = (status: SupportStatus) => (items ?? []).filter(item => item.status === status).length;

@@ -10,7 +10,6 @@ import Aurora from "../../../shared/effects/Aurora";
 import DotField from "../../../shared/effects/DotField";
 import { Magnetic, Marquee, Reveal, SplitWords, SpotlightCard, TiltCard } from "../../../shared/effects/Motion";
 import RotatingText from "../../../shared/effects/reactbits/RotatingText";
-import ProjectileExperiment from "../../simulation/components/ProjectileExperiment";
 import { Circuit, Collision, Pendulum, Wave } from "../components/PhysicsVignettes";
 import s from "./Home.module.css";
 
@@ -112,7 +111,7 @@ export default function Home() {
                     : <Link className={s.primary} to="/signup">Đăng ký cho trường <span aria-hidden="true">→</span></Link>}
                 </span>
               </Magnetic>
-              <a className={s.ghost} href="#projectile-experiment">Thử thí nghiệm ngay</a>
+              <Link className={s.ghost} to="/workspace">Thử mô phỏng</Link>
             </motion.div>
           </div>
           <motion.div
@@ -123,7 +122,11 @@ export default function Home() {
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.5 }}
           >
             <div className={s.stageGlow} aria-hidden="true" />
-            <div className="glow-frame"><ProjectileExperiment /></div>
+            <div className="glow-frame" style={{ padding: 32 }}>
+              <h2>Mô phỏng từ đề bài của bạn</h2>
+              <p>Nhập tình huống, xem mô hình và khám phá kết quả tính toán.</p>
+              <Link className={s.primary} to="/workspace">Mở không gian mô phỏng</Link>
+            </div>
           </motion.div>
           <Marquee items={topics} className={s.marquee} />
         </section>

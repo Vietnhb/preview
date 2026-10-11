@@ -48,7 +48,7 @@ export function AdminOverviewPage() {
     <div className="directory-heading"><div><Heading as="h1" size="7">{firstName ? `Chào ${firstName}` : "Tổng quan"}</Heading><Text as="p" size="2" color="gray" mt="1">Bạn quản lý tài khoản vận hành (MANAGER) và xem được toàn bộ tài khoản trong hệ thống.</Text></div>
       <Button asChild size="3"><Link to="/admin/users">Mở danh sách tài khoản</Link></Button></div>
     {error && <div className="ops-alert" role="alert">{error}</div>}
-    <div className="directory-stats">{stats.map(stat => <Card key={stat.label} size="3" className="directory-stat"><Text as="p" size="2" color="gray">{stat.label}</Text><Heading as="p" size="8" mt="2">{loading ? "—" : <CountUp to={stat.value} duration={1} />}</Heading></Card>)}</div>
+    <div className="directory-stats">{stats.map(stat => <Card key={stat.label} size="3" className="directory-stat"><Text as="p" size="2" color="gray">{stat.label}</Text><Heading asChild size="8" mt="2"><p>{loading ? "—" : <CountUp to={stat.value} duration={1} />}</p></Heading></Card>)}</div>
     <div className="admin-home__grid">
       <Card size="3"><Heading as="h2" size="4" mb="3">Tài khoản theo vai trò</Heading>
         <ul className="admin-home__roles">{ROLE_ORDER.map(role => {

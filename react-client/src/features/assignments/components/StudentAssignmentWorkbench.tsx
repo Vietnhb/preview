@@ -1,6 +1,6 @@
 import { Badge, Button, Callout, Card, Heading, IconButton, Progress, Spinner, Text, TextArea, TextField } from "@radix-ui/themes";
 import { motion, useReducedMotion } from "motion/react";
-import PhysicsScene from "../../simulation/components/CanvasPhysicsScene";
+import PhysicsScene from "../../simulation/components/BackendSimulationView";
 import LearningIcon from "../../../shared/ui/LearningIcon";
 import type { Assignment, AssignmentActivityType, Simulation } from "../../../shared/types/physlive";
 import SavedScene from "../../simulation/components/SavedScene";

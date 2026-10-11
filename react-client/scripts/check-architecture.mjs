@@ -9,7 +9,7 @@ const globalStyles = new Set(["tokens.css", "base.css", "modern-roles.css", "adm
 const features = new Set(["account", "assignments", "auth", "billing", "curriculum", "library",
   "management", "public", "reviewer", "school", "simulation", "support"]);
 const featureLayers = new Set(["api", "components", "hooks", "layout", "model", "pages", "styles"]);
-const sharedLayers = new Set(["api", "auth", "effects", "hooks", "layout", "lib", "types", "ui"]);
+const sharedLayers = new Set(["api", "auth", "effects", "hooks", "layout", "lib", "theme", "types", "ui"]);
 const foundationLayers = new Set(["api", "model", "types", "engine", "auth", "lib", "config"]);
 const presentationLayers = new Set(["components", "hooks", "layout", "pages", "effects", "ui"]);
 const publicFeatureLayers = new Set(["api", "types", "model", "components"]);

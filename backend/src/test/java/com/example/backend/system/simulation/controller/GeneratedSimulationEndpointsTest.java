@@ -38,9 +38,54 @@ class GeneratedSimulationEndpointsTest {
         ReflectionTestUtils.setField(ai, "schemas", schemas);
         ReflectionTestUtils.setField(ai, "equations", equations);
         ReflectionTestUtils.setField(ai, "storage", storage);
+        ReflectionTestUtils.setField(ai, "maxProgramCharacters", 50000);
         ReflectionTestUtils.setField(ai, "signingKey", "endpoint-test-key".getBytes(StandardCharsets.UTF_8));
         when(schemas.compiledChecksum(any())).thenAnswer(call -> call.getArgument(0).toString());
         mvc = MockMvcBuilders.standaloneSetup(new AIController(ai, new UploadProperties(1024, java.util.Set.of("image/png")))).setControllerAdvice(new GlobalExceptionHandler()).build();
+    }
+
+    @Test
+    void revisionKeepsTheRawUserTextAndMovesClarificationContextToBackend() throws Exception {
+        ObjectNode intent = json.createObjectNode().put("stage", "CLARIFY").put("sessionId", "s1")
+                .put("description", "Hai vật tương tác").put("question", "Va chạm hay kéo bằng dây?");
+        String correction = "  Va chạm; giữ nguyên m = 1.23456789 kg  ";
+        String interpreted = "Hai vật tương tác\n\nCâu hỏi đã hỏi người dùng: Va chạm hay kéo bằng dây?\nNgười dùng trả lời: " + correction;
+        doReturn(json.createObjectNode().put("stage", "EXPLAIN"))
+                .when(ai).understandText(eq(interpreted), isNull(), isNull(), isNull());
+        ObjectNode request = json.createObjectNode().put("text", correction);
+        request.set("intent", intent);
+        mvc.perform(post("/api/simulation/revise").contentType(MediaType.APPLICATION_JSON).content(request.toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stage").value("EXPLAIN"));
+        verify(ai).understandText(eq(interpreted), isNull(), isNull(), isNull());
+    }
+
+    @Test
+    void revisionRejectsAnAlteredSignedPhysicsPlan() throws Exception {
+        ObjectNode intent = json.createObjectNode().put("stage", "EXPLAIN").put("schemaId", "motion")
+                .put("schemaVersion", "1.0").put("description", "Motion");
+        ObjectNode spec = intent.putObject("simulationSpec").put("durationSeconds", 2);
+        intent.put("planSignature", (String) ReflectionTestUtils.invokeMethod(ai, "signPlan", intent));
+        spec.put("durationSeconds", 999);
+        ObjectNode request = json.createObjectNode().put("text", "Thêm một vật");
+        request.set("intent", intent);
+        mvc.perform(post("/api/simulation/revise").contentType(MediaType.APPLICATION_JSON).content(request.toString()))
+                .andExpect(status().isConflict());
+        verify(ai, never()).understandText(any(), any(), any(), any());
+    }
+
+    @Test
+    void rendererReportsAreRecordedWithoutChangingOrRecomputingThePhysicsPlan() throws Exception {
+        ObjectNode simulation = json.createObjectNode().put("schemaId", "motion").put("schemaVersion", "1.0");
+        simulation.putObject("simulationSpec").put("durationSeconds", 2).putObject("visualProgram").put("code", "original code");
+        simulation.put("planSignature", (String) ReflectionTestUtils.invokeMethod(ai, "signPlan", simulation));
+        ObjectNode request = json.createObjectNode().put("message", "SVG_CONTRACT: unsupported element <script>; original SVG was not modified.");
+        request.set("simulation", simulation);
+        String original = simulation.toString();
+        mvc.perform(post("/api/simulation/render-diagnostics").contentType(MediaType.APPLICATION_JSON).content(request.toString()))
+                .andExpect(status().isOk());
+        org.junit.jupiter.api.Assertions.assertEquals(original, simulation.toString());
+        verify(equations, never()).compute(any(), any(), any());
+        verify(ai, never()).generate(any());
     }
 
     @Test

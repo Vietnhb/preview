@@ -77,6 +77,8 @@ export const openSharedGeneratedSimulation = (id: string) =>
   axiosClient.get<GeneratedSimulationResult>(`/simulations/shared/${id}`, { params: { view: "generated" } }).then(r => r.data);
 export const updateSavedSimulationVisual = (id: string, simulation: GeneratedSimulationResult) =>
   axiosClient.patch<void>(`/simulation/saved/${id}/visual`, simulation);
+export const reportSimulationRenderFailure = (simulation: GeneratedSimulationResult, message: string) =>
+  axiosClient.post<void>("/simulation/render-diagnostics", { simulation, message });
 export const understandSimulationText = (description: string) =>
   axiosClient.post<IntentResult>("/simulation/understand", { description }).then(response => response.data);
 
@@ -91,9 +93,7 @@ export const confirmSimulationInput = (sessionId: string, recognizedText: string
   }).then(response => response.data);
 
 export const reviseSimulationIntent = (intent: IntentResult, text: string) =>
-  understandSimulationText(intent.stage === "CLARIFY" && intent.question
-    ? `${intent.description}\n\nCâu hỏi đã hỏi người dùng: ${intent.question}\nNgười dùng trả lời: ${text}`
-    : `${intent.description}\n\nYêu cầu bổ sung/chỉnh sửa của người dùng: ${text}`);
+  axiosClient.post<IntentResult>("/simulation/revise", { intent, text }).then(response => response.data);
 
 export const confirmSimulationExplanation = (intent: IntentResult, renderDiagnostics?: { code: string; message: string }) =>
   axiosClient.post<GeneratedSimulationResult>("/simulation/generate", {
@@ -104,13 +104,5 @@ export const recomputeSimulation = (simulation: GeneratedSimulationResult, param
   axiosClient.post<{ solverTimeline: SolverTimeline; validation: SimulationValidation }>("/simulation/compute", {
     schemaId: simulation.schemaId, schemaVersion: simulation.schemaVersion,
     description: simulation.description, planSignature: simulation.planSignature,
-    simulationSpec: {
-      durationSeconds: simulation.simulationSpec.durationSeconds,
-      ...(simulation.simulationSpec.durationParameter ? { durationParameter: simulation.simulationSpec.durationParameter } : {}),
-      parameters: simulation.simulationSpec.parameters,
-      physicsModels: simulation.simulationSpec.physicsModels,
-      physicsCoverage: simulation.simulationSpec.physicsCoverage,
-      ...(simulation.simulationSpec.observables ? { observables: simulation.simulationSpec.observables } : {}),
-      ...(simulation.simulationSpec.relatedSchemas ? { relatedSchemas: simulation.simulationSpec.relatedSchemas } : {}),
-    }, parameters,
+    simulationSpec: simulation.simulationSpec, parameters,
   }, { signal }).then(response => response.data);

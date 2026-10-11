@@ -5,7 +5,7 @@ import type { LibraryItem } from "../../../shared/types/physlive";
 import { LoadState } from "../../../shared/ui/OperationsKit";
 import { useAction, useResource } from "../../../shared/hooks/operationsData";
 import { matches, timeAgo } from "../model/reviewerUtils";
-import { useReviewerCatalog } from "../model/useReviewerCatalog";
+import { useReviewerCatalog } from "../hooks/useReviewerCatalog";
 import { ReviewerIcon, ReviewerRefresh, ReviewerSearch, ReviewStatus } from "./ReviewerKit";
 import { SimulationPreviewPane } from "./SimulationPreviewPane";
 

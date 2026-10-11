@@ -41,7 +41,7 @@ export default function SimulationStage({ input, preview, complaint, readoutsTar
                 models={simulation.simulationSpec.physicsModels}
                 fieldMeta={simulation.simulationSpec.solverFieldMeta as Record<string, { unit?: string; label?: string }> | undefined}
                 observables={simulation.simulationSpec.observables}
-                verificationStatus={validation?.status ?? "VISUAL_ONLY_UNVERIFIED"}
+                verificationStatus={validation?.status ?? "UNKNOWN"}
                 onRenderError={setRenderError}
                 toolbarActions={stageActions}
                 readoutsTarget={readoutsTarget}
@@ -52,7 +52,7 @@ export default function SimulationStage({ input, preview, complaint, readoutsTar
               <><div className="sim-player__actions">{stageActions}</div><p className="simulation-muted">Chưa có dữ liệu chuyển động để hiển thị. Hãy thử dựng lại mô phỏng.</p></>
             )}
             {renderError && <button type="button" className="simulation-restart-button" disabled={busy}
-              onClick={() => void generate({ code: visualSource(simulation), message: renderError + "\n" + visualFeedback.trim().slice(0, 3000) })}>
+              onClick={() => void generate({ code: visualSource(simulation), message: renderError + "\n" + visualFeedback })}>
               {busy ? "AI đang sửa cảnh minh họa…" : "Yêu cầu AI sửa cảnh minh họa"}
             </button>}
             <label className="simulation-muted">Yêu cầu chỉnh hình ảnh
@@ -62,7 +62,7 @@ export default function SimulationStage({ input, preview, complaint, readoutsTar
             </label>
             {!renderError && <button type="button" className="simulation-restart-button" disabled={busy} onClick={() => void generate({
               code: visualSource(simulation),
-              message: "Redesign the current visual presentation as a polished, contextual illustrated world following the original user description and the rendering contract's art direction. Improve clarity, artwork, environment and composition; preserve the signed physics plan. This is visual design feedback, not physics validation.\n" + visualFeedback.trim().slice(0, 3000),
+              message: visualFeedback,
             })}>{busy ? "AI đang thiết kế lại…" : "Thiết kế lại hình ảnh bằng AI"}</button>}
             <p className="simulation-muted">
               Kéo thanh thông số để tính lại. Chuyển động, đồ thị và số liệu được tính từ mô hình vật lý; hình minh họa do AI vẽ chỉ để trình bày, không phải bằng chứng vật lý.

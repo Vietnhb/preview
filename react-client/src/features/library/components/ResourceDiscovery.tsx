@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { Avatar, Badge, Button, Dialog, IconButton, SegmentedControl, Select, Spinner, TextField, Theme } from "@radix-ui/themes";
 import { ArrowTopRightIcon, ChevronRightIcon, Cross2Icon, MagnifyingGlassIcon, PauseIcon, PlayIcon, ReaderIcon, ResetIcon, StarFilledIcon } from "@radix-ui/react-icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import PhysicsScene from "../../simulation/components/CanvasPhysicsScene";
+import PhysicsScene from "../../simulation/components/BackendSimulationView";
 import SavedScene from "../../simulation/components/SavedScene";
 import type { GeneratedSimulationResult } from "../../simulation/api/simulationUnderstandingApi";
 import type { Curriculum, LibraryItem, Simulation } from "../../../shared/types/physlive";

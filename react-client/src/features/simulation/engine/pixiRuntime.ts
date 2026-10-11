@@ -153,23 +153,36 @@ let worker, lastHeartbeat = Date.now(), stopped = false, limits, texturePixels =
 const assetPixels = new Map();
 const send = (type, extra = {}) => parent.postMessage({channel: 'pixi-runtime', type, ...extra}, '*');
 function stop(message) { stopped = true; worker?.terminate(); send('error', {message}); }
-// Sanitise the authored document without inventing colours, framing, text or geometry.
+// Validate the authored document. Reject unsupported content with diagnostics; never remove it.
 function svgRoot(source) {
-  const markup = source.trim().replace(/^<\?xml[^>]*>\s*/i, '').replace(/^<!doctype[^>]*>\s*/i, '');
-  if (!/^<svg[\s>]/i.test(markup)) throw Error('SVG asset must be a complete svg document.');
-  const cleaned = DOMPurify.sanitize(markup, {USE_PROFILES: {svg: true, svgFilters: true},
-    FORBID_TAGS: ['script','foreignObject','image','a','style','animate','animateTransform','set'],
-    FORBID_ATTR: ['href','xlink:href','style']});
-  const root = new DOMParser().parseFromString(cleaned, 'text/html').body.firstElementChild;
-  if (!root || root.localName !== 'svg') throw Error('SVG asset must contain drawable SVG elements.');
-  for (const node of [root, ...root.querySelectorAll('*')]) for (const attr of [...node.attributes])
-    if (/url\s*\(/i.test(attr.value) && !/^url\(#[\w.-]+\)$/.test(attr.value)) throw Error('External SVG resources forbidden.');
+  const document = new DOMParser().parseFromString(source, 'image/svg+xml');
+  if (document.querySelector('parsererror')) throw Error('SVG_CONTRACT: invalid XML; original SVG was not modified.');
+  const root = document.documentElement;
+  if (document.doctype) throw Error('SVG_CONTRACT: DOCTYPE is unsupported; original SVG was not modified.');
+  if ([...(document.childNodes || [])].some(node => node.nodeType === 7))
+    throw Error('SVG_CONTRACT: processing instructions are unsupported; original SVG was not modified.');
+  if (!root || root.localName !== 'svg' || root.namespaceURI !== SVG_NS)
+    throw Error('SVG_CONTRACT: expected a complete SVG document with its namespace.');
+  const forbidden = new Set(['script','foreignObject','image','a','style','animate','animateTransform','set']);
+  for (const node of [root, ...root.querySelectorAll('*')]) {
+    if (node.namespaceURI !== SVG_NS || forbidden.has(node.localName))
+      throw Error('SVG_CONTRACT: unsupported element <' + node.localName + '>; original SVG was not modified.');
+    for (const attr of [...node.attributes]) {
+      if (/^on/i.test(attr.localName)) throw Error('SVG_CONTRACT: event attribute ' + attr.name + ' is unsupported.');
+      if (attr.localName === 'href' && !/^#[\w.-]+$/.test(attr.value))
+        throw Error('SVG_CONTRACT: external reference in ' + attr.name + ' is unsupported.');
+      const localUrls = /url\s*\(\s*(['"]?)#[\w.-]+\1\s*\)/gi;
+      if (/url\s*\(/i.test(attr.value.replace(localUrls, '')))
+        throw Error('SVG_CONTRACT: external SVG resources forbidden in ' + attr.name + '.');
+      if (attr.localName === 'style' && /@import|expression\s*\(|javascript\s*:|\\/i.test(attr.value))
+        throw Error('SVG_CONTRACT: unsupported inline style.');
+    }
+  }
   const box = (root.getAttribute('viewBox') || '').trim().split(/[ ,]+/).map(Number);
   const hasBox = box.length === 4 && box.every(Number.isFinite) && box[2] > 0 && box[3] > 0;
   const numeric = name => /^[\d.]+(?:px)?$/.test(root.getAttribute(name) || '') ? parseFloat(root.getAttribute(name)) : NaN;
   if (!hasBox && !(numeric('width') > 0 && numeric('height') > 0))
     throw Error('SVG asset needs an explicit viewBox or positive width and height.');
-  if (!root.getAttribute('xmlns')) root.setAttribute('xmlns', SVG_NS);
   return root;
 }
 async function svgBitmap(source, screen, fitWidth, fitHeight) {
@@ -229,7 +242,7 @@ addEventListener('message', ({source, data}) => {
         texturePixels = Math.max(0, texturePixels - (assetPixels.get(result.id) || 0)); assetPixels.delete(result.id);
       } else if (['tick','ready','ended'].includes(result.type)) {
         lastHeartbeat = Date.now(); send(result.type, {t: result.t});
-      } else if (result.type === 'error') stop(String(result.message).slice(0,2400));
+      } else if (result.type === 'error') stop(String(result.message));
     };
     worker.onerror = event => stop(event.message || 'PixiJS worker failed.');
     lastHeartbeat = Date.now();

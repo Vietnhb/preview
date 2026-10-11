@@ -8,7 +8,7 @@ import { ReviewerDialog } from "./ReviewerDialog";
 import type { Version } from "../model/reviewerTypes";
 import { formatDate, matches } from "../model/reviewerUtils";
 import { ReviewerIcon, ReviewerRefresh, ReviewerSearch, ReviewStatus } from "./ReviewerKit";
-import { objectRows } from "./JsonEditor";
+import { objectRows } from "../model/jsonRows";
 import { CapabilitiesSummary } from "./CapabilitiesEditor";
 
 type Lifecycle = "DRAFT" | "APPROVED" | "RETIRED";

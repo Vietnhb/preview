@@ -1,5 +1,5 @@
 import { Heading, IconButton, Text, TextField } from "@radix-ui/themes";
-import { clampControlValue, hasValidControlBounds, isWithinControlBounds, type LearningControl } from "../../simulation/model/learningModel";
+import { hasValidControlBounds, isWithinControlBounds, type LearningControl } from "../../simulation/model/learningModel";
 import LearningIcon from "../../../shared/ui/LearningIcon";
 import { StudentSlider } from "./StudentSlider";
 
@@ -21,14 +21,13 @@ export function StudentParameterPanel({ controls, initialValues, draft, error, o
       const draftValue = draft[control.key] ?? "";
       const numericValue = Number(draftValue);
       const validBounds = hasValidControlBounds(control);
-      const initialValue = Number.isFinite(initialValues[control.key]) ? initialValues[control.key] : control.min;
       const validValue = isWithinControlBounds(control, numericValue);
-      const rangeValue = clampControlValue(control, validValue ? numericValue : initialValue);
       const invalid = draftValue.trim() === "" || !validValue;
       return <div className="student-lab-control" key={control.key}>
         <div className="student-lab-label"><span className="student-lab-symbol">{control.symbol}</span><Text as="label" size="2" htmlFor={`student-parameter-${control.key}`}>{control.label}</Text></div>
         <TextField.Root className="student-lab-value" id={`student-parameter-${control.key}`} size="1" aria-invalid={invalid} type="number" inputMode="decimal" step="any" min={control.min} max={control.max} value={draftValue} onChange={event => onChange(control.key, event.target.value)} disabled={!validBounds}><TextField.Slot side="right"><Text size="1" color="gray">{control.unit}</Text></TextField.Slot></TextField.Root>
-        <StudentSlider className="student-lab-range" size="1" label={`Điều chỉnh ${control.label.toLowerCase()}`} min={validBounds ? control.min : 0} max={validBounds && control.max > control.min ? control.max : validBounds ? control.min + 1 : 1} step={control.step > 0 ? control.step : .1} value={[rangeValue]} disabled={!validBounds || control.min === control.max} onValueChange={values => onChange(control.key, String(values[0]))} />
+        {validBounds && control.min < control.max && control.step > 0 && validValue && draftValue.trim() !== "" &&
+          <StudentSlider className="student-lab-range" size="1" label={`Điều chỉnh ${control.label.toLowerCase()}`} min={control.min} max={control.max} step={control.step} value={[numericValue]} onValueChange={values => onChange(control.key, String(values[0]))} />}
         <div className="student-lab-range-labels"><Text size="1" color="gray">{control.min}</Text><Text size="1" color="gray">{control.max} {control.unit}</Text></div>
         {invalid && <Text as="p" size="1" color="red" className="student-lab-error">Nhập giá trị từ {control.min} đến {control.max} {control.unit}.</Text>}
       </div>;
